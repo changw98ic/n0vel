@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:writing_assistant/l10n/app_localizations.dart';
 
-import '../../../features/review/data/review_service.dart';
+import '../../../features/review/data/review_workflow_runner.dart';
 import '../../../features/workflow/domain/workflow_models.dart';
 
 class ReviewProgressDialog extends StatefulWidget {
@@ -44,13 +44,13 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
   Future<void> _startReview() async {
     final s = S.of(context)!;
     try {
-      final reviewService = Get.find<ReviewService>();
+      final workflowRunner = Get.find<ReviewWorkflowRunner>();
       setState(() {
         _currentStatus = s.review_progressLoading;
         _progress = 0.1;
       });
 
-      final taskId = await reviewService.startReviewWorkflow(
+      final taskId = await workflowRunner.start(
         workId: widget.workId,
         scope: widget.scope,
         dimensionNames: widget.dimensions,
@@ -58,7 +58,7 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
         chapterId: widget.chapterId,
       );
 
-      await _pollTaskStatus(reviewService, taskId);
+      await _pollTaskStatus(workflowRunner, taskId);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -70,12 +70,12 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
   }
 
   Future<void> _pollTaskStatus(
-    ReviewService reviewService,
+    ReviewWorkflowRunner workflowRunner,
     String taskId,
   ) async {
     final s = S.of(context)!;
     while (mounted) {
-      final task = await reviewService.getWorkflowStatus(taskId);
+      final task = await workflowRunner.getStatus(taskId);
       if (task == null) {
         throw StateError('Review task disappeared: $taskId');
       }

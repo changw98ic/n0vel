@@ -3,10 +3,6 @@ import 'dart:convert';
 
 import '../../../core/services/ai/ai_service.dart';
 import '../../../core/services/ai/models/model_tier.dart' show AIFunction;
-import '../../../features/editor/data/chapter_repository.dart';
-import '../../workflow/data/workflow_execution_service.dart';
-import '../../workflow/data/workflow_repository.dart';
-import '../../workflow/domain/workflow_models.dart';
 import '../domain/review_report.dart';
 import '../domain/review_result.dart';
 import 'review_repository.dart';
@@ -14,19 +10,8 @@ import 'review_repository.dart';
 class ReviewService {
   final AIService _aiService;
   final ReviewRepository _repository;
-  final WorkflowRepository? _workflowRepository;
-  final WorkflowExecutionService? _workflowExecutionService;
-  final ChapterRepository? _chapterRepository;
 
-  ReviewService(
-    this._aiService,
-    this._repository, {
-    WorkflowRepository? workflowRepository,
-    WorkflowExecutionService? workflowExecutionService,
-    ChapterRepository? chapterRepository,
-  }) : _workflowRepository = workflowRepository,
-       _workflowExecutionService = workflowExecutionService,
-       _chapterRepository = chapterRepository;
+  ReviewService(this._aiService, this._repository);
 
   Future<ReviewReport> reviewChapter(
     String chapterId, {
@@ -79,43 +64,6 @@ class ReviewService {
     return reports;
   }
 
-  Future<String> startReviewWorkflow({
-    required String workId,
-    required String scope,
-    required List<String> dimensionNames,
-    String? chapterId,
-    String? volumeId,
-  }) async {
-    _ensureWorkflowSupport();
-    final workflowExecutionService = _workflowExecutionService!;
-
-    final chapterIds = await _resolveChapterIds(
-      workId: workId,
-      scope: scope,
-      chapterId: chapterId,
-      volumeId: volumeId,
-    );
-    if (chapterIds.isEmpty) {
-      throw StateError('No chapters available for review');
-    }
-
-    final dimensions = _parseDimensions(dimensionNames);
-    final taskId = await _repository.createReviewTask(
-      workId: workId,
-      chapterIds: chapterIds,
-      dimensions: dimensions,
-    );
-
-    await workflowExecutionService.executeTask(taskId);
-    return taskId;
-  }
-
-  Future<WorkflowTaskSummary?> getWorkflowStatus(String taskId) async {
-    _ensureWorkflowSupport();
-    final workflowRepository = _workflowRepository!;
-    return workflowRepository.getTaskById(taskId);
-  }
-
   Future<ReviewStatistics> getReviewStatistics(String workId) {
     return _repository.getReviewStatistics(workId);
   }
@@ -128,11 +76,7 @@ class ReviewService {
     return _repository.getReviewReport(chapterId);
   }
 
-  Future<void> updateIssueStatus(
-    String issueId,
-    IssueStatus status, {
-    String? fixedBy,
-  }) {
+  Future<void> updateIssueStatus(String issueId, IssueStatus status, {String? fixedBy}) {
     return _repository.updateIssueStatus(
       issueId,
       status,
@@ -267,61 +211,4 @@ $dimLines
     );
   }
 
-  Future<List<String>> _resolveChapterIds({
-    required String workId,
-    required String scope,
-    String? chapterId,
-    String? volumeId,
-  }) async {
-    final chapterRepository = _chapterRepository;
-    if (chapterRepository == null) {
-      throw StateError('ChapterRepository is not available');
-    }
-
-    if (scope == 'chapter' && chapterId != null && chapterId.isNotEmpty) {
-      final chapter = await chapterRepository.getChapterById(chapterId);
-      return chapter == null ? const <String>[] : <String>[chapter.id];
-    }
-
-    final chapters = await chapterRepository.getChaptersByWorkId(workId);
-    if (scope == 'volume' && volumeId != null && volumeId.isNotEmpty) {
-      return chapters
-          .where((chapter) => chapter.volumeId == volumeId)
-          .map((chapter) => chapter.id)
-          .toList();
-    }
-
-    return chapters.map((chapter) => chapter.id).toList();
-  }
-
-  List<ReviewDimension> _parseDimensions(List<String> rawNames) {
-    if (rawNames.isEmpty) {
-      return ReviewDimension.values;
-    }
-
-    final parsed = rawNames
-        .map(_normalizeDimensionName)
-        .map(
-          (name) => ReviewDimension.values.firstWhere(
-            (dimension) => _normalizeDimensionName(dimension.name) == name,
-            orElse: () => ReviewDimension.consistency,
-          ),
-        )
-        .toSet()
-        .toList();
-
-    return parsed.isEmpty ? ReviewDimension.values : parsed;
-  }
-
-  String _normalizeDimensionName(String value) {
-    return value.toLowerCase().replaceAll('_', '');
-  }
-
-  void _ensureWorkflowSupport() {
-    if (_workflowRepository == null ||
-        _workflowExecutionService == null ||
-        _chapterRepository == null) {
-      throw StateError('Workflow review support is not configured');
-    }
-  }
 }

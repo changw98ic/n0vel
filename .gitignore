@@ -17,6 +17,25 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+# IDE 和编辑器设置
+.vscode/
+
+# 工具和缓存目录
+.claude/
+.codex_tmp/
+.dart-tool/
+.omc/
+.omx/
+
+# 其他常见需要忽略的内容
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+dist/
+build/
+*.tmp
+*.temp
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
