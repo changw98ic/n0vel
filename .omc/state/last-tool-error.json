@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__dart-mcp-server__flutter_driver",
+  "tool_input_preview": "{\"command\":\"tap\",\"finderType\":\"ByText\",\"text\":\"作品\"}",
+  "error": "{\"isError\":true,\"error\":\"Timed out waiting for Flutter Driver response.\"}",
+  "timestamp": "2026-04-09T10:27:12.895Z",
+  "retry_count": 1
+}

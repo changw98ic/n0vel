@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"sed -i \\\"s/Get\\\\.lazyPut<\\\\([A-Za-z]*\\\\)>/Get.lazyPut<\\\\1>/g; s/Get\\\\.lazyPut(\\\\(() => [^)]*\\\\))/Get.lazyPut(\\\\1, fenix: true)/g\\\" lib/core/bindings/initial_binding.dart\",\"description\":\"Ad...",
+  "error": "Exit code 2\nsed: can't read lib/core/bindings/initial_binding.dart: No such file or directory",
+  "timestamp": "2026-04-07T14:56:32.481Z",
+  "retry_count": 2
+}

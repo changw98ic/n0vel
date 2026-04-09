@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_oh-my-claudecode_t__state_clear",
+      "Bash(flutter analyze:*)",
+      "Bash(dart run:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}
