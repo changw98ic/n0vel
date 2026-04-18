@@ -47,6 +47,8 @@ import '../../modules/reading_mode/reader/reader_view.dart';
 import '../../modules/statistics/statistics/statistics_binding.dart';
 import '../../modules/statistics/statistics/statistics_view.dart';
 import '../../modules/ai_chat/ai_chat_binding.dart';
+import '../../modules/workflow/view/workflow_task_list_page.dart';
+import '../../modules/workflow/view/workflow_task_page.dart';
 // 旧 binding（仍需用于仓库注入）
 import '../../features/work/bindings/work_binding.dart';
 
@@ -187,5 +189,19 @@ final getPages = [
     name: AppRoutes.stats,
     page: () => const StatisticsView(),
     binding: StatisticsBinding(),
+  ),
+
+  // ── Workflow 任务 ──
+  GetPage(
+    name: AppRoutes.workflowTasks,
+    page: () => WorkflowTaskListPage(
+      workId: Get.parameters['workId']!,
+    ),
+  ),
+  GetPage(
+    name: AppRoutes.workflowTask,
+    page: () => WorkflowTaskPage(
+      taskId: Get.parameters['taskId']!,
+    ),
   ),
 ];

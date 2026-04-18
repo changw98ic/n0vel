@@ -1,7 +1,7 @@
 {
-  "tool_name": "mcp__dart-mcp-server__flutter_driver",
-  "tool_input_preview": "{\"command\":\"waitFor\",\"finderType\":\"ByText\",\"text\":\"作品\",\"timeout\":\"10000\"}",
-  "error": "{\"isError\":true,\"error\":\"Timed out waiting for Flutter Driver response.\"}",
-  "timestamp": "2026-04-09T10:30:38.484Z",
-  "retry_count": 2
+  "tool_name": "mcp__exa__web_search_exa",
+  "tool_input_preview": "{\"query\":\"Wave Terminal download Windows\"}",
+  "error": "web_search_exa error (401): API key must be provided as an argument or as an environment variable (EXA_API_KEY)\nTimestamp: 2026-04-16T04:01:18.801Z",
+  "timestamp": "2026-04-16T04:01:19.980Z",
+  "retry_count": 1
 }

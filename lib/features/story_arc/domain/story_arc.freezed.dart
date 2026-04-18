@@ -12,7 +12,8 @@ part of 'story_arc.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 StoryArcModel _$StoryArcModelFromJson(Map<String, dynamic> json) {
   return _StoryArcModel.fromJson(json);
@@ -33,8 +34,12 @@ mixin _$StoryArcModel {
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this StoryArcModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of StoryArcModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $StoryArcModelCopyWith<StoryArcModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -42,22 +47,24 @@ mixin _$StoryArcModel {
 /// @nodoc
 abstract class $StoryArcModelCopyWith<$Res> {
   factory $StoryArcModelCopyWith(
-          StoryArcModel value, $Res Function(StoryArcModel) then) =
-      _$StoryArcModelCopyWithImpl<$Res, StoryArcModel>;
+    StoryArcModel value,
+    $Res Function(StoryArcModel) then,
+  ) = _$StoryArcModelCopyWithImpl<$Res, StoryArcModel>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      ArcType arcType,
-      String? description,
-      String? startChapterId,
-      String? endChapterId,
-      int sortOrder,
-      ArcStatus status,
-      String? metadata,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    ArcType arcType,
+    String? description,
+    String? startChapterId,
+    String? endChapterId,
+    int sortOrder,
+    ArcStatus status,
+    String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -70,6 +77,8 @@ class _$StoryArcModelCopyWithImpl<$Res, $Val extends StoryArcModel>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of StoryArcModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -86,56 +95,59 @@ class _$StoryArcModelCopyWithImpl<$Res, $Val extends StoryArcModel>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcType: null == arcType
-          ? _value.arcType
-          : arcType // ignore: cast_nullable_to_non_nullable
-              as ArcType,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startChapterId: freezed == startChapterId
-          ? _value.startChapterId
-          : startChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      endChapterId: freezed == endChapterId
-          ? _value.endChapterId
-          : endChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ArcStatus,
-      metadata: freezed == metadata
-          ? _value.metadata
-          : metadata // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            arcType: null == arcType
+                ? _value.arcType
+                : arcType // ignore: cast_nullable_to_non_nullable
+                      as ArcType,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            startChapterId: freezed == startChapterId
+                ? _value.startChapterId
+                : startChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            endChapterId: freezed == endChapterId
+                ? _value.endChapterId
+                : endChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            sortOrder: null == sortOrder
+                ? _value.sortOrder
+                : sortOrder // ignore: cast_nullable_to_non_nullable
+                      as int,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as ArcStatus,
+            metadata: freezed == metadata
+                ? _value.metadata
+                : metadata // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            updatedAt: freezed == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -143,23 +155,25 @@ class _$StoryArcModelCopyWithImpl<$Res, $Val extends StoryArcModel>
 abstract class _$$StoryArcModelImplCopyWith<$Res>
     implements $StoryArcModelCopyWith<$Res> {
   factory _$$StoryArcModelImplCopyWith(
-          _$StoryArcModelImpl value, $Res Function(_$StoryArcModelImpl) then) =
-      __$$StoryArcModelImplCopyWithImpl<$Res>;
+    _$StoryArcModelImpl value,
+    $Res Function(_$StoryArcModelImpl) then,
+  ) = __$$StoryArcModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      ArcType arcType,
-      String? description,
-      String? startChapterId,
-      String? endChapterId,
-      int sortOrder,
-      ArcStatus status,
-      String? metadata,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    ArcType arcType,
+    String? description,
+    String? startChapterId,
+    String? endChapterId,
+    int sortOrder,
+    ArcStatus status,
+    String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -167,9 +181,12 @@ class __$$StoryArcModelImplCopyWithImpl<$Res>
     extends _$StoryArcModelCopyWithImpl<$Res, _$StoryArcModelImpl>
     implements _$$StoryArcModelImplCopyWith<$Res> {
   __$$StoryArcModelImplCopyWithImpl(
-      _$StoryArcModelImpl _value, $Res Function(_$StoryArcModelImpl) _then)
-      : super(_value, _then);
+    _$StoryArcModelImpl _value,
+    $Res Function(_$StoryArcModelImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of StoryArcModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -186,75 +203,78 @@ class __$$StoryArcModelImplCopyWithImpl<$Res>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_$StoryArcModelImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcType: null == arcType
-          ? _value.arcType
-          : arcType // ignore: cast_nullable_to_non_nullable
-              as ArcType,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startChapterId: freezed == startChapterId
-          ? _value.startChapterId
-          : startChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      endChapterId: freezed == endChapterId
-          ? _value.endChapterId
-          : endChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ArcStatus,
-      metadata: freezed == metadata
-          ? _value.metadata
-          : metadata // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$StoryArcModelImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        arcType: null == arcType
+            ? _value.arcType
+            : arcType // ignore: cast_nullable_to_non_nullable
+                  as ArcType,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        startChapterId: freezed == startChapterId
+            ? _value.startChapterId
+            : startChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        endChapterId: freezed == endChapterId
+            ? _value.endChapterId
+            : endChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        sortOrder: null == sortOrder
+            ? _value.sortOrder
+            : sortOrder // ignore: cast_nullable_to_non_nullable
+                  as int,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as ArcStatus,
+        metadata: freezed == metadata
+            ? _value.metadata
+            : metadata // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        updatedAt: freezed == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$StoryArcModelImpl implements _StoryArcModel {
-  const _$StoryArcModelImpl(
-      {required this.id,
-      required this.workId,
-      required this.name,
-      required this.arcType,
-      this.description,
-      this.startChapterId,
-      this.endChapterId,
-      this.sortOrder = 0,
-      this.status = ArcStatus.active,
-      this.metadata,
-      this.createdAt,
-      this.updatedAt});
+  const _$StoryArcModelImpl({
+    required this.id,
+    required this.workId,
+    required this.name,
+    required this.arcType,
+    this.description,
+    this.startChapterId,
+    this.endChapterId,
+    this.sortOrder = 0,
+    this.status = ArcStatus.active,
+    this.metadata,
+    this.createdAt,
+    this.updatedAt,
+  });
 
   factory _$StoryArcModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoryArcModelImplFromJson(json);
@@ -317,24 +337,27 @@ class _$StoryArcModelImpl implements _StoryArcModel {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      name,
-      arcType,
-      description,
-      startChapterId,
-      endChapterId,
-      sortOrder,
-      status,
-      metadata,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    workId,
+    name,
+    arcType,
+    description,
+    startChapterId,
+    endChapterId,
+    sortOrder,
+    status,
+    metadata,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StoryArcModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$StoryArcModelImplCopyWith<_$StoryArcModelImpl> get copyWith =>
@@ -342,26 +365,25 @@ class _$StoryArcModelImpl implements _StoryArcModel {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$StoryArcModelImplToJson(
-      this,
-    );
+    return _$$StoryArcModelImplToJson(this);
   }
 }
 
 abstract class _StoryArcModel implements StoryArcModel {
-  const factory _StoryArcModel(
-      {required final String id,
-      required final String workId,
-      required final String name,
-      required final ArcType arcType,
-      final String? description,
-      final String? startChapterId,
-      final String? endChapterId,
-      final int sortOrder,
-      final ArcStatus status,
-      final String? metadata,
-      final DateTime? createdAt,
-      final DateTime? updatedAt}) = _$StoryArcModelImpl;
+  const factory _StoryArcModel({
+    required final String id,
+    required final String workId,
+    required final String name,
+    required final ArcType arcType,
+    final String? description,
+    final String? startChapterId,
+    final String? endChapterId,
+    final int sortOrder,
+    final ArcStatus status,
+    final String? metadata,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+  }) = _$StoryArcModelImpl;
 
   factory _StoryArcModel.fromJson(Map<String, dynamic> json) =
       _$StoryArcModelImpl.fromJson;
@@ -390,8 +412,11 @@ abstract class _StoryArcModel implements StoryArcModel {
   DateTime? get createdAt;
   @override
   DateTime? get updatedAt;
+
+  /// Create a copy of StoryArcModel
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$StoryArcModelImplCopyWith<_$StoryArcModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -409,8 +434,12 @@ mixin _$ArcChapterModel {
   String? get note => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
 
+  /// Serializes this ArcChapterModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ArcChapterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ArcChapterModelCopyWith<ArcChapterModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -418,16 +447,18 @@ mixin _$ArcChapterModel {
 /// @nodoc
 abstract class $ArcChapterModelCopyWith<$Res> {
   factory $ArcChapterModelCopyWith(
-          ArcChapterModel value, $Res Function(ArcChapterModel) then) =
-      _$ArcChapterModelCopyWithImpl<$Res, ArcChapterModel>;
+    ArcChapterModel value,
+    $Res Function(ArcChapterModel) then,
+  ) = _$ArcChapterModelCopyWithImpl<$Res, ArcChapterModel>;
   @useResult
-  $Res call(
-      {String id,
-      String arcId,
-      String chapterId,
-      ArcChapterRole role,
-      String? note,
-      int sortOrder});
+  $Res call({
+    String id,
+    String arcId,
+    String chapterId,
+    ArcChapterRole role,
+    String? note,
+    int sortOrder,
+  });
 }
 
 /// @nodoc
@@ -440,6 +471,8 @@ class _$ArcChapterModelCopyWithImpl<$Res, $Val extends ArcChapterModel>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ArcChapterModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -450,50 +483,55 @@ class _$ArcChapterModelCopyWithImpl<$Res, $Val extends ArcChapterModel>
     Object? note = freezed,
     Object? sortOrder = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcId: null == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as ArcChapterRole,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            arcId: null == arcId
+                ? _value.arcId
+                : arcId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            role: null == role
+                ? _value.role
+                : role // ignore: cast_nullable_to_non_nullable
+                      as ArcChapterRole,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            sortOrder: null == sortOrder
+                ? _value.sortOrder
+                : sortOrder // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ArcChapterModelImplCopyWith<$Res>
     implements $ArcChapterModelCopyWith<$Res> {
-  factory _$$ArcChapterModelImplCopyWith(_$ArcChapterModelImpl value,
-          $Res Function(_$ArcChapterModelImpl) then) =
-      __$$ArcChapterModelImplCopyWithImpl<$Res>;
+  factory _$$ArcChapterModelImplCopyWith(
+    _$ArcChapterModelImpl value,
+    $Res Function(_$ArcChapterModelImpl) then,
+  ) = __$$ArcChapterModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String arcId,
-      String chapterId,
-      ArcChapterRole role,
-      String? note,
-      int sortOrder});
+  $Res call({
+    String id,
+    String arcId,
+    String chapterId,
+    ArcChapterRole role,
+    String? note,
+    int sortOrder,
+  });
 }
 
 /// @nodoc
@@ -501,9 +539,12 @@ class __$$ArcChapterModelImplCopyWithImpl<$Res>
     extends _$ArcChapterModelCopyWithImpl<$Res, _$ArcChapterModelImpl>
     implements _$$ArcChapterModelImplCopyWith<$Res> {
   __$$ArcChapterModelImplCopyWithImpl(
-      _$ArcChapterModelImpl _value, $Res Function(_$ArcChapterModelImpl) _then)
-      : super(_value, _then);
+    _$ArcChapterModelImpl _value,
+    $Res Function(_$ArcChapterModelImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ArcChapterModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -514,45 +555,48 @@ class __$$ArcChapterModelImplCopyWithImpl<$Res>
     Object? note = freezed,
     Object? sortOrder = null,
   }) {
-    return _then(_$ArcChapterModelImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcId: null == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as ArcChapterRole,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$ArcChapterModelImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        arcId: null == arcId
+            ? _value.arcId
+            : arcId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        role: null == role
+            ? _value.role
+            : role // ignore: cast_nullable_to_non_nullable
+                  as ArcChapterRole,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        sortOrder: null == sortOrder
+            ? _value.sortOrder
+            : sortOrder // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ArcChapterModelImpl implements _ArcChapterModel {
-  const _$ArcChapterModelImpl(
-      {required this.id,
-      required this.arcId,
-      required this.chapterId,
-      this.role = ArcChapterRole.progression,
-      this.note,
-      this.sortOrder = 0});
+  const _$ArcChapterModelImpl({
+    required this.id,
+    required this.arcId,
+    required this.chapterId,
+    this.role = ArcChapterRole.progression,
+    this.note,
+    this.sortOrder = 0,
+  });
 
   factory _$ArcChapterModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ArcChapterModelImplFromJson(json);
@@ -592,34 +636,37 @@ class _$ArcChapterModelImpl implements _ArcChapterModel {
                 other.sortOrder == sortOrder));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, id, arcId, chapterId, role, note, sortOrder);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ArcChapterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ArcChapterModelImplCopyWith<_$ArcChapterModelImpl> get copyWith =>
       __$$ArcChapterModelImplCopyWithImpl<_$ArcChapterModelImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ArcChapterModelImplToJson(
-      this,
-    );
+    return _$$ArcChapterModelImplToJson(this);
   }
 }
 
 abstract class _ArcChapterModel implements ArcChapterModel {
-  const factory _ArcChapterModel(
-      {required final String id,
-      required final String arcId,
-      required final String chapterId,
-      final ArcChapterRole role,
-      final String? note,
-      final int sortOrder}) = _$ArcChapterModelImpl;
+  const factory _ArcChapterModel({
+    required final String id,
+    required final String arcId,
+    required final String chapterId,
+    final ArcChapterRole role,
+    final String? note,
+    final int sortOrder,
+  }) = _$ArcChapterModelImpl;
 
   factory _ArcChapterModel.fromJson(Map<String, dynamic> json) =
       _$ArcChapterModelImpl.fromJson;
@@ -636,8 +683,11 @@ abstract class _ArcChapterModel implements ArcChapterModel {
   String? get note;
   @override
   int get sortOrder;
+
+  /// Create a copy of ArcChapterModel
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ArcChapterModelImplCopyWith<_$ArcChapterModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -654,8 +704,12 @@ mixin _$ArcCharacterModel {
   ArcCharacterRole get role => throw _privateConstructorUsedError;
   String? get note => throw _privateConstructorUsedError;
 
+  /// Serializes this ArcCharacterModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ArcCharacterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ArcCharacterModelCopyWith<ArcCharacterModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -663,15 +717,17 @@ mixin _$ArcCharacterModel {
 /// @nodoc
 abstract class $ArcCharacterModelCopyWith<$Res> {
   factory $ArcCharacterModelCopyWith(
-          ArcCharacterModel value, $Res Function(ArcCharacterModel) then) =
-      _$ArcCharacterModelCopyWithImpl<$Res, ArcCharacterModel>;
+    ArcCharacterModel value,
+    $Res Function(ArcCharacterModel) then,
+  ) = _$ArcCharacterModelCopyWithImpl<$Res, ArcCharacterModel>;
   @useResult
-  $Res call(
-      {String id,
-      String arcId,
-      String characterId,
-      ArcCharacterRole role,
-      String? note});
+  $Res call({
+    String id,
+    String arcId,
+    String characterId,
+    ArcCharacterRole role,
+    String? note,
+  });
 }
 
 /// @nodoc
@@ -684,6 +740,8 @@ class _$ArcCharacterModelCopyWithImpl<$Res, $Val extends ArcCharacterModel>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ArcCharacterModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -693,55 +751,63 @@ class _$ArcCharacterModelCopyWithImpl<$Res, $Val extends ArcCharacterModel>
     Object? role = null,
     Object? note = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcId: null == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as ArcCharacterRole,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            arcId: null == arcId
+                ? _value.arcId
+                : arcId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            role: null == role
+                ? _value.role
+                : role // ignore: cast_nullable_to_non_nullable
+                      as ArcCharacterRole,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ArcCharacterModelImplCopyWith<$Res>
     implements $ArcCharacterModelCopyWith<$Res> {
-  factory _$$ArcCharacterModelImplCopyWith(_$ArcCharacterModelImpl value,
-          $Res Function(_$ArcCharacterModelImpl) then) =
-      __$$ArcCharacterModelImplCopyWithImpl<$Res>;
+  factory _$$ArcCharacterModelImplCopyWith(
+    _$ArcCharacterModelImpl value,
+    $Res Function(_$ArcCharacterModelImpl) then,
+  ) = __$$ArcCharacterModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String arcId,
-      String characterId,
-      ArcCharacterRole role,
-      String? note});
+  $Res call({
+    String id,
+    String arcId,
+    String characterId,
+    ArcCharacterRole role,
+    String? note,
+  });
 }
 
 /// @nodoc
 class __$$ArcCharacterModelImplCopyWithImpl<$Res>
     extends _$ArcCharacterModelCopyWithImpl<$Res, _$ArcCharacterModelImpl>
     implements _$$ArcCharacterModelImplCopyWith<$Res> {
-  __$$ArcCharacterModelImplCopyWithImpl(_$ArcCharacterModelImpl _value,
-      $Res Function(_$ArcCharacterModelImpl) _then)
-      : super(_value, _then);
+  __$$ArcCharacterModelImplCopyWithImpl(
+    _$ArcCharacterModelImpl _value,
+    $Res Function(_$ArcCharacterModelImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ArcCharacterModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -751,40 +817,43 @@ class __$$ArcCharacterModelImplCopyWithImpl<$Res>
     Object? role = null,
     Object? note = freezed,
   }) {
-    return _then(_$ArcCharacterModelImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      arcId: null == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as ArcCharacterRole,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$ArcCharacterModelImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        arcId: null == arcId
+            ? _value.arcId
+            : arcId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        role: null == role
+            ? _value.role
+            : role // ignore: cast_nullable_to_non_nullable
+                  as ArcCharacterRole,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ArcCharacterModelImpl implements _ArcCharacterModel {
-  const _$ArcCharacterModelImpl(
-      {required this.id,
-      required this.arcId,
-      required this.characterId,
-      this.role = ArcCharacterRole.participant,
-      this.note});
+  const _$ArcCharacterModelImpl({
+    required this.id,
+    required this.arcId,
+    required this.characterId,
+    this.role = ArcCharacterRole.participant,
+    this.note,
+  });
 
   factory _$ArcCharacterModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ArcCharacterModelImplFromJson(json);
@@ -819,33 +888,36 @@ class _$ArcCharacterModelImpl implements _ArcCharacterModel {
             (identical(other.note, note) || other.note == note));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, id, arcId, characterId, role, note);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ArcCharacterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ArcCharacterModelImplCopyWith<_$ArcCharacterModelImpl> get copyWith =>
       __$$ArcCharacterModelImplCopyWithImpl<_$ArcCharacterModelImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ArcCharacterModelImplToJson(
-      this,
-    );
+    return _$$ArcCharacterModelImplToJson(this);
   }
 }
 
 abstract class _ArcCharacterModel implements ArcCharacterModel {
-  const factory _ArcCharacterModel(
-      {required final String id,
-      required final String arcId,
-      required final String characterId,
-      final ArcCharacterRole role,
-      final String? note}) = _$ArcCharacterModelImpl;
+  const factory _ArcCharacterModel({
+    required final String id,
+    required final String arcId,
+    required final String characterId,
+    final ArcCharacterRole role,
+    final String? note,
+  }) = _$ArcCharacterModelImpl;
 
   factory _ArcCharacterModel.fromJson(Map<String, dynamic> json) =
       _$ArcCharacterModelImpl.fromJson;
@@ -860,8 +932,11 @@ abstract class _ArcCharacterModel implements ArcCharacterModel {
   ArcCharacterRole get role;
   @override
   String? get note;
+
+  /// Create a copy of ArcCharacterModel
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ArcCharacterModelImplCopyWith<_$ArcCharacterModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -886,8 +961,12 @@ mixin _$ForeshadowModel {
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this ForeshadowModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ForeshadowModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ForeshadowModelCopyWith<ForeshadowModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -895,23 +974,25 @@ mixin _$ForeshadowModel {
 /// @nodoc
 abstract class $ForeshadowModelCopyWith<$Res> {
   factory $ForeshadowModelCopyWith(
-          ForeshadowModel value, $Res Function(ForeshadowModel) then) =
-      _$ForeshadowModelCopyWithImpl<$Res, ForeshadowModel>;
+    ForeshadowModel value,
+    $Res Function(ForeshadowModel) then,
+  ) = _$ForeshadowModelCopyWithImpl<$Res, ForeshadowModel>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String description,
-      String? plantChapterId,
-      int? plantParagraphIndex,
-      String? payoffChapterId,
-      int? payoffParagraphIndex,
-      ForeshadowStatus status,
-      ForeshadowImportance importance,
-      String? arcId,
-      String? note,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String description,
+    String? plantChapterId,
+    int? plantParagraphIndex,
+    String? payoffChapterId,
+    int? payoffParagraphIndex,
+    ForeshadowStatus status,
+    ForeshadowImportance importance,
+    String? arcId,
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -924,6 +1005,8 @@ class _$ForeshadowModelCopyWithImpl<$Res, $Val extends ForeshadowModel>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ForeshadowModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -941,85 +1024,90 @@ class _$ForeshadowModelCopyWithImpl<$Res, $Val extends ForeshadowModel>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      plantChapterId: freezed == plantChapterId
-          ? _value.plantChapterId
-          : plantChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      plantParagraphIndex: freezed == plantParagraphIndex
-          ? _value.plantParagraphIndex
-          : plantParagraphIndex // ignore: cast_nullable_to_non_nullable
-              as int?,
-      payoffChapterId: freezed == payoffChapterId
-          ? _value.payoffChapterId
-          : payoffChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      payoffParagraphIndex: freezed == payoffParagraphIndex
-          ? _value.payoffParagraphIndex
-          : payoffParagraphIndex // ignore: cast_nullable_to_non_nullable
-              as int?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ForeshadowStatus,
-      importance: null == importance
-          ? _value.importance
-          : importance // ignore: cast_nullable_to_non_nullable
-              as ForeshadowImportance,
-      arcId: freezed == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String,
+            plantChapterId: freezed == plantChapterId
+                ? _value.plantChapterId
+                : plantChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            plantParagraphIndex: freezed == plantParagraphIndex
+                ? _value.plantParagraphIndex
+                : plantParagraphIndex // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            payoffChapterId: freezed == payoffChapterId
+                ? _value.payoffChapterId
+                : payoffChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            payoffParagraphIndex: freezed == payoffParagraphIndex
+                ? _value.payoffParagraphIndex
+                : payoffParagraphIndex // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as ForeshadowStatus,
+            importance: null == importance
+                ? _value.importance
+                : importance // ignore: cast_nullable_to_non_nullable
+                      as ForeshadowImportance,
+            arcId: freezed == arcId
+                ? _value.arcId
+                : arcId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            updatedAt: freezed == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ForeshadowModelImplCopyWith<$Res>
     implements $ForeshadowModelCopyWith<$Res> {
-  factory _$$ForeshadowModelImplCopyWith(_$ForeshadowModelImpl value,
-          $Res Function(_$ForeshadowModelImpl) then) =
-      __$$ForeshadowModelImplCopyWithImpl<$Res>;
+  factory _$$ForeshadowModelImplCopyWith(
+    _$ForeshadowModelImpl value,
+    $Res Function(_$ForeshadowModelImpl) then,
+  ) = __$$ForeshadowModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String description,
-      String? plantChapterId,
-      int? plantParagraphIndex,
-      String? payoffChapterId,
-      int? payoffParagraphIndex,
-      ForeshadowStatus status,
-      ForeshadowImportance importance,
-      String? arcId,
-      String? note,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String description,
+    String? plantChapterId,
+    int? plantParagraphIndex,
+    String? payoffChapterId,
+    int? payoffParagraphIndex,
+    ForeshadowStatus status,
+    ForeshadowImportance importance,
+    String? arcId,
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -1027,9 +1115,12 @@ class __$$ForeshadowModelImplCopyWithImpl<$Res>
     extends _$ForeshadowModelCopyWithImpl<$Res, _$ForeshadowModelImpl>
     implements _$$ForeshadowModelImplCopyWith<$Res> {
   __$$ForeshadowModelImplCopyWithImpl(
-      _$ForeshadowModelImpl _value, $Res Function(_$ForeshadowModelImpl) _then)
-      : super(_value, _then);
+    _$ForeshadowModelImpl _value,
+    $Res Function(_$ForeshadowModelImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ForeshadowModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1047,80 +1138,83 @@ class __$$ForeshadowModelImplCopyWithImpl<$Res>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_$ForeshadowModelImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      plantChapterId: freezed == plantChapterId
-          ? _value.plantChapterId
-          : plantChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      plantParagraphIndex: freezed == plantParagraphIndex
-          ? _value.plantParagraphIndex
-          : plantParagraphIndex // ignore: cast_nullable_to_non_nullable
-              as int?,
-      payoffChapterId: freezed == payoffChapterId
-          ? _value.payoffChapterId
-          : payoffChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      payoffParagraphIndex: freezed == payoffParagraphIndex
-          ? _value.payoffParagraphIndex
-          : payoffParagraphIndex // ignore: cast_nullable_to_non_nullable
-              as int?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ForeshadowStatus,
-      importance: null == importance
-          ? _value.importance
-          : importance // ignore: cast_nullable_to_non_nullable
-              as ForeshadowImportance,
-      arcId: freezed == arcId
-          ? _value.arcId
-          : arcId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$ForeshadowModelImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String,
+        plantChapterId: freezed == plantChapterId
+            ? _value.plantChapterId
+            : plantChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        plantParagraphIndex: freezed == plantParagraphIndex
+            ? _value.plantParagraphIndex
+            : plantParagraphIndex // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        payoffChapterId: freezed == payoffChapterId
+            ? _value.payoffChapterId
+            : payoffChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        payoffParagraphIndex: freezed == payoffParagraphIndex
+            ? _value.payoffParagraphIndex
+            : payoffParagraphIndex // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as ForeshadowStatus,
+        importance: null == importance
+            ? _value.importance
+            : importance // ignore: cast_nullable_to_non_nullable
+                  as ForeshadowImportance,
+        arcId: freezed == arcId
+            ? _value.arcId
+            : arcId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        updatedAt: freezed == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ForeshadowModelImpl implements _ForeshadowModel {
-  const _$ForeshadowModelImpl(
-      {required this.id,
-      required this.workId,
-      required this.description,
-      this.plantChapterId,
-      this.plantParagraphIndex,
-      this.payoffChapterId,
-      this.payoffParagraphIndex,
-      this.status = ForeshadowStatus.planted,
-      this.importance = ForeshadowImportance.minor,
-      this.arcId,
-      this.note,
-      this.createdAt,
-      this.updatedAt});
+  const _$ForeshadowModelImpl({
+    required this.id,
+    required this.workId,
+    required this.description,
+    this.plantChapterId,
+    this.plantParagraphIndex,
+    this.payoffChapterId,
+    this.payoffParagraphIndex,
+    this.status = ForeshadowStatus.planted,
+    this.importance = ForeshadowImportance.minor,
+    this.arcId,
+    this.note,
+    this.createdAt,
+    this.updatedAt,
+  });
 
   factory _$ForeshadowModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ForeshadowModelImplFromJson(json);
@@ -1187,54 +1281,58 @@ class _$ForeshadowModelImpl implements _ForeshadowModel {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      description,
-      plantChapterId,
-      plantParagraphIndex,
-      payoffChapterId,
-      payoffParagraphIndex,
-      status,
-      importance,
-      arcId,
-      note,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    workId,
+    description,
+    plantChapterId,
+    plantParagraphIndex,
+    payoffChapterId,
+    payoffParagraphIndex,
+    status,
+    importance,
+    arcId,
+    note,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ForeshadowModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ForeshadowModelImplCopyWith<_$ForeshadowModelImpl> get copyWith =>
       __$$ForeshadowModelImplCopyWithImpl<_$ForeshadowModelImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ForeshadowModelImplToJson(
-      this,
-    );
+    return _$$ForeshadowModelImplToJson(this);
   }
 }
 
 abstract class _ForeshadowModel implements ForeshadowModel {
-  const factory _ForeshadowModel(
-      {required final String id,
-      required final String workId,
-      required final String description,
-      final String? plantChapterId,
-      final int? plantParagraphIndex,
-      final String? payoffChapterId,
-      final int? payoffParagraphIndex,
-      final ForeshadowStatus status,
-      final ForeshadowImportance importance,
-      final String? arcId,
-      final String? note,
-      final DateTime? createdAt,
-      final DateTime? updatedAt}) = _$ForeshadowModelImpl;
+  const factory _ForeshadowModel({
+    required final String id,
+    required final String workId,
+    required final String description,
+    final String? plantChapterId,
+    final int? plantParagraphIndex,
+    final String? payoffChapterId,
+    final int? payoffParagraphIndex,
+    final ForeshadowStatus status,
+    final ForeshadowImportance importance,
+    final String? arcId,
+    final String? note,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+  }) = _$ForeshadowModelImpl;
 
   factory _ForeshadowModel.fromJson(Map<String, dynamic> json) =
       _$ForeshadowModelImpl.fromJson;
@@ -1265,8 +1363,11 @@ abstract class _ForeshadowModel implements ForeshadowModel {
   DateTime? get createdAt;
   @override
   DateTime? get updatedAt;
+
+  /// Create a copy of ForeshadowModel
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ForeshadowModelImplCopyWith<_$ForeshadowModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

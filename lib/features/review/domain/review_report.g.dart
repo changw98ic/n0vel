@@ -42,7 +42,8 @@ _$ReviewIssueImpl _$$ReviewIssueImplFromJson(Map<String, dynamic> json) =>
       reportId: json['reportId'] as String,
       dimension: $enumDecode(_$ReviewDimensionEnumMap, json['dimension']),
       severity: $enumDecode(_$IssueSeverityEnumMap, json['severity']),
-      status: $enumDecodeNullable(_$IssueStatusEnumMap, json['status']) ??
+      status:
+          $enumDecodeNullable(_$IssueStatusEnumMap, json['status']) ??
           IssueStatus.pending,
       description: json['description'] as String,
       originalText: json['originalText'] as String?,
@@ -106,9 +107,9 @@ _$ReviewConfigImpl _$$ReviewConfigImplFromJson(Map<String, dynamic> json) =>
       autoReview: json['autoReview'] as bool? ?? true,
       dimensionStrictness:
           (json['dimensionStrictness'] as Map<String, dynamic>?)?.map(
-                (k, e) => MapEntry(k, (e as num).toInt()),
-              ) ??
-              const {},
+            (k, e) => MapEntry(k, (e as num).toInt()),
+          ) ??
+          const {},
       checkAiStyle: json['checkAiStyle'] as bool? ?? false,
       checkPerspective: json['checkPerspective'] as bool? ?? false,
       checkPacing: json['checkPacing'] as bool? ?? false,

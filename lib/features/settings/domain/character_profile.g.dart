@@ -73,66 +73,68 @@ Map<String, dynamic> _$$SpeechExampleImplToJson(_$SpeechExampleImpl instance) =>
     };
 
 _$BehaviorPatternImpl _$$BehaviorPatternImplFromJson(
-        Map<String, dynamic> json) =>
-    _$BehaviorPatternImpl(
-      trigger: json['trigger'] as String,
-      behavior: json['behavior'] as String,
-      description: json['description'] as String?,
-    );
+  Map<String, dynamic> json,
+) => _$BehaviorPatternImpl(
+  trigger: json['trigger'] as String,
+  behavior: json['behavior'] as String,
+  description: json['description'] as String?,
+);
 
 Map<String, dynamic> _$$BehaviorPatternImplToJson(
-        _$BehaviorPatternImpl instance) =>
-    <String, dynamic>{
-      'trigger': instance.trigger,
-      'behavior': instance.behavior,
-      'description': instance.description,
-    };
+  _$BehaviorPatternImpl instance,
+) => <String, dynamic>{
+  'trigger': instance.trigger,
+  'behavior': instance.behavior,
+  'description': instance.description,
+};
 
 _$CharacterProfileImpl _$$CharacterProfileImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterProfileImpl(
-      id: json['id'] as String,
-      characterId: json['characterId'] as String,
-      mbti: $enumDecodeNullable(_$MBTIEnumMap, json['mbti']),
-      bigFive: json['bigFive'] == null
-          ? null
-          : BigFive.fromJson(json['bigFive'] as Map<String, dynamic>),
-      personalityKeywords: (json['personalityKeywords'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      coreValues: json['coreValues'] as String?,
-      fears: json['fears'] as String?,
-      desires: json['desires'] as String?,
-      moralBaseline: json['moralBaseline'] as String?,
-      speechStyle: json['speechStyle'] == null
-          ? null
-          : SpeechStyle.fromJson(json['speechStyle'] as Map<String, dynamic>),
-      behaviorPatterns: (json['behaviorPatterns'] as List<dynamic>?)
-              ?.map((e) => BehaviorPattern.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-    );
+  Map<String, dynamic> json,
+) => _$CharacterProfileImpl(
+  id: json['id'] as String,
+  characterId: json['characterId'] as String,
+  mbti: $enumDecodeNullable(_$MBTIEnumMap, json['mbti']),
+  bigFive: json['bigFive'] == null
+      ? null
+      : BigFive.fromJson(json['bigFive'] as Map<String, dynamic>),
+  personalityKeywords:
+      (json['personalityKeywords'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  coreValues: json['coreValues'] as String?,
+  fears: json['fears'] as String?,
+  desires: json['desires'] as String?,
+  moralBaseline: json['moralBaseline'] as String?,
+  speechStyle: json['speechStyle'] == null
+      ? null
+      : SpeechStyle.fromJson(json['speechStyle'] as Map<String, dynamic>),
+  behaviorPatterns:
+      (json['behaviorPatterns'] as List<dynamic>?)
+          ?.map((e) => BehaviorPattern.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
+);
 
 Map<String, dynamic> _$$CharacterProfileImplToJson(
-        _$CharacterProfileImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'characterId': instance.characterId,
-      'mbti': _$MBTIEnumMap[instance.mbti],
-      'bigFive': instance.bigFive,
-      'personalityKeywords': instance.personalityKeywords,
-      'coreValues': instance.coreValues,
-      'fears': instance.fears,
-      'desires': instance.desires,
-      'moralBaseline': instance.moralBaseline,
-      'speechStyle': instance.speechStyle,
-      'behaviorPatterns': instance.behaviorPatterns,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
-    };
+  _$CharacterProfileImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'characterId': instance.characterId,
+  'mbti': _$MBTIEnumMap[instance.mbti],
+  'bigFive': instance.bigFive,
+  'personalityKeywords': instance.personalityKeywords,
+  'coreValues': instance.coreValues,
+  'fears': instance.fears,
+  'desires': instance.desires,
+  'moralBaseline': instance.moralBaseline,
+  'speechStyle': instance.speechStyle,
+  'behaviorPatterns': instance.behaviorPatterns,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'updatedAt': instance.updatedAt.toIso8601String(),
+};
 
 const _$MBTIEnumMap = {
   MBTI.intj: 'intj',

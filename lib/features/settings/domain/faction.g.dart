@@ -14,7 +14,8 @@ _$FactionImpl _$$FactionImplFromJson(Map<String, dynamic> json) =>
       type: json['type'] as String?,
       emblemPath: json['emblemPath'] as String?,
       description: json['description'] as String?,
-      traits: (json['traits'] as List<dynamic>?)
+      traits:
+          (json['traits'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],

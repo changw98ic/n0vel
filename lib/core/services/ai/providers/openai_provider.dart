@@ -98,14 +98,15 @@ class OpenAIProvider implements AIProvider {
       stopwatch.stop();
 
       final data = response.data as Map<String, dynamic>;
-      final choices = data['choices'] as List;
-      final content = choices.first['message']['content'] as String;
-      final usage = data['usage'] as Map<String, dynamic>;
+      final choices = _asList(data['choices']) ?? const [];
+      final firstChoice = choices.isEmpty ? null : _asMap(choices.first);
+      final content = _extractMessageContent(firstChoice?['message']);
+      final usage = _asMap(data['usage']);
 
       return AIResponse(
         content: content,
-        inputTokens: usage['prompt_tokens'] as int,
-        outputTokens: usage['completion_tokens'] as int,
+        inputTokens: (usage?['prompt_tokens'] as num?)?.toInt() ?? 0,
+        outputTokens: (usage?['completion_tokens'] as num?)?.toInt() ?? 0,
         modelId: model.id,
         responseTime: stopwatch.elapsed,
         fromCache: false,
@@ -158,19 +159,20 @@ class OpenAIProvider implements AIProvider {
 
       stopwatch.stop();
       final data = response.data as Map<String, dynamic>;
-      final choices = data['choices'] as List;
-      final firstChoice = choices.first as Map<String, dynamic>;
-      final message = firstChoice['message'] as Map<String, dynamic>;
-      final usage = data['usage'] as Map<String, dynamic>?;
+      final choices = _asList(data['choices']) ?? const [];
+      final firstChoice = choices.isEmpty ? null : _asMap(choices.first);
+      final message = _asMap(firstChoice?['message']);
+      final usage = _asMap(data['usage']);
 
-      // 解析 tool_calls
-      List<ToolCall>? toolCalls;
-      final rawToolCalls = message['tool_calls'] as List<dynamic>?;
-      if (rawToolCalls != null) {
+      // 解析原生 tool_calls
+      List<ToolCall> toolCalls = [];
+      final rawToolCalls = _asList(message?['tool_calls']);
+      if (rawToolCalls != null && rawToolCalls.isNotEmpty) {
         toolCalls = rawToolCalls
+            .map(_asMap)
             .whereType<Map<String, dynamic>>()
             .map((tc) {
-          final function = tc['function'] as Map<String, dynamic>;
+          final function = _asMap(tc['function']) ?? const <String, dynamic>{};
           return ToolCall(
             id: tc['id'] as String? ?? '',
             name: function['name'] as String? ?? '',
@@ -179,7 +181,16 @@ class OpenAIProvider implements AIProvider {
         }).toList();
       }
 
-      final content = message['content'] as String? ?? '';
+      var content = _extractMessageContent(message);
+
+      // 如果原生 tool_calls 为空，尝试从文本中解析（兼容非原生 function calling 端点）
+      if (toolCalls.isEmpty && content.isNotEmpty) {
+        toolCalls = _parseToolCallsFromText(content);
+      }
+
+      if (toolCalls.isNotEmpty) {
+        content = _stripToolCallFromText(content);
+      }
 
       return AIResponse(
         content: content,
@@ -189,7 +200,7 @@ class OpenAIProvider implements AIProvider {
         responseTime: stopwatch.elapsed,
         fromCache: false,
         requestId: data['id'] as String?,
-        toolCalls: toolCalls ?? const [],
+        toolCalls: toolCalls,
       );
     } on DioException catch (e) {
       throw AIException(
@@ -239,9 +250,9 @@ class OpenAIProvider implements AIProvider {
             final json = jsonDecode(data) as Map<String, dynamic>;
             requestId ??= json['id'] as String?;
 
-            final choices = json['choices'] as List?;
+            final choices = _asList(json['choices']);
             if (choices != null && choices.isNotEmpty) {
-              final delta = choices.first['delta'] as Map<String, dynamic>?;
+              final delta = _asMap(_asMap(choices.first)?['delta']);
               final content = delta?['content'] as String?;
               if (content != null) {
                 buffer.write(content);
@@ -277,7 +288,7 @@ class OpenAIProvider implements AIProvider {
     if (rawArgs == null) return {};
     if (rawArgs is String) {
       try {
-        return jsonDecode(rawArgs) as Map<String, dynamic>;
+        return _asMap(jsonDecode(rawArgs)) ?? {};
       } catch (_) {
         return {};
       }
@@ -319,9 +330,121 @@ class OpenAIProvider implements AIProvider {
     if (e.response?.data != null) {
       final data = e.response!.data;
       if (data is Map && data['error'] != null) {
-        return data['error']['message'] ?? 'Unknown error';
+        final error = data['error'];
+        if (error is Map) {
+          final message = error['message'];
+          if (message != null) {
+            return message.toString();
+          }
+          return error.toString();
+        }
+        return error.toString();
       }
+      return data.toString();
     }
     return e.message ?? 'Request failed';
+  }
+
+  /// 从文本中解析工具调用（兼容非原生 function calling 端点）
+  static List<ToolCall> _parseToolCallsFromText(String text) {
+    try {
+      final jsonRegex = RegExp(r'```json\s*([\s\S]*?)\s*```');
+      final match = jsonRegex.firstMatch(text);
+      String? jsonStr;
+      if (match != null) {
+        jsonStr = match.group(1);
+      } else {
+        final directRegex = RegExp(r'\{[\s\S]*"tool_calls"[\s\S]*\}');
+        final directMatch = directRegex.firstMatch(text);
+        if (directMatch == null) return const [];
+        jsonStr = directMatch.group(0);
+      }
+      final json = jsonDecode(jsonStr!) as Map<String, dynamic>;
+      final toolCalls = _asList(json['tool_calls']);
+      if (toolCalls == null) return const [];
+      return toolCalls
+          .map(_asMap)
+          .whereType<Map<String, dynamic>>()
+          .map((tc) => ToolCall(
+                id: tc['id'] as String? ?? '',
+                name: tc['name'] as String? ?? '',
+                arguments: _parseToolArguments(tc['arguments']),
+              ))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    if (value is String) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static List<dynamic>? _asList(dynamic value) {
+    if (value is List<dynamic>) {
+      return value;
+    }
+    if (value is List) {
+      return List<dynamic>.from(value);
+    }
+    if (value is String) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return List<dynamic>.from(decoded);
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static String _extractMessageContent(dynamic message) {
+    if (message is String) {
+      return message;
+    }
+
+    final map = _asMap(message);
+    if (map == null) {
+      return '';
+    }
+
+    final content = map['content'];
+    if (content is String) {
+      return content;
+    }
+    if (content is List) {
+      return content
+          .map(
+            (part) => _asMap(part)?['text'] as String? ?? part?.toString() ?? '',
+          )
+          .join();
+    }
+
+    return content?.toString() ?? '';
+  }
+
+  /// 从文本中移除工具调用 JSON，只保留自然语言内容
+  static String _stripToolCallFromText(String text) {
+    var cleaned = text;
+    cleaned = cleaned.replaceAll(
+        RegExp(r'```json\s*\{[\s\S]*?"tool_calls"[\s\S]*?\}\s*```'), '');
+    cleaned = cleaned.replaceAll(
+        RegExp(r'\{"tool_calls"\s*:\s*\[[\s\S]*?\]\}'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    return cleaned.trim();
   }
 }

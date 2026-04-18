@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sqlite3/open.dart';
+import 'package:writing_assistant/core/config/app_env.dart';
 
 import 'package:writing_assistant/core/database/database.dart';
 import 'package:writing_assistant/core/services/ai/models/model_config.dart';
@@ -34,13 +35,10 @@ import 'package:writing_assistant/features/work/data/work_repository.dart';
 
 // ─── 配置 ───
 
-final _apiKey = Platform.environment['TEST_AI_API_KEY'] ?? 'lm-studio';
-final _endpoint =
-    Platform.environment['TEST_AI_ENDPOINT'] ?? 'http://127.0.0.1:1234/v1';
-final _modelName =
-    Platform.environment['TEST_AI_MODEL'] ?? 'google/gemma-4-26b-a4b';
-final _dbPath = Platform.environment['TEST_DB_PATH'] ??
-    'C:/Users/changw98/Documents/writing_assistant.db';
+String get _apiKey => AppEnv.testAiApiKey;
+String get _endpoint => AppEnv.testAiEndpoint;
+String get _modelName => AppEnv.testAiModel;
+String get _dbPath => AppEnv.testDbPath;
 
 void _loadSqlite3WithFts5() {
   if (Platform.isWindows) {

@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import '../../../features/ai_config/data/ai_config_repository.dart';
 import '../../../features/ai_config/domain/model_config.dart';
 import 'ai_config_form_sections.dart';
+import 'ai_config_page_common_widgets.dart';
+import 'ai_config_page_template_widgets.dart';
 
 class AITierConfigCard extends StatelessWidget {
   final ModelTier tier;
@@ -13,7 +15,6 @@ class AITierConfigCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final s = AIConfigCopy.of(context);
 
     return Card(
@@ -23,35 +24,10 @@ class AITierConfigCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: tier.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Icon(tier.icon, color: tier.color),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tier.displayName,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      Text(tier.description, style: theme.textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _testConnection(context),
-                  icon: Icon(Icons.wifi_find, size: 18.sp),
-                  label: Text(s.aiConfig_test),
-                ),
-              ],
+            AIConfigTierCardHeader(
+              tier: tier,
+              testLabel: s.aiConfig_test,
+              onTestConnection: () => _testConnection(context),
             ),
             const Divider(height: 24),
             AIModelConfigForm(tier: tier),
@@ -63,18 +39,9 @@ class AITierConfigCard extends StatelessWidget {
 
   Future<void> _testConnection(BuildContext context) async {
     final s = AIConfigCopy.of(context);
-    showDialog(
+    showAIConfigLoadingDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            SizedBox(width: 16.w),
-            Text(s.aiConfig_testingConnection),
-          ],
-        ),
-      ),
+      message: s.aiConfig_testingConnection,
     );
 
     try {
@@ -90,7 +57,7 @@ class AITierConfigCard extends StatelessWidget {
                   ? s.aiConfig_connectionSuccess
                   : result.errorMessage ?? s.aiConfig_connectionFailed,
             ),
-            backgroundColor: result.success ? Colors.green : Colors.red,
+            backgroundColor: aiConfigResultColor(result.success),
           ),
         );
       }
@@ -100,7 +67,7 @@ class AITierConfigCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${s.aiConfig_testFailed}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: aiConfigFailureColor,
           ),
         );
       }
@@ -170,13 +137,8 @@ class _AIModelConfigFormState extends State<AIModelConfigForm> {
           onChanged: (value) {
             setState(() {
               _providerType = value ?? 'openai';
-              if (value == 'openai') {
-                _endpointController.text = 'https://api.openai.com/v1';
-              } else if (value == 'anthropic') {
-                _endpointController.text = 'https://api.anthropic.com/v1';
-              } else if (value == 'ollama') {
-                _endpointController.text = 'http://localhost:11434/api';
-              }
+              _endpointController.text =
+                  aiConfigDefaultEndpointForProvider(value);
             });
           },
         ),
@@ -266,18 +228,7 @@ class AIFunctionMappingCard extends StatelessWidget {
           value: mapping.useOverride && mapping.overrideTier != null
               ? mapping.overrideTier
               : function.defaultTier,
-          items: ModelTier.values.map((tier) {
-            return DropdownMenuItem(
-              value: tier,
-              child: Row(
-                children: [
-                  Icon(tier.icon, size: 16.sp, color: tier.color),
-                  SizedBox(width: 8.w),
-                  Text(tier.displayName),
-                ],
-              ),
-            );
-          }).toList(),
+          items: buildAIConfigTierMenuItems(),
           onChanged: (tier) {
             if (tier != null) {
               _updateMapping(tier);
@@ -362,18 +313,11 @@ class AIUsageStatCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32.sp),
-            SizedBox(height: 8.h),
-            Text(
-              value,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(title, style: Theme.of(context).textTheme.bodySmall),
-          ],
+        child: AIConfigUsageStatContent(
+          title: title,
+          value: value,
+          icon: icon,
+          color: color,
         ),
       ),
     );
@@ -411,114 +355,21 @@ class _AIPromptTemplateEditorDialogState
   @override
   Widget build(BuildContext context) {
     final s = AIConfigCopy.of(context);
-    final availableIcons = <Map<String, dynamic>>[
-      {'name': 'edit_note', 'icon': Icons.edit_note, 'label': s.aiConfig_icon_edit},
-      {'name': 'chat', 'icon': Icons.chat, 'label': s.aiConfig_icon_chat},
-      {'name': 'person', 'icon': Icons.person, 'label': s.aiConfig_icon_person},
-      {'name': 'rate_review', 'icon': Icons.rate_review, 'label': s.aiConfig_icon_review},
-      {'name': 'extract', 'icon': Icons.input, 'label': s.aiConfig_icon_extract},
-      {'name': 'check_circle', 'icon': Icons.check_circle, 'label': s.aiConfig_icon_check},
-      {'name': 'timeline', 'icon': Icons.timeline, 'label': s.aiConfig_icon_timeline},
-      {'name': 'warning', 'icon': Icons.warning, 'label': s.aiConfig_icon_warning},
-      {'name': 'summarize', 'icon': Icons.summarize, 'label': s.aiConfig_icon_summarize},
-      {'name': 'visibility', 'icon': Icons.visibility, 'label': s.aiConfig_icon_visibility},
-    ];
-
     return AlertDialog(
       title: Text(s.aiConfig_newPromptTemplate),
       content: SizedBox(
         width: 600.w,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _idController,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_templateId,
-                    hintText: s.aiConfig_templateIdHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator: (value) => value?.isEmpty ?? true
-                      ? s.aiConfig_error_validation_templateId
-                      : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_templateName,
-                    hintText: s.aiConfig_templateNameHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator: (value) => value?.isEmpty ?? true
-                      ? s.aiConfig_error_validation_templateName
-                      : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_description,
-                    hintText: s.aiConfig_descriptionHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                SizedBox(height: 16.h),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedIcon,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_icon,
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: availableIcons.map((iconData) {
-                    return DropdownMenuItem(
-                      value: iconData['name'] as String,
-                      child: Row(
-                        children: [
-                          Icon(iconData['icon'] as IconData),
-                          SizedBox(width: 8.w),
-                          Text(iconData['label'] as String),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedIcon = value);
-                    }
-                  },
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _systemPromptController,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_systemPromptLabel,
-                    hintText: s.aiConfig_systemPromptHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                  maxLines: 5,
-                  validator: (value) => value?.isEmpty ?? true
-                      ? s.aiConfig_error_validation_systemPrompt
-                      : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _userPromptController,
-                  decoration: InputDecoration(
-                    labelText: s.aiConfig_userPromptTemplate,
-                    hintText: s.aiConfig_userPromptTemplateHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-          ),
+        child: AIConfigTemplateEditorForm(
+          formKey: _formKey,
+          idController: _idController,
+          nameController: _nameController,
+          descriptionController: _descriptionController,
+          systemPromptController: _systemPromptController,
+          userPromptController: _userPromptController,
+          selectedIcon: _selectedIcon,
+          onIconChanged: (value) {
+            setState(() => _selectedIcon = value);
+          },
         ),
       ),
       actions: [

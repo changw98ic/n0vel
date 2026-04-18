@@ -1,4 +1,4 @@
-name: writing_assistant
+﻿name: writing_assistant
 description: "AI-powered writing assistant for novel authors"
 publish_to: 'none'
 version: 1.0.0+1
@@ -14,25 +14,25 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # 状态管理
+  # 鐘舵€佺鐞?
   get: ^4.6.6
 
-  # 屏幕适配
+  # 灞忓箷閫傞厤
   flutter_screenutil: ^5.9.0
 
-  # 数据库
+  # 鏁版嵁搴?
   drift: ^2.14.0
   sqlite3_flutter_libs: ^0.5.0
   path: ^1.8.0
 
-  # 网络
+  # 缃戠粶
   dio: ^5.4.0
 
-  # 序列化
+  # 搴忓垪鍖?
   freezed_annotation: ^2.4.0
   json_annotation: ^4.8.0
 
-  # 工具
+  # 宸ュ叿
   uuid: ^4.2.1
   path_provider: ^2.1.1
   archive: ^3.4.9
@@ -43,16 +43,16 @@ dependencies:
   intl: ^0.20.2
   window_manager: ^0.3.8
 
-  # 图表
+  # 鍥捐〃
   fl_chart: ^0.66.0
 
   # Markdown
   flutter_markdown: ^0.6.18
 
-  # 本地存储
+  # 鏈湴瀛樺偍
   shared_preferences: ^2.2.2
 
-  # 加密
+  # 鍔犲瘑
   flutter_secure_storage: ^9.0.0
   crypto: ^3.0.6
 
@@ -61,9 +61,11 @@ dev_dependencies:
     sdk: flutter
   flutter_driver:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^3.0.1
 
-  # 代码生成
+  # 浠ｇ爜鐢熸垚
   drift_dev: ^2.14.0
   build_runner: ^2.4.8
   freezed: ^2.4.6
@@ -75,6 +77,8 @@ flutter:
   generate: true
 
   assets:
+    - writer.md
+    - .writer/
     - assets/images/
     - assets/templates/
 

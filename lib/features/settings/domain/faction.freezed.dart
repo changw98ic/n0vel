@@ -12,7 +12,8 @@ part of 'faction.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Faction _$FactionFromJson(Map<String, dynamic> json) {
   return _Faction.fromJson(json);
@@ -32,8 +33,12 @@ mixin _$Faction {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this Faction to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Faction
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $FactionCopyWith<Faction> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -42,18 +47,19 @@ abstract class $FactionCopyWith<$Res> {
   factory $FactionCopyWith(Faction value, $Res Function(Faction) then) =
       _$FactionCopyWithImpl<$Res, Faction>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      String? type,
-      String? emblemPath,
-      String? description,
-      List<String> traits,
-      String? leaderId,
-      bool isArchived,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    String? type,
+    String? emblemPath,
+    String? description,
+    List<String> traits,
+    String? leaderId,
+    bool isArchived,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -66,6 +72,8 @@ class _$FactionCopyWithImpl<$Res, $Val extends Faction>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Faction
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -81,74 +89,79 @@ class _$FactionCopyWithImpl<$Res, $Val extends Faction>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: freezed == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as String?,
-      emblemPath: freezed == emblemPath
-          ? _value.emblemPath
-          : emblemPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      traits: null == traits
-          ? _value.traits
-          : traits // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      leaderId: freezed == leaderId
-          ? _value.leaderId
-          : leaderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isArchived: null == isArchived
-          ? _value.isArchived
-          : isArchived // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: freezed == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            emblemPath: freezed == emblemPath
+                ? _value.emblemPath
+                : emblemPath // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            traits: null == traits
+                ? _value.traits
+                : traits // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            leaderId: freezed == leaderId
+                ? _value.leaderId
+                : leaderId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isArchived: null == isArchived
+                ? _value.isArchived
+                : isArchived // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$FactionImplCopyWith<$Res> implements $FactionCopyWith<$Res> {
   factory _$$FactionImplCopyWith(
-          _$FactionImpl value, $Res Function(_$FactionImpl) then) =
-      __$$FactionImplCopyWithImpl<$Res>;
+    _$FactionImpl value,
+    $Res Function(_$FactionImpl) then,
+  ) = __$$FactionImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      String? type,
-      String? emblemPath,
-      String? description,
-      List<String> traits,
-      String? leaderId,
-      bool isArchived,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    String? type,
+    String? emblemPath,
+    String? description,
+    List<String> traits,
+    String? leaderId,
+    bool isArchived,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -156,9 +169,12 @@ class __$$FactionImplCopyWithImpl<$Res>
     extends _$FactionCopyWithImpl<$Res, _$FactionImpl>
     implements _$$FactionImplCopyWith<$Res> {
   __$$FactionImplCopyWithImpl(
-      _$FactionImpl _value, $Res Function(_$FactionImpl) _then)
-      : super(_value, _then);
+    _$FactionImpl _value,
+    $Res Function(_$FactionImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Faction
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -174,72 +190,74 @@ class __$$FactionImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_$FactionImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: freezed == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as String?,
-      emblemPath: freezed == emblemPath
-          ? _value.emblemPath
-          : emblemPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      traits: null == traits
-          ? _value._traits
-          : traits // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      leaderId: freezed == leaderId
-          ? _value.leaderId
-          : leaderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isArchived: null == isArchived
-          ? _value.isArchived
-          : isArchived // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$FactionImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: freezed == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        emblemPath: freezed == emblemPath
+            ? _value.emblemPath
+            : emblemPath // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        traits: null == traits
+            ? _value._traits
+            : traits // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        leaderId: freezed == leaderId
+            ? _value.leaderId
+            : leaderId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isArchived: null == isArchived
+            ? _value.isArchived
+            : isArchived // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$FactionImpl extends _Faction {
-  const _$FactionImpl(
-      {required this.id,
-      required this.workId,
-      required this.name,
-      this.type,
-      this.emblemPath,
-      this.description,
-      final List<String> traits = const [],
-      this.leaderId,
-      this.isArchived = false,
-      required this.createdAt,
-      required this.updatedAt})
-      : _traits = traits,
-        super._();
+  const _$FactionImpl({
+    required this.id,
+    required this.workId,
+    required this.name,
+    this.type,
+    this.emblemPath,
+    this.description,
+    final List<String> traits = const [],
+    this.leaderId,
+    this.isArchived = false,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : _traits = traits,
+       super._();
 
   factory _$FactionImpl.fromJson(Map<String, dynamic> json) =>
       _$$FactionImplFromJson(json);
@@ -304,23 +322,26 @@ class _$FactionImpl extends _Faction {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      name,
-      type,
-      emblemPath,
-      description,
-      const DeepCollectionEquality().hash(_traits),
-      leaderId,
-      isArchived,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    workId,
+    name,
+    type,
+    emblemPath,
+    description,
+    const DeepCollectionEquality().hash(_traits),
+    leaderId,
+    isArchived,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Faction
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$FactionImplCopyWith<_$FactionImpl> get copyWith =>
@@ -328,25 +349,24 @@ class _$FactionImpl extends _Faction {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$FactionImplToJson(
-      this,
-    );
+    return _$$FactionImplToJson(this);
   }
 }
 
 abstract class _Faction extends Faction {
-  const factory _Faction(
-      {required final String id,
-      required final String workId,
-      required final String name,
-      final String? type,
-      final String? emblemPath,
-      final String? description,
-      final List<String> traits,
-      final String? leaderId,
-      final bool isArchived,
-      required final DateTime createdAt,
-      required final DateTime updatedAt}) = _$FactionImpl;
+  const factory _Faction({
+    required final String id,
+    required final String workId,
+    required final String name,
+    final String? type,
+    final String? emblemPath,
+    final String? description,
+    final List<String> traits,
+    final String? leaderId,
+    final bool isArchived,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+  }) = _$FactionImpl;
   const _Faction._() : super._();
 
   factory _Faction.fromJson(Map<String, dynamic> json) = _$FactionImpl.fromJson;
@@ -373,8 +393,11 @@ abstract class _Faction extends Faction {
   DateTime get createdAt;
   @override
   DateTime get updatedAt;
+
+  /// Create a copy of Faction
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$FactionImplCopyWith<_$FactionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -394,8 +417,12 @@ mixin _$FactionMember {
   String get status => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this FactionMember to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of FactionMember
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $FactionMemberCopyWith<FactionMember> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -403,18 +430,20 @@ mixin _$FactionMember {
 /// @nodoc
 abstract class $FactionMemberCopyWith<$Res> {
   factory $FactionMemberCopyWith(
-          FactionMember value, $Res Function(FactionMember) then) =
-      _$FactionMemberCopyWithImpl<$Res, FactionMember>;
+    FactionMember value,
+    $Res Function(FactionMember) then,
+  ) = _$FactionMemberCopyWithImpl<$Res, FactionMember>;
   @useResult
-  $Res call(
-      {String id,
-      String factionId,
-      String characterId,
-      String? role,
-      String? joinChapterId,
-      String? leaveChapterId,
-      String status,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String factionId,
+    String characterId,
+    String? role,
+    String? joinChapterId,
+    String? leaveChapterId,
+    String status,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -427,6 +456,8 @@ class _$FactionMemberCopyWithImpl<$Res, $Val extends FactionMember>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of FactionMember
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -439,40 +470,43 @@ class _$FactionMemberCopyWithImpl<$Res, $Val extends FactionMember>
     Object? status = null,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      factionId: null == factionId
-          ? _value.factionId
-          : factionId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: freezed == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as String?,
-      joinChapterId: freezed == joinChapterId
-          ? _value.joinChapterId
-          : joinChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      leaveChapterId: freezed == leaveChapterId
-          ? _value.leaveChapterId
-          : leaveChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            factionId: null == factionId
+                ? _value.factionId
+                : factionId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            role: freezed == role
+                ? _value.role
+                : role // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            joinChapterId: freezed == joinChapterId
+                ? _value.joinChapterId
+                : joinChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            leaveChapterId: freezed == leaveChapterId
+                ? _value.leaveChapterId
+                : leaveChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -480,19 +514,21 @@ class _$FactionMemberCopyWithImpl<$Res, $Val extends FactionMember>
 abstract class _$$FactionMemberImplCopyWith<$Res>
     implements $FactionMemberCopyWith<$Res> {
   factory _$$FactionMemberImplCopyWith(
-          _$FactionMemberImpl value, $Res Function(_$FactionMemberImpl) then) =
-      __$$FactionMemberImplCopyWithImpl<$Res>;
+    _$FactionMemberImpl value,
+    $Res Function(_$FactionMemberImpl) then,
+  ) = __$$FactionMemberImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String factionId,
-      String characterId,
-      String? role,
-      String? joinChapterId,
-      String? leaveChapterId,
-      String status,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String factionId,
+    String characterId,
+    String? role,
+    String? joinChapterId,
+    String? leaveChapterId,
+    String status,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -500,9 +536,12 @@ class __$$FactionMemberImplCopyWithImpl<$Res>
     extends _$FactionMemberCopyWithImpl<$Res, _$FactionMemberImpl>
     implements _$$FactionMemberImplCopyWith<$Res> {
   __$$FactionMemberImplCopyWithImpl(
-      _$FactionMemberImpl _value, $Res Function(_$FactionMemberImpl) _then)
-      : super(_value, _then);
+    _$FactionMemberImpl _value,
+    $Res Function(_$FactionMemberImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of FactionMember
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -515,55 +554,58 @@ class __$$FactionMemberImplCopyWithImpl<$Res>
     Object? status = null,
     Object? createdAt = null,
   }) {
-    return _then(_$FactionMemberImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      factionId: null == factionId
-          ? _value.factionId
-          : factionId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: freezed == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as String?,
-      joinChapterId: freezed == joinChapterId
-          ? _value.joinChapterId
-          : joinChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      leaveChapterId: freezed == leaveChapterId
-          ? _value.leaveChapterId
-          : leaveChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$FactionMemberImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        factionId: null == factionId
+            ? _value.factionId
+            : factionId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        role: freezed == role
+            ? _value.role
+            : role // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        joinChapterId: freezed == joinChapterId
+            ? _value.joinChapterId
+            : joinChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        leaveChapterId: freezed == leaveChapterId
+            ? _value.leaveChapterId
+            : leaveChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$FactionMemberImpl implements _FactionMember {
-  const _$FactionMemberImpl(
-      {required this.id,
-      required this.factionId,
-      required this.characterId,
-      this.role,
-      this.joinChapterId,
-      this.leaveChapterId,
-      this.status = 'active',
-      required this.createdAt});
+  const _$FactionMemberImpl({
+    required this.id,
+    required this.factionId,
+    required this.characterId,
+    this.role,
+    this.joinChapterId,
+    this.leaveChapterId,
+    this.status = 'active',
+    required this.createdAt,
+  });
 
   factory _$FactionMemberImpl.fromJson(Map<String, dynamic> json) =>
       _$$FactionMemberImplFromJson(json);
@@ -611,12 +653,23 @@ class _$FactionMemberImpl implements _FactionMember {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, factionId, characterId, role,
-      joinChapterId, leaveChapterId, status, createdAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    factionId,
+    characterId,
+    role,
+    joinChapterId,
+    leaveChapterId,
+    status,
+    createdAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of FactionMember
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$FactionMemberImplCopyWith<_$FactionMemberImpl> get copyWith =>
@@ -624,22 +677,21 @@ class _$FactionMemberImpl implements _FactionMember {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$FactionMemberImplToJson(
-      this,
-    );
+    return _$$FactionMemberImplToJson(this);
   }
 }
 
 abstract class _FactionMember implements FactionMember {
-  const factory _FactionMember(
-      {required final String id,
-      required final String factionId,
-      required final String characterId,
-      final String? role,
-      final String? joinChapterId,
-      final String? leaveChapterId,
-      final String status,
-      required final DateTime createdAt}) = _$FactionMemberImpl;
+  const factory _FactionMember({
+    required final String id,
+    required final String factionId,
+    required final String characterId,
+    final String? role,
+    final String? joinChapterId,
+    final String? leaveChapterId,
+    final String status,
+    required final DateTime createdAt,
+  }) = _$FactionMemberImpl;
 
   factory _FactionMember.fromJson(Map<String, dynamic> json) =
       _$FactionMemberImpl.fromJson;
@@ -660,8 +712,11 @@ abstract class _FactionMember implements FactionMember {
   String get status;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of FactionMember
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$FactionMemberImplCopyWith<_$FactionMemberImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

@@ -1,0 +1,232 @@
+charter: writer.md
+
+global:
+  - .writer/memory/global.md
+
+modules:
+  - id: ai-context
+    file: .writer/memory/modules/ai-context.md
+    triggers:
+      - context
+      - memory
+      - prompt
+      - history
+  - id: editor-chat
+    file: .writer/memory/modules/editor-chat.md
+    triggers:
+      - 编辑
+      - 润色
+      - 改写
+      - 续写
+      - 对白
+      - chapter
+      - dialogue
+  - id: workflow
+    file: .writer/memory/modules/workflow.md
+    triggers:
+      - workflow
+      - 工作流
+      - 节点
+      - checkpoint
+  - id: review
+    file: .writer/memory/modules/review.md
+    triggers:
+      - review
+      - 审查
+      - 评审
+      - 一致性
+      - ooc
+  - id: worldbuilding
+    file: .writer/memory/modules/worldbuilding.md
+    triggers:
+      - 世界观
+      - 设定
+      - 题材
+      - 力量体系
+      - worldbuilding
+  - id: ai-chat
+    file: .writer/memory/modules/ai-chat.md
+    triggers:
+      - 对话
+      - 聊天
+      - 会话
+      - chat
+      - message
+  - id: ai-config
+    file: .writer/memory/modules/ai-config.md
+    triggers:
+      - 模型配置
+      - provider
+      - model config
+      - 提示词模板
+  - id: ai-detection
+    file: .writer/memory/modules/ai-detection.md
+    triggers:
+      - AI检测
+      - ai detection
+      - AI痕迹
+      - 口吻检测
+  - id: dashboard
+    file: .writer/memory/modules/dashboard.md
+    triggers:
+      - 仪表盘
+      - 概览
+      - dashboard
+      - 统计概览
+  - id: inspiration
+    file: .writer/memory/modules/inspiration.md
+    triggers:
+      - 灵感
+      - 素材
+      - inspiration
+      - 片段
+      - scene_fragment
+      - dialogue_snippet
+      - character_sketch
+  - id: pov
+    file: .writer/memory/modules/pov.md
+    triggers:
+      - 视角
+      - pov
+      - 角色视角
+      - 视点
+  - id: reading-mode
+    file: .writer/memory/modules/reading-mode.md
+    triggers:
+      - 阅读
+      - reading
+      - 批注
+      - 书签
+  - id: settings
+    file: .writer/memory/modules/settings.md
+    triggers:
+      - 设置
+      - 角色管理
+      - 地点管理
+      - 物品管理
+      - 势力管理
+      - 关系管理
+  - id: statistics
+    file: .writer/memory/modules/statistics.md
+    triggers:
+      - 统计
+      - statistics
+      - 数据分析
+      - 写作统计
+  - id: story-arc
+    file: .writer/memory/modules/story-arc.md
+    triggers:
+      - 故事弧
+      - 大纲
+      - story arc
+      - 情节线
+  - id: timeline
+    file: .writer/memory/modules/timeline.md
+    triggers:
+      - 时间线
+      - timeline
+      - 事件排序
+      - 时间冲突
+  - id: work
+    file: .writer/memory/modules/work.md
+    triggers:
+      - 作品管理
+      - 创建作品
+      - 作品列表
+      - 导出
+      - export
+
+paths:
+  - id: core-ai
+    file: .writer/memory/paths/lib__core__services__ai.md
+    matches:
+      - lib/core/services/ai/
+  - id: workflow
+    file: .writer/memory/paths/lib__features__workflow.md
+    matches:
+      - lib/features/workflow/
+  - id: editor
+    file: .writer/memory/paths/lib__modules__editor.md
+    matches:
+      - lib/modules/editor/
+
+skills:
+  - id: chapter-writing
+    file: .writer/skills/chapter-writing.md
+    triggers:
+      - chapter
+      - 章节
+      - 正文
+      - 续写
+      - 第1章
+      - 第一章
+  - id: entity-creation
+    file: .writer/skills/entity-creation.md
+    triggers:
+      - 角色
+      - 地点
+      - 物品
+      - 势力
+      - 关系
+      - entity
+      - create
+  - id: workflow-execution
+    file: .writer/skills/workflow-execution.md
+    triggers:
+      - workflow
+      - 工作流
+      - checkpoint
+      - 执行
+  - id: review-analysis
+    file: .writer/skills/review-analysis.md
+    triggers:
+      - review
+      - 审查
+      - 评审
+      - 一致性
+      - ooc
+  - id: content-management
+    file: .writer/skills/content-management.md
+    triggers:
+      - 作品
+      - 卷
+      - list
+      - search
+      - 搜索
+      - work
+      - volume
+  - id: content-generation
+    file: .writer/skills/content-generation.md
+    triggers:
+      - 生成
+      - generate
+      - 提取
+      - extract
+      - 设定提取
+      - continuation
+      - dialogue
+      - scene
+
+agents:
+  - id: writer-agent
+    file: .writer/agents/writer-agent.md
+  - id: editor-agent
+    file: .writer/agents/editor-agent.md
+  - id: reviewer-agent
+    file: .writer/agents/reviewer-agent.md
+  - id: extractor-agent
+    file: .writer/agents/extractor-agent.md
+  - id: planner-agent
+    file: .writer/agents/planner-agent.md
+
+teams:
+  - id: longform-book-team
+    file: .writer/teams/longform-book-team.md
+  - id: review-team
+    file: .writer/teams/review-team.md
+
+hooks:
+  - id: pre-request-validate
+    file: .writer/hooks/pre-request-validate.md
+  - id: post-response-check
+    file: .writer/hooks/post-response-check.md

@@ -12,7 +12,8 @@ part of 'timeline_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 StoryEvent _$StoryEventFromJson(Map<String, dynamic> json) {
   return _StoryEvent.fromJson(json);
@@ -31,7 +32,7 @@ mixin _$StoryEvent {
       throw _privateConstructorUsedError; // 相对时间（如：入门后第156天）
   String? get chapterId => throw _privateConstructorUsedError; // 发生章节
   int? get chapterPosition => throw _privateConstructorUsedError; // 章节内位置
-// 地点和角色
+  // 地点和角色
   String? get locationId => throw _privateConstructorUsedError;
   List<String> get characterIds => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
@@ -40,8 +41,12 @@ mixin _$StoryEvent {
   String? get successorId => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this StoryEvent to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of StoryEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $StoryEventCopyWith<StoryEvent> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -49,26 +54,28 @@ mixin _$StoryEvent {
 /// @nodoc
 abstract class $StoryEventCopyWith<$Res> {
   factory $StoryEventCopyWith(
-          StoryEvent value, $Res Function(StoryEvent) then) =
-      _$StoryEventCopyWithImpl<$Res, StoryEvent>;
+    StoryEvent value,
+    $Res Function(StoryEvent) then,
+  ) = _$StoryEventCopyWithImpl<$Res, StoryEvent>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      EventType type,
-      EventImportance importance,
-      String? storyTime,
-      String? relativeTime,
-      String? chapterId,
-      int? chapterPosition,
-      String? locationId,
-      List<String> characterIds,
-      String? description,
-      String? consequences,
-      String? predecessorId,
-      String? successorId,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    EventType type,
+    EventImportance importance,
+    String? storyTime,
+    String? relativeTime,
+    String? chapterId,
+    int? chapterPosition,
+    String? locationId,
+    List<String> characterIds,
+    String? description,
+    String? consequences,
+    String? predecessorId,
+    String? successorId,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -81,6 +88,8 @@ class _$StoryEventCopyWithImpl<$Res, $Val extends StoryEvent>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of StoryEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -101,72 +110,75 @@ class _$StoryEventCopyWithImpl<$Res, $Val extends StoryEvent>
     Object? successorId = freezed,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EventType,
-      importance: null == importance
-          ? _value.importance
-          : importance // ignore: cast_nullable_to_non_nullable
-              as EventImportance,
-      storyTime: freezed == storyTime
-          ? _value.storyTime
-          : storyTime // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relativeTime: freezed == relativeTime
-          ? _value.relativeTime
-          : relativeTime // ignore: cast_nullable_to_non_nullable
-              as String?,
-      chapterId: freezed == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      chapterPosition: freezed == chapterPosition
-          ? _value.chapterPosition
-          : chapterPosition // ignore: cast_nullable_to_non_nullable
-              as int?,
-      locationId: freezed == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      characterIds: null == characterIds
-          ? _value.characterIds
-          : characterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      consequences: freezed == consequences
-          ? _value.consequences
-          : consequences // ignore: cast_nullable_to_non_nullable
-              as String?,
-      predecessorId: freezed == predecessorId
-          ? _value.predecessorId
-          : predecessorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      successorId: freezed == successorId
-          ? _value.successorId
-          : successorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as EventType,
+            importance: null == importance
+                ? _value.importance
+                : importance // ignore: cast_nullable_to_non_nullable
+                      as EventImportance,
+            storyTime: freezed == storyTime
+                ? _value.storyTime
+                : storyTime // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            relativeTime: freezed == relativeTime
+                ? _value.relativeTime
+                : relativeTime // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            chapterId: freezed == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            chapterPosition: freezed == chapterPosition
+                ? _value.chapterPosition
+                : chapterPosition // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            locationId: freezed == locationId
+                ? _value.locationId
+                : locationId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            characterIds: null == characterIds
+                ? _value.characterIds
+                : characterIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            consequences: freezed == consequences
+                ? _value.consequences
+                : consequences // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            predecessorId: freezed == predecessorId
+                ? _value.predecessorId
+                : predecessorId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            successorId: freezed == successorId
+                ? _value.successorId
+                : successorId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -174,27 +186,29 @@ class _$StoryEventCopyWithImpl<$Res, $Val extends StoryEvent>
 abstract class _$$StoryEventImplCopyWith<$Res>
     implements $StoryEventCopyWith<$Res> {
   factory _$$StoryEventImplCopyWith(
-          _$StoryEventImpl value, $Res Function(_$StoryEventImpl) then) =
-      __$$StoryEventImplCopyWithImpl<$Res>;
+    _$StoryEventImpl value,
+    $Res Function(_$StoryEventImpl) then,
+  ) = __$$StoryEventImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      EventType type,
-      EventImportance importance,
-      String? storyTime,
-      String? relativeTime,
-      String? chapterId,
-      int? chapterPosition,
-      String? locationId,
-      List<String> characterIds,
-      String? description,
-      String? consequences,
-      String? predecessorId,
-      String? successorId,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    EventType type,
+    EventImportance importance,
+    String? storyTime,
+    String? relativeTime,
+    String? chapterId,
+    int? chapterPosition,
+    String? locationId,
+    List<String> characterIds,
+    String? description,
+    String? consequences,
+    String? predecessorId,
+    String? successorId,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -202,9 +216,12 @@ class __$$StoryEventImplCopyWithImpl<$Res>
     extends _$StoryEventCopyWithImpl<$Res, _$StoryEventImpl>
     implements _$$StoryEventImplCopyWith<$Res> {
   __$$StoryEventImplCopyWithImpl(
-      _$StoryEventImpl _value, $Res Function(_$StoryEventImpl) _then)
-      : super(_value, _then);
+    _$StoryEventImpl _value,
+    $Res Function(_$StoryEventImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of StoryEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -225,97 +242,99 @@ class __$$StoryEventImplCopyWithImpl<$Res>
     Object? successorId = freezed,
     Object? createdAt = null,
   }) {
-    return _then(_$StoryEventImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EventType,
-      importance: null == importance
-          ? _value.importance
-          : importance // ignore: cast_nullable_to_non_nullable
-              as EventImportance,
-      storyTime: freezed == storyTime
-          ? _value.storyTime
-          : storyTime // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relativeTime: freezed == relativeTime
-          ? _value.relativeTime
-          : relativeTime // ignore: cast_nullable_to_non_nullable
-              as String?,
-      chapterId: freezed == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      chapterPosition: freezed == chapterPosition
-          ? _value.chapterPosition
-          : chapterPosition // ignore: cast_nullable_to_non_nullable
-              as int?,
-      locationId: freezed == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      characterIds: null == characterIds
-          ? _value._characterIds
-          : characterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      consequences: freezed == consequences
-          ? _value.consequences
-          : consequences // ignore: cast_nullable_to_non_nullable
-              as String?,
-      predecessorId: freezed == predecessorId
-          ? _value.predecessorId
-          : predecessorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      successorId: freezed == successorId
-          ? _value.successorId
-          : successorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$StoryEventImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as EventType,
+        importance: null == importance
+            ? _value.importance
+            : importance // ignore: cast_nullable_to_non_nullable
+                  as EventImportance,
+        storyTime: freezed == storyTime
+            ? _value.storyTime
+            : storyTime // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        relativeTime: freezed == relativeTime
+            ? _value.relativeTime
+            : relativeTime // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        chapterId: freezed == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        chapterPosition: freezed == chapterPosition
+            ? _value.chapterPosition
+            : chapterPosition // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        locationId: freezed == locationId
+            ? _value.locationId
+            : locationId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        characterIds: null == characterIds
+            ? _value._characterIds
+            : characterIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        consequences: freezed == consequences
+            ? _value.consequences
+            : consequences // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        predecessorId: freezed == predecessorId
+            ? _value.predecessorId
+            : predecessorId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        successorId: freezed == successorId
+            ? _value.successorId
+            : successorId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$StoryEventImpl extends _StoryEvent {
-  const _$StoryEventImpl(
-      {required this.id,
-      required this.workId,
-      required this.name,
-      this.type = EventType.main,
-      this.importance = EventImportance.normal,
-      this.storyTime,
-      this.relativeTime,
-      this.chapterId,
-      this.chapterPosition,
-      this.locationId,
-      final List<String> characterIds = const [],
-      this.description,
-      this.consequences,
-      this.predecessorId,
-      this.successorId,
-      required this.createdAt})
-      : _characterIds = characterIds,
-        super._();
+  const _$StoryEventImpl({
+    required this.id,
+    required this.workId,
+    required this.name,
+    this.type = EventType.main,
+    this.importance = EventImportance.normal,
+    this.storyTime,
+    this.relativeTime,
+    this.chapterId,
+    this.chapterPosition,
+    this.locationId,
+    final List<String> characterIds = const [],
+    this.description,
+    this.consequences,
+    this.predecessorId,
+    this.successorId,
+    required this.createdAt,
+  }) : _characterIds = characterIds,
+       super._();
 
   factory _$StoryEventImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoryEventImplFromJson(json);
@@ -332,20 +351,20 @@ class _$StoryEventImpl extends _StoryEvent {
   @override
   @JsonKey()
   final EventImportance importance;
-// 时间定位
+  // 时间定位
   @override
   final String? storyTime;
-// 故事内时间（如：天元历1245年春）
+  // 故事内时间（如：天元历1245年春）
   @override
   final String? relativeTime;
-// 相对时间（如：入门后第156天）
+  // 相对时间（如：入门后第156天）
   @override
   final String? chapterId;
-// 发生章节
+  // 发生章节
   @override
   final int? chapterPosition;
-// 章节内位置
-// 地点和角色
+  // 章节内位置
+  // 地点和角色
   @override
   final String? locationId;
   final List<String> _characterIds;
@@ -361,7 +380,7 @@ class _$StoryEventImpl extends _StoryEvent {
   final String? description;
   @override
   final String? consequences;
-// 事件关联
+  // 事件关联
   @override
   final String? predecessorId;
   @override
@@ -395,8 +414,10 @@ class _$StoryEventImpl extends _StoryEvent {
                 other.chapterPosition == chapterPosition) &&
             (identical(other.locationId, locationId) ||
                 other.locationId == locationId) &&
-            const DeepCollectionEquality()
-                .equals(other._characterIds, _characterIds) &&
+            const DeepCollectionEquality().equals(
+              other._characterIds,
+              _characterIds,
+            ) &&
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.consequences, consequences) ||
@@ -409,28 +430,31 @@ class _$StoryEventImpl extends _StoryEvent {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      name,
-      type,
-      importance,
-      storyTime,
-      relativeTime,
-      chapterId,
-      chapterPosition,
-      locationId,
-      const DeepCollectionEquality().hash(_characterIds),
-      description,
-      consequences,
-      predecessorId,
-      successorId,
-      createdAt);
+    runtimeType,
+    id,
+    workId,
+    name,
+    type,
+    importance,
+    storyTime,
+    relativeTime,
+    chapterId,
+    chapterPosition,
+    locationId,
+    const DeepCollectionEquality().hash(_characterIds),
+    description,
+    consequences,
+    predecessorId,
+    successorId,
+    createdAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StoryEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$StoryEventImplCopyWith<_$StoryEventImpl> get copyWith =>
@@ -438,30 +462,29 @@ class _$StoryEventImpl extends _StoryEvent {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$StoryEventImplToJson(
-      this,
-    );
+    return _$$StoryEventImplToJson(this);
   }
 }
 
 abstract class _StoryEvent extends StoryEvent {
-  const factory _StoryEvent(
-      {required final String id,
-      required final String workId,
-      required final String name,
-      final EventType type,
-      final EventImportance importance,
-      final String? storyTime,
-      final String? relativeTime,
-      final String? chapterId,
-      final int? chapterPosition,
-      final String? locationId,
-      final List<String> characterIds,
-      final String? description,
-      final String? consequences,
-      final String? predecessorId,
-      final String? successorId,
-      required final DateTime createdAt}) = _$StoryEventImpl;
+  const factory _StoryEvent({
+    required final String id,
+    required final String workId,
+    required final String name,
+    final EventType type,
+    final EventImportance importance,
+    final String? storyTime,
+    final String? relativeTime,
+    final String? chapterId,
+    final int? chapterPosition,
+    final String? locationId,
+    final List<String> characterIds,
+    final String? description,
+    final String? consequences,
+    final String? predecessorId,
+    final String? successorId,
+    required final DateTime createdAt,
+  }) = _$StoryEventImpl;
   const _StoryEvent._() : super._();
 
   factory _StoryEvent.fromJson(Map<String, dynamic> json) =
@@ -476,38 +499,42 @@ abstract class _StoryEvent extends StoryEvent {
   @override
   EventType get type;
   @override
-  EventImportance get importance;
-  @override // 时间定位
-  String? get storyTime;
-  @override // 故事内时间（如：天元历1245年春）
-  String? get relativeTime;
-  @override // 相对时间（如：入门后第156天）
-  String? get chapterId;
-  @override // 发生章节
-  int? get chapterPosition;
-  @override // 章节内位置
-// 地点和角色
+  EventImportance get importance; // 时间定位
+  @override
+  String? get storyTime; // 故事内时间（如：天元历1245年春）
+  @override
+  String? get relativeTime; // 相对时间（如：入门后第156天）
+  @override
+  String? get chapterId; // 发生章节
+  @override
+  int? get chapterPosition; // 章节内位置
+  // 地点和角色
+  @override
   String? get locationId;
   @override
   List<String> get characterIds;
   @override
   String? get description;
   @override
-  String? get consequences;
-  @override // 事件关联
+  String? get consequences; // 事件关联
+  @override
   String? get predecessorId;
   @override
   String? get successorId;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of StoryEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$StoryEventImplCopyWith<_$StoryEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 CharacterTrajectoryPoint _$CharacterTrajectoryPointFromJson(
-    Map<String, dynamic> json) {
+  Map<String, dynamic> json,
+) {
   return _CharacterTrajectoryPoint.fromJson(json);
 }
 
@@ -521,31 +548,39 @@ mixin _$CharacterTrajectoryPoint {
   List<String> get interactedCharacterIds => throw _privateConstructorUsedError;
   String? get note => throw _privateConstructorUsedError;
 
+  /// Serializes this CharacterTrajectoryPoint to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CharacterTrajectoryPoint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CharacterTrajectoryPointCopyWith<CharacterTrajectoryPoint> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $CharacterTrajectoryPointCopyWith<$Res> {
-  factory $CharacterTrajectoryPointCopyWith(CharacterTrajectoryPoint value,
-          $Res Function(CharacterTrajectoryPoint) then) =
-      _$CharacterTrajectoryPointCopyWithImpl<$Res, CharacterTrajectoryPoint>;
+  factory $CharacterTrajectoryPointCopyWith(
+    CharacterTrajectoryPoint value,
+    $Res Function(CharacterTrajectoryPoint) then,
+  ) = _$CharacterTrajectoryPointCopyWithImpl<$Res, CharacterTrajectoryPoint>;
   @useResult
-  $Res call(
-      {String characterId,
-      String chapterId,
-      String? locationId,
-      String? emotionalState,
-      String? keyAction,
-      List<String> interactedCharacterIds,
-      String? note});
+  $Res call({
+    String characterId,
+    String chapterId,
+    String? locationId,
+    String? emotionalState,
+    String? keyAction,
+    List<String> interactedCharacterIds,
+    String? note,
+  });
 }
 
 /// @nodoc
-class _$CharacterTrajectoryPointCopyWithImpl<$Res,
-        $Val extends CharacterTrajectoryPoint>
+class _$CharacterTrajectoryPointCopyWithImpl<
+  $Res,
+  $Val extends CharacterTrajectoryPoint
+>
     implements $CharacterTrajectoryPointCopyWith<$Res> {
   _$CharacterTrajectoryPointCopyWithImpl(this._value, this._then);
 
@@ -554,6 +589,8 @@ class _$CharacterTrajectoryPointCopyWithImpl<$Res,
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of CharacterTrajectoryPoint
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -565,36 +602,39 @@ class _$CharacterTrajectoryPointCopyWithImpl<$Res,
     Object? interactedCharacterIds = null,
     Object? note = freezed,
   }) {
-    return _then(_value.copyWith(
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationId: freezed == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      emotionalState: freezed == emotionalState
-          ? _value.emotionalState
-          : emotionalState // ignore: cast_nullable_to_non_nullable
-              as String?,
-      keyAction: freezed == keyAction
-          ? _value.keyAction
-          : keyAction // ignore: cast_nullable_to_non_nullable
-              as String?,
-      interactedCharacterIds: null == interactedCharacterIds
-          ? _value.interactedCharacterIds
-          : interactedCharacterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            locationId: freezed == locationId
+                ? _value.locationId
+                : locationId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            emotionalState: freezed == emotionalState
+                ? _value.emotionalState
+                : emotionalState // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            keyAction: freezed == keyAction
+                ? _value.keyAction
+                : keyAction // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            interactedCharacterIds: null == interactedCharacterIds
+                ? _value.interactedCharacterIds
+                : interactedCharacterIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -602,31 +642,37 @@ class _$CharacterTrajectoryPointCopyWithImpl<$Res,
 abstract class _$$CharacterTrajectoryPointImplCopyWith<$Res>
     implements $CharacterTrajectoryPointCopyWith<$Res> {
   factory _$$CharacterTrajectoryPointImplCopyWith(
-          _$CharacterTrajectoryPointImpl value,
-          $Res Function(_$CharacterTrajectoryPointImpl) then) =
-      __$$CharacterTrajectoryPointImplCopyWithImpl<$Res>;
+    _$CharacterTrajectoryPointImpl value,
+    $Res Function(_$CharacterTrajectoryPointImpl) then,
+  ) = __$$CharacterTrajectoryPointImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String characterId,
-      String chapterId,
-      String? locationId,
-      String? emotionalState,
-      String? keyAction,
-      List<String> interactedCharacterIds,
-      String? note});
+  $Res call({
+    String characterId,
+    String chapterId,
+    String? locationId,
+    String? emotionalState,
+    String? keyAction,
+    List<String> interactedCharacterIds,
+    String? note,
+  });
 }
 
 /// @nodoc
 class __$$CharacterTrajectoryPointImplCopyWithImpl<$Res>
-    extends _$CharacterTrajectoryPointCopyWithImpl<$Res,
-        _$CharacterTrajectoryPointImpl>
+    extends
+        _$CharacterTrajectoryPointCopyWithImpl<
+          $Res,
+          _$CharacterTrajectoryPointImpl
+        >
     implements _$$CharacterTrajectoryPointImplCopyWith<$Res> {
   __$$CharacterTrajectoryPointImplCopyWithImpl(
-      _$CharacterTrajectoryPointImpl _value,
-      $Res Function(_$CharacterTrajectoryPointImpl) _then)
-      : super(_value, _then);
+    _$CharacterTrajectoryPointImpl _value,
+    $Res Function(_$CharacterTrajectoryPointImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of CharacterTrajectoryPoint
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -638,51 +684,53 @@ class __$$CharacterTrajectoryPointImplCopyWithImpl<$Res>
     Object? interactedCharacterIds = null,
     Object? note = freezed,
   }) {
-    return _then(_$CharacterTrajectoryPointImpl(
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationId: freezed == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      emotionalState: freezed == emotionalState
-          ? _value.emotionalState
-          : emotionalState // ignore: cast_nullable_to_non_nullable
-              as String?,
-      keyAction: freezed == keyAction
-          ? _value.keyAction
-          : keyAction // ignore: cast_nullable_to_non_nullable
-              as String?,
-      interactedCharacterIds: null == interactedCharacterIds
-          ? _value._interactedCharacterIds
-          : interactedCharacterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$CharacterTrajectoryPointImpl(
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        locationId: freezed == locationId
+            ? _value.locationId
+            : locationId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        emotionalState: freezed == emotionalState
+            ? _value.emotionalState
+            : emotionalState // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        keyAction: freezed == keyAction
+            ? _value.keyAction
+            : keyAction // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        interactedCharacterIds: null == interactedCharacterIds
+            ? _value._interactedCharacterIds
+            : interactedCharacterIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CharacterTrajectoryPointImpl implements _CharacterTrajectoryPoint {
-  const _$CharacterTrajectoryPointImpl(
-      {required this.characterId,
-      required this.chapterId,
-      this.locationId,
-      this.emotionalState,
-      this.keyAction,
-      final List<String> interactedCharacterIds = const [],
-      this.note})
-      : _interactedCharacterIds = interactedCharacterIds;
+  const _$CharacterTrajectoryPointImpl({
+    required this.characterId,
+    required this.chapterId,
+    this.locationId,
+    this.emotionalState,
+    this.keyAction,
+    final List<String> interactedCharacterIds = const [],
+    this.note,
+  }) : _interactedCharacterIds = interactedCharacterIds;
 
   factory _$CharacterTrajectoryPointImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterTrajectoryPointImplFromJson(json);
@@ -731,46 +779,52 @@ class _$CharacterTrajectoryPointImpl implements _CharacterTrajectoryPoint {
             (identical(other.keyAction, keyAction) ||
                 other.keyAction == keyAction) &&
             const DeepCollectionEquality().equals(
-                other._interactedCharacterIds, _interactedCharacterIds) &&
+              other._interactedCharacterIds,
+              _interactedCharacterIds,
+            ) &&
             (identical(other.note, note) || other.note == note));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      characterId,
-      chapterId,
-      locationId,
-      emotionalState,
-      keyAction,
-      const DeepCollectionEquality().hash(_interactedCharacterIds),
-      note);
+    runtimeType,
+    characterId,
+    chapterId,
+    locationId,
+    emotionalState,
+    keyAction,
+    const DeepCollectionEquality().hash(_interactedCharacterIds),
+    note,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CharacterTrajectoryPoint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CharacterTrajectoryPointImplCopyWith<_$CharacterTrajectoryPointImpl>
-      get copyWith => __$$CharacterTrajectoryPointImplCopyWithImpl<
-          _$CharacterTrajectoryPointImpl>(this, _$identity);
+  get copyWith =>
+      __$$CharacterTrajectoryPointImplCopyWithImpl<
+        _$CharacterTrajectoryPointImpl
+      >(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CharacterTrajectoryPointImplToJson(
-      this,
-    );
+    return _$$CharacterTrajectoryPointImplToJson(this);
   }
 }
 
 abstract class _CharacterTrajectoryPoint implements CharacterTrajectoryPoint {
-  const factory _CharacterTrajectoryPoint(
-      {required final String characterId,
-      required final String chapterId,
-      final String? locationId,
-      final String? emotionalState,
-      final String? keyAction,
-      final List<String> interactedCharacterIds,
-      final String? note}) = _$CharacterTrajectoryPointImpl;
+  const factory _CharacterTrajectoryPoint({
+    required final String characterId,
+    required final String chapterId,
+    final String? locationId,
+    final String? emotionalState,
+    final String? keyAction,
+    final List<String> interactedCharacterIds,
+    final String? note,
+  }) = _$CharacterTrajectoryPointImpl;
 
   factory _CharacterTrajectoryPoint.fromJson(Map<String, dynamic> json) =
       _$CharacterTrajectoryPointImpl.fromJson;
@@ -789,10 +843,13 @@ abstract class _CharacterTrajectoryPoint implements CharacterTrajectoryPoint {
   List<String> get interactedCharacterIds;
   @override
   String? get note;
+
+  /// Create a copy of CharacterTrajectoryPoint
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CharacterTrajectoryPointImplCopyWith<_$CharacterTrajectoryPointImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  get copyWith => throw _privateConstructorUsedError;
 }
 
 TimeConflict _$TimeConflictFromJson(Map<String, dynamic> json) {
@@ -809,8 +866,12 @@ mixin _$TimeConflict {
   String? get suggestion => throw _privateConstructorUsedError;
   bool get isResolved => throw _privateConstructorUsedError;
 
+  /// Serializes this TimeConflict to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of TimeConflict
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $TimeConflictCopyWith<TimeConflict> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -818,17 +879,19 @@ mixin _$TimeConflict {
 /// @nodoc
 abstract class $TimeConflictCopyWith<$Res> {
   factory $TimeConflictCopyWith(
-          TimeConflict value, $Res Function(TimeConflict) then) =
-      _$TimeConflictCopyWithImpl<$Res, TimeConflict>;
+    TimeConflict value,
+    $Res Function(TimeConflict) then,
+  ) = _$TimeConflictCopyWithImpl<$Res, TimeConflict>;
   @useResult
-  $Res call(
-      {String id,
-      ConflictType type,
-      String description,
-      String eventId1,
-      String? eventId2,
-      String? suggestion,
-      bool isResolved});
+  $Res call({
+    String id,
+    ConflictType type,
+    String description,
+    String eventId1,
+    String? eventId2,
+    String? suggestion,
+    bool isResolved,
+  });
 }
 
 /// @nodoc
@@ -841,6 +904,8 @@ class _$TimeConflictCopyWithImpl<$Res, $Val extends TimeConflict>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of TimeConflict
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -852,36 +917,39 @@ class _$TimeConflictCopyWithImpl<$Res, $Val extends TimeConflict>
     Object? suggestion = freezed,
     Object? isResolved = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ConflictType,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      eventId1: null == eventId1
-          ? _value.eventId1
-          : eventId1 // ignore: cast_nullable_to_non_nullable
-              as String,
-      eventId2: freezed == eventId2
-          ? _value.eventId2
-          : eventId2 // ignore: cast_nullable_to_non_nullable
-              as String?,
-      suggestion: freezed == suggestion
-          ? _value.suggestion
-          : suggestion // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isResolved: null == isResolved
-          ? _value.isResolved
-          : isResolved // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as ConflictType,
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String,
+            eventId1: null == eventId1
+                ? _value.eventId1
+                : eventId1 // ignore: cast_nullable_to_non_nullable
+                      as String,
+            eventId2: freezed == eventId2
+                ? _value.eventId2
+                : eventId2 // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            suggestion: freezed == suggestion
+                ? _value.suggestion
+                : suggestion // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isResolved: null == isResolved
+                ? _value.isResolved
+                : isResolved // ignore: cast_nullable_to_non_nullable
+                      as bool,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -889,18 +957,20 @@ class _$TimeConflictCopyWithImpl<$Res, $Val extends TimeConflict>
 abstract class _$$TimeConflictImplCopyWith<$Res>
     implements $TimeConflictCopyWith<$Res> {
   factory _$$TimeConflictImplCopyWith(
-          _$TimeConflictImpl value, $Res Function(_$TimeConflictImpl) then) =
-      __$$TimeConflictImplCopyWithImpl<$Res>;
+    _$TimeConflictImpl value,
+    $Res Function(_$TimeConflictImpl) then,
+  ) = __$$TimeConflictImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      ConflictType type,
-      String description,
-      String eventId1,
-      String? eventId2,
-      String? suggestion,
-      bool isResolved});
+  $Res call({
+    String id,
+    ConflictType type,
+    String description,
+    String eventId1,
+    String? eventId2,
+    String? suggestion,
+    bool isResolved,
+  });
 }
 
 /// @nodoc
@@ -908,9 +978,12 @@ class __$$TimeConflictImplCopyWithImpl<$Res>
     extends _$TimeConflictCopyWithImpl<$Res, _$TimeConflictImpl>
     implements _$$TimeConflictImplCopyWith<$Res> {
   __$$TimeConflictImplCopyWithImpl(
-      _$TimeConflictImpl _value, $Res Function(_$TimeConflictImpl) _then)
-      : super(_value, _then);
+    _$TimeConflictImpl _value,
+    $Res Function(_$TimeConflictImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of TimeConflict
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -922,50 +995,53 @@ class __$$TimeConflictImplCopyWithImpl<$Res>
     Object? suggestion = freezed,
     Object? isResolved = null,
   }) {
-    return _then(_$TimeConflictImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ConflictType,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      eventId1: null == eventId1
-          ? _value.eventId1
-          : eventId1 // ignore: cast_nullable_to_non_nullable
-              as String,
-      eventId2: freezed == eventId2
-          ? _value.eventId2
-          : eventId2 // ignore: cast_nullable_to_non_nullable
-              as String?,
-      suggestion: freezed == suggestion
-          ? _value.suggestion
-          : suggestion // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isResolved: null == isResolved
-          ? _value.isResolved
-          : isResolved // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
+    return _then(
+      _$TimeConflictImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as ConflictType,
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String,
+        eventId1: null == eventId1
+            ? _value.eventId1
+            : eventId1 // ignore: cast_nullable_to_non_nullable
+                  as String,
+        eventId2: freezed == eventId2
+            ? _value.eventId2
+            : eventId2 // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        suggestion: freezed == suggestion
+            ? _value.suggestion
+            : suggestion // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isResolved: null == isResolved
+            ? _value.isResolved
+            : isResolved // ignore: cast_nullable_to_non_nullable
+                  as bool,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$TimeConflictImpl implements _TimeConflict {
-  const _$TimeConflictImpl(
-      {required this.id,
-      required this.type,
-      required this.description,
-      required this.eventId1,
-      this.eventId2,
-      this.suggestion,
-      this.isResolved = false});
+  const _$TimeConflictImpl({
+    required this.id,
+    required this.type,
+    required this.description,
+    required this.eventId1,
+    this.eventId2,
+    this.suggestion,
+    this.isResolved = false,
+  });
 
   factory _$TimeConflictImpl.fromJson(Map<String, dynamic> json) =>
       _$$TimeConflictImplFromJson(json);
@@ -1010,12 +1086,22 @@ class _$TimeConflictImpl implements _TimeConflict {
                 other.isResolved == isResolved));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, type, description, eventId1,
-      eventId2, suggestion, isResolved);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    type,
+    description,
+    eventId1,
+    eventId2,
+    suggestion,
+    isResolved,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TimeConflict
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$TimeConflictImplCopyWith<_$TimeConflictImpl> get copyWith =>
@@ -1023,21 +1109,20 @@ class _$TimeConflictImpl implements _TimeConflict {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$TimeConflictImplToJson(
-      this,
-    );
+    return _$$TimeConflictImplToJson(this);
   }
 }
 
 abstract class _TimeConflict implements TimeConflict {
-  const factory _TimeConflict(
-      {required final String id,
-      required final ConflictType type,
-      required final String description,
-      required final String eventId1,
-      final String? eventId2,
-      final String? suggestion,
-      final bool isResolved}) = _$TimeConflictImpl;
+  const factory _TimeConflict({
+    required final String id,
+    required final ConflictType type,
+    required final String description,
+    required final String eventId1,
+    final String? eventId2,
+    final String? suggestion,
+    final bool isResolved,
+  }) = _$TimeConflictImpl;
 
   factory _TimeConflict.fromJson(Map<String, dynamic> json) =
       _$TimeConflictImpl.fromJson;
@@ -1056,8 +1141,11 @@ abstract class _TimeConflict implements TimeConflict {
   String? get suggestion;
   @override
   bool get isResolved;
+
+  /// Create a copy of TimeConflict
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TimeConflictImplCopyWith<_$TimeConflictImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1073,8 +1161,12 @@ mixin _$StoryTimeSystem {
   String? get calendarType => throw _privateConstructorUsedError; // 纪年方式
   List<TimeUnit> get customUnits => throw _privateConstructorUsedError;
 
+  /// Serializes this StoryTimeSystem to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of StoryTimeSystem
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $StoryTimeSystemCopyWith<StoryTimeSystem> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1082,14 +1174,16 @@ mixin _$StoryTimeSystem {
 /// @nodoc
 abstract class $StoryTimeSystemCopyWith<$Res> {
   factory $StoryTimeSystemCopyWith(
-          StoryTimeSystem value, $Res Function(StoryTimeSystem) then) =
-      _$StoryTimeSystemCopyWithImpl<$Res, StoryTimeSystem>;
+    StoryTimeSystem value,
+    $Res Function(StoryTimeSystem) then,
+  ) = _$StoryTimeSystemCopyWithImpl<$Res, StoryTimeSystem>;
   @useResult
-  $Res call(
-      {String workId,
-      String startEpoch,
-      String? calendarType,
-      List<TimeUnit> customUnits});
+  $Res call({
+    String workId,
+    String startEpoch,
+    String? calendarType,
+    List<TimeUnit> customUnits,
+  });
 }
 
 /// @nodoc
@@ -1102,6 +1196,8 @@ class _$StoryTimeSystemCopyWithImpl<$Res, $Val extends StoryTimeSystem>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of StoryTimeSystem
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1110,40 +1206,45 @@ class _$StoryTimeSystemCopyWithImpl<$Res, $Val extends StoryTimeSystem>
     Object? calendarType = freezed,
     Object? customUnits = null,
   }) {
-    return _then(_value.copyWith(
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startEpoch: null == startEpoch
-          ? _value.startEpoch
-          : startEpoch // ignore: cast_nullable_to_non_nullable
-              as String,
-      calendarType: freezed == calendarType
-          ? _value.calendarType
-          : calendarType // ignore: cast_nullable_to_non_nullable
-              as String?,
-      customUnits: null == customUnits
-          ? _value.customUnits
-          : customUnits // ignore: cast_nullable_to_non_nullable
-              as List<TimeUnit>,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            startEpoch: null == startEpoch
+                ? _value.startEpoch
+                : startEpoch // ignore: cast_nullable_to_non_nullable
+                      as String,
+            calendarType: freezed == calendarType
+                ? _value.calendarType
+                : calendarType // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            customUnits: null == customUnits
+                ? _value.customUnits
+                : customUnits // ignore: cast_nullable_to_non_nullable
+                      as List<TimeUnit>,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$StoryTimeSystemImplCopyWith<$Res>
     implements $StoryTimeSystemCopyWith<$Res> {
-  factory _$$StoryTimeSystemImplCopyWith(_$StoryTimeSystemImpl value,
-          $Res Function(_$StoryTimeSystemImpl) then) =
-      __$$StoryTimeSystemImplCopyWithImpl<$Res>;
+  factory _$$StoryTimeSystemImplCopyWith(
+    _$StoryTimeSystemImpl value,
+    $Res Function(_$StoryTimeSystemImpl) then,
+  ) = __$$StoryTimeSystemImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String workId,
-      String startEpoch,
-      String? calendarType,
-      List<TimeUnit> customUnits});
+  $Res call({
+    String workId,
+    String startEpoch,
+    String? calendarType,
+    List<TimeUnit> customUnits,
+  });
 }
 
 /// @nodoc
@@ -1151,9 +1252,12 @@ class __$$StoryTimeSystemImplCopyWithImpl<$Res>
     extends _$StoryTimeSystemCopyWithImpl<$Res, _$StoryTimeSystemImpl>
     implements _$$StoryTimeSystemImplCopyWith<$Res> {
   __$$StoryTimeSystemImplCopyWithImpl(
-      _$StoryTimeSystemImpl _value, $Res Function(_$StoryTimeSystemImpl) _then)
-      : super(_value, _then);
+    _$StoryTimeSystemImpl _value,
+    $Res Function(_$StoryTimeSystemImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of StoryTimeSystem
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1162,36 +1266,38 @@ class __$$StoryTimeSystemImplCopyWithImpl<$Res>
     Object? calendarType = freezed,
     Object? customUnits = null,
   }) {
-    return _then(_$StoryTimeSystemImpl(
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startEpoch: null == startEpoch
-          ? _value.startEpoch
-          : startEpoch // ignore: cast_nullable_to_non_nullable
-              as String,
-      calendarType: freezed == calendarType
-          ? _value.calendarType
-          : calendarType // ignore: cast_nullable_to_non_nullable
-              as String?,
-      customUnits: null == customUnits
-          ? _value._customUnits
-          : customUnits // ignore: cast_nullable_to_non_nullable
-              as List<TimeUnit>,
-    ));
+    return _then(
+      _$StoryTimeSystemImpl(
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startEpoch: null == startEpoch
+            ? _value.startEpoch
+            : startEpoch // ignore: cast_nullable_to_non_nullable
+                  as String,
+        calendarType: freezed == calendarType
+            ? _value.calendarType
+            : calendarType // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        customUnits: null == customUnits
+            ? _value._customUnits
+            : customUnits // ignore: cast_nullable_to_non_nullable
+                  as List<TimeUnit>,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$StoryTimeSystemImpl implements _StoryTimeSystem {
-  const _$StoryTimeSystemImpl(
-      {required this.workId,
-      required this.startEpoch,
-      this.calendarType,
-      final List<TimeUnit> customUnits = const []})
-      : _customUnits = customUnits;
+  const _$StoryTimeSystemImpl({
+    required this.workId,
+    required this.startEpoch,
+    this.calendarType,
+    final List<TimeUnit> customUnits = const [],
+  }) : _customUnits = customUnits;
 
   factory _$StoryTimeSystemImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoryTimeSystemImplFromJson(json);
@@ -1200,12 +1306,12 @@ class _$StoryTimeSystemImpl implements _StoryTimeSystem {
   final String workId;
   @override
   final String startEpoch;
-// 故事起点描述
+  // 故事起点描述
   @override
   final String? calendarType;
-// 纪年方式
+  // 纪年方式
   final List<TimeUnit> _customUnits;
-// 纪年方式
+  // 纪年方式
   @override
   @JsonKey()
   List<TimeUnit> get customUnits {
@@ -1229,36 +1335,46 @@ class _$StoryTimeSystemImpl implements _StoryTimeSystem {
                 other.startEpoch == startEpoch) &&
             (identical(other.calendarType, calendarType) ||
                 other.calendarType == calendarType) &&
-            const DeepCollectionEquality()
-                .equals(other._customUnits, _customUnits));
+            const DeepCollectionEquality().equals(
+              other._customUnits,
+              _customUnits,
+            ));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, workId, startEpoch, calendarType,
-      const DeepCollectionEquality().hash(_customUnits));
+  int get hashCode => Object.hash(
+    runtimeType,
+    workId,
+    startEpoch,
+    calendarType,
+    const DeepCollectionEquality().hash(_customUnits),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StoryTimeSystem
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$StoryTimeSystemImplCopyWith<_$StoryTimeSystemImpl> get copyWith =>
       __$$StoryTimeSystemImplCopyWithImpl<_$StoryTimeSystemImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$StoryTimeSystemImplToJson(
-      this,
-    );
+    return _$$StoryTimeSystemImplToJson(this);
   }
 }
 
 abstract class _StoryTimeSystem implements StoryTimeSystem {
-  const factory _StoryTimeSystem(
-      {required final String workId,
-      required final String startEpoch,
-      final String? calendarType,
-      final List<TimeUnit> customUnits}) = _$StoryTimeSystemImpl;
+  const factory _StoryTimeSystem({
+    required final String workId,
+    required final String startEpoch,
+    final String? calendarType,
+    final List<TimeUnit> customUnits,
+  }) = _$StoryTimeSystemImpl;
 
   factory _StoryTimeSystem.fromJson(Map<String, dynamic> json) =
       _$StoryTimeSystemImpl.fromJson;
@@ -1266,13 +1382,16 @@ abstract class _StoryTimeSystem implements StoryTimeSystem {
   @override
   String get workId;
   @override
-  String get startEpoch;
-  @override // 故事起点描述
-  String? get calendarType;
-  @override // 纪年方式
-  List<TimeUnit> get customUnits;
+  String get startEpoch; // 故事起点描述
   @override
-  @JsonKey(ignore: true)
+  String? get calendarType; // 纪年方式
+  @override
+  List<TimeUnit> get customUnits;
+
+  /// Create a copy of StoryTimeSystem
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$StoryTimeSystemImplCopyWith<_$StoryTimeSystemImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1287,8 +1406,12 @@ mixin _$TimeUnit {
   int get baseValue => throw _privateConstructorUsedError; // 相对于基准单位的比例
   String? get description => throw _privateConstructorUsedError;
 
+  /// Serializes this TimeUnit to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of TimeUnit
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $TimeUnitCopyWith<TimeUnit> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1311,6 +1434,8 @@ class _$TimeUnitCopyWithImpl<$Res, $Val extends TimeUnit>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of TimeUnit
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1318,20 +1443,23 @@ class _$TimeUnitCopyWithImpl<$Res, $Val extends TimeUnit>
     Object? baseValue = null,
     Object? description = freezed,
   }) {
-    return _then(_value.copyWith(
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      baseValue: null == baseValue
-          ? _value.baseValue
-          : baseValue // ignore: cast_nullable_to_non_nullable
-              as int,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            baseValue: null == baseValue
+                ? _value.baseValue
+                : baseValue // ignore: cast_nullable_to_non_nullable
+                      as int,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -1339,8 +1467,9 @@ class _$TimeUnitCopyWithImpl<$Res, $Val extends TimeUnit>
 abstract class _$$TimeUnitImplCopyWith<$Res>
     implements $TimeUnitCopyWith<$Res> {
   factory _$$TimeUnitImplCopyWith(
-          _$TimeUnitImpl value, $Res Function(_$TimeUnitImpl) then) =
-      __$$TimeUnitImplCopyWithImpl<$Res>;
+    _$TimeUnitImpl value,
+    $Res Function(_$TimeUnitImpl) then,
+  ) = __$$TimeUnitImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String name, int baseValue, String? description});
@@ -1351,9 +1480,12 @@ class __$$TimeUnitImplCopyWithImpl<$Res>
     extends _$TimeUnitCopyWithImpl<$Res, _$TimeUnitImpl>
     implements _$$TimeUnitImplCopyWith<$Res> {
   __$$TimeUnitImplCopyWithImpl(
-      _$TimeUnitImpl _value, $Res Function(_$TimeUnitImpl) _then)
-      : super(_value, _then);
+    _$TimeUnitImpl _value,
+    $Res Function(_$TimeUnitImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of TimeUnit
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1361,28 +1493,33 @@ class __$$TimeUnitImplCopyWithImpl<$Res>
     Object? baseValue = null,
     Object? description = freezed,
   }) {
-    return _then(_$TimeUnitImpl(
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      baseValue: null == baseValue
-          ? _value.baseValue
-          : baseValue // ignore: cast_nullable_to_non_nullable
-              as int,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$TimeUnitImpl(
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        baseValue: null == baseValue
+            ? _value.baseValue
+            : baseValue // ignore: cast_nullable_to_non_nullable
+                  as int,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$TimeUnitImpl implements _TimeUnit {
-  const _$TimeUnitImpl(
-      {required this.name, required this.baseValue, this.description});
+  const _$TimeUnitImpl({
+    required this.name,
+    required this.baseValue,
+    this.description,
+  });
 
   factory _$TimeUnitImpl.fromJson(Map<String, dynamic> json) =>
       _$$TimeUnitImplFromJson(json);
@@ -1391,7 +1528,7 @@ class _$TimeUnitImpl implements _TimeUnit {
   final String name;
   @override
   final int baseValue;
-// 相对于基准单位的比例
+  // 相对于基准单位的比例
   @override
   final String? description;
 
@@ -1412,11 +1549,13 @@ class _$TimeUnitImpl implements _TimeUnit {
                 other.description == description));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, name, baseValue, description);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TimeUnit
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$TimeUnitImplCopyWith<_$TimeUnitImpl> get copyWith =>
@@ -1424,17 +1563,16 @@ class _$TimeUnitImpl implements _TimeUnit {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$TimeUnitImplToJson(
-      this,
-    );
+    return _$$TimeUnitImplToJson(this);
   }
 }
 
 abstract class _TimeUnit implements TimeUnit {
-  const factory _TimeUnit(
-      {required final String name,
-      required final int baseValue,
-      final String? description}) = _$TimeUnitImpl;
+  const factory _TimeUnit({
+    required final String name,
+    required final int baseValue,
+    final String? description,
+  }) = _$TimeUnitImpl;
 
   factory _TimeUnit.fromJson(Map<String, dynamic> json) =
       _$TimeUnitImpl.fromJson;
@@ -1442,11 +1580,14 @@ abstract class _TimeUnit implements TimeUnit {
   @override
   String get name;
   @override
-  int get baseValue;
-  @override // 相对于基准单位的比例
-  String? get description;
+  int get baseValue; // 相对于基准单位的比例
   @override
-  @JsonKey(ignore: true)
+  String? get description;
+
+  /// Create a copy of TimeUnit
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TimeUnitImplCopyWith<_$TimeUnitImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

@@ -25,6 +25,21 @@ class WorkRepository {
     return results.map(_toDomain).toList();
   }
 
+  Stream<List<domain.Work>> watchAllWorks({bool includeArchived = false}) {
+    final query = _db.select(_db.works);
+
+    if (!includeArchived) {
+      query.where((t) => t.isArchived.equals(false));
+    }
+
+    query.orderBy([
+      (t) => OrderingTerm.desc(t.isPinned),
+      (t) => OrderingTerm.desc(t.updatedAt),
+    ]);
+
+    return query.watch().map((rows) => rows.map(_toDomain).toList());
+  }
+
   Future<domain.Work?> getWorkById(String id) async {
     final query = _db.select(_db.works)..where((t) => t.id.equals(id));
     final result = await query.getSingleOrNull();

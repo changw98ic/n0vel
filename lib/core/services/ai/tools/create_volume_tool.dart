@@ -51,7 +51,7 @@ class CreateVolumeTool extends ToolDefinition {
       final result = await _createFn(
         workId,
         name.trim(),
-        sortOrder: input['sort_order'] as int? ?? 0,
+        sortOrder: _coerceInt(input['sort_order']) ?? 0,
       );
       return ToolResult.ok(
         '已创建卷「${result.name}」，ID: ${result.id}',
@@ -60,5 +60,12 @@ class CreateVolumeTool extends ToolDefinition {
     } catch (e) {
       return ToolResult.fail('创建卷失败: $e');
     }
+  }
+
+  int? _coerceInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 }

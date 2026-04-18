@@ -12,7 +12,8 @@ part of 'location.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Location _$LocationFromJson(Map<String, dynamic> json) {
   return _Location.fromJson(json);
@@ -32,8 +33,12 @@ mixin _$Location {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this Location to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Location
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $LocationCopyWith<Location> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -43,18 +48,19 @@ abstract class $LocationCopyWith<$Res> {
   factory $LocationCopyWith(Location value, $Res Function(Location) then) =
       _$LocationCopyWithImpl<$Res, Location>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      String? type,
-      String? parentId,
-      String? description,
-      List<String> importantPlaces,
-      List<String> characterIds,
-      bool isArchived,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    String? type,
+    String? parentId,
+    String? description,
+    List<String> importantPlaces,
+    List<String> characterIds,
+    bool isArchived,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -67,6 +73,8 @@ class _$LocationCopyWithImpl<$Res, $Val extends Location>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Location
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -82,52 +90,55 @@ class _$LocationCopyWithImpl<$Res, $Val extends Location>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: freezed == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as String?,
-      parentId: freezed == parentId
-          ? _value.parentId
-          : parentId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      importantPlaces: null == importantPlaces
-          ? _value.importantPlaces
-          : importantPlaces // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      characterIds: null == characterIds
-          ? _value.characterIds
-          : characterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      isArchived: null == isArchived
-          ? _value.isArchived
-          : isArchived // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: freezed == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            parentId: freezed == parentId
+                ? _value.parentId
+                : parentId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            importantPlaces: null == importantPlaces
+                ? _value.importantPlaces
+                : importantPlaces // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            characterIds: null == characterIds
+                ? _value.characterIds
+                : characterIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            isArchived: null == isArchived
+                ? _value.isArchived
+                : isArchived // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -135,22 +146,24 @@ class _$LocationCopyWithImpl<$Res, $Val extends Location>
 abstract class _$$LocationImplCopyWith<$Res>
     implements $LocationCopyWith<$Res> {
   factory _$$LocationImplCopyWith(
-          _$LocationImpl value, $Res Function(_$LocationImpl) then) =
-      __$$LocationImplCopyWithImpl<$Res>;
+    _$LocationImpl value,
+    $Res Function(_$LocationImpl) then,
+  ) = __$$LocationImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      String? type,
-      String? parentId,
-      String? description,
-      List<String> importantPlaces,
-      List<String> characterIds,
-      bool isArchived,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    String? type,
+    String? parentId,
+    String? description,
+    List<String> importantPlaces,
+    List<String> characterIds,
+    bool isArchived,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -158,9 +171,12 @@ class __$$LocationImplCopyWithImpl<$Res>
     extends _$LocationCopyWithImpl<$Res, _$LocationImpl>
     implements _$$LocationImplCopyWith<$Res> {
   __$$LocationImplCopyWithImpl(
-      _$LocationImpl _value, $Res Function(_$LocationImpl) _then)
-      : super(_value, _then);
+    _$LocationImpl _value,
+    $Res Function(_$LocationImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Location
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -176,73 +192,75 @@ class __$$LocationImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_$LocationImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: freezed == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as String?,
-      parentId: freezed == parentId
-          ? _value.parentId
-          : parentId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      importantPlaces: null == importantPlaces
-          ? _value._importantPlaces
-          : importantPlaces // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      characterIds: null == characterIds
-          ? _value._characterIds
-          : characterIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      isArchived: null == isArchived
-          ? _value.isArchived
-          : isArchived // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$LocationImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: freezed == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        parentId: freezed == parentId
+            ? _value.parentId
+            : parentId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        importantPlaces: null == importantPlaces
+            ? _value._importantPlaces
+            : importantPlaces // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        characterIds: null == characterIds
+            ? _value._characterIds
+            : characterIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        isArchived: null == isArchived
+            ? _value.isArchived
+            : isArchived // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$LocationImpl extends _Location {
-  const _$LocationImpl(
-      {required this.id,
-      required this.workId,
-      required this.name,
-      this.type,
-      this.parentId,
-      this.description,
-      final List<String> importantPlaces = const [],
-      final List<String> characterIds = const [],
-      this.isArchived = false,
-      required this.createdAt,
-      required this.updatedAt})
-      : _importantPlaces = importantPlaces,
-        _characterIds = characterIds,
-        super._();
+  const _$LocationImpl({
+    required this.id,
+    required this.workId,
+    required this.name,
+    this.type,
+    this.parentId,
+    this.description,
+    final List<String> importantPlaces = const [],
+    final List<String> characterIds = const [],
+    this.isArchived = false,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : _importantPlaces = importantPlaces,
+       _characterIds = characterIds,
+       super._();
 
   factory _$LocationImpl.fromJson(Map<String, dynamic> json) =>
       _$$LocationImplFromJson(json);
@@ -303,10 +321,14 @@ class _$LocationImpl extends _Location {
                 other.parentId == parentId) &&
             (identical(other.description, description) ||
                 other.description == description) &&
-            const DeepCollectionEquality()
-                .equals(other._importantPlaces, _importantPlaces) &&
-            const DeepCollectionEquality()
-                .equals(other._characterIds, _characterIds) &&
+            const DeepCollectionEquality().equals(
+              other._importantPlaces,
+              _importantPlaces,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._characterIds,
+              _characterIds,
+            ) &&
             (identical(other.isArchived, isArchived) ||
                 other.isArchived == isArchived) &&
             (identical(other.createdAt, createdAt) ||
@@ -315,23 +337,26 @@ class _$LocationImpl extends _Location {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      name,
-      type,
-      parentId,
-      description,
-      const DeepCollectionEquality().hash(_importantPlaces),
-      const DeepCollectionEquality().hash(_characterIds),
-      isArchived,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    workId,
+    name,
+    type,
+    parentId,
+    description,
+    const DeepCollectionEquality().hash(_importantPlaces),
+    const DeepCollectionEquality().hash(_characterIds),
+    isArchived,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Location
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$LocationImplCopyWith<_$LocationImpl> get copyWith =>
@@ -339,25 +364,24 @@ class _$LocationImpl extends _Location {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$LocationImplToJson(
-      this,
-    );
+    return _$$LocationImplToJson(this);
   }
 }
 
 abstract class _Location extends Location {
-  const factory _Location(
-      {required final String id,
-      required final String workId,
-      required final String name,
-      final String? type,
-      final String? parentId,
-      final String? description,
-      final List<String> importantPlaces,
-      final List<String> characterIds,
-      final bool isArchived,
-      required final DateTime createdAt,
-      required final DateTime updatedAt}) = _$LocationImpl;
+  const factory _Location({
+    required final String id,
+    required final String workId,
+    required final String name,
+    final String? type,
+    final String? parentId,
+    final String? description,
+    final List<String> importantPlaces,
+    final List<String> characterIds,
+    final bool isArchived,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+  }) = _$LocationImpl;
   const _Location._() : super._();
 
   factory _Location.fromJson(Map<String, dynamic> json) =
@@ -385,8 +409,11 @@ abstract class _Location extends Location {
   DateTime get createdAt;
   @override
   DateTime get updatedAt;
+
+  /// Create a copy of Location
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$LocationImplCopyWith<_$LocationImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -406,8 +433,12 @@ mixin _$LocationCharacter {
   String get status => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this LocationCharacter to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of LocationCharacter
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $LocationCharacterCopyWith<LocationCharacter> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -415,18 +446,20 @@ mixin _$LocationCharacter {
 /// @nodoc
 abstract class $LocationCharacterCopyWith<$Res> {
   factory $LocationCharacterCopyWith(
-          LocationCharacter value, $Res Function(LocationCharacter) then) =
-      _$LocationCharacterCopyWithImpl<$Res, LocationCharacter>;
+    LocationCharacter value,
+    $Res Function(LocationCharacter) then,
+  ) = _$LocationCharacterCopyWithImpl<$Res, LocationCharacter>;
   @useResult
-  $Res call(
-      {String id,
-      String locationId,
-      String characterId,
-      String? relationship,
-      String? startChapterId,
-      String? endChapterId,
-      String status,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String locationId,
+    String characterId,
+    String? relationship,
+    String? startChapterId,
+    String? endChapterId,
+    String status,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -439,6 +472,8 @@ class _$LocationCharacterCopyWithImpl<$Res, $Val extends LocationCharacter>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of LocationCharacter
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -451,70 +486,78 @@ class _$LocationCharacterCopyWithImpl<$Res, $Val extends LocationCharacter>
     Object? status = null,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationId: null == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      relationship: freezed == relationship
-          ? _value.relationship
-          : relationship // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startChapterId: freezed == startChapterId
-          ? _value.startChapterId
-          : startChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      endChapterId: freezed == endChapterId
-          ? _value.endChapterId
-          : endChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            locationId: null == locationId
+                ? _value.locationId
+                : locationId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            relationship: freezed == relationship
+                ? _value.relationship
+                : relationship // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            startChapterId: freezed == startChapterId
+                ? _value.startChapterId
+                : startChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            endChapterId: freezed == endChapterId
+                ? _value.endChapterId
+                : endChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$LocationCharacterImplCopyWith<$Res>
     implements $LocationCharacterCopyWith<$Res> {
-  factory _$$LocationCharacterImplCopyWith(_$LocationCharacterImpl value,
-          $Res Function(_$LocationCharacterImpl) then) =
-      __$$LocationCharacterImplCopyWithImpl<$Res>;
+  factory _$$LocationCharacterImplCopyWith(
+    _$LocationCharacterImpl value,
+    $Res Function(_$LocationCharacterImpl) then,
+  ) = __$$LocationCharacterImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String locationId,
-      String characterId,
-      String? relationship,
-      String? startChapterId,
-      String? endChapterId,
-      String status,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String locationId,
+    String characterId,
+    String? relationship,
+    String? startChapterId,
+    String? endChapterId,
+    String status,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
 class __$$LocationCharacterImplCopyWithImpl<$Res>
     extends _$LocationCharacterCopyWithImpl<$Res, _$LocationCharacterImpl>
     implements _$$LocationCharacterImplCopyWith<$Res> {
-  __$$LocationCharacterImplCopyWithImpl(_$LocationCharacterImpl _value,
-      $Res Function(_$LocationCharacterImpl) _then)
-      : super(_value, _then);
+  __$$LocationCharacterImplCopyWithImpl(
+    _$LocationCharacterImpl _value,
+    $Res Function(_$LocationCharacterImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of LocationCharacter
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -527,55 +570,58 @@ class __$$LocationCharacterImplCopyWithImpl<$Res>
     Object? status = null,
     Object? createdAt = null,
   }) {
-    return _then(_$LocationCharacterImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationId: null == locationId
-          ? _value.locationId
-          : locationId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      relationship: freezed == relationship
-          ? _value.relationship
-          : relationship // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startChapterId: freezed == startChapterId
-          ? _value.startChapterId
-          : startChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      endChapterId: freezed == endChapterId
-          ? _value.endChapterId
-          : endChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$LocationCharacterImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        locationId: null == locationId
+            ? _value.locationId
+            : locationId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        relationship: freezed == relationship
+            ? _value.relationship
+            : relationship // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        startChapterId: freezed == startChapterId
+            ? _value.startChapterId
+            : startChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        endChapterId: freezed == endChapterId
+            ? _value.endChapterId
+            : endChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$LocationCharacterImpl implements _LocationCharacter {
-  const _$LocationCharacterImpl(
-      {required this.id,
-      required this.locationId,
-      required this.characterId,
-      this.relationship,
-      this.startChapterId,
-      this.endChapterId,
-      this.status = 'active',
-      required this.createdAt});
+  const _$LocationCharacterImpl({
+    required this.id,
+    required this.locationId,
+    required this.characterId,
+    this.relationship,
+    this.startChapterId,
+    this.endChapterId,
+    this.status = 'active',
+    required this.createdAt,
+  });
 
   factory _$LocationCharacterImpl.fromJson(Map<String, dynamic> json) =>
       _$$LocationCharacterImplFromJson(json);
@@ -624,36 +670,48 @@ class _$LocationCharacterImpl implements _LocationCharacter {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, locationId, characterId,
-      relationship, startChapterId, endChapterId, status, createdAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    locationId,
+    characterId,
+    relationship,
+    startChapterId,
+    endChapterId,
+    status,
+    createdAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of LocationCharacter
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$LocationCharacterImplCopyWith<_$LocationCharacterImpl> get copyWith =>
       __$$LocationCharacterImplCopyWithImpl<_$LocationCharacterImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$LocationCharacterImplToJson(
-      this,
-    );
+    return _$$LocationCharacterImplToJson(this);
   }
 }
 
 abstract class _LocationCharacter implements LocationCharacter {
-  const factory _LocationCharacter(
-      {required final String id,
-      required final String locationId,
-      required final String characterId,
-      final String? relationship,
-      final String? startChapterId,
-      final String? endChapterId,
-      final String status,
-      required final DateTime createdAt}) = _$LocationCharacterImpl;
+  const factory _LocationCharacter({
+    required final String id,
+    required final String locationId,
+    required final String characterId,
+    final String? relationship,
+    final String? startChapterId,
+    final String? endChapterId,
+    final String status,
+    required final DateTime createdAt,
+  }) = _$LocationCharacterImpl;
 
   factory _LocationCharacter.fromJson(Map<String, dynamic> json) =
       _$LocationCharacterImpl.fromJson;
@@ -674,8 +732,11 @@ abstract class _LocationCharacter implements LocationCharacter {
   String get status;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of LocationCharacter
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$LocationCharacterImplCopyWith<_$LocationCharacterImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

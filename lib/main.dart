@@ -5,9 +5,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app/app.dart';
+import 'core/config/app_env.dart';
+import 'core/services/writer_guidance_loader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppEnv.load();
+  final guidanceLoader = WriterGuidanceLoader();
+  final guidanceValidation = await guidanceLoader.validateIndex();
+  if (!guidanceValidation.isValid || guidanceValidation.warnings.isNotEmpty) {
+    debugPrint('[WriterGuidance] $guidanceValidation');
+  }
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
     const windowOptions = WindowOptions(

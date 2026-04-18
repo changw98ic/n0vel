@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'ai/models/model_tier.dart';
+import 'workflow_service_helpers.dart';
 
 part 'workflow_service.freezed.dart';
 
@@ -10,11 +12,21 @@ enum NodeStatus {
   failed,
   skipped,
   waitingReview,
+  waitingUserInput,
   approved,
   rejected,
 }
 
-enum TaskStatus { pending, running, paused, completed, failed, cancelled }
+enum TaskStatus {
+  pending,
+  running,
+  paused,
+  waitingReview,
+  waitingUserInput,
+  completed,
+  failed,
+  cancelled,
+}
 
 @freezed
 class NodeResult with _$NodeResult {
@@ -80,6 +92,7 @@ class AINode extends WorkflowNode {
   final String promptTemplate;
   final String outputVariable;
   final String modelTier;
+  final AIFunction function;
 
   AINode({
     required this.id,
@@ -88,6 +101,7 @@ class AINode extends WorkflowNode {
     required this.promptTemplate,
     required this.outputVariable,
     this.modelTier = 'middle',
+    this.function = AIFunction.continuation,
   });
 
   @override
@@ -178,6 +192,62 @@ class ReviewNode extends WorkflowNode {
       nodeId: id,
       status: NodeStatus.waitingReview,
       output: context.get(reviewVariable),
+    );
+  }
+}
+
+class ClarificationNode extends WorkflowNode {
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final int index;
+
+  final String prompt;
+  final List<String> questions;
+  final List<String> requiredFields;
+  final String outputVariable;
+  final String responseKey;
+
+  ClarificationNode({
+    required this.id,
+    required this.name,
+    required this.index,
+    required this.prompt,
+    required this.questions,
+    required this.requiredFields,
+    required this.outputVariable,
+    String? responseKey,
+  }) : responseKey = responseKey ?? id;
+
+  List<String> missingFields(Map<String, dynamic> answers) {
+    return requiredFields
+        .where((field) => !_hasMeaningfulValue(answers[field]))
+        .toList(growable: false);
+  }
+
+  bool hasAllRequiredFields(Map<String, dynamic> answers) {
+    return missingFields(answers).isEmpty;
+  }
+
+  @override
+  Future<NodeResult> execute(WorkflowContext context) async {
+    final existingAnswers = _normalizeMap(
+      context.get<Map<String, dynamic>>(outputVariable),
+    );
+    return NodeResult(
+      nodeId: id,
+      status: NodeStatus.waitingUserInput,
+      output: <String, dynamic>{
+        'prompt': prompt,
+        'questions': questions,
+        'requiredFields': requiredFields,
+        'missingFields': missingFields(existingAnswers),
+        'outputVariable': outputVariable,
+        'responseKey': responseKey,
+        'existingAnswers': existingAnswers,
+      },
     );
   }
 }
@@ -287,11 +357,22 @@ typedef WorkflowAIExecutor =
 typedef WorkflowReviewHandler =
     Future<bool?> Function(ReviewNode node, WorkflowContext context);
 
+typedef WorkflowClarificationHandler =
+    Future<Map<String, dynamic>?> Function(
+      ClarificationNode node,
+      WorkflowContext context,
+    );
+
 class WorkflowService {
   final WorkflowAIExecutor? aiExecutor;
   final WorkflowReviewHandler? reviewHandler;
+  final WorkflowClarificationHandler? clarificationHandler;
 
-  WorkflowService({this.aiExecutor, this.reviewHandler});
+  WorkflowService({
+    this.aiExecutor,
+    this.reviewHandler,
+    this.clarificationHandler,
+  });
 
   Future<WorkflowRunSummary> run({
     required List<WorkflowNode> nodes,
@@ -302,25 +383,19 @@ class WorkflowService {
     final results = <NodeResult>[];
     var pointer = startIndex;
     final visitedPointers = <int>{};
-    final stepBudget = (nodes.length * 10).clamp(10, 500);
+    final stepBudget = workflowStepBudgetForNodes(nodes);
     var steps = 0;
     visitedPointers.add(startIndex);
 
     while (pointer >= 0 && pointer < nodes.length) {
       steps++;
       if (steps > stepBudget) {
-        return WorkflowRunSummary(
-          status: TaskStatus.failed,
+        return workflowFailedSummary(
           nextNodeIndex: pointer,
           context: workingContext,
-          results: [
-            ...results,
-            NodeResult(
-              nodeId: nodes[pointer].id,
-              status: NodeStatus.failed,
-              error: 'Workflow exceeded step budget ($stepBudget)',
-            ),
-          ],
+          results: results,
+          failedNode: nodes[pointer],
+          error: 'Workflow exceeded step budget ($stepBudget)',
         );
       }
 
@@ -331,15 +406,21 @@ class WorkflowService {
 
       switch (result.status) {
         case NodeStatus.failed:
-          return WorkflowRunSummary(
-            status: TaskStatus.failed,
+          return workflowFailedSummary(
             nextNodeIndex: pointer,
             context: workingContext,
             results: results,
           );
         case NodeStatus.waitingReview:
-          return WorkflowRunSummary(
-            status: TaskStatus.paused,
+          return workflowPausedSummary(
+            status: TaskStatus.waitingReview,
+            nextNodeIndex: pointer,
+            context: workingContext,
+            results: results,
+          );
+        case NodeStatus.waitingUserInput:
+          return workflowPausedSummary(
+            status: TaskStatus.waitingUserInput,
             nextNodeIndex: pointer,
             context: workingContext,
             results: results,
@@ -350,10 +431,12 @@ class WorkflowService {
 
       if (node is ConditionNode && result.output is int) {
         final newPointer = result.output as int;
-        if (newPointer == pointer || visitedPointers.contains(newPointer)) {
-          // 检测到循环，避免无限循环
-          return WorkflowRunSummary(
-            status: TaskStatus.failed,
+        if (workflowWouldLoop(
+          currentPointer: pointer,
+          newPointer: newPointer,
+          visitedPointers: visitedPointers,
+        )) {
+          return workflowFailedSummary(
             nextNodeIndex: pointer,
             context: workingContext,
             results: results,
@@ -367,26 +450,19 @@ class WorkflowService {
       if (node is ReviewNode && result.status == NodeStatus.rejected) {
         final retryIndex = node.retryNodeIndex;
         if (retryIndex == null) {
-          return WorkflowRunSummary(
-            status: TaskStatus.failed,
+          return workflowFailedSummary(
             nextNodeIndex: pointer,
             context: workingContext,
             results: results,
           );
         }
         if (retryIndex < 0 || retryIndex >= nodes.length) {
-          return WorkflowRunSummary(
-            status: TaskStatus.failed,
+          return workflowFailedSummary(
             nextNodeIndex: pointer,
             context: workingContext,
-            results: [
-              ...results,
-              NodeResult(
-                nodeId: node.id,
-                status: NodeStatus.failed,
-                error: 'Invalid retry node index: $retryIndex',
-              ),
-            ],
+            results: results,
+            failedNode: node,
+            error: 'Invalid retry node index: $retryIndex',
           );
         }
         pointer = retryIndex;
@@ -396,9 +472,8 @@ class WorkflowService {
       pointer += 1;
     }
 
-    return WorkflowRunSummary(
-      status: TaskStatus.completed,
-      nextNodeIndex: nodes.isEmpty ? 0 : nodes.length,
+    return workflowCompletedSummary(
+      nodes: nodes,
       context: workingContext,
       results: results,
     );
@@ -424,6 +499,10 @@ class WorkflowService {
       return _executeReviewNode(node, context);
     }
 
+    if (node is ClarificationNode) {
+      return _executeClarificationNode(node, context);
+    }
+
     return node.execute(context);
   }
 
@@ -432,9 +511,8 @@ class WorkflowService {
     WorkflowContext context,
   ) async {
     if (aiExecutor == null) {
-      return NodeResult(
-        nodeId: node.id,
-        status: NodeStatus.failed,
+      return workflowNodeFailedResult(
+        node,
         error: 'No AI executor configured',
       );
     }
@@ -442,17 +520,10 @@ class WorkflowService {
     try {
       final execution = await aiExecutor!(node, context);
       context.set(node.outputVariable, execution.output);
-      return NodeResult(
-        nodeId: node.id,
-        status: NodeStatus.completed,
-        output: execution.output,
-        inputTokens: execution.inputTokens,
-        outputTokens: execution.outputTokens,
-      );
+      return workflowAiSuccessResult(node, execution);
     } catch (error) {
-      return NodeResult(
-        nodeId: node.id,
-        status: NodeStatus.failed,
+      return workflowNodeFailedResult(
+        node,
         error: error.toString(),
       );
     }
@@ -476,13 +547,11 @@ class WorkflowService {
     for (var i = 0; i < branchResults.length; i++) {
       final branchResult = branchResults[i];
       final branchContext = branchContexts[i];
-      context.completedNodes.addAll(branchContext.completedNodes);
-      context.variables.addAll(branchContext.variables);
+      mergeWorkflowBranchContext(context, branchContext);
 
       if (branchResult.status == NodeStatus.failed) {
-        return NodeResult(
-          nodeId: node.id,
-          status: NodeStatus.failed,
+        return workflowNodeFailedResult(
+          node,
           output: branchResults,
           error:
               'Parallel branch failed: ${branchResult.error ?? branchResult.nodeId}',
@@ -514,10 +583,54 @@ class WorkflowService {
       context.set(node.approvedVariable!, approved);
     }
 
+    return workflowReviewDecisionResult(node, approved: approved);
+  }
+
+  Future<NodeResult> _executeClarificationNode(
+    ClarificationNode node,
+    WorkflowContext context,
+  ) async {
+    if (clarificationHandler == null) {
+      return node.execute(context);
+    }
+
+    final answers = await clarificationHandler!(node, context);
+    final normalizedAnswers = _normalizeMap(answers);
+    if (normalizedAnswers.isEmpty || !node.hasAllRequiredFields(normalizedAnswers)) {
+      if (normalizedAnswers.isNotEmpty) {
+        context.set(node.outputVariable, normalizedAnswers);
+      }
+      return node.execute(context);
+    }
+
+    context.set(node.outputVariable, normalizedAnswers);
     return NodeResult(
       nodeId: node.id,
-      status: approved ? NodeStatus.approved : NodeStatus.rejected,
-      output: approved,
+      status: NodeStatus.completed,
+      output: normalizedAnswers,
     );
   }
+}
+
+Map<String, dynamic> _normalizeMap(Map<String, dynamic>? value) {
+  if (value == null) {
+    return <String, dynamic>{};
+  }
+  return Map<String, dynamic>.from(value);
+}
+
+bool _hasMeaningfulValue(dynamic value) {
+  if (value == null) {
+    return false;
+  }
+  if (value is String) {
+    return value.trim().isNotEmpty;
+  }
+  if (value is Iterable) {
+    return value.isNotEmpty;
+  }
+  if (value is Map) {
+    return value.isNotEmpty;
+  }
+  return true;
 }

@@ -2,6 +2,8 @@ enum WorkflowTaskStatus {
   pending('Pending'),
   running('Running'),
   paused('Paused'),
+  waitingReview('Waiting Review'),
+  waitingUserInput('Waiting User Input'),
   completed('Completed'),
   failed('Failed'),
   cancelled('Cancelled');
@@ -25,6 +27,7 @@ enum WorkflowRunStatus {
   failed('Failed'),
   skipped('Skipped'),
   waitingReview('Waiting Review'),
+  waitingUserInput('Waiting User Input'),
   approved('Approved'),
   rejected('Rejected');
 
@@ -128,5 +131,31 @@ class WorkflowCheckpointRecord {
     required this.nodeIndex,
     required this.fullState,
     required this.createdAt,
+  });
+}
+
+class WorkflowClarificationRequest {
+  final String taskId;
+  final String nodeId;
+  final int nodeIndex;
+  final String prompt;
+  final List<String> questions;
+  final List<String> requiredFields;
+  final List<String> missingFields;
+  final String outputVariable;
+  final String responseKey;
+  final Map<String, dynamic> existingAnswers;
+
+  const WorkflowClarificationRequest({
+    required this.taskId,
+    required this.nodeId,
+    required this.nodeIndex,
+    required this.prompt,
+    required this.questions,
+    required this.requiredFields,
+    required this.missingFields,
+    required this.outputVariable,
+    required this.responseKey,
+    required this.existingAnswers,
   });
 }

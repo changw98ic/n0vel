@@ -54,11 +54,20 @@ class ChatRepository {
     final id = const Uuid().v4();
     final now = DateTime.now();
 
+    // 校验 workId 是否存在，避免 FK 约束失败
+    String? validWorkId;
+    if (workId != null) {
+      final work = await (_db.select(_db.works)
+            ..where((t) => t.id.equals(workId)))
+          .getSingleOrNull();
+      validWorkId = work != null ? workId : null;
+    }
+
     await _db.into(_db.chatConversations).insert(
           ChatConversationsCompanion(
             id: Value(id),
             title: Value(title),
-            workId: Value(workId),
+            workId: Value(validWorkId),
             source: Value(source),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -66,6 +75,53 @@ class ChatRepository {
         );
 
     return (await getConversationById(id))!;
+  }
+
+  /// 导入对话（使用指定的 id，若已存在则跳过）
+  /// 用于重导入场景，确保 addMessages 前父记录存在
+  Future<ChatConversationEntity> importConversation({
+    required String id,
+    String? workId,
+    required String title,
+    String source = 'standalone',
+    DateTime? createdAt,
+  }) async {
+    final existing = await getConversationById(id);
+    if (existing != null) return existing;
+
+    // 校验 workId 是否存在，避免 FK 约束失败
+    String? validWorkId;
+    if (workId != null) {
+      final work = await (_db.select(_db.works)
+            ..where((t) => t.id.equals(workId)))
+          .getSingleOrNull();
+      validWorkId = work != null ? workId : null;
+    }
+
+    final now = createdAt ?? DateTime.now();
+    await _db.into(_db.chatConversations).insert(
+          ChatConversationsCompanion(
+            id: Value(id),
+            title: Value(title),
+            workId: Value(validWorkId),
+            source: Value(source),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+
+    return (await getConversationById(id))!;
+  }
+
+  /// 更新对话关联的作品 ID
+  Future<void> updateWorkId(String id, String workId) async {
+    await (_db.update(_db.chatConversations)..where((t) => t.id.equals(id)))
+        .write(
+      ChatConversationsCompanion(
+        workId: Value(workId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// 更新对话标题

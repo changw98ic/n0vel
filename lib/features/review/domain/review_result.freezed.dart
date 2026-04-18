@@ -12,7 +12,8 @@ part of 'review_result.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 /// @nodoc
 mixin _$ReviewResult {
@@ -24,7 +25,9 @@ mixin _$ReviewResult {
   ReviewStatus get status => throw _privateConstructorUsedError;
   DateTime? get reviewedAt => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReviewResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReviewResultCopyWith<ReviewResult> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -32,17 +35,19 @@ mixin _$ReviewResult {
 /// @nodoc
 abstract class $ReviewResultCopyWith<$Res> {
   factory $ReviewResultCopyWith(
-          ReviewResult value, $Res Function(ReviewResult) then) =
-      _$ReviewResultCopyWithImpl<$Res, ReviewResult>;
+    ReviewResult value,
+    $Res Function(ReviewResult) then,
+  ) = _$ReviewResultCopyWithImpl<$Res, ReviewResult>;
   @useResult
-  $Res call(
-      {String chapterId,
-      String chapterTitle,
-      double? score,
-      int issueCount,
-      int criticalCount,
-      ReviewStatus status,
-      DateTime? reviewedAt});
+  $Res call({
+    String chapterId,
+    String chapterTitle,
+    double? score,
+    int issueCount,
+    int criticalCount,
+    ReviewStatus status,
+    DateTime? reviewedAt,
+  });
 }
 
 /// @nodoc
@@ -55,6 +60,8 @@ class _$ReviewResultCopyWithImpl<$Res, $Val extends ReviewResult>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReviewResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -66,36 +73,39 @@ class _$ReviewResultCopyWithImpl<$Res, $Val extends ReviewResult>
     Object? status = null,
     Object? reviewedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterTitle: null == chapterTitle
-          ? _value.chapterTitle
-          : chapterTitle // ignore: cast_nullable_to_non_nullable
-              as String,
-      score: freezed == score
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as double?,
-      issueCount: null == issueCount
-          ? _value.issueCount
-          : issueCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      criticalCount: null == criticalCount
-          ? _value.criticalCount
-          : criticalCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ReviewStatus,
-      reviewedAt: freezed == reviewedAt
-          ? _value.reviewedAt
-          : reviewedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterTitle: null == chapterTitle
+                ? _value.chapterTitle
+                : chapterTitle // ignore: cast_nullable_to_non_nullable
+                      as String,
+            score: freezed == score
+                ? _value.score
+                : score // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            issueCount: null == issueCount
+                ? _value.issueCount
+                : issueCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            criticalCount: null == criticalCount
+                ? _value.criticalCount
+                : criticalCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as ReviewStatus,
+            reviewedAt: freezed == reviewedAt
+                ? _value.reviewedAt
+                : reviewedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -103,18 +113,20 @@ class _$ReviewResultCopyWithImpl<$Res, $Val extends ReviewResult>
 abstract class _$$ReviewResultImplCopyWith<$Res>
     implements $ReviewResultCopyWith<$Res> {
   factory _$$ReviewResultImplCopyWith(
-          _$ReviewResultImpl value, $Res Function(_$ReviewResultImpl) then) =
-      __$$ReviewResultImplCopyWithImpl<$Res>;
+    _$ReviewResultImpl value,
+    $Res Function(_$ReviewResultImpl) then,
+  ) = __$$ReviewResultImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String chapterId,
-      String chapterTitle,
-      double? score,
-      int issueCount,
-      int criticalCount,
-      ReviewStatus status,
-      DateTime? reviewedAt});
+  $Res call({
+    String chapterId,
+    String chapterTitle,
+    double? score,
+    int issueCount,
+    int criticalCount,
+    ReviewStatus status,
+    DateTime? reviewedAt,
+  });
 }
 
 /// @nodoc
@@ -122,9 +134,12 @@ class __$$ReviewResultImplCopyWithImpl<$Res>
     extends _$ReviewResultCopyWithImpl<$Res, _$ReviewResultImpl>
     implements _$$ReviewResultImplCopyWith<$Res> {
   __$$ReviewResultImplCopyWithImpl(
-      _$ReviewResultImpl _value, $Res Function(_$ReviewResultImpl) _then)
-      : super(_value, _then);
+    _$ReviewResultImpl _value,
+    $Res Function(_$ReviewResultImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReviewResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -136,50 +151,53 @@ class __$$ReviewResultImplCopyWithImpl<$Res>
     Object? status = null,
     Object? reviewedAt = freezed,
   }) {
-    return _then(_$ReviewResultImpl(
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterTitle: null == chapterTitle
-          ? _value.chapterTitle
-          : chapterTitle // ignore: cast_nullable_to_non_nullable
-              as String,
-      score: freezed == score
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as double?,
-      issueCount: null == issueCount
-          ? _value.issueCount
-          : issueCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      criticalCount: null == criticalCount
-          ? _value.criticalCount
-          : criticalCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ReviewStatus,
-      reviewedAt: freezed == reviewedAt
-          ? _value.reviewedAt
-          : reviewedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$ReviewResultImpl(
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterTitle: null == chapterTitle
+            ? _value.chapterTitle
+            : chapterTitle // ignore: cast_nullable_to_non_nullable
+                  as String,
+        score: freezed == score
+            ? _value.score
+            : score // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        issueCount: null == issueCount
+            ? _value.issueCount
+            : issueCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        criticalCount: null == criticalCount
+            ? _value.criticalCount
+            : criticalCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as ReviewStatus,
+        reviewedAt: freezed == reviewedAt
+            ? _value.reviewedAt
+            : reviewedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$ReviewResultImpl implements _ReviewResult {
-  const _$ReviewResultImpl(
-      {required this.chapterId,
-      required this.chapterTitle,
-      this.score,
-      this.issueCount = 0,
-      this.criticalCount = 0,
-      required this.status,
-      this.reviewedAt});
+  const _$ReviewResultImpl({
+    required this.chapterId,
+    required this.chapterTitle,
+    this.score,
+    this.issueCount = 0,
+    this.criticalCount = 0,
+    required this.status,
+    this.reviewedAt,
+  });
 
   @override
   final String chapterId;
@@ -223,10 +241,20 @@ class _$ReviewResultImpl implements _ReviewResult {
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, chapterId, chapterTitle, score,
-      issueCount, criticalCount, status, reviewedAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    chapterId,
+    chapterTitle,
+    score,
+    issueCount,
+    criticalCount,
+    status,
+    reviewedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReviewResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReviewResultImplCopyWith<_$ReviewResultImpl> get copyWith =>
@@ -234,14 +262,15 @@ class _$ReviewResultImpl implements _ReviewResult {
 }
 
 abstract class _ReviewResult implements ReviewResult {
-  const factory _ReviewResult(
-      {required final String chapterId,
-      required final String chapterTitle,
-      final double? score,
-      final int issueCount,
-      final int criticalCount,
-      required final ReviewStatus status,
-      final DateTime? reviewedAt}) = _$ReviewResultImpl;
+  const factory _ReviewResult({
+    required final String chapterId,
+    required final String chapterTitle,
+    final double? score,
+    final int issueCount,
+    final int criticalCount,
+    required final ReviewStatus status,
+    final DateTime? reviewedAt,
+  }) = _$ReviewResultImpl;
 
   @override
   String get chapterId;
@@ -257,8 +286,11 @@ abstract class _ReviewResult implements ReviewResult {
   ReviewStatus get status;
   @override
   DateTime? get reviewedAt;
+
+  /// Create a copy of ReviewResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReviewResultImplCopyWith<_$ReviewResultImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -270,27 +302,33 @@ mixin _$DimensionScoreDetail {
   int get issueCount => throw _privateConstructorUsedError;
   String? get comment => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of DimensionScoreDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $DimensionScoreDetailCopyWith<DimensionScoreDetail> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $DimensionScoreDetailCopyWith<$Res> {
-  factory $DimensionScoreDetailCopyWith(DimensionScoreDetail value,
-          $Res Function(DimensionScoreDetail) then) =
-      _$DimensionScoreDetailCopyWithImpl<$Res, DimensionScoreDetail>;
+  factory $DimensionScoreDetailCopyWith(
+    DimensionScoreDetail value,
+    $Res Function(DimensionScoreDetail) then,
+  ) = _$DimensionScoreDetailCopyWithImpl<$Res, DimensionScoreDetail>;
   @useResult
-  $Res call(
-      {ReviewDimension dimension,
-      double score,
-      int issueCount,
-      String? comment});
+  $Res call({
+    ReviewDimension dimension,
+    double score,
+    int issueCount,
+    String? comment,
+  });
 }
 
 /// @nodoc
-class _$DimensionScoreDetailCopyWithImpl<$Res,
-        $Val extends DimensionScoreDetail>
+class _$DimensionScoreDetailCopyWithImpl<
+  $Res,
+  $Val extends DimensionScoreDetail
+>
     implements $DimensionScoreDetailCopyWith<$Res> {
   _$DimensionScoreDetailCopyWithImpl(this._value, this._then);
 
@@ -299,6 +337,8 @@ class _$DimensionScoreDetailCopyWithImpl<$Res,
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of DimensionScoreDetail
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -307,50 +347,58 @@ class _$DimensionScoreDetailCopyWithImpl<$Res,
     Object? issueCount = null,
     Object? comment = freezed,
   }) {
-    return _then(_value.copyWith(
-      dimension: null == dimension
-          ? _value.dimension
-          : dimension // ignore: cast_nullable_to_non_nullable
-              as ReviewDimension,
-      score: null == score
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as double,
-      issueCount: null == issueCount
-          ? _value.issueCount
-          : issueCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      comment: freezed == comment
-          ? _value.comment
-          : comment // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            dimension: null == dimension
+                ? _value.dimension
+                : dimension // ignore: cast_nullable_to_non_nullable
+                      as ReviewDimension,
+            score: null == score
+                ? _value.score
+                : score // ignore: cast_nullable_to_non_nullable
+                      as double,
+            issueCount: null == issueCount
+                ? _value.issueCount
+                : issueCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            comment: freezed == comment
+                ? _value.comment
+                : comment // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$DimensionScoreDetailImplCopyWith<$Res>
     implements $DimensionScoreDetailCopyWith<$Res> {
-  factory _$$DimensionScoreDetailImplCopyWith(_$DimensionScoreDetailImpl value,
-          $Res Function(_$DimensionScoreDetailImpl) then) =
-      __$$DimensionScoreDetailImplCopyWithImpl<$Res>;
+  factory _$$DimensionScoreDetailImplCopyWith(
+    _$DimensionScoreDetailImpl value,
+    $Res Function(_$DimensionScoreDetailImpl) then,
+  ) = __$$DimensionScoreDetailImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {ReviewDimension dimension,
-      double score,
-      int issueCount,
-      String? comment});
+  $Res call({
+    ReviewDimension dimension,
+    double score,
+    int issueCount,
+    String? comment,
+  });
 }
 
 /// @nodoc
 class __$$DimensionScoreDetailImplCopyWithImpl<$Res>
     extends _$DimensionScoreDetailCopyWithImpl<$Res, _$DimensionScoreDetailImpl>
     implements _$$DimensionScoreDetailImplCopyWith<$Res> {
-  __$$DimensionScoreDetailImplCopyWithImpl(_$DimensionScoreDetailImpl _value,
-      $Res Function(_$DimensionScoreDetailImpl) _then)
-      : super(_value, _then);
+  __$$DimensionScoreDetailImplCopyWithImpl(
+    _$DimensionScoreDetailImpl _value,
+    $Res Function(_$DimensionScoreDetailImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of DimensionScoreDetail
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -359,35 +407,38 @@ class __$$DimensionScoreDetailImplCopyWithImpl<$Res>
     Object? issueCount = null,
     Object? comment = freezed,
   }) {
-    return _then(_$DimensionScoreDetailImpl(
-      dimension: null == dimension
-          ? _value.dimension
-          : dimension // ignore: cast_nullable_to_non_nullable
-              as ReviewDimension,
-      score: null == score
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as double,
-      issueCount: null == issueCount
-          ? _value.issueCount
-          : issueCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      comment: freezed == comment
-          ? _value.comment
-          : comment // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$DimensionScoreDetailImpl(
+        dimension: null == dimension
+            ? _value.dimension
+            : dimension // ignore: cast_nullable_to_non_nullable
+                  as ReviewDimension,
+        score: null == score
+            ? _value.score
+            : score // ignore: cast_nullable_to_non_nullable
+                  as double,
+        issueCount: null == issueCount
+            ? _value.issueCount
+            : issueCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        comment: freezed == comment
+            ? _value.comment
+            : comment // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$DimensionScoreDetailImpl implements _DimensionScoreDetail {
-  const _$DimensionScoreDetailImpl(
-      {required this.dimension,
-      required this.score,
-      required this.issueCount,
-      this.comment});
+  const _$DimensionScoreDetailImpl({
+    required this.dimension,
+    required this.score,
+    required this.issueCount,
+    this.comment,
+  });
 
   @override
   final ReviewDimension dimension;
@@ -420,21 +471,26 @@ class _$DimensionScoreDetailImpl implements _DimensionScoreDetail {
   int get hashCode =>
       Object.hash(runtimeType, dimension, score, issueCount, comment);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of DimensionScoreDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$DimensionScoreDetailImplCopyWith<_$DimensionScoreDetailImpl>
-      get copyWith =>
-          __$$DimensionScoreDetailImplCopyWithImpl<_$DimensionScoreDetailImpl>(
-              this, _$identity);
+  get copyWith =>
+      __$$DimensionScoreDetailImplCopyWithImpl<_$DimensionScoreDetailImpl>(
+        this,
+        _$identity,
+      );
 }
 
 abstract class _DimensionScoreDetail implements DimensionScoreDetail {
-  const factory _DimensionScoreDetail(
-      {required final ReviewDimension dimension,
-      required final double score,
-      required final int issueCount,
-      final String? comment}) = _$DimensionScoreDetailImpl;
+  const factory _DimensionScoreDetail({
+    required final ReviewDimension dimension,
+    required final double score,
+    required final int issueCount,
+    final String? comment,
+  }) = _$DimensionScoreDetailImpl;
 
   @override
   ReviewDimension get dimension;
@@ -444,8 +500,11 @@ abstract class _DimensionScoreDetail implements DimensionScoreDetail {
   int get issueCount;
   @override
   String? get comment;
+
+  /// Create a copy of DimensionScoreDetail
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$DimensionScoreDetailImplCopyWith<_$DimensionScoreDetailImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  get copyWith => throw _privateConstructorUsedError;
 }

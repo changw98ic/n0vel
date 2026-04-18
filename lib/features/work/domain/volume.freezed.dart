@@ -12,7 +12,8 @@ part of 'volume.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Volume _$VolumeFromJson(Map<String, dynamic> json) {
   return _Volume.fromJson(json);
@@ -26,8 +27,12 @@ mixin _$Volume {
   int get sortOrder => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this Volume to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Volume
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $VolumeCopyWith<Volume> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -36,12 +41,13 @@ abstract class $VolumeCopyWith<$Res> {
   factory $VolumeCopyWith(Volume value, $Res Function(Volume) then) =
       _$VolumeCopyWithImpl<$Res, Volume>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      int sortOrder,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    int sortOrder,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -54,6 +60,8 @@ class _$VolumeCopyWithImpl<$Res, $Val extends Volume>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Volume
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -63,44 +71,49 @@ class _$VolumeCopyWithImpl<$Res, $Val extends Volume>
     Object? sortOrder = null,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            sortOrder: null == sortOrder
+                ? _value.sortOrder
+                : sortOrder // ignore: cast_nullable_to_non_nullable
+                      as int,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$VolumeImplCopyWith<$Res> implements $VolumeCopyWith<$Res> {
   factory _$$VolumeImplCopyWith(
-          _$VolumeImpl value, $Res Function(_$VolumeImpl) then) =
-      __$$VolumeImplCopyWithImpl<$Res>;
+    _$VolumeImpl value,
+    $Res Function(_$VolumeImpl) then,
+  ) = __$$VolumeImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String name,
-      int sortOrder,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String workId,
+    String name,
+    int sortOrder,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -108,9 +121,12 @@ class __$$VolumeImplCopyWithImpl<$Res>
     extends _$VolumeCopyWithImpl<$Res, _$VolumeImpl>
     implements _$$VolumeImplCopyWith<$Res> {
   __$$VolumeImplCopyWithImpl(
-      _$VolumeImpl _value, $Res Function(_$VolumeImpl) _then)
-      : super(_value, _then);
+    _$VolumeImpl _value,
+    $Res Function(_$VolumeImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Volume
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -120,41 +136,43 @@ class __$$VolumeImplCopyWithImpl<$Res>
     Object? sortOrder = null,
     Object? createdAt = null,
   }) {
-    return _then(_$VolumeImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$VolumeImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        sortOrder: null == sortOrder
+            ? _value.sortOrder
+            : sortOrder // ignore: cast_nullable_to_non_nullable
+                  as int,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$VolumeImpl extends _Volume {
-  const _$VolumeImpl(
-      {required this.id,
-      required this.workId,
-      required this.name,
-      this.sortOrder = 0,
-      required this.createdAt})
-      : super._();
+  const _$VolumeImpl({
+    required this.id,
+    required this.workId,
+    required this.name,
+    this.sortOrder = 0,
+    required this.createdAt,
+  }) : super._();
 
   factory _$VolumeImpl.fromJson(Map<String, dynamic> json) =>
       _$$VolumeImplFromJson(json);
@@ -190,12 +208,14 @@ class _$VolumeImpl extends _Volume {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, id, workId, name, sortOrder, createdAt);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Volume
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$VolumeImplCopyWith<_$VolumeImpl> get copyWith =>
@@ -203,19 +223,18 @@ class _$VolumeImpl extends _Volume {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$VolumeImplToJson(
-      this,
-    );
+    return _$$VolumeImplToJson(this);
   }
 }
 
 abstract class _Volume extends Volume {
-  const factory _Volume(
-      {required final String id,
-      required final String workId,
-      required final String name,
-      final int sortOrder,
-      required final DateTime createdAt}) = _$VolumeImpl;
+  const factory _Volume({
+    required final String id,
+    required final String workId,
+    required final String name,
+    final int sortOrder,
+    required final DateTime createdAt,
+  }) = _$VolumeImpl;
   const _Volume._() : super._();
 
   factory _Volume.fromJson(Map<String, dynamic> json) = _$VolumeImpl.fromJson;
@@ -230,8 +249,11 @@ abstract class _Volume extends Volume {
   int get sortOrder;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of Volume
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$VolumeImplCopyWith<_$VolumeImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

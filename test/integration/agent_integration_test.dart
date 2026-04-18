@@ -10,6 +10,7 @@ import 'package:sqlite3/open.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:writing_assistant/core/config/app_env.dart';
 
 import 'package:writing_assistant/core/database/database.dart';
 import 'package:writing_assistant/core/services/ai/ai_service.dart';
@@ -37,11 +38,9 @@ import 'package:writing_assistant/features/work/data/work_repository.dart';
 // ─── 环境变量配置 ───
 
 String get _apiKey =>
-    Platform.environment['TEST_AI_API_KEY'] ?? 'lm-studio';
-String get _endpoint =>
-    Platform.environment['TEST_AI_ENDPOINT'] ?? 'http://127.0.0.1:1234/v1';
-String get _modelName =>
-    Platform.environment['TEST_AI_MODEL'] ?? 'google/gemma-4-26b-a4b';
+    AppEnv.testAiApiKey;
+String get _endpoint => AppEnv.testAiEndpoint;
+String get _modelName => AppEnv.testAiModel;
 bool get _hasApiConfig => true; // LM Studio 默认可用
 
 /// 加载 sqlite3_flutter_libs 提供的 sqlite3（含 FTS5）
@@ -56,8 +55,7 @@ void _loadSqlite3WithFts5() {
 
 /// 真实数据库文件路径（客户端使用的同一个 db）
 String get _realDbPath =>
-    Platform.environment['TEST_DB_PATH'] ??
-    'C:/Users/changw98/Documents/writing_assistant.db';
+    AppEnv.testDbPath;
 
 AppDatabase _createTestDb() {
   final file = File(_realDbPath);
@@ -293,7 +291,7 @@ void main() {
 
     test('CreateWorkTool 写入 SQLite，数据可查回', () async {
       final tool = CreateWorkTool(
-        createFn: (name, {type, description, targetWords}) async {
+        createFn: (String name, {String? type, String? description, int? targetWords}) async {
           final work = await workRepo.createWork(
             CreateWorkParams(
               name: name,
@@ -325,7 +323,7 @@ void main() {
     test('连续创建 作品→卷→章节，完整层级写入数据库', () async {
       // 创建作品
       final workTool = CreateWorkTool(
-        createFn: (name, {type, description, targetWords}) async {
+        createFn: (String name, {String? type, String? description, int? targetWords}) async {
           final work = await workRepo.createWork(
             CreateWorkParams(name: name, type: type, description: description),
           );
@@ -341,7 +339,7 @@ void main() {
 
       // 创建卷
       final volumeTool = CreateVolumeTool(
-        createFn: (wId, name, {sortOrder = 0}) async {
+        createFn: (String wId, String name, {int sortOrder = 0}) async {
           final vol = await volumeRepo.createVolume(
             workId: wId,
             name: name,
@@ -359,13 +357,16 @@ void main() {
 
       // 创建章节
       final chapterTool = CreateChapterTool(
-        createFn: (wId, vId, title, {sortOrder = 0}) async {
+        createFn: (String wId, String vId, String title, {int sortOrder = 0, String? content}) async {
           final ch = await chapterRepo.createChapter(
             workId: wId,
             volumeId: vId,
             title: title,
             sortOrder: sortOrder,
           );
+          if (content != null && content.trim().isNotEmpty) {
+            await chapterRepo.updateContent(ch.id, content.trim(), content.trim().length);
+          }
           return (id: ch.id, title: ch.title);
         },
       );
@@ -373,6 +374,7 @@ void main() {
         'work_id': workId,
         'volume_id': volId,
         'title': '第一章 少年林雷',
+        'content': 'Lin Lei senses an unusual spiritual surge in the mountains.',
       });
       expect(chResult.success, isTrue);
 
@@ -388,8 +390,8 @@ void main() {
       );
 
       final tool = CreateCharacterTool(
-        createFn: (workId, name, tier,
-            {aliases, gender, age, identity, bio}) async {
+        createFn: (String workId, String name, String tier,
+            {List<String>? aliases, String? gender, String? age, String? identity, String? bio}) async {
           final character = await charRepo.createCharacter(
             character_domain.CreateCharacterParams(
               workId: workId,
@@ -429,7 +431,7 @@ void main() {
 
     test('工具参数校验：缺少必填字段时返回失败', () async {
       final tool = CreateWorkTool(
-        createFn: (name, {type, description, targetWords}) async {
+        createFn: (String name, {String? type, String? description, int? targetWords}) async {
           final work = await workRepo.createWork(
             CreateWorkParams(name: name, type: type),
           );
@@ -467,6 +469,8 @@ void main() {
           .thenAnswer((_) async => _makeModelConfig());
       when(() => mockConfigRepo.getCoreProviderConfig(any()))
           .thenAnswer((_) async => _makeProviderConfig());
+      when(() => mockConfigRepo.getFunctionOverrideTier(any()))
+          .thenAnswer((_) async => null);
       Get.put<AIConfigRepository>(mockConfigRepo);
 
       // 3. AIService（依赖 DB + AIConfigRepository）
@@ -488,7 +492,7 @@ void main() {
       registry.clear();
 
       registry.register(CreateWorkTool(
-        createFn: (name, {type, description, targetWords}) async {
+        createFn: (String name, {String? type, String? description, int? targetWords}) async {
           final work = await Get.find<WorkRepository>().createWork(
             CreateWorkParams(
               name: name,
@@ -502,7 +506,7 @@ void main() {
       ));
 
       registry.register(CreateVolumeTool(
-        createFn: (workId, name, {sortOrder = 0}) async {
+        createFn: (String workId, String name, {int sortOrder = 0}) async {
           final vol = await Get.find<VolumeRepository>().createVolume(
             workId: workId,
             name: name,
@@ -513,7 +517,7 @@ void main() {
       ));
 
       registry.register(CreateChapterTool(
-        createFn: (workId, volumeId, title, {sortOrder = 0}) async {
+        createFn: (String workId, String volumeId, String title, {int sortOrder = 0, String? content}) async {
           final ch = await Get.find<ChapterRepository>().createChapter(
             workId: workId,
             volumeId: volumeId,
@@ -525,8 +529,8 @@ void main() {
       ));
 
       registry.register(CreateCharacterTool(
-        createFn: (workId, name, tier,
-            {aliases, gender, age, identity, bio}) async {
+        createFn: (String workId, String name, String tier,
+            {List<String>? aliases, String? gender, String? age, String? identity, String? bio}) async {
           final character =
               await Get.find<CharacterRepository>().createCharacter(
             character_domain.CreateCharacterParams(

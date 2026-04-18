@@ -1,4 +1,6 @@
 import 'workflow_service.dart';
+import 'workflow_template_batch_helpers.dart';
+import 'ai/models/model_tier.dart';
 
 /// 工作流模板库
 ///
@@ -50,6 +52,7 @@ class WorkflowTemplates {
             '---\n$chapterContent\n---',
         outputVariable: 'consistency_result',
         modelTier: 'middle',
+        function: AIFunction.consistencyCheck,
       ),
       AINode(
         id: 'ooc_check',
@@ -67,6 +70,7 @@ class WorkflowTemplates {
             '参考（设定一致性检查结果）：\n{consistency_result}',
         outputVariable: 'ooc_result',
         modelTier: 'middle',
+        function: AIFunction.oocDetection,
       ),
       AINode(
         id: 'style_check',
@@ -87,6 +91,7 @@ class WorkflowTemplates {
             '---\n$chapterContent\n---',
         outputVariable: 'style_result',
         modelTier: 'fast',
+        function: AIFunction.aiStyleDetection,
       ),
       AINode(
         id: 'summary',
@@ -103,6 +108,7 @@ class WorkflowTemplates {
             '=== AI文风检测 ===\n{style_result}',
         outputVariable: 'review_summary',
         modelTier: 'thinking',
+        function: AIFunction.review,
       ),
       ReviewNode(
         id: 'human_review',
@@ -150,6 +156,7 @@ class WorkflowTemplates {
             '---前文---\n$previousContent\n---前文结束---',
         outputVariable: 'continuation_draft',
         modelTier: 'thinking',
+        function: AIFunction.continuation,
       ),
       AINode(
         id: 'self_review',
@@ -168,6 +175,7 @@ class WorkflowTemplates {
             '---续写内容---\n{continuation_draft}\n---续写结束---',
         outputVariable: 'self_review_result',
         modelTier: 'middle',
+        function: AIFunction.review,
       ),
       AINode(
         id: 'revision_suggestions',
@@ -183,6 +191,7 @@ class WorkflowTemplates {
             '---自审结果---\n{self_review_result}\n---自审结束---',
         outputVariable: 'revision_suggestions',
         modelTier: 'thinking',
+        function: AIFunction.continuation,
       ),
       ReviewNode(
         id: 'human_confirm',
@@ -228,6 +237,7 @@ class WorkflowTemplates {
             '---\n$chapterContent\n---',
         outputVariable: 'identified_characters',
         modelTier: 'fast',
+        function: AIFunction.entityExtraction,
       ),
       AINode(
         id: 'character_consistency',
@@ -246,6 +256,7 @@ class WorkflowTemplates {
             '---出场角色---\n{identified_characters}\n---出场角色结束---',
         outputVariable: 'character_consistency_result',
         modelTier: 'middle',
+        function: AIFunction.oocDetection,
       ),
       AINode(
         id: 'relationship_check',
@@ -263,6 +274,7 @@ class WorkflowTemplates {
             '参考（角色设定一致性检查结果）：\n{character_consistency_result}',
         outputVariable: 'relationship_check_result',
         modelTier: 'middle',
+        function: AIFunction.consistencyCheck,
       ),
       AINode(
         id: 'entrance_summary',
@@ -279,6 +291,7 @@ class WorkflowTemplates {
             '=== 角色关系校验 ===\n{relationship_check_result}',
         outputVariable: 'entrance_check_summary',
         modelTier: 'middle',
+        function: AIFunction.review,
       ),
     ];
   }
@@ -300,41 +313,15 @@ class WorkflowTemplates {
     required Map<String, String> chapterContents,
     required String workId,
   }) {
-    // 为每个章节构建并行审校分支
-    final branches = <WorkflowNode>[];
-    var branchIdx = 0;
+    // ????????????????????
+    final branches =
+        WorkflowTemplateBatchHelpers.buildBatchReviewBranches(chapterContents);
 
-    for (final entry in chapterContents.entries) {
-      final chapterKey = entry.key;
-      final content = entry.value;
-      final safeKey = chapterKey.replaceAll(RegExp(r'[^a-zA-Z0-9_\u4e00-\u9fff]'), '_');
-
-      branches.add(
-        AINode(
-          id: 'batch_review_${safeKey}_$branchIdx',
-          name: '审校：$chapterKey',
-          index: branchIdx,
-          promptTemplate: '请对以下章节进行全面审校，包括：\n\n'
-              '1. **设定一致性**：检查世界观、时间线、力量体系是否自洽\n'
-              '2. **角色表现**：角色言行是否与设定一致，有无OOC\n'
-              '3. **文风质量**：是否有AI写作痕迹，文笔是否自然\n'
-              '4. **情节逻辑**：情节推进是否合理，有无逻辑漏洞\n'
-              '5. **读者体验**：叙事节奏、悬念设置、情感共鸣\n\n'
-              '请对每个维度给出评分（1-5）和问题说明，最后给出章节总体评价。\n\n'
-              '--- $chapterKey ---\n$content\n--- 章节结束 ---',
-          outputVariable: 'batch_result_${safeKey}',
-          modelTier: 'middle',
-        ),
-      );
-      branchIdx++;
-    }
-
-    // 构建汇总 prompt 中引用各章节输出变量的部分
-    final chapterResultSection = chapterContents.keys.map((k) {
-      final safeKey =
-          k.replaceAll(RegExp(r'[^a-zA-Z0-9_\u4e00-\u9fff]'), '_');
-      return '--- $k ---\n{batch_result_$safeKey}\n';
-    }).join('\n');
+    // ???????prompt ????????????????????
+    final chapterResultSection =
+        WorkflowTemplateBatchHelpers.buildBatchResultSection(
+      chapterContents.keys,
+    );
 
     return [
       ParallelNode(
@@ -359,6 +346,7 @@ class WorkflowTemplates {
             '$chapterResultSection',
         outputVariable: 'batch_review_summary',
         modelTier: 'thinking',
+        function: AIFunction.review,
       ),
     ];
   }
@@ -400,6 +388,7 @@ class WorkflowTemplates {
             '${characterProfiles.isNotEmpty ? "角色设定参考：\n$characterProfiles\n" : ""}',
         outputVariable: 'scene_analysis_result',
         modelTier: 'middle',
+        function: AIFunction.dialogue,
       ),
       AINode(
         id: 'dialogue_generate',
@@ -419,6 +408,7 @@ class WorkflowTemplates {
             '场景描述：$sceneDescription',
         outputVariable: 'dialogue_draft',
         modelTier: 'thinking',
+        function: AIFunction.dialogue,
       ),
       AINode(
         id: 'voice_consistency',
@@ -436,6 +426,7 @@ class WorkflowTemplates {
             '---对话内容---\n{dialogue_draft}\n---对话结束---',
         outputVariable: 'voice_check_result',
         modelTier: 'middle',
+        function: AIFunction.review,
       ),
       AINode(
         id: 'dialogue_polish',
@@ -452,6 +443,7 @@ class WorkflowTemplates {
             '---语风检查结果---\n{voice_check_result}\n---语风检查结束---',
         outputVariable: 'dialogue_final',
         modelTier: 'thinking',
+        function: AIFunction.dialogue,
       ),
       ReviewNode(
         id: 'dialogue_confirm',
@@ -506,6 +498,7 @@ class WorkflowTemplates {
                 '---\n$textContent\n---',
             outputVariable: 'extracted_characters',
             modelTier: 'middle',
+            function: AIFunction.entityExtraction,
           ),
           AINode(
             id: 'extract_locations',
@@ -523,6 +516,7 @@ class WorkflowTemplates {
                 '---\n$textContent\n---',
             outputVariable: 'extracted_locations',
             modelTier: 'fast',
+            function: AIFunction.entityExtraction,
           ),
           AINode(
             id: 'extract_items',
@@ -545,6 +539,7 @@ class WorkflowTemplates {
                 '---\n$textContent\n---',
             outputVariable: 'extracted_items',
             modelTier: 'fast',
+            function: AIFunction.entityExtraction,
           ),
           AINode(
             id: 'extract_events',
@@ -563,6 +558,7 @@ class WorkflowTemplates {
                 '---\n$textContent\n---',
             outputVariable: 'extracted_events',
             modelTier: 'middle',
+            function: AIFunction.extraction,
           ),
         ],
       ),
@@ -584,6 +580,7 @@ class WorkflowTemplates {
             '=== 事件 ===\n{extracted_events}',
         outputVariable: 'relationships',
         modelTier: 'thinking',
+        function: AIFunction.consistencyCheck,
       ),
       AINode(
         id: 'structured_summary',
@@ -603,6 +600,7 @@ class WorkflowTemplates {
             '=== 关系梳理 ===\n{relationships}',
         outputVariable: 'extraction_summary',
         modelTier: 'thinking',
+        function: AIFunction.extraction,
       ),
       ReviewNode(
         id: 'extraction_confirm',

@@ -7,22 +7,21 @@ part of 'item.dart';
 // **************************************************************************
 
 _$ItemImpl _$$ItemImplFromJson(Map<String, dynamic> json) => _$ItemImpl(
-      id: json['id'] as String,
-      workId: json['workId'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String?,
-      rarity: json['rarity'] as String?,
-      iconPath: json['iconPath'] as String?,
-      description: json['description'] as String?,
-      abilities: (json['abilities'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      holderId: json['holderId'] as String?,
-      isArchived: json['isArchived'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-    );
+  id: json['id'] as String,
+  workId: json['workId'] as String,
+  name: json['name'] as String,
+  type: json['type'] as String?,
+  rarity: json['rarity'] as String?,
+  iconPath: json['iconPath'] as String?,
+  description: json['description'] as String?,
+  abilities:
+      (json['abilities'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+  holderId: json['holderId'] as String?,
+  isArchived: json['isArchived'] as bool? ?? false,
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
+);
 
 Map<String, dynamic> _$$ItemImplToJson(_$ItemImpl instance) =>
     <String, dynamic>{

@@ -26,6 +26,7 @@ typedef ChapterCreateFn = Future<({String id, String title})> Function(
   String volumeId,
   String title, {
   int sortOrder,
+  String? content,
 });
 typedef CharacterCreateFn = Future<({String id, String name, String tier})>
     Function(
@@ -140,13 +141,14 @@ void main() {
   group('CreateChapterTool', () {
     test('execute succeeds with valid input', () async {
       final tool = CreateChapterTool(
-        createFn: (String workId, String volumeId, String title, {int sortOrder = 0}) async =>
+        createFn: (String workId, String volumeId, String title, {int sortOrder = 0, String? content}) async =>
             (id: 'c1', title: title),
       );
       final result = await tool.execute({
         'work_id': 'w1',
         'volume_id': 'v1',
         'title': '第一章 初入江湖',
+        'content': '江湖故事开始',
       });
       expect(result.success, isTrue);
       expect(result.output, contains('第一章'));
@@ -154,7 +156,7 @@ void main() {
 
     test('execute fails without volume_id', () async {
       final tool = CreateChapterTool(
-        createFn: (String workId, String volumeId, String title, {int sortOrder = 0}) async =>
+        createFn: (String workId, String volumeId, String title, {int sortOrder = 0, String? content}) async =>
             (id: 'c1', title: title),
       );
       final result =

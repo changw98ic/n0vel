@@ -7,6 +7,8 @@ import 'package:writing_assistant/l10n/app_localizations.dart';
 
 import '../../../features/review/data/review_workflow_runner.dart';
 import '../../../features/workflow/domain/workflow_models.dart';
+import '../../workflow/view/workflow_clarification_dialog.dart';
+import '../../workflow/view/workflow_task_page.dart';
 
 class ReviewProgressDialog extends StatefulWidget {
   final String workId;
@@ -33,7 +35,9 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
   String _currentStatus = '准备审查...';
   bool _isCompleted = false;
   bool _isFailed = false;
+  bool _needsClarification = false;
   String? _errorText;
+  String? _taskId;
 
   @override
   void initState() {
@@ -57,6 +61,7 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
         volumeId: widget.volumeId,
         chapterId: widget.chapterId,
       );
+      _taskId = taskId;
 
       await _pollTaskStatus(workflowRunner, taskId);
     } catch (error) {
@@ -87,6 +92,8 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
             ? s.review_progressAnalyzing
             : s.review_progressGenerating,
         WorkflowTaskStatus.paused => s.review_progressFinished,
+        WorkflowTaskStatus.waitingReview => s.review_progressFinished,
+        WorkflowTaskStatus.waitingUserInput => '等待补充信息',
         WorkflowTaskStatus.completed => s.review_progressCompleted,
         WorkflowTaskStatus.failed => task.errorMessage ?? 'Review failed',
         WorkflowTaskStatus.cancelled => 'Review cancelled',
@@ -98,12 +105,15 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
         _currentStatus = nextStatus;
         _isCompleted =
             task.status == WorkflowTaskStatus.completed ||
-            task.status == WorkflowTaskStatus.paused;
+            task.status == WorkflowTaskStatus.paused ||
+            task.status == WorkflowTaskStatus.waitingReview;
+        _needsClarification =
+            task.status == WorkflowTaskStatus.waitingUserInput;
         _isFailed = task.status == WorkflowTaskStatus.failed;
         _errorText = task.errorMessage;
       });
 
-      if (_isCompleted || _isFailed) {
+      if (_isCompleted || _isFailed || _needsClarification) {
         return;
       }
 
@@ -115,6 +125,7 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     final statusText = _currentStatus;
+    final taskId = _taskId;
 
     return AlertDialog(
       title: Text(s.review_progress_title),
@@ -141,6 +152,33 @@ class _ReviewProgressDialogState extends State<ReviewProgressDialog> {
         ),
       ),
       actions: [
+        if (_needsClarification && taskId != null)
+          FilledButton(
+            onPressed: () async {
+              final submitted = await WorkflowClarificationDialog.show(
+                context,
+                taskId: taskId,
+              );
+              if (submitted != true || !mounted) {
+                return;
+              }
+              setState(() {
+                _needsClarification = false;
+                _currentStatus = '继续执行中...';
+                _errorText = null;
+              });
+              await _pollTaskStatus(Get.find<ReviewWorkflowRunner>(), taskId);
+            },
+            child: const Text('补充信息'),
+          ),
+        if ((_isCompleted || _needsClarification) && taskId != null)
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Get.to(() => WorkflowTaskPage(taskId: taskId));
+            },
+            child: const Text('打开任务'),
+          ),
         if (_isCompleted || _isFailed)
           FilledButton(
             onPressed: () => Navigator.pop(context),

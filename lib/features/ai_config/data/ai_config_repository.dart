@@ -1,28 +1,25 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../core/config/app_env.dart';
 import '../../../core/database/database.dart';
 
 import '../../../core/services/ai/models/model_config.dart' as core_model;
 import '../../../core/services/ai/models/model_tier.dart' as core_tier;
 import '../../../core/services/ai/models/provider_config.dart' as core_provider;
-import '../../../core/services/ai/providers/anthropic_provider.dart';
-import '../../../core/services/ai/providers/azure_openai_provider.dart';
-import '../../../core/services/ai/providers/custom_provider.dart';
-import '../../../core/services/ai/providers/ollama_provider.dart';
-import '../../../core/services/ai/providers/openai_provider.dart';
 import '../domain/model_config.dart';
+import 'ai_config_repository_helpers.dart';
 
 /// AI 配置仓库
 class AIConfigRepository {
   static const String _keyPrefix = 'ai_config_';
   static const String _defaultLocalProviderType = 'custom';
-  static const String _defaultLocalModelName = 'google/gemma-4-26b-a4b';
-  static const String _defaultLocalEndpoint = 'http://127.0.0.1:1234/v1';
+  static String get _defaultLocalModelName => AppEnv.localModelName;
+  static String get _defaultLocalEndpoint => AppEnv.localEndpoint;
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -31,13 +28,14 @@ class AIConfigRepository {
   /// 获取模型配置
   Future<ModelConfig?> getModelConfig(ModelTier tier) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = '${_keyPrefix}model_${tier.name}';
+    final key = buildAIConfigRepositoryModelKey(_keyPrefix, tier);
 
     final providerType = prefs.getString('${key}_provider');
     final modelName = prefs.getString('${key}_model');
     final apiEndpoint = prefs.getString('${key}_endpoint');
     final temperature = prefs.getDouble('${key}_temperature') ?? 0.7;
-    final maxTokens = prefs.getInt('${key}_max_tokens') ?? 4096;
+    final maxTokens = prefs.getInt('${key}_max_tokens') ??
+        defaultMaxTokensForAIConfigTier(tier);
     final topP = prefs.getDouble('${key}_top_p') ?? 1.0;
     final frequencyPenalty = prefs.getDouble('${key}_frequency_penalty') ?? 0.0;
     final presencePenalty = prefs.getDouble('${key}_presence_penalty') ?? 0.0;
@@ -51,7 +49,7 @@ class AIConfigRepository {
 
     if (providerType == null || modelName == null) {
       // 返回默认配置
-      return ModelConfig(
+      return buildDefaultAIConfigModel(
         tier: tier,
         providerType: providerType ?? _defaultLocalProviderType,
         modelName: modelName ?? _defaultLocalModelName,
@@ -67,7 +65,7 @@ class AIConfigRepository {
       );
     }
 
-    return ModelConfig(
+    return buildDefaultAIConfigModel(
       tier: tier,
       providerType: providerType,
       modelName: modelName,
@@ -83,6 +81,7 @@ class AIConfigRepository {
     );
   }
 
+
   /// 保存模型配置
   Future<void> saveModelConfig({
     required ModelTier tier,
@@ -94,7 +93,7 @@ class AIConfigRepository {
     int maxOutputTokens = 4096,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = '${_keyPrefix}model_${tier.name}';
+    final key = buildAIConfigRepositoryModelKey(_keyPrefix, tier);
 
     // 保存配置到 SharedPreferences
     await prefs.setString('${key}_provider', providerType);
@@ -139,11 +138,12 @@ class AIConfigRepository {
 
   /// 从安全存储获取 API Key
   Future<String?> _getApiKey(ModelTier tier) async {
-    final key = '${_keyPrefix}model_${tier.name}';
+    final key = buildAIConfigRepositoryModelKey(_keyPrefix, tier);
     try {
-      return await _secureStorage.read(key: '${key}_apikey');
+      final stored = await _secureStorage.read(key: '${key}_apikey');
+      return resolveAIConfigRepositoryApiKey(stored, fallback: AppEnv.localApiKey);
     } catch (_) {
-      return null;
+      return AppEnv.localApiKey;
     }
   }
 
@@ -155,13 +155,7 @@ class AIConfigRepository {
   ) async {
     try {
       final dio = Dio();
-      final provider = switch (type) {
-        core_model.AIProviderType.openai => OpenAIProvider(dio: dio),
-        core_model.AIProviderType.anthropic => AnthropicProvider(dio: dio),
-        core_model.AIProviderType.azure => AzureOpenAIProvider(dio: dio),
-        core_model.AIProviderType.ollama => OllamaProvider(dio: dio),
-        _ => CustomProvider(dio: dio),
-      };
+      final provider = buildAIConfigRepositoryProvider(type, dio);
       return provider.validateConnection(
         _buildProviderConfig(apiKey: apiKey, config: config, type: type),
       );
@@ -188,21 +182,10 @@ class AIConfigRepository {
       return null;
     }
 
-    return core_model.ModelConfig(
-      id: '${tier.name}_${config.providerType}_${config.modelName}',
-      tier: _toCoreTier(tier),
-      displayName: '${config.providerType}:${config.modelName}',
-      providerType: config.providerType,
-      modelName: config.modelName,
-      apiEndpoint: config.apiEndpoint,
-      temperature: config.temperature,
-      maxOutputTokens: config.maxOutputTokens,
-      topP: config.topP,
-      frequencyPenalty: config.frequencyPenalty,
-      presencePenalty: config.presencePenalty,
-      isEnabled: config.isEnabled,
-      lastValidatedAt: config.lastValidatedAt,
-      isValid: config.isValid,
+    return buildAIConfigRepositoryCoreModelConfig(
+      tier: tier,
+      config: config,
+      coreTier: _toCoreTier(tier),
     );
   }
 
@@ -225,27 +208,20 @@ class AIConfigRepository {
   /// 获取功能映射列表
   Future<List<FunctionMapping>> getFunctionMappings() async {
     final prefs = await SharedPreferences.getInstance();
-    return AIFunction.values.map((f) {
-      final key = '${_keyPrefix}mapping_${f.key}';
-      final overrideTierName = prefs.getString(key);
-      return FunctionMapping(
-        functionKey: f.key,
-        overrideTierName: overrideTierName,
-        useOverride: overrideTierName != null,
-      );
-    }).toList();
+    return AIFunction.values
+        .map((f) => buildAIConfigRepositoryFunctionMapping(
+              function: f,
+              overrideTierName:
+                  prefs.getString('${_keyPrefix}mapping_${f.key}'),
+            ))
+        .toList();
   }
 
   /// 获取单个功能的层级覆盖（消费 updateFunctionMapping 写入的值）
   Future<ModelTier?> getFunctionOverrideTier(String functionKey) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '${_keyPrefix}mapping_$functionKey';
-    final tierName = prefs.getString(key);
-    if (tierName == null) return null;
-    for (final tier in ModelTier.values) {
-      if (tier.name == tierName) return tier;
-    }
-    return null;
+    return resolveAIConfigRepositoryTierName(prefs.getString(key));
   }
 
   /// 更新功能映射
@@ -260,47 +236,13 @@ class AIConfigRepository {
 
   /// 获取 Prompt 模板列表
   Future<List<PromptTemplate>> getPromptTemplates() async {
-    // 返回默认模板
-    return [
-      PromptTemplate(
-        id: 'continuation',
-        name: '续写模板',
-        description: '用于 AI 续写内容',
-        systemPrompt: '你是一位专业的小说作家助手。请根据给定的上下文，自然地续写故事内容。保持文风一致，注意情节连贯性。',
-        iconName: 'edit_note',
-        createdAt: DateTime.now(),
-      ),
-      PromptTemplate(
-        id: 'dialogue',
-        name: '对话生成模板',
-        description: '基于角色档案生成对话',
-        systemPrompt: '你是一位专业的小说对话作家。请根据角色性格和情境，生成符合角色特点的对话。',
-        iconName: 'chat',
-        createdAt: DateTime.now(),
-      ),
-      PromptTemplate(
-        id: 'review',
-        name: '章节审查模板',
-        description: '多维度审查章节质量',
-        systemPrompt: '你是一位专业的小说编辑。请从设定一致性、角色OOC、剧情逻辑、节奏把控等维度审查给定的章节内容。',
-        iconName: 'rate_review',
-        createdAt: DateTime.now(),
-      ),
-      PromptTemplate(
-        id: 'character_sim',
-        name: '角色推演模板',
-        description: '扮演角色进行行为推演',
-        systemPrompt: '请完全沉浸在给定角色的视角中。根据角色的性格、价值观、说话风格和当前情境，推演角色可能的反应、决策和内心活动。',
-        iconName: 'person',
-        createdAt: DateTime.now(),
-      ),
-    ];
+    return buildDefaultAIConfigPromptTemplates(DateTime.now());
   }
 
   /// 保存 Prompt 模板
   Future<void> savePromptTemplate(PromptTemplate template) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = '${_keyPrefix}prompt_${template.id}';
+    final key = buildAIConfigRepositoryPromptKey(_keyPrefix, template.id);
 
     await prefs.setString(key, template.id);
     await prefs.setString('${key}_name', template.name);
@@ -338,8 +280,8 @@ class AIConfigRepository {
     int todayRequests = 0, todayTokens = 0;
     int weekRequests = 0, weekTokens = 0;
     int monthRequests = 0, monthTokens = 0;
-    final byModel = <String, _Accum>{};
-    final byFunction = <String, _Accum>{};
+    final byModel = <String, AIConfigRepositoryAccum>{};
+    final byFunction = <String, AIConfigRepositoryAccum>{};
 
     for (final r in allRecords) {
       final ts = r.createdAt;
@@ -358,25 +300,19 @@ class AIConfigRepository {
         monthTokens += total;
       }
 
-      byModel.putIfAbsent(r.tier, () => _Accum()).add(total);
-      byFunction.putIfAbsent(r.functionType, () => _Accum()).add(total);
+      addAIConfigRepositoryAccum(byModel, r.tier, total);
+      addAIConfigRepositoryAccum(byFunction, r.functionType, total);
     }
 
-    return UsageStats(
+    return buildAIConfigRepositoryUsageStats(
       todayRequests: todayRequests,
       todayTokens: todayTokens,
       weekRequests: weekRequests,
       weekTokens: weekTokens,
       monthRequests: monthRequests,
       monthTokens: monthTokens,
-      byModel: byModel.map((k, v) => MapEntry(
-        k,
-        ModelUsageStats(requests: v.count, tokens: v.tokens, estimatedCost: 0),
-      )),
-      byFunction: byFunction.map((k, v) => MapEntry(
-        k,
-        FunctionUsageStats(requests: v.count, tokens: v.tokens),
-      )),
+      byModel: byModel,
+      byFunction: byFunction,
     );
   }
 
@@ -419,11 +355,11 @@ class AIConfigRepository {
 
   Future<void> _appendRecord(String key, Map<String, dynamic> record, {required int maxRecords}) async {
     final prefs = await SharedPreferences.getInstance();
-    final history = prefs.getStringList(key) ?? [];
-    history.add(jsonEncode(record));
-    if (history.length > maxRecords) {
-      history.removeRange(0, history.length - maxRecords);
-    }
+    final history = appendAIConfigRepositoryHistoryRecord(
+      prefs.getStringList(key),
+      record,
+      maxRecords: maxRecords,
+    );
     await prefs.setStringList(key, history);
   }
 
@@ -437,50 +373,27 @@ class AIConfigRepository {
 
   Future<List<Map<String, dynamic>>> _getHistory(String key, int limit) async {
     final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(key) ?? [])
-        .take(limit)
-        .map((r) => jsonDecode(r) as Map<String, dynamic>)
-        .toList();
+    return decodeAIConfigRepositoryHistory(
+      prefs.getStringList(key),
+      limit: limit,
+    );
   }
 
   core_provider.ProviderConfig _buildProviderConfig({
     required String apiKey,
     required ModelConfig config,
     required core_model.AIProviderType type,
-  }) {
-    return core_provider.ProviderConfig(
-      id: 'ai_config_${config.tier.name}_${type.name}',
-      type: type,
-      name: type.displayName,
-      apiKey: apiKey,
-      apiEndpoint: config.apiEndpoint,
-    );
-  }
+  }) => buildAIConfigRepositoryProviderConfig(
+    apiKey: apiKey,
+    config: config,
+    type: type,
+  );
 
   core_tier.ModelTier _toCoreTier(ModelTier tier) {
-    return switch (tier) {
-      ModelTier.thinking => core_tier.ModelTier.thinking,
-      ModelTier.middle => core_tier.ModelTier.middle,
-      ModelTier.fast => core_tier.ModelTier.fast,
-    };
+    return toAIConfigRepositoryCoreTier(tier);
   }
 
   core_model.AIProviderType _toCoreProviderType(String providerType) {
-    return switch (providerType.toLowerCase()) {
-      'openai' => core_model.AIProviderType.openai,
-      'anthropic' || 'claude' => core_model.AIProviderType.anthropic,
-      'ollama' => core_model.AIProviderType.ollama,
-      'azure' => core_model.AIProviderType.azure,
-      _ => core_model.AIProviderType.custom,
-    };
-  }
-}
-
-class _Accum {
-  int count = 0;
-  int tokens = 0;
-  void add(int t) {
-    count++;
-    tokens += t;
+    return toAIConfigRepositoryProviderType(providerType);
   }
 }

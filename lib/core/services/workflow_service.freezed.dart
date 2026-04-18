@@ -12,7 +12,8 @@ part of 'workflow_service.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 /// @nodoc
 mixin _$NodeResult {
@@ -23,7 +24,9 @@ mixin _$NodeResult {
   int? get inputTokens => throw _privateConstructorUsedError;
   int? get outputTokens => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of NodeResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $NodeResultCopyWith<NodeResult> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -31,16 +34,18 @@ mixin _$NodeResult {
 /// @nodoc
 abstract class $NodeResultCopyWith<$Res> {
   factory $NodeResultCopyWith(
-          NodeResult value, $Res Function(NodeResult) then) =
-      _$NodeResultCopyWithImpl<$Res, NodeResult>;
+    NodeResult value,
+    $Res Function(NodeResult) then,
+  ) = _$NodeResultCopyWithImpl<$Res, NodeResult>;
   @useResult
-  $Res call(
-      {String nodeId,
-      NodeStatus status,
-      dynamic output,
-      String? error,
-      int? inputTokens,
-      int? outputTokens});
+  $Res call({
+    String nodeId,
+    NodeStatus status,
+    dynamic output,
+    String? error,
+    int? inputTokens,
+    int? outputTokens,
+  });
 }
 
 /// @nodoc
@@ -53,6 +58,8 @@ class _$NodeResultCopyWithImpl<$Res, $Val extends NodeResult>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of NodeResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -63,32 +70,35 @@ class _$NodeResultCopyWithImpl<$Res, $Val extends NodeResult>
     Object? inputTokens = freezed,
     Object? outputTokens = freezed,
   }) {
-    return _then(_value.copyWith(
-      nodeId: null == nodeId
-          ? _value.nodeId
-          : nodeId // ignore: cast_nullable_to_non_nullable
-              as String,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as NodeStatus,
-      output: freezed == output
-          ? _value.output
-          : output // ignore: cast_nullable_to_non_nullable
-              as dynamic,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-      inputTokens: freezed == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-      outputTokens: freezed == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            nodeId: null == nodeId
+                ? _value.nodeId
+                : nodeId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as NodeStatus,
+            output: freezed == output
+                ? _value.output
+                : output // ignore: cast_nullable_to_non_nullable
+                      as dynamic,
+            error: freezed == error
+                ? _value.error
+                : error // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            inputTokens: freezed == inputTokens
+                ? _value.inputTokens
+                : inputTokens // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            outputTokens: freezed == outputTokens
+                ? _value.outputTokens
+                : outputTokens // ignore: cast_nullable_to_non_nullable
+                      as int?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -96,17 +106,19 @@ class _$NodeResultCopyWithImpl<$Res, $Val extends NodeResult>
 abstract class _$$NodeResultImplCopyWith<$Res>
     implements $NodeResultCopyWith<$Res> {
   factory _$$NodeResultImplCopyWith(
-          _$NodeResultImpl value, $Res Function(_$NodeResultImpl) then) =
-      __$$NodeResultImplCopyWithImpl<$Res>;
+    _$NodeResultImpl value,
+    $Res Function(_$NodeResultImpl) then,
+  ) = __$$NodeResultImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String nodeId,
-      NodeStatus status,
-      dynamic output,
-      String? error,
-      int? inputTokens,
-      int? outputTokens});
+  $Res call({
+    String nodeId,
+    NodeStatus status,
+    dynamic output,
+    String? error,
+    int? inputTokens,
+    int? outputTokens,
+  });
 }
 
 /// @nodoc
@@ -114,9 +126,12 @@ class __$$NodeResultImplCopyWithImpl<$Res>
     extends _$NodeResultCopyWithImpl<$Res, _$NodeResultImpl>
     implements _$$NodeResultImplCopyWith<$Res> {
   __$$NodeResultImplCopyWithImpl(
-      _$NodeResultImpl _value, $Res Function(_$NodeResultImpl) _then)
-      : super(_value, _then);
+    _$NodeResultImpl _value,
+    $Res Function(_$NodeResultImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of NodeResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -127,45 +142,48 @@ class __$$NodeResultImplCopyWithImpl<$Res>
     Object? inputTokens = freezed,
     Object? outputTokens = freezed,
   }) {
-    return _then(_$NodeResultImpl(
-      nodeId: null == nodeId
-          ? _value.nodeId
-          : nodeId // ignore: cast_nullable_to_non_nullable
-              as String,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as NodeStatus,
-      output: freezed == output
-          ? _value.output
-          : output // ignore: cast_nullable_to_non_nullable
-              as dynamic,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-      inputTokens: freezed == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-      outputTokens: freezed == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ));
+    return _then(
+      _$NodeResultImpl(
+        nodeId: null == nodeId
+            ? _value.nodeId
+            : nodeId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as NodeStatus,
+        output: freezed == output
+            ? _value.output
+            : output // ignore: cast_nullable_to_non_nullable
+                  as dynamic,
+        error: freezed == error
+            ? _value.error
+            : error // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        inputTokens: freezed == inputTokens
+            ? _value.inputTokens
+            : inputTokens // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        outputTokens: freezed == outputTokens
+            ? _value.outputTokens
+            : outputTokens // ignore: cast_nullable_to_non_nullable
+                  as int?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$NodeResultImpl implements _NodeResult {
-  const _$NodeResultImpl(
-      {required this.nodeId,
-      required this.status,
-      this.output,
-      this.error,
-      this.inputTokens,
-      this.outputTokens});
+  const _$NodeResultImpl({
+    required this.nodeId,
+    required this.status,
+    this.output,
+    this.error,
+    this.inputTokens,
+    this.outputTokens,
+  });
 
   @override
   final String nodeId;
@@ -202,15 +220,18 @@ class _$NodeResultImpl implements _NodeResult {
 
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      nodeId,
-      status,
-      const DeepCollectionEquality().hash(output),
-      error,
-      inputTokens,
-      outputTokens);
+    runtimeType,
+    nodeId,
+    status,
+    const DeepCollectionEquality().hash(output),
+    error,
+    inputTokens,
+    outputTokens,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of NodeResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$NodeResultImplCopyWith<_$NodeResultImpl> get copyWith =>
@@ -218,13 +239,14 @@ class _$NodeResultImpl implements _NodeResult {
 }
 
 abstract class _NodeResult implements NodeResult {
-  const factory _NodeResult(
-      {required final String nodeId,
-      required final NodeStatus status,
-      final dynamic output,
-      final String? error,
-      final int? inputTokens,
-      final int? outputTokens}) = _$NodeResultImpl;
+  const factory _NodeResult({
+    required final String nodeId,
+    required final NodeStatus status,
+    final dynamic output,
+    final String? error,
+    final int? inputTokens,
+    final int? outputTokens,
+  }) = _$NodeResultImpl;
 
   @override
   String get nodeId;
@@ -238,8 +260,11 @@ abstract class _NodeResult implements NodeResult {
   int? get inputTokens;
   @override
   int? get outputTokens;
+
+  /// Create a copy of NodeResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$NodeResultImplCopyWith<_$NodeResultImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

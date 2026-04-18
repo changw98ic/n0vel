@@ -265,7 +265,6 @@ class SearchService {
 
     final groups = workId != null
         ? await Future.wait([
-            searchWorks(normalized),
             searchChapters(workId, normalized),
             searchCharacters(workId, normalized),
             searchItems(workId, normalized),

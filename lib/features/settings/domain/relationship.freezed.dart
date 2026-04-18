@@ -12,7 +12,8 @@ part of 'relationship.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 RelationshipHead _$RelationshipHeadFromJson(Map<String, dynamic> json) {
   return _RelationshipHead.fromJson(json);
@@ -33,8 +34,12 @@ mixin _$RelationshipHead {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this RelationshipHead to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $RelationshipHeadCopyWith<RelationshipHead> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -42,21 +47,23 @@ mixin _$RelationshipHead {
 /// @nodoc
 abstract class $RelationshipHeadCopyWith<$Res> {
   factory $RelationshipHeadCopyWith(
-          RelationshipHead value, $Res Function(RelationshipHead) then) =
-      _$RelationshipHeadCopyWithImpl<$Res, RelationshipHead>;
+    RelationshipHead value,
+    $Res Function(RelationshipHead) then,
+  ) = _$RelationshipHeadCopyWithImpl<$Res, RelationshipHead>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String characterAId,
-      String characterBId,
-      RelationType relationType,
-      EmotionDimensions? emotionDimensions,
-      String? firstChapterId,
-      String? latestChapterId,
-      int eventCount,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String characterAId,
+    String characterBId,
+    RelationType relationType,
+    EmotionDimensions? emotionDimensions,
+    String? firstChapterId,
+    String? latestChapterId,
+    int eventCount,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 
   $EmotionDimensionsCopyWith<$Res>? get emotionDimensions;
 }
@@ -71,6 +78,8 @@ class _$RelationshipHeadCopyWithImpl<$Res, $Val extends RelationshipHead>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -86,54 +95,59 @@ class _$RelationshipHeadCopyWithImpl<$Res, $Val extends RelationshipHead>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterAId: null == characterAId
-          ? _value.characterAId
-          : characterAId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterBId: null == characterBId
-          ? _value.characterBId
-          : characterBId // ignore: cast_nullable_to_non_nullable
-              as String,
-      relationType: null == relationType
-          ? _value.relationType
-          : relationType // ignore: cast_nullable_to_non_nullable
-              as RelationType,
-      emotionDimensions: freezed == emotionDimensions
-          ? _value.emotionDimensions
-          : emotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      firstChapterId: freezed == firstChapterId
-          ? _value.firstChapterId
-          : firstChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      latestChapterId: freezed == latestChapterId
-          ? _value.latestChapterId
-          : latestChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      eventCount: null == eventCount
-          ? _value.eventCount
-          : eventCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterAId: null == characterAId
+                ? _value.characterAId
+                : characterAId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterBId: null == characterBId
+                ? _value.characterBId
+                : characterBId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            relationType: null == relationType
+                ? _value.relationType
+                : relationType // ignore: cast_nullable_to_non_nullable
+                      as RelationType,
+            emotionDimensions: freezed == emotionDimensions
+                ? _value.emotionDimensions
+                : emotionDimensions // ignore: cast_nullable_to_non_nullable
+                      as EmotionDimensions?,
+            firstChapterId: freezed == firstChapterId
+                ? _value.firstChapterId
+                : firstChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            latestChapterId: freezed == latestChapterId
+                ? _value.latestChapterId
+                : latestChapterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            eventCount: null == eventCount
+                ? _value.eventCount
+                : eventCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $EmotionDimensionsCopyWith<$Res>? get emotionDimensions {
@@ -150,23 +164,25 @@ class _$RelationshipHeadCopyWithImpl<$Res, $Val extends RelationshipHead>
 /// @nodoc
 abstract class _$$RelationshipHeadImplCopyWith<$Res>
     implements $RelationshipHeadCopyWith<$Res> {
-  factory _$$RelationshipHeadImplCopyWith(_$RelationshipHeadImpl value,
-          $Res Function(_$RelationshipHeadImpl) then) =
-      __$$RelationshipHeadImplCopyWithImpl<$Res>;
+  factory _$$RelationshipHeadImplCopyWith(
+    _$RelationshipHeadImpl value,
+    $Res Function(_$RelationshipHeadImpl) then,
+  ) = __$$RelationshipHeadImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String characterAId,
-      String characterBId,
-      RelationType relationType,
-      EmotionDimensions? emotionDimensions,
-      String? firstChapterId,
-      String? latestChapterId,
-      int eventCount,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String workId,
+    String characterAId,
+    String characterBId,
+    RelationType relationType,
+    EmotionDimensions? emotionDimensions,
+    String? firstChapterId,
+    String? latestChapterId,
+    int eventCount,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 
   @override
   $EmotionDimensionsCopyWith<$Res>? get emotionDimensions;
@@ -176,10 +192,13 @@ abstract class _$$RelationshipHeadImplCopyWith<$Res>
 class __$$RelationshipHeadImplCopyWithImpl<$Res>
     extends _$RelationshipHeadCopyWithImpl<$Res, _$RelationshipHeadImpl>
     implements _$$RelationshipHeadImplCopyWith<$Res> {
-  __$$RelationshipHeadImplCopyWithImpl(_$RelationshipHeadImpl _value,
-      $Res Function(_$RelationshipHeadImpl) _then)
-      : super(_value, _then);
+  __$$RelationshipHeadImplCopyWithImpl(
+    _$RelationshipHeadImpl _value,
+    $Res Function(_$RelationshipHeadImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -195,71 +214,73 @@ class __$$RelationshipHeadImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_$RelationshipHeadImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterAId: null == characterAId
-          ? _value.characterAId
-          : characterAId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterBId: null == characterBId
-          ? _value.characterBId
-          : characterBId // ignore: cast_nullable_to_non_nullable
-              as String,
-      relationType: null == relationType
-          ? _value.relationType
-          : relationType // ignore: cast_nullable_to_non_nullable
-              as RelationType,
-      emotionDimensions: freezed == emotionDimensions
-          ? _value.emotionDimensions
-          : emotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      firstChapterId: freezed == firstChapterId
-          ? _value.firstChapterId
-          : firstChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      latestChapterId: freezed == latestChapterId
-          ? _value.latestChapterId
-          : latestChapterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      eventCount: null == eventCount
-          ? _value.eventCount
-          : eventCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$RelationshipHeadImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterAId: null == characterAId
+            ? _value.characterAId
+            : characterAId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterBId: null == characterBId
+            ? _value.characterBId
+            : characterBId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        relationType: null == relationType
+            ? _value.relationType
+            : relationType // ignore: cast_nullable_to_non_nullable
+                  as RelationType,
+        emotionDimensions: freezed == emotionDimensions
+            ? _value.emotionDimensions
+            : emotionDimensions // ignore: cast_nullable_to_non_nullable
+                  as EmotionDimensions?,
+        firstChapterId: freezed == firstChapterId
+            ? _value.firstChapterId
+            : firstChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        latestChapterId: freezed == latestChapterId
+            ? _value.latestChapterId
+            : latestChapterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        eventCount: null == eventCount
+            ? _value.eventCount
+            : eventCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$RelationshipHeadImpl extends _RelationshipHead {
-  const _$RelationshipHeadImpl(
-      {required this.id,
-      required this.workId,
-      required this.characterAId,
-      required this.characterBId,
-      required this.relationType,
-      this.emotionDimensions,
-      this.firstChapterId,
-      this.latestChapterId,
-      this.eventCount = 0,
-      required this.createdAt,
-      required this.updatedAt})
-      : super._();
+  const _$RelationshipHeadImpl({
+    required this.id,
+    required this.workId,
+    required this.characterAId,
+    required this.characterBId,
+    required this.relationType,
+    this.emotionDimensions,
+    this.firstChapterId,
+    this.latestChapterId,
+    this.eventCount = 0,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : super._();
 
   factory _$RelationshipHeadImpl.fromJson(Map<String, dynamic> json) =>
       _$$RelationshipHeadImplFromJson(json);
@@ -270,10 +291,10 @@ class _$RelationshipHeadImpl extends _RelationshipHead {
   final String workId;
   @override
   final String characterAId;
-// id较小者
+  // id较小者
   @override
   final String characterBId;
-// id较大者
+  // id较大者
   @override
   final RelationType relationType;
   @override
@@ -322,50 +343,54 @@ class _$RelationshipHeadImpl extends _RelationshipHead {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      characterAId,
-      characterBId,
-      relationType,
-      emotionDimensions,
-      firstChapterId,
-      latestChapterId,
-      eventCount,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    workId,
+    characterAId,
+    characterBId,
+    relationType,
+    emotionDimensions,
+    firstChapterId,
+    latestChapterId,
+    eventCount,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$RelationshipHeadImplCopyWith<_$RelationshipHeadImpl> get copyWith =>
       __$$RelationshipHeadImplCopyWithImpl<_$RelationshipHeadImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$RelationshipHeadImplToJson(
-      this,
-    );
+    return _$$RelationshipHeadImplToJson(this);
   }
 }
 
 abstract class _RelationshipHead extends RelationshipHead {
-  const factory _RelationshipHead(
-      {required final String id,
-      required final String workId,
-      required final String characterAId,
-      required final String characterBId,
-      required final RelationType relationType,
-      final EmotionDimensions? emotionDimensions,
-      final String? firstChapterId,
-      final String? latestChapterId,
-      final int eventCount,
-      required final DateTime createdAt,
-      required final DateTime updatedAt}) = _$RelationshipHeadImpl;
+  const factory _RelationshipHead({
+    required final String id,
+    required final String workId,
+    required final String characterAId,
+    required final String characterBId,
+    required final RelationType relationType,
+    final EmotionDimensions? emotionDimensions,
+    final String? firstChapterId,
+    final String? latestChapterId,
+    final int eventCount,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+  }) = _$RelationshipHeadImpl;
   const _RelationshipHead._() : super._();
 
   factory _RelationshipHead.fromJson(Map<String, dynamic> json) =
@@ -376,10 +401,10 @@ abstract class _RelationshipHead extends RelationshipHead {
   @override
   String get workId;
   @override
-  String get characterAId;
-  @override // id较小者
-  String get characterBId;
-  @override // id较大者
+  String get characterAId; // id较小者
+  @override
+  String get characterBId; // id较大者
+  @override
   RelationType get relationType;
   @override
   EmotionDimensions? get emotionDimensions;
@@ -393,8 +418,11 @@ abstract class _RelationshipHead extends RelationshipHead {
   DateTime get createdAt;
   @override
   DateTime get updatedAt;
+
+  /// Create a copy of RelationshipHead
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$RelationshipHeadImplCopyWith<_$RelationshipHeadImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -419,8 +447,12 @@ mixin _$RelationshipEvent {
   bool get isKeyEvent => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this RelationshipEvent to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $RelationshipEventCopyWith<RelationshipEvent> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -428,21 +460,23 @@ mixin _$RelationshipEvent {
 /// @nodoc
 abstract class $RelationshipEventCopyWith<$Res> {
   factory $RelationshipEventCopyWith(
-          RelationshipEvent value, $Res Function(RelationshipEvent) then) =
-      _$RelationshipEventCopyWithImpl<$Res, RelationshipEvent>;
+    RelationshipEvent value,
+    $Res Function(RelationshipEvent) then,
+  ) = _$RelationshipEventCopyWithImpl<$Res, RelationshipEvent>;
   @useResult
-  $Res call(
-      {String id,
-      String headId,
-      String chapterId,
-      ChangeType changeType,
-      RelationType? prevRelationType,
-      RelationType newRelationType,
-      EmotionDimensions? prevEmotionDimensions,
-      EmotionDimensions? newEmotionDimensions,
-      String? changeReason,
-      bool isKeyEvent,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String headId,
+    String chapterId,
+    ChangeType changeType,
+    RelationType? prevRelationType,
+    RelationType newRelationType,
+    EmotionDimensions? prevEmotionDimensions,
+    EmotionDimensions? newEmotionDimensions,
+    String? changeReason,
+    bool isKeyEvent,
+    DateTime createdAt,
+  });
 
   $EmotionDimensionsCopyWith<$Res>? get prevEmotionDimensions;
   $EmotionDimensionsCopyWith<$Res>? get newEmotionDimensions;
@@ -458,6 +492,8 @@ class _$RelationshipEventCopyWithImpl<$Res, $Val extends RelationshipEvent>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -473,54 +509,59 @@ class _$RelationshipEventCopyWithImpl<$Res, $Val extends RelationshipEvent>
     Object? isKeyEvent = null,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      headId: null == headId
-          ? _value.headId
-          : headId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      changeType: null == changeType
-          ? _value.changeType
-          : changeType // ignore: cast_nullable_to_non_nullable
-              as ChangeType,
-      prevRelationType: freezed == prevRelationType
-          ? _value.prevRelationType
-          : prevRelationType // ignore: cast_nullable_to_non_nullable
-              as RelationType?,
-      newRelationType: null == newRelationType
-          ? _value.newRelationType
-          : newRelationType // ignore: cast_nullable_to_non_nullable
-              as RelationType,
-      prevEmotionDimensions: freezed == prevEmotionDimensions
-          ? _value.prevEmotionDimensions
-          : prevEmotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      newEmotionDimensions: freezed == newEmotionDimensions
-          ? _value.newEmotionDimensions
-          : newEmotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      changeReason: freezed == changeReason
-          ? _value.changeReason
-          : changeReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isKeyEvent: null == isKeyEvent
-          ? _value.isKeyEvent
-          : isKeyEvent // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            headId: null == headId
+                ? _value.headId
+                : headId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            changeType: null == changeType
+                ? _value.changeType
+                : changeType // ignore: cast_nullable_to_non_nullable
+                      as ChangeType,
+            prevRelationType: freezed == prevRelationType
+                ? _value.prevRelationType
+                : prevRelationType // ignore: cast_nullable_to_non_nullable
+                      as RelationType?,
+            newRelationType: null == newRelationType
+                ? _value.newRelationType
+                : newRelationType // ignore: cast_nullable_to_non_nullable
+                      as RelationType,
+            prevEmotionDimensions: freezed == prevEmotionDimensions
+                ? _value.prevEmotionDimensions
+                : prevEmotionDimensions // ignore: cast_nullable_to_non_nullable
+                      as EmotionDimensions?,
+            newEmotionDimensions: freezed == newEmotionDimensions
+                ? _value.newEmotionDimensions
+                : newEmotionDimensions // ignore: cast_nullable_to_non_nullable
+                      as EmotionDimensions?,
+            changeReason: freezed == changeReason
+                ? _value.changeReason
+                : changeReason // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isKeyEvent: null == isKeyEvent
+                ? _value.isKeyEvent
+                : isKeyEvent // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $EmotionDimensionsCopyWith<$Res>? get prevEmotionDimensions {
@@ -528,12 +569,15 @@ class _$RelationshipEventCopyWithImpl<$Res, $Val extends RelationshipEvent>
       return null;
     }
 
-    return $EmotionDimensionsCopyWith<$Res>(_value.prevEmotionDimensions!,
-        (value) {
+    return $EmotionDimensionsCopyWith<$Res>(_value.prevEmotionDimensions!, (
+      value,
+    ) {
       return _then(_value.copyWith(prevEmotionDimensions: value) as $Val);
     });
   }
 
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $EmotionDimensionsCopyWith<$Res>? get newEmotionDimensions {
@@ -541,8 +585,9 @@ class _$RelationshipEventCopyWithImpl<$Res, $Val extends RelationshipEvent>
       return null;
     }
 
-    return $EmotionDimensionsCopyWith<$Res>(_value.newEmotionDimensions!,
-        (value) {
+    return $EmotionDimensionsCopyWith<$Res>(_value.newEmotionDimensions!, (
+      value,
+    ) {
       return _then(_value.copyWith(newEmotionDimensions: value) as $Val);
     });
   }
@@ -551,23 +596,25 @@ class _$RelationshipEventCopyWithImpl<$Res, $Val extends RelationshipEvent>
 /// @nodoc
 abstract class _$$RelationshipEventImplCopyWith<$Res>
     implements $RelationshipEventCopyWith<$Res> {
-  factory _$$RelationshipEventImplCopyWith(_$RelationshipEventImpl value,
-          $Res Function(_$RelationshipEventImpl) then) =
-      __$$RelationshipEventImplCopyWithImpl<$Res>;
+  factory _$$RelationshipEventImplCopyWith(
+    _$RelationshipEventImpl value,
+    $Res Function(_$RelationshipEventImpl) then,
+  ) = __$$RelationshipEventImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String headId,
-      String chapterId,
-      ChangeType changeType,
-      RelationType? prevRelationType,
-      RelationType newRelationType,
-      EmotionDimensions? prevEmotionDimensions,
-      EmotionDimensions? newEmotionDimensions,
-      String? changeReason,
-      bool isKeyEvent,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String headId,
+    String chapterId,
+    ChangeType changeType,
+    RelationType? prevRelationType,
+    RelationType newRelationType,
+    EmotionDimensions? prevEmotionDimensions,
+    EmotionDimensions? newEmotionDimensions,
+    String? changeReason,
+    bool isKeyEvent,
+    DateTime createdAt,
+  });
 
   @override
   $EmotionDimensionsCopyWith<$Res>? get prevEmotionDimensions;
@@ -579,10 +626,13 @@ abstract class _$$RelationshipEventImplCopyWith<$Res>
 class __$$RelationshipEventImplCopyWithImpl<$Res>
     extends _$RelationshipEventCopyWithImpl<$Res, _$RelationshipEventImpl>
     implements _$$RelationshipEventImplCopyWith<$Res> {
-  __$$RelationshipEventImplCopyWithImpl(_$RelationshipEventImpl _value,
-      $Res Function(_$RelationshipEventImpl) _then)
-      : super(_value, _then);
+  __$$RelationshipEventImplCopyWithImpl(
+    _$RelationshipEventImpl _value,
+    $Res Function(_$RelationshipEventImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -598,71 +648,73 @@ class __$$RelationshipEventImplCopyWithImpl<$Res>
     Object? isKeyEvent = null,
     Object? createdAt = null,
   }) {
-    return _then(_$RelationshipEventImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      headId: null == headId
-          ? _value.headId
-          : headId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      changeType: null == changeType
-          ? _value.changeType
-          : changeType // ignore: cast_nullable_to_non_nullable
-              as ChangeType,
-      prevRelationType: freezed == prevRelationType
-          ? _value.prevRelationType
-          : prevRelationType // ignore: cast_nullable_to_non_nullable
-              as RelationType?,
-      newRelationType: null == newRelationType
-          ? _value.newRelationType
-          : newRelationType // ignore: cast_nullable_to_non_nullable
-              as RelationType,
-      prevEmotionDimensions: freezed == prevEmotionDimensions
-          ? _value.prevEmotionDimensions
-          : prevEmotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      newEmotionDimensions: freezed == newEmotionDimensions
-          ? _value.newEmotionDimensions
-          : newEmotionDimensions // ignore: cast_nullable_to_non_nullable
-              as EmotionDimensions?,
-      changeReason: freezed == changeReason
-          ? _value.changeReason
-          : changeReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isKeyEvent: null == isKeyEvent
-          ? _value.isKeyEvent
-          : isKeyEvent // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$RelationshipEventImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        headId: null == headId
+            ? _value.headId
+            : headId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        changeType: null == changeType
+            ? _value.changeType
+            : changeType // ignore: cast_nullable_to_non_nullable
+                  as ChangeType,
+        prevRelationType: freezed == prevRelationType
+            ? _value.prevRelationType
+            : prevRelationType // ignore: cast_nullable_to_non_nullable
+                  as RelationType?,
+        newRelationType: null == newRelationType
+            ? _value.newRelationType
+            : newRelationType // ignore: cast_nullable_to_non_nullable
+                  as RelationType,
+        prevEmotionDimensions: freezed == prevEmotionDimensions
+            ? _value.prevEmotionDimensions
+            : prevEmotionDimensions // ignore: cast_nullable_to_non_nullable
+                  as EmotionDimensions?,
+        newEmotionDimensions: freezed == newEmotionDimensions
+            ? _value.newEmotionDimensions
+            : newEmotionDimensions // ignore: cast_nullable_to_non_nullable
+                  as EmotionDimensions?,
+        changeReason: freezed == changeReason
+            ? _value.changeReason
+            : changeReason // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isKeyEvent: null == isKeyEvent
+            ? _value.isKeyEvent
+            : isKeyEvent // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$RelationshipEventImpl extends _RelationshipEvent {
-  const _$RelationshipEventImpl(
-      {required this.id,
-      required this.headId,
-      required this.chapterId,
-      required this.changeType,
-      this.prevRelationType,
-      required this.newRelationType,
-      this.prevEmotionDimensions,
-      this.newEmotionDimensions,
-      this.changeReason,
-      this.isKeyEvent = false,
-      required this.createdAt})
-      : super._();
+  const _$RelationshipEventImpl({
+    required this.id,
+    required this.headId,
+    required this.chapterId,
+    required this.changeType,
+    this.prevRelationType,
+    required this.newRelationType,
+    this.prevEmotionDimensions,
+    this.newEmotionDimensions,
+    this.changeReason,
+    this.isKeyEvent = false,
+    required this.createdAt,
+  }) : super._();
 
   factory _$RelationshipEventImpl.fromJson(Map<String, dynamic> json) =>
       _$$RelationshipEventImplFromJson(json);
@@ -723,50 +775,54 @@ class _$RelationshipEventImpl extends _RelationshipEvent {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      headId,
-      chapterId,
-      changeType,
-      prevRelationType,
-      newRelationType,
-      prevEmotionDimensions,
-      newEmotionDimensions,
-      changeReason,
-      isKeyEvent,
-      createdAt);
+    runtimeType,
+    id,
+    headId,
+    chapterId,
+    changeType,
+    prevRelationType,
+    newRelationType,
+    prevEmotionDimensions,
+    newEmotionDimensions,
+    changeReason,
+    isKeyEvent,
+    createdAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$RelationshipEventImplCopyWith<_$RelationshipEventImpl> get copyWith =>
       __$$RelationshipEventImplCopyWithImpl<_$RelationshipEventImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$RelationshipEventImplToJson(
-      this,
-    );
+    return _$$RelationshipEventImplToJson(this);
   }
 }
 
 abstract class _RelationshipEvent extends RelationshipEvent {
-  const factory _RelationshipEvent(
-      {required final String id,
-      required final String headId,
-      required final String chapterId,
-      required final ChangeType changeType,
-      final RelationType? prevRelationType,
-      required final RelationType newRelationType,
-      final EmotionDimensions? prevEmotionDimensions,
-      final EmotionDimensions? newEmotionDimensions,
-      final String? changeReason,
-      final bool isKeyEvent,
-      required final DateTime createdAt}) = _$RelationshipEventImpl;
+  const factory _RelationshipEvent({
+    required final String id,
+    required final String headId,
+    required final String chapterId,
+    required final ChangeType changeType,
+    final RelationType? prevRelationType,
+    required final RelationType newRelationType,
+    final EmotionDimensions? prevEmotionDimensions,
+    final EmotionDimensions? newEmotionDimensions,
+    final String? changeReason,
+    final bool isKeyEvent,
+    required final DateTime createdAt,
+  }) = _$RelationshipEventImpl;
   const _RelationshipEvent._() : super._();
 
   factory _RelationshipEvent.fromJson(Map<String, dynamic> json) =
@@ -794,8 +850,11 @@ abstract class _RelationshipEvent extends RelationshipEvent {
   bool get isKeyEvent;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of RelationshipEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$RelationshipEventImplCopyWith<_$RelationshipEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

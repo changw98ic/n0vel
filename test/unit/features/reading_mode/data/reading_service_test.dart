@@ -13,6 +13,7 @@ void main() {
     database = _TestAppDatabase();
     service = ReadingService(database);
     await _seedWork(database);
+    await _seedVolume(database);
     await _seedChapter(database);
   });
 
@@ -119,6 +120,19 @@ Future<void> _seedWork(AppDatabase database) {
           name: const Value('作品一'),
           createdAt: Value(now),
           updatedAt: Value(now),
+        ),
+      );
+}
+Future<void> _seedVolume(AppDatabase database) {
+  final now = DateTime(2026, 4, 6);
+  return database
+      .into(database.volumes)
+      .insert(
+        VolumesCompanion(
+          id: const Value('volume-1'),
+          workId: const Value('work-1'),
+          name: const Value('Volume One'),
+          createdAt: Value(now),
         ),
       );
 }

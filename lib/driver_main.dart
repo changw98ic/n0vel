@@ -6,10 +6,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app/app.dart';
+import 'core/config/app_env.dart';
 
 void main() async {
   enableFlutterDriverExtension();
   WidgetsFlutterBinding.ensureInitialized();
+  await AppEnv.load();
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
     const windowOptions = WindowOptions(

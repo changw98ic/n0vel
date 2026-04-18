@@ -1,0 +1,5 @@
+﻿Analyzing modules...
+
+  error - ai_chat\ai_chat_logic.dart:142:9 - The type 'ChatStreamEvent' isn't exhaustively matched by the switch cases since it doesn't match the pattern 'ChatBatchProgress()'. Try adding a default case or cases that match 'ChatBatchProgress()'. - non_exhaustive_switch_statement
+
+1 issue found.

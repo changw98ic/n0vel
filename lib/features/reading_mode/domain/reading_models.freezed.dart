@@ -12,7 +12,8 @@ part of 'reading_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 ReadingProgress _$ReadingProgressFromJson(Map<String, dynamic> json) {
   return _ReadingProgress.fromJson(json);
@@ -31,8 +32,12 @@ mixin _$ReadingProgress {
       throw _privateConstructorUsedError;
   Map<String, int> get bookmarks => throw _privateConstructorUsedError;
 
+  /// Serializes this ReadingProgress to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReadingProgress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReadingProgressCopyWith<ReadingProgress> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -40,19 +45,21 @@ mixin _$ReadingProgress {
 /// @nodoc
 abstract class $ReadingProgressCopyWith<$Res> {
   factory $ReadingProgressCopyWith(
-          ReadingProgress value, $Res Function(ReadingProgress) then) =
-      _$ReadingProgressCopyWithImpl<$Res, ReadingProgress>;
+    ReadingProgress value,
+    $Res Function(ReadingProgress) then,
+  ) = _$ReadingProgressCopyWithImpl<$Res, ReadingProgress>;
   @useResult
-  $Res call(
-      {String workId,
-      String currentChapterId,
-      int currentPosition,
-      double progressPercentage,
-      DateTime lastReadAt,
-      int totalReadingTime,
-      double averageSpeed,
-      List<ChapterProgress> chapterProgressList,
-      Map<String, int> bookmarks});
+  $Res call({
+    String workId,
+    String currentChapterId,
+    int currentPosition,
+    double progressPercentage,
+    DateTime lastReadAt,
+    int totalReadingTime,
+    double averageSpeed,
+    List<ChapterProgress> chapterProgressList,
+    Map<String, int> bookmarks,
+  });
 }
 
 /// @nodoc
@@ -65,6 +72,8 @@ class _$ReadingProgressCopyWithImpl<$Res, $Val extends ReadingProgress>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReadingProgress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -78,65 +87,70 @@ class _$ReadingProgressCopyWithImpl<$Res, $Val extends ReadingProgress>
     Object? chapterProgressList = null,
     Object? bookmarks = null,
   }) {
-    return _then(_value.copyWith(
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      currentChapterId: null == currentChapterId
-          ? _value.currentChapterId
-          : currentChapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      currentPosition: null == currentPosition
-          ? _value.currentPosition
-          : currentPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      progressPercentage: null == progressPercentage
-          ? _value.progressPercentage
-          : progressPercentage // ignore: cast_nullable_to_non_nullable
-              as double,
-      lastReadAt: null == lastReadAt
-          ? _value.lastReadAt
-          : lastReadAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      totalReadingTime: null == totalReadingTime
-          ? _value.totalReadingTime
-          : totalReadingTime // ignore: cast_nullable_to_non_nullable
-              as int,
-      averageSpeed: null == averageSpeed
-          ? _value.averageSpeed
-          : averageSpeed // ignore: cast_nullable_to_non_nullable
-              as double,
-      chapterProgressList: null == chapterProgressList
-          ? _value.chapterProgressList
-          : chapterProgressList // ignore: cast_nullable_to_non_nullable
-              as List<ChapterProgress>,
-      bookmarks: null == bookmarks
-          ? _value.bookmarks
-          : bookmarks // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            currentChapterId: null == currentChapterId
+                ? _value.currentChapterId
+                : currentChapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            currentPosition: null == currentPosition
+                ? _value.currentPosition
+                : currentPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            progressPercentage: null == progressPercentage
+                ? _value.progressPercentage
+                : progressPercentage // ignore: cast_nullable_to_non_nullable
+                      as double,
+            lastReadAt: null == lastReadAt
+                ? _value.lastReadAt
+                : lastReadAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            totalReadingTime: null == totalReadingTime
+                ? _value.totalReadingTime
+                : totalReadingTime // ignore: cast_nullable_to_non_nullable
+                      as int,
+            averageSpeed: null == averageSpeed
+                ? _value.averageSpeed
+                : averageSpeed // ignore: cast_nullable_to_non_nullable
+                      as double,
+            chapterProgressList: null == chapterProgressList
+                ? _value.chapterProgressList
+                : chapterProgressList // ignore: cast_nullable_to_non_nullable
+                      as List<ChapterProgress>,
+            bookmarks: null == bookmarks
+                ? _value.bookmarks
+                : bookmarks // ignore: cast_nullable_to_non_nullable
+                      as Map<String, int>,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ReadingProgressImplCopyWith<$Res>
     implements $ReadingProgressCopyWith<$Res> {
-  factory _$$ReadingProgressImplCopyWith(_$ReadingProgressImpl value,
-          $Res Function(_$ReadingProgressImpl) then) =
-      __$$ReadingProgressImplCopyWithImpl<$Res>;
+  factory _$$ReadingProgressImplCopyWith(
+    _$ReadingProgressImpl value,
+    $Res Function(_$ReadingProgressImpl) then,
+  ) = __$$ReadingProgressImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String workId,
-      String currentChapterId,
-      int currentPosition,
-      double progressPercentage,
-      DateTime lastReadAt,
-      int totalReadingTime,
-      double averageSpeed,
-      List<ChapterProgress> chapterProgressList,
-      Map<String, int> bookmarks});
+  $Res call({
+    String workId,
+    String currentChapterId,
+    int currentPosition,
+    double progressPercentage,
+    DateTime lastReadAt,
+    int totalReadingTime,
+    double averageSpeed,
+    List<ChapterProgress> chapterProgressList,
+    Map<String, int> bookmarks,
+  });
 }
 
 /// @nodoc
@@ -144,9 +158,12 @@ class __$$ReadingProgressImplCopyWithImpl<$Res>
     extends _$ReadingProgressCopyWithImpl<$Res, _$ReadingProgressImpl>
     implements _$$ReadingProgressImplCopyWith<$Res> {
   __$$ReadingProgressImplCopyWithImpl(
-      _$ReadingProgressImpl _value, $Res Function(_$ReadingProgressImpl) _then)
-      : super(_value, _then);
+    _$ReadingProgressImpl _value,
+    $Res Function(_$ReadingProgressImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReadingProgress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -160,62 +177,64 @@ class __$$ReadingProgressImplCopyWithImpl<$Res>
     Object? chapterProgressList = null,
     Object? bookmarks = null,
   }) {
-    return _then(_$ReadingProgressImpl(
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      currentChapterId: null == currentChapterId
-          ? _value.currentChapterId
-          : currentChapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      currentPosition: null == currentPosition
-          ? _value.currentPosition
-          : currentPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      progressPercentage: null == progressPercentage
-          ? _value.progressPercentage
-          : progressPercentage // ignore: cast_nullable_to_non_nullable
-              as double,
-      lastReadAt: null == lastReadAt
-          ? _value.lastReadAt
-          : lastReadAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      totalReadingTime: null == totalReadingTime
-          ? _value.totalReadingTime
-          : totalReadingTime // ignore: cast_nullable_to_non_nullable
-              as int,
-      averageSpeed: null == averageSpeed
-          ? _value.averageSpeed
-          : averageSpeed // ignore: cast_nullable_to_non_nullable
-              as double,
-      chapterProgressList: null == chapterProgressList
-          ? _value._chapterProgressList
-          : chapterProgressList // ignore: cast_nullable_to_non_nullable
-              as List<ChapterProgress>,
-      bookmarks: null == bookmarks
-          ? _value._bookmarks
-          : bookmarks // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-    ));
+    return _then(
+      _$ReadingProgressImpl(
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        currentChapterId: null == currentChapterId
+            ? _value.currentChapterId
+            : currentChapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        currentPosition: null == currentPosition
+            ? _value.currentPosition
+            : currentPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        progressPercentage: null == progressPercentage
+            ? _value.progressPercentage
+            : progressPercentage // ignore: cast_nullable_to_non_nullable
+                  as double,
+        lastReadAt: null == lastReadAt
+            ? _value.lastReadAt
+            : lastReadAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        totalReadingTime: null == totalReadingTime
+            ? _value.totalReadingTime
+            : totalReadingTime // ignore: cast_nullable_to_non_nullable
+                  as int,
+        averageSpeed: null == averageSpeed
+            ? _value.averageSpeed
+            : averageSpeed // ignore: cast_nullable_to_non_nullable
+                  as double,
+        chapterProgressList: null == chapterProgressList
+            ? _value._chapterProgressList
+            : chapterProgressList // ignore: cast_nullable_to_non_nullable
+                  as List<ChapterProgress>,
+        bookmarks: null == bookmarks
+            ? _value._bookmarks
+            : bookmarks // ignore: cast_nullable_to_non_nullable
+                  as Map<String, int>,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReadingProgressImpl implements _ReadingProgress {
-  const _$ReadingProgressImpl(
-      {required this.workId,
-      required this.currentChapterId,
-      required this.currentPosition,
-      required this.progressPercentage,
-      required this.lastReadAt,
-      required this.totalReadingTime,
-      required this.averageSpeed,
-      final List<ChapterProgress> chapterProgressList = const [],
-      final Map<String, int> bookmarks = const {}})
-      : _chapterProgressList = chapterProgressList,
-        _bookmarks = bookmarks;
+  const _$ReadingProgressImpl({
+    required this.workId,
+    required this.currentChapterId,
+    required this.currentPosition,
+    required this.progressPercentage,
+    required this.lastReadAt,
+    required this.totalReadingTime,
+    required this.averageSpeed,
+    final List<ChapterProgress> chapterProgressList = const [],
+    final Map<String, int> bookmarks = const {},
+  }) : _chapterProgressList = chapterProgressList,
+       _bookmarks = bookmarks;
 
   factory _$ReadingProgressImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReadingProgressImplFromJson(json);
@@ -276,52 +295,60 @@ class _$ReadingProgressImpl implements _ReadingProgress {
                 other.totalReadingTime == totalReadingTime) &&
             (identical(other.averageSpeed, averageSpeed) ||
                 other.averageSpeed == averageSpeed) &&
-            const DeepCollectionEquality()
-                .equals(other._chapterProgressList, _chapterProgressList) &&
-            const DeepCollectionEquality()
-                .equals(other._bookmarks, _bookmarks));
+            const DeepCollectionEquality().equals(
+              other._chapterProgressList,
+              _chapterProgressList,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._bookmarks,
+              _bookmarks,
+            ));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      workId,
-      currentChapterId,
-      currentPosition,
-      progressPercentage,
-      lastReadAt,
-      totalReadingTime,
-      averageSpeed,
-      const DeepCollectionEquality().hash(_chapterProgressList),
-      const DeepCollectionEquality().hash(_bookmarks));
+    runtimeType,
+    workId,
+    currentChapterId,
+    currentPosition,
+    progressPercentage,
+    lastReadAt,
+    totalReadingTime,
+    averageSpeed,
+    const DeepCollectionEquality().hash(_chapterProgressList),
+    const DeepCollectionEquality().hash(_bookmarks),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReadingProgress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReadingProgressImplCopyWith<_$ReadingProgressImpl> get copyWith =>
       __$$ReadingProgressImplCopyWithImpl<_$ReadingProgressImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReadingProgressImplToJson(
-      this,
-    );
+    return _$$ReadingProgressImplToJson(this);
   }
 }
 
 abstract class _ReadingProgress implements ReadingProgress {
-  const factory _ReadingProgress(
-      {required final String workId,
-      required final String currentChapterId,
-      required final int currentPosition,
-      required final double progressPercentage,
-      required final DateTime lastReadAt,
-      required final int totalReadingTime,
-      required final double averageSpeed,
-      final List<ChapterProgress> chapterProgressList,
-      final Map<String, int> bookmarks}) = _$ReadingProgressImpl;
+  const factory _ReadingProgress({
+    required final String workId,
+    required final String currentChapterId,
+    required final int currentPosition,
+    required final double progressPercentage,
+    required final DateTime lastReadAt,
+    required final int totalReadingTime,
+    required final double averageSpeed,
+    final List<ChapterProgress> chapterProgressList,
+    final Map<String, int> bookmarks,
+  }) = _$ReadingProgressImpl;
 
   factory _ReadingProgress.fromJson(Map<String, dynamic> json) =
       _$ReadingProgressImpl.fromJson;
@@ -344,8 +371,11 @@ abstract class _ReadingProgress implements ReadingProgress {
   List<ChapterProgress> get chapterProgressList;
   @override
   Map<String, int> get bookmarks;
+
+  /// Create a copy of ReadingProgress
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReadingProgressImplCopyWith<_$ReadingProgressImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -365,8 +395,12 @@ mixin _$ChapterProgress {
   DateTime get lastReadAt => throw _privateConstructorUsedError;
   int get readingCount => throw _privateConstructorUsedError;
 
+  /// Serializes this ChapterProgress to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ChapterProgress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ChapterProgressCopyWith<ChapterProgress> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -374,18 +408,20 @@ mixin _$ChapterProgress {
 /// @nodoc
 abstract class $ChapterProgressCopyWith<$Res> {
   factory $ChapterProgressCopyWith(
-          ChapterProgress value, $Res Function(ChapterProgress) then) =
-      _$ChapterProgressCopyWithImpl<$Res, ChapterProgress>;
+    ChapterProgress value,
+    $Res Function(ChapterProgress) then,
+  ) = _$ChapterProgressCopyWithImpl<$Res, ChapterProgress>;
   @useResult
-  $Res call(
-      {String chapterId,
-      String chapterTitle,
-      int totalWords,
-      int readWords,
-      bool isCompleted,
-      DateTime? completedAt,
-      DateTime lastReadAt,
-      int readingCount});
+  $Res call({
+    String chapterId,
+    String chapterTitle,
+    int totalWords,
+    int readWords,
+    bool isCompleted,
+    DateTime? completedAt,
+    DateTime lastReadAt,
+    int readingCount,
+  });
 }
 
 /// @nodoc
@@ -398,6 +434,8 @@ class _$ChapterProgressCopyWithImpl<$Res, $Val extends ChapterProgress>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ChapterProgress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -410,60 +448,65 @@ class _$ChapterProgressCopyWithImpl<$Res, $Val extends ChapterProgress>
     Object? lastReadAt = null,
     Object? readingCount = null,
   }) {
-    return _then(_value.copyWith(
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterTitle: null == chapterTitle
-          ? _value.chapterTitle
-          : chapterTitle // ignore: cast_nullable_to_non_nullable
-              as String,
-      totalWords: null == totalWords
-          ? _value.totalWords
-          : totalWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      readWords: null == readWords
-          ? _value.readWords
-          : readWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      isCompleted: null == isCompleted
-          ? _value.isCompleted
-          : isCompleted // ignore: cast_nullable_to_non_nullable
-              as bool,
-      completedAt: freezed == completedAt
-          ? _value.completedAt
-          : completedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      lastReadAt: null == lastReadAt
-          ? _value.lastReadAt
-          : lastReadAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      readingCount: null == readingCount
-          ? _value.readingCount
-          : readingCount // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterTitle: null == chapterTitle
+                ? _value.chapterTitle
+                : chapterTitle // ignore: cast_nullable_to_non_nullable
+                      as String,
+            totalWords: null == totalWords
+                ? _value.totalWords
+                : totalWords // ignore: cast_nullable_to_non_nullable
+                      as int,
+            readWords: null == readWords
+                ? _value.readWords
+                : readWords // ignore: cast_nullable_to_non_nullable
+                      as int,
+            isCompleted: null == isCompleted
+                ? _value.isCompleted
+                : isCompleted // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            completedAt: freezed == completedAt
+                ? _value.completedAt
+                : completedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            lastReadAt: null == lastReadAt
+                ? _value.lastReadAt
+                : lastReadAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            readingCount: null == readingCount
+                ? _value.readingCount
+                : readingCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ChapterProgressImplCopyWith<$Res>
     implements $ChapterProgressCopyWith<$Res> {
-  factory _$$ChapterProgressImplCopyWith(_$ChapterProgressImpl value,
-          $Res Function(_$ChapterProgressImpl) then) =
-      __$$ChapterProgressImplCopyWithImpl<$Res>;
+  factory _$$ChapterProgressImplCopyWith(
+    _$ChapterProgressImpl value,
+    $Res Function(_$ChapterProgressImpl) then,
+  ) = __$$ChapterProgressImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String chapterId,
-      String chapterTitle,
-      int totalWords,
-      int readWords,
-      bool isCompleted,
-      DateTime? completedAt,
-      DateTime lastReadAt,
-      int readingCount});
+  $Res call({
+    String chapterId,
+    String chapterTitle,
+    int totalWords,
+    int readWords,
+    bool isCompleted,
+    DateTime? completedAt,
+    DateTime lastReadAt,
+    int readingCount,
+  });
 }
 
 /// @nodoc
@@ -471,9 +514,12 @@ class __$$ChapterProgressImplCopyWithImpl<$Res>
     extends _$ChapterProgressCopyWithImpl<$Res, _$ChapterProgressImpl>
     implements _$$ChapterProgressImplCopyWith<$Res> {
   __$$ChapterProgressImplCopyWithImpl(
-      _$ChapterProgressImpl _value, $Res Function(_$ChapterProgressImpl) _then)
-      : super(_value, _then);
+    _$ChapterProgressImpl _value,
+    $Res Function(_$ChapterProgressImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ChapterProgress
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -486,55 +532,58 @@ class __$$ChapterProgressImplCopyWithImpl<$Res>
     Object? lastReadAt = null,
     Object? readingCount = null,
   }) {
-    return _then(_$ChapterProgressImpl(
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterTitle: null == chapterTitle
-          ? _value.chapterTitle
-          : chapterTitle // ignore: cast_nullable_to_non_nullable
-              as String,
-      totalWords: null == totalWords
-          ? _value.totalWords
-          : totalWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      readWords: null == readWords
-          ? _value.readWords
-          : readWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      isCompleted: null == isCompleted
-          ? _value.isCompleted
-          : isCompleted // ignore: cast_nullable_to_non_nullable
-              as bool,
-      completedAt: freezed == completedAt
-          ? _value.completedAt
-          : completedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      lastReadAt: null == lastReadAt
-          ? _value.lastReadAt
-          : lastReadAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      readingCount: null == readingCount
-          ? _value.readingCount
-          : readingCount // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$ChapterProgressImpl(
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterTitle: null == chapterTitle
+            ? _value.chapterTitle
+            : chapterTitle // ignore: cast_nullable_to_non_nullable
+                  as String,
+        totalWords: null == totalWords
+            ? _value.totalWords
+            : totalWords // ignore: cast_nullable_to_non_nullable
+                  as int,
+        readWords: null == readWords
+            ? _value.readWords
+            : readWords // ignore: cast_nullable_to_non_nullable
+                  as int,
+        isCompleted: null == isCompleted
+            ? _value.isCompleted
+            : isCompleted // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        completedAt: freezed == completedAt
+            ? _value.completedAt
+            : completedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        lastReadAt: null == lastReadAt
+            ? _value.lastReadAt
+            : lastReadAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        readingCount: null == readingCount
+            ? _value.readingCount
+            : readingCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ChapterProgressImpl implements _ChapterProgress {
-  const _$ChapterProgressImpl(
-      {required this.chapterId,
-      required this.chapterTitle,
-      required this.totalWords,
-      required this.readWords,
-      required this.isCompleted,
-      required this.completedAt,
-      required this.lastReadAt,
-      this.readingCount = 0});
+  const _$ChapterProgressImpl({
+    required this.chapterId,
+    required this.chapterTitle,
+    required this.totalWords,
+    required this.readWords,
+    required this.isCompleted,
+    required this.completedAt,
+    required this.lastReadAt,
+    this.readingCount = 0,
+  });
 
   factory _$ChapterProgressImpl.fromJson(Map<String, dynamic> json) =>
       _$$ChapterProgressImplFromJson(json);
@@ -585,44 +634,48 @@ class _$ChapterProgressImpl implements _ChapterProgress {
                 other.readingCount == readingCount));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      chapterId,
-      chapterTitle,
-      totalWords,
-      readWords,
-      isCompleted,
-      completedAt,
-      lastReadAt,
-      readingCount);
+    runtimeType,
+    chapterId,
+    chapterTitle,
+    totalWords,
+    readWords,
+    isCompleted,
+    completedAt,
+    lastReadAt,
+    readingCount,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ChapterProgress
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ChapterProgressImplCopyWith<_$ChapterProgressImpl> get copyWith =>
       __$$ChapterProgressImplCopyWithImpl<_$ChapterProgressImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ChapterProgressImplToJson(
-      this,
-    );
+    return _$$ChapterProgressImplToJson(this);
   }
 }
 
 abstract class _ChapterProgress implements ChapterProgress {
-  const factory _ChapterProgress(
-      {required final String chapterId,
-      required final String chapterTitle,
-      required final int totalWords,
-      required final int readWords,
-      required final bool isCompleted,
-      required final DateTime? completedAt,
-      required final DateTime lastReadAt,
-      final int readingCount}) = _$ChapterProgressImpl;
+  const factory _ChapterProgress({
+    required final String chapterId,
+    required final String chapterTitle,
+    required final int totalWords,
+    required final int readWords,
+    required final bool isCompleted,
+    required final DateTime? completedAt,
+    required final DateTime lastReadAt,
+    final int readingCount,
+  }) = _$ChapterProgressImpl;
 
   factory _ChapterProgress.fromJson(Map<String, dynamic> json) =
       _$ChapterProgressImpl.fromJson;
@@ -643,8 +696,11 @@ abstract class _ChapterProgress implements ChapterProgress {
   DateTime get lastReadAt;
   @override
   int get readingCount;
+
+  /// Create a copy of ChapterProgress
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ChapterProgressImplCopyWith<_$ChapterProgressImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -664,8 +720,12 @@ mixin _$Bookmark {
   DateTime get createdAt => throw _privateConstructorUsedError;
   String? get color => throw _privateConstructorUsedError;
 
+  /// Serializes this Bookmark to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Bookmark
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $BookmarkCopyWith<Bookmark> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -675,15 +735,16 @@ abstract class $BookmarkCopyWith<$Res> {
   factory $BookmarkCopyWith(Bookmark value, $Res Function(Bookmark) then) =
       _$BookmarkCopyWithImpl<$Res, Bookmark>;
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int position,
-      String? selectedText,
-      String? note,
-      DateTime createdAt,
-      String? color});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int position,
+    String? selectedText,
+    String? note,
+    DateTime createdAt,
+    String? color,
+  });
 }
 
 /// @nodoc
@@ -696,6 +757,8 @@ class _$BookmarkCopyWithImpl<$Res, $Val extends Bookmark>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Bookmark
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -708,40 +771,43 @@ class _$BookmarkCopyWithImpl<$Res, $Val extends Bookmark>
     Object? createdAt = null,
     Object? color = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: freezed == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String?,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      color: freezed == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            position: null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                      as int,
+            selectedText: freezed == selectedText
+                ? _value.selectedText
+                : selectedText // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            color: freezed == color
+                ? _value.color
+                : color // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -749,19 +815,21 @@ class _$BookmarkCopyWithImpl<$Res, $Val extends Bookmark>
 abstract class _$$BookmarkImplCopyWith<$Res>
     implements $BookmarkCopyWith<$Res> {
   factory _$$BookmarkImplCopyWith(
-          _$BookmarkImpl value, $Res Function(_$BookmarkImpl) then) =
-      __$$BookmarkImplCopyWithImpl<$Res>;
+    _$BookmarkImpl value,
+    $Res Function(_$BookmarkImpl) then,
+  ) = __$$BookmarkImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int position,
-      String? selectedText,
-      String? note,
-      DateTime createdAt,
-      String? color});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int position,
+    String? selectedText,
+    String? note,
+    DateTime createdAt,
+    String? color,
+  });
 }
 
 /// @nodoc
@@ -769,9 +837,12 @@ class __$$BookmarkImplCopyWithImpl<$Res>
     extends _$BookmarkCopyWithImpl<$Res, _$BookmarkImpl>
     implements _$$BookmarkImplCopyWith<$Res> {
   __$$BookmarkImplCopyWithImpl(
-      _$BookmarkImpl _value, $Res Function(_$BookmarkImpl) _then)
-      : super(_value, _then);
+    _$BookmarkImpl _value,
+    $Res Function(_$BookmarkImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Bookmark
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -784,55 +855,58 @@ class __$$BookmarkImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? color = freezed,
   }) {
-    return _then(_$BookmarkImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: freezed == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String?,
-      note: freezed == note
-          ? _value.note
-          : note // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      color: freezed == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$BookmarkImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        position: null == position
+            ? _value.position
+            : position // ignore: cast_nullable_to_non_nullable
+                  as int,
+        selectedText: freezed == selectedText
+            ? _value.selectedText
+            : selectedText // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        color: freezed == color
+            ? _value.color
+            : color // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$BookmarkImpl implements _Bookmark {
-  const _$BookmarkImpl(
-      {required this.id,
-      required this.chapterId,
-      required this.workId,
-      required this.position,
-      required this.selectedText,
-      required this.note,
-      required this.createdAt,
-      this.color});
+  const _$BookmarkImpl({
+    required this.id,
+    required this.chapterId,
+    required this.workId,
+    required this.position,
+    required this.selectedText,
+    required this.note,
+    required this.createdAt,
+    this.color,
+  });
 
   factory _$BookmarkImpl.fromJson(Map<String, dynamic> json) =>
       _$$BookmarkImplFromJson(json);
@@ -878,12 +952,23 @@ class _$BookmarkImpl implements _Bookmark {
             (identical(other.color, color) || other.color == color));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, chapterId, workId, position,
-      selectedText, note, createdAt, color);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    chapterId,
+    workId,
+    position,
+    selectedText,
+    note,
+    createdAt,
+    color,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Bookmark
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$BookmarkImplCopyWith<_$BookmarkImpl> get copyWith =>
@@ -891,22 +976,21 @@ class _$BookmarkImpl implements _Bookmark {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$BookmarkImplToJson(
-      this,
-    );
+    return _$$BookmarkImplToJson(this);
   }
 }
 
 abstract class _Bookmark implements Bookmark {
-  const factory _Bookmark(
-      {required final String id,
-      required final String chapterId,
-      required final String workId,
-      required final int position,
-      required final String? selectedText,
-      required final String? note,
-      required final DateTime createdAt,
-      final String? color}) = _$BookmarkImpl;
+  const factory _Bookmark({
+    required final String id,
+    required final String chapterId,
+    required final String workId,
+    required final int position,
+    required final String? selectedText,
+    required final String? note,
+    required final DateTime createdAt,
+    final String? color,
+  }) = _$BookmarkImpl;
 
   factory _Bookmark.fromJson(Map<String, dynamic> json) =
       _$BookmarkImpl.fromJson;
@@ -927,8 +1011,11 @@ abstract class _Bookmark implements Bookmark {
   DateTime get createdAt;
   @override
   String? get color;
+
+  /// Create a copy of Bookmark
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$BookmarkImplCopyWith<_$BookmarkImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -951,8 +1038,12 @@ mixin _$ReadingNote {
   List<String> get tags => throw _privateConstructorUsedError;
   String? get color => throw _privateConstructorUsedError;
 
+  /// Serializes this ReadingNote to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReadingNote
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReadingNoteCopyWith<ReadingNote> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -960,21 +1051,23 @@ mixin _$ReadingNote {
 /// @nodoc
 abstract class $ReadingNoteCopyWith<$Res> {
   factory $ReadingNoteCopyWith(
-          ReadingNote value, $Res Function(ReadingNote) then) =
-      _$ReadingNoteCopyWithImpl<$Res, ReadingNote>;
+    ReadingNote value,
+    $Res Function(ReadingNote) then,
+  ) = _$ReadingNoteCopyWithImpl<$Res, ReadingNote>;
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int startPosition,
-      int endPosition,
-      String selectedText,
-      String content,
-      DateTime createdAt,
-      DateTime updatedAt,
-      List<String> tags,
-      String? color});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int startPosition,
+    int endPosition,
+    String selectedText,
+    String content,
+    DateTime createdAt,
+    DateTime updatedAt,
+    List<String> tags,
+    String? color,
+  });
 }
 
 /// @nodoc
@@ -987,6 +1080,8 @@ class _$ReadingNoteCopyWithImpl<$Res, $Val extends ReadingNote>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReadingNote
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1002,52 +1097,55 @@ class _$ReadingNoteCopyWithImpl<$Res, $Val extends ReadingNote>
     Object? tags = null,
     Object? color = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: null == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      color: freezed == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            startPosition: null == startPosition
+                ? _value.startPosition
+                : startPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            endPosition: null == endPosition
+                ? _value.endPosition
+                : endPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            selectedText: null == selectedText
+                ? _value.selectedText
+                : selectedText // ignore: cast_nullable_to_non_nullable
+                      as String,
+            content: null == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            tags: null == tags
+                ? _value.tags
+                : tags // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            color: freezed == color
+                ? _value.color
+                : color // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -1055,22 +1153,24 @@ class _$ReadingNoteCopyWithImpl<$Res, $Val extends ReadingNote>
 abstract class _$$ReadingNoteImplCopyWith<$Res>
     implements $ReadingNoteCopyWith<$Res> {
   factory _$$ReadingNoteImplCopyWith(
-          _$ReadingNoteImpl value, $Res Function(_$ReadingNoteImpl) then) =
-      __$$ReadingNoteImplCopyWithImpl<$Res>;
+    _$ReadingNoteImpl value,
+    $Res Function(_$ReadingNoteImpl) then,
+  ) = __$$ReadingNoteImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int startPosition,
-      int endPosition,
-      String selectedText,
-      String content,
-      DateTime createdAt,
-      DateTime updatedAt,
-      List<String> tags,
-      String? color});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int startPosition,
+    int endPosition,
+    String selectedText,
+    String content,
+    DateTime createdAt,
+    DateTime updatedAt,
+    List<String> tags,
+    String? color,
+  });
 }
 
 /// @nodoc
@@ -1078,9 +1178,12 @@ class __$$ReadingNoteImplCopyWithImpl<$Res>
     extends _$ReadingNoteCopyWithImpl<$Res, _$ReadingNoteImpl>
     implements _$$ReadingNoteImplCopyWith<$Res> {
   __$$ReadingNoteImplCopyWithImpl(
-      _$ReadingNoteImpl _value, $Res Function(_$ReadingNoteImpl) _then)
-      : super(_value, _then);
+    _$ReadingNoteImpl _value,
+    $Res Function(_$ReadingNoteImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReadingNote
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1096,71 +1199,73 @@ class __$$ReadingNoteImplCopyWithImpl<$Res>
     Object? tags = null,
     Object? color = freezed,
   }) {
-    return _then(_$ReadingNoteImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: null == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      color: freezed == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$ReadingNoteImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startPosition: null == startPosition
+            ? _value.startPosition
+            : startPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        endPosition: null == endPosition
+            ? _value.endPosition
+            : endPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        selectedText: null == selectedText
+            ? _value.selectedText
+            : selectedText // ignore: cast_nullable_to_non_nullable
+                  as String,
+        content: null == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        tags: null == tags
+            ? _value._tags
+            : tags // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        color: freezed == color
+            ? _value.color
+            : color // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReadingNoteImpl implements _ReadingNote {
-  const _$ReadingNoteImpl(
-      {required this.id,
-      required this.chapterId,
-      required this.workId,
-      required this.startPosition,
-      required this.endPosition,
-      required this.selectedText,
-      required this.content,
-      required this.createdAt,
-      required this.updatedAt,
-      final List<String> tags = const [],
-      this.color})
-      : _tags = tags;
+  const _$ReadingNoteImpl({
+    required this.id,
+    required this.chapterId,
+    required this.workId,
+    required this.startPosition,
+    required this.endPosition,
+    required this.selectedText,
+    required this.content,
+    required this.createdAt,
+    required this.updatedAt,
+    final List<String> tags = const [],
+    this.color,
+  }) : _tags = tags;
 
   factory _$ReadingNoteImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReadingNoteImplFromJson(json);
@@ -1224,23 +1329,26 @@ class _$ReadingNoteImpl implements _ReadingNote {
             (identical(other.color, color) || other.color == color));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      chapterId,
-      workId,
-      startPosition,
-      endPosition,
-      selectedText,
-      content,
-      createdAt,
-      updatedAt,
-      const DeepCollectionEquality().hash(_tags),
-      color);
+    runtimeType,
+    id,
+    chapterId,
+    workId,
+    startPosition,
+    endPosition,
+    selectedText,
+    content,
+    createdAt,
+    updatedAt,
+    const DeepCollectionEquality().hash(_tags),
+    color,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReadingNote
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReadingNoteImplCopyWith<_$ReadingNoteImpl> get copyWith =>
@@ -1248,25 +1356,24 @@ class _$ReadingNoteImpl implements _ReadingNote {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReadingNoteImplToJson(
-      this,
-    );
+    return _$$ReadingNoteImplToJson(this);
   }
 }
 
 abstract class _ReadingNote implements ReadingNote {
-  const factory _ReadingNote(
-      {required final String id,
-      required final String chapterId,
-      required final String workId,
-      required final int startPosition,
-      required final int endPosition,
-      required final String selectedText,
-      required final String content,
-      required final DateTime createdAt,
-      required final DateTime updatedAt,
-      final List<String> tags,
-      final String? color}) = _$ReadingNoteImpl;
+  const factory _ReadingNote({
+    required final String id,
+    required final String chapterId,
+    required final String workId,
+    required final int startPosition,
+    required final int endPosition,
+    required final String selectedText,
+    required final String content,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+    final List<String> tags,
+    final String? color,
+  }) = _$ReadingNoteImpl;
 
   factory _ReadingNote.fromJson(Map<String, dynamic> json) =
       _$ReadingNoteImpl.fromJson;
@@ -1293,8 +1400,11 @@ abstract class _ReadingNote implements ReadingNote {
   List<String> get tags;
   @override
   String? get color;
+
+  /// Create a copy of ReadingNote
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReadingNoteImplCopyWith<_$ReadingNoteImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1314,8 +1424,12 @@ mixin _$ReadingHighlight {
   HighlightColor get color => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// Serializes this ReadingHighlight to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReadingHighlight
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReadingHighlightCopyWith<ReadingHighlight> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1323,18 +1437,20 @@ mixin _$ReadingHighlight {
 /// @nodoc
 abstract class $ReadingHighlightCopyWith<$Res> {
   factory $ReadingHighlightCopyWith(
-          ReadingHighlight value, $Res Function(ReadingHighlight) then) =
-      _$ReadingHighlightCopyWithImpl<$Res, ReadingHighlight>;
+    ReadingHighlight value,
+    $Res Function(ReadingHighlight) then,
+  ) = _$ReadingHighlightCopyWithImpl<$Res, ReadingHighlight>;
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int startPosition,
-      int endPosition,
-      String selectedText,
-      HighlightColor color,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int startPosition,
+    int endPosition,
+    String selectedText,
+    HighlightColor color,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
@@ -1347,6 +1463,8 @@ class _$ReadingHighlightCopyWithImpl<$Res, $Val extends ReadingHighlight>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReadingHighlight
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1359,70 +1477,78 @@ class _$ReadingHighlightCopyWithImpl<$Res, $Val extends ReadingHighlight>
     Object? color = null,
     Object? createdAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: null == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String,
-      color: null == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as HighlightColor,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            startPosition: null == startPosition
+                ? _value.startPosition
+                : startPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            endPosition: null == endPosition
+                ? _value.endPosition
+                : endPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            selectedText: null == selectedText
+                ? _value.selectedText
+                : selectedText // ignore: cast_nullable_to_non_nullable
+                      as String,
+            color: null == color
+                ? _value.color
+                : color // ignore: cast_nullable_to_non_nullable
+                      as HighlightColor,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ReadingHighlightImplCopyWith<$Res>
     implements $ReadingHighlightCopyWith<$Res> {
-  factory _$$ReadingHighlightImplCopyWith(_$ReadingHighlightImpl value,
-          $Res Function(_$ReadingHighlightImpl) then) =
-      __$$ReadingHighlightImplCopyWithImpl<$Res>;
+  factory _$$ReadingHighlightImplCopyWith(
+    _$ReadingHighlightImpl value,
+    $Res Function(_$ReadingHighlightImpl) then,
+  ) = __$$ReadingHighlightImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      String workId,
-      int startPosition,
-      int endPosition,
-      String selectedText,
-      HighlightColor color,
-      DateTime createdAt});
+  $Res call({
+    String id,
+    String chapterId,
+    String workId,
+    int startPosition,
+    int endPosition,
+    String selectedText,
+    HighlightColor color,
+    DateTime createdAt,
+  });
 }
 
 /// @nodoc
 class __$$ReadingHighlightImplCopyWithImpl<$Res>
     extends _$ReadingHighlightCopyWithImpl<$Res, _$ReadingHighlightImpl>
     implements _$$ReadingHighlightImplCopyWith<$Res> {
-  __$$ReadingHighlightImplCopyWithImpl(_$ReadingHighlightImpl _value,
-      $Res Function(_$ReadingHighlightImpl) _then)
-      : super(_value, _then);
+  __$$ReadingHighlightImplCopyWithImpl(
+    _$ReadingHighlightImpl _value,
+    $Res Function(_$ReadingHighlightImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReadingHighlight
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1435,55 +1561,58 @@ class __$$ReadingHighlightImplCopyWithImpl<$Res>
     Object? color = null,
     Object? createdAt = null,
   }) {
-    return _then(_$ReadingHighlightImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      selectedText: null == selectedText
-          ? _value.selectedText
-          : selectedText // ignore: cast_nullable_to_non_nullable
-              as String,
-      color: null == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as HighlightColor,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$ReadingHighlightImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startPosition: null == startPosition
+            ? _value.startPosition
+            : startPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        endPosition: null == endPosition
+            ? _value.endPosition
+            : endPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        selectedText: null == selectedText
+            ? _value.selectedText
+            : selectedText // ignore: cast_nullable_to_non_nullable
+                  as String,
+        color: null == color
+            ? _value.color
+            : color // ignore: cast_nullable_to_non_nullable
+                  as HighlightColor,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReadingHighlightImpl implements _ReadingHighlight {
-  const _$ReadingHighlightImpl(
-      {required this.id,
-      required this.chapterId,
-      required this.workId,
-      required this.startPosition,
-      required this.endPosition,
-      required this.selectedText,
-      required this.color,
-      required this.createdAt});
+  const _$ReadingHighlightImpl({
+    required this.id,
+    required this.chapterId,
+    required this.workId,
+    required this.startPosition,
+    required this.endPosition,
+    required this.selectedText,
+    required this.color,
+    required this.createdAt,
+  });
 
   factory _$ReadingHighlightImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReadingHighlightImplFromJson(json);
@@ -1530,36 +1659,48 @@ class _$ReadingHighlightImpl implements _ReadingHighlight {
                 other.createdAt == createdAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, chapterId, workId,
-      startPosition, endPosition, selectedText, color, createdAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    chapterId,
+    workId,
+    startPosition,
+    endPosition,
+    selectedText,
+    color,
+    createdAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReadingHighlight
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReadingHighlightImplCopyWith<_$ReadingHighlightImpl> get copyWith =>
       __$$ReadingHighlightImplCopyWithImpl<_$ReadingHighlightImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReadingHighlightImplToJson(
-      this,
-    );
+    return _$$ReadingHighlightImplToJson(this);
   }
 }
 
 abstract class _ReadingHighlight implements ReadingHighlight {
-  const factory _ReadingHighlight(
-      {required final String id,
-      required final String chapterId,
-      required final String workId,
-      required final int startPosition,
-      required final int endPosition,
-      required final String selectedText,
-      required final HighlightColor color,
-      required final DateTime createdAt}) = _$ReadingHighlightImpl;
+  const factory _ReadingHighlight({
+    required final String id,
+    required final String chapterId,
+    required final String workId,
+    required final int startPosition,
+    required final int endPosition,
+    required final String selectedText,
+    required final HighlightColor color,
+    required final DateTime createdAt,
+  }) = _$ReadingHighlightImpl;
 
   factory _ReadingHighlight.fromJson(Map<String, dynamic> json) =
       _$ReadingHighlightImpl.fromJson;
@@ -1580,8 +1721,11 @@ abstract class _ReadingHighlight implements ReadingHighlight {
   HighlightColor get color;
   @override
   DateTime get createdAt;
+
+  /// Create a copy of ReadingHighlight
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReadingHighlightImplCopyWith<_$ReadingHighlightImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1604,8 +1748,12 @@ mixin _$ReadingSettings {
   bool get showTime => throw _privateConstructorUsedError;
   ScreenOrientation get orientation => throw _privateConstructorUsedError;
 
+  /// Serializes this ReadingSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReadingSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReadingSettingsCopyWith<ReadingSettings> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1613,21 +1761,23 @@ mixin _$ReadingSettings {
 /// @nodoc
 abstract class $ReadingSettingsCopyWith<$Res> {
   factory $ReadingSettingsCopyWith(
-          ReadingSettings value, $Res Function(ReadingSettings) then) =
-      _$ReadingSettingsCopyWithImpl<$Res, ReadingSettings>;
+    ReadingSettings value,
+    $Res Function(ReadingSettings) then,
+  ) = _$ReadingSettingsCopyWithImpl<$Res, ReadingSettings>;
   @useResult
-  $Res call(
-      {double fontSize,
-      double lineHeight,
-      String fontFamily,
-      ReadingBackground background,
-      double pageMargin,
-      int wordsPerPage,
-      bool autoScroll,
-      double autoScrollSpeed,
-      bool showProgressBar,
-      bool showTime,
-      ScreenOrientation orientation});
+  $Res call({
+    double fontSize,
+    double lineHeight,
+    String fontFamily,
+    ReadingBackground background,
+    double pageMargin,
+    int wordsPerPage,
+    bool autoScroll,
+    double autoScrollSpeed,
+    bool showProgressBar,
+    bool showTime,
+    ScreenOrientation orientation,
+  });
 }
 
 /// @nodoc
@@ -1640,6 +1790,8 @@ class _$ReadingSettingsCopyWithImpl<$Res, $Val extends ReadingSettings>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReadingSettings
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1655,75 +1807,80 @@ class _$ReadingSettingsCopyWithImpl<$Res, $Val extends ReadingSettings>
     Object? showTime = null,
     Object? orientation = null,
   }) {
-    return _then(_value.copyWith(
-      fontSize: null == fontSize
-          ? _value.fontSize
-          : fontSize // ignore: cast_nullable_to_non_nullable
-              as double,
-      lineHeight: null == lineHeight
-          ? _value.lineHeight
-          : lineHeight // ignore: cast_nullable_to_non_nullable
-              as double,
-      fontFamily: null == fontFamily
-          ? _value.fontFamily
-          : fontFamily // ignore: cast_nullable_to_non_nullable
-              as String,
-      background: null == background
-          ? _value.background
-          : background // ignore: cast_nullable_to_non_nullable
-              as ReadingBackground,
-      pageMargin: null == pageMargin
-          ? _value.pageMargin
-          : pageMargin // ignore: cast_nullable_to_non_nullable
-              as double,
-      wordsPerPage: null == wordsPerPage
-          ? _value.wordsPerPage
-          : wordsPerPage // ignore: cast_nullable_to_non_nullable
-              as int,
-      autoScroll: null == autoScroll
-          ? _value.autoScroll
-          : autoScroll // ignore: cast_nullable_to_non_nullable
-              as bool,
-      autoScrollSpeed: null == autoScrollSpeed
-          ? _value.autoScrollSpeed
-          : autoScrollSpeed // ignore: cast_nullable_to_non_nullable
-              as double,
-      showProgressBar: null == showProgressBar
-          ? _value.showProgressBar
-          : showProgressBar // ignore: cast_nullable_to_non_nullable
-              as bool,
-      showTime: null == showTime
-          ? _value.showTime
-          : showTime // ignore: cast_nullable_to_non_nullable
-              as bool,
-      orientation: null == orientation
-          ? _value.orientation
-          : orientation // ignore: cast_nullable_to_non_nullable
-              as ScreenOrientation,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            fontSize: null == fontSize
+                ? _value.fontSize
+                : fontSize // ignore: cast_nullable_to_non_nullable
+                      as double,
+            lineHeight: null == lineHeight
+                ? _value.lineHeight
+                : lineHeight // ignore: cast_nullable_to_non_nullable
+                      as double,
+            fontFamily: null == fontFamily
+                ? _value.fontFamily
+                : fontFamily // ignore: cast_nullable_to_non_nullable
+                      as String,
+            background: null == background
+                ? _value.background
+                : background // ignore: cast_nullable_to_non_nullable
+                      as ReadingBackground,
+            pageMargin: null == pageMargin
+                ? _value.pageMargin
+                : pageMargin // ignore: cast_nullable_to_non_nullable
+                      as double,
+            wordsPerPage: null == wordsPerPage
+                ? _value.wordsPerPage
+                : wordsPerPage // ignore: cast_nullable_to_non_nullable
+                      as int,
+            autoScroll: null == autoScroll
+                ? _value.autoScroll
+                : autoScroll // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            autoScrollSpeed: null == autoScrollSpeed
+                ? _value.autoScrollSpeed
+                : autoScrollSpeed // ignore: cast_nullable_to_non_nullable
+                      as double,
+            showProgressBar: null == showProgressBar
+                ? _value.showProgressBar
+                : showProgressBar // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            showTime: null == showTime
+                ? _value.showTime
+                : showTime // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            orientation: null == orientation
+                ? _value.orientation
+                : orientation // ignore: cast_nullable_to_non_nullable
+                      as ScreenOrientation,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ReadingSettingsImplCopyWith<$Res>
     implements $ReadingSettingsCopyWith<$Res> {
-  factory _$$ReadingSettingsImplCopyWith(_$ReadingSettingsImpl value,
-          $Res Function(_$ReadingSettingsImpl) then) =
-      __$$ReadingSettingsImplCopyWithImpl<$Res>;
+  factory _$$ReadingSettingsImplCopyWith(
+    _$ReadingSettingsImpl value,
+    $Res Function(_$ReadingSettingsImpl) then,
+  ) = __$$ReadingSettingsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {double fontSize,
-      double lineHeight,
-      String fontFamily,
-      ReadingBackground background,
-      double pageMargin,
-      int wordsPerPage,
-      bool autoScroll,
-      double autoScrollSpeed,
-      bool showProgressBar,
-      bool showTime,
-      ScreenOrientation orientation});
+  $Res call({
+    double fontSize,
+    double lineHeight,
+    String fontFamily,
+    ReadingBackground background,
+    double pageMargin,
+    int wordsPerPage,
+    bool autoScroll,
+    double autoScrollSpeed,
+    bool showProgressBar,
+    bool showTime,
+    ScreenOrientation orientation,
+  });
 }
 
 /// @nodoc
@@ -1731,9 +1888,12 @@ class __$$ReadingSettingsImplCopyWithImpl<$Res>
     extends _$ReadingSettingsCopyWithImpl<$Res, _$ReadingSettingsImpl>
     implements _$$ReadingSettingsImplCopyWith<$Res> {
   __$$ReadingSettingsImplCopyWithImpl(
-      _$ReadingSettingsImpl _value, $Res Function(_$ReadingSettingsImpl) _then)
-      : super(_value, _then);
+    _$ReadingSettingsImpl _value,
+    $Res Function(_$ReadingSettingsImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReadingSettings
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1749,70 +1909,73 @@ class __$$ReadingSettingsImplCopyWithImpl<$Res>
     Object? showTime = null,
     Object? orientation = null,
   }) {
-    return _then(_$ReadingSettingsImpl(
-      fontSize: null == fontSize
-          ? _value.fontSize
-          : fontSize // ignore: cast_nullable_to_non_nullable
-              as double,
-      lineHeight: null == lineHeight
-          ? _value.lineHeight
-          : lineHeight // ignore: cast_nullable_to_non_nullable
-              as double,
-      fontFamily: null == fontFamily
-          ? _value.fontFamily
-          : fontFamily // ignore: cast_nullable_to_non_nullable
-              as String,
-      background: null == background
-          ? _value.background
-          : background // ignore: cast_nullable_to_non_nullable
-              as ReadingBackground,
-      pageMargin: null == pageMargin
-          ? _value.pageMargin
-          : pageMargin // ignore: cast_nullable_to_non_nullable
-              as double,
-      wordsPerPage: null == wordsPerPage
-          ? _value.wordsPerPage
-          : wordsPerPage // ignore: cast_nullable_to_non_nullable
-              as int,
-      autoScroll: null == autoScroll
-          ? _value.autoScroll
-          : autoScroll // ignore: cast_nullable_to_non_nullable
-              as bool,
-      autoScrollSpeed: null == autoScrollSpeed
-          ? _value.autoScrollSpeed
-          : autoScrollSpeed // ignore: cast_nullable_to_non_nullable
-              as double,
-      showProgressBar: null == showProgressBar
-          ? _value.showProgressBar
-          : showProgressBar // ignore: cast_nullable_to_non_nullable
-              as bool,
-      showTime: null == showTime
-          ? _value.showTime
-          : showTime // ignore: cast_nullable_to_non_nullable
-              as bool,
-      orientation: null == orientation
-          ? _value.orientation
-          : orientation // ignore: cast_nullable_to_non_nullable
-              as ScreenOrientation,
-    ));
+    return _then(
+      _$ReadingSettingsImpl(
+        fontSize: null == fontSize
+            ? _value.fontSize
+            : fontSize // ignore: cast_nullable_to_non_nullable
+                  as double,
+        lineHeight: null == lineHeight
+            ? _value.lineHeight
+            : lineHeight // ignore: cast_nullable_to_non_nullable
+                  as double,
+        fontFamily: null == fontFamily
+            ? _value.fontFamily
+            : fontFamily // ignore: cast_nullable_to_non_nullable
+                  as String,
+        background: null == background
+            ? _value.background
+            : background // ignore: cast_nullable_to_non_nullable
+                  as ReadingBackground,
+        pageMargin: null == pageMargin
+            ? _value.pageMargin
+            : pageMargin // ignore: cast_nullable_to_non_nullable
+                  as double,
+        wordsPerPage: null == wordsPerPage
+            ? _value.wordsPerPage
+            : wordsPerPage // ignore: cast_nullable_to_non_nullable
+                  as int,
+        autoScroll: null == autoScroll
+            ? _value.autoScroll
+            : autoScroll // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        autoScrollSpeed: null == autoScrollSpeed
+            ? _value.autoScrollSpeed
+            : autoScrollSpeed // ignore: cast_nullable_to_non_nullable
+                  as double,
+        showProgressBar: null == showProgressBar
+            ? _value.showProgressBar
+            : showProgressBar // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        showTime: null == showTime
+            ? _value.showTime
+            : showTime // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        orientation: null == orientation
+            ? _value.orientation
+            : orientation // ignore: cast_nullable_to_non_nullable
+                  as ScreenOrientation,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReadingSettingsImpl implements _ReadingSettings {
-  const _$ReadingSettingsImpl(
-      {this.fontSize = 16,
-      this.lineHeight = 1.8,
-      this.fontFamily = 'serif',
-      this.background = ReadingBackground.white,
-      this.pageMargin = 16,
-      this.wordsPerPage = 500,
-      this.autoScroll = false,
-      this.autoScrollSpeed = 5,
-      this.showProgressBar = true,
-      this.showTime = true,
-      this.orientation = ScreenOrientation.portrait});
+  const _$ReadingSettingsImpl({
+    this.fontSize = 16,
+    this.lineHeight = 1.8,
+    this.fontFamily = 'serif',
+    this.background = ReadingBackground.white,
+    this.pageMargin = 16,
+    this.wordsPerPage = 500,
+    this.autoScroll = false,
+    this.autoScrollSpeed = 5,
+    this.showProgressBar = true,
+    this.showTime = true,
+    this.orientation = ScreenOrientation.portrait,
+  });
 
   factory _$ReadingSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReadingSettingsImplFromJson(json);
@@ -1885,50 +2048,54 @@ class _$ReadingSettingsImpl implements _ReadingSettings {
                 other.orientation == orientation));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      fontSize,
-      lineHeight,
-      fontFamily,
-      background,
-      pageMargin,
-      wordsPerPage,
-      autoScroll,
-      autoScrollSpeed,
-      showProgressBar,
-      showTime,
-      orientation);
+    runtimeType,
+    fontSize,
+    lineHeight,
+    fontFamily,
+    background,
+    pageMargin,
+    wordsPerPage,
+    autoScroll,
+    autoScrollSpeed,
+    showProgressBar,
+    showTime,
+    orientation,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReadingSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReadingSettingsImplCopyWith<_$ReadingSettingsImpl> get copyWith =>
       __$$ReadingSettingsImplCopyWithImpl<_$ReadingSettingsImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReadingSettingsImplToJson(
-      this,
-    );
+    return _$$ReadingSettingsImplToJson(this);
   }
 }
 
 abstract class _ReadingSettings implements ReadingSettings {
-  const factory _ReadingSettings(
-      {final double fontSize,
-      final double lineHeight,
-      final String fontFamily,
-      final ReadingBackground background,
-      final double pageMargin,
-      final int wordsPerPage,
-      final bool autoScroll,
-      final double autoScrollSpeed,
-      final bool showProgressBar,
-      final bool showTime,
-      final ScreenOrientation orientation}) = _$ReadingSettingsImpl;
+  const factory _ReadingSettings({
+    final double fontSize,
+    final double lineHeight,
+    final String fontFamily,
+    final ReadingBackground background,
+    final double pageMargin,
+    final int wordsPerPage,
+    final bool autoScroll,
+    final double autoScrollSpeed,
+    final bool showProgressBar,
+    final bool showTime,
+    final ScreenOrientation orientation,
+  }) = _$ReadingSettingsImpl;
 
   factory _ReadingSettings.fromJson(Map<String, dynamic> json) =
       _$ReadingSettingsImpl.fromJson;
@@ -1955,8 +2122,11 @@ abstract class _ReadingSettings implements ReadingSettings {
   bool get showTime;
   @override
   ScreenOrientation get orientation;
+
+  /// Create a copy of ReadingSettings
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReadingSettingsImplCopyWith<_$ReadingSettingsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1977,8 +2147,12 @@ mixin _$ReadingSession {
   int get endPosition => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
 
+  /// Serializes this ReadingSession to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReadingSession
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReadingSessionCopyWith<ReadingSession> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1986,19 +2160,21 @@ mixin _$ReadingSession {
 /// @nodoc
 abstract class $ReadingSessionCopyWith<$Res> {
   factory $ReadingSessionCopyWith(
-          ReadingSession value, $Res Function(ReadingSession) then) =
-      _$ReadingSessionCopyWithImpl<$Res, ReadingSession>;
+    ReadingSession value,
+    $Res Function(ReadingSession) then,
+  ) = _$ReadingSessionCopyWithImpl<$Res, ReadingSession>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String chapterId,
-      DateTime startTime,
-      DateTime endTime,
-      int wordsRead,
-      int startPosition,
-      int endPosition,
-      String? notes});
+  $Res call({
+    String id,
+    String workId,
+    String chapterId,
+    DateTime startTime,
+    DateTime endTime,
+    int wordsRead,
+    int startPosition,
+    int endPosition,
+    String? notes,
+  });
 }
 
 /// @nodoc
@@ -2011,6 +2187,8 @@ class _$ReadingSessionCopyWithImpl<$Res, $Val extends ReadingSession>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReadingSession
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2024,65 +2202,70 @@ class _$ReadingSessionCopyWithImpl<$Res, $Val extends ReadingSession>
     Object? endPosition = null,
     Object? notes = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startTime: null == startTime
-          ? _value.startTime
-          : startTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      endTime: null == endTime
-          ? _value.endTime
-          : endTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      wordsRead: null == wordsRead
-          ? _value.wordsRead
-          : wordsRead // ignore: cast_nullable_to_non_nullable
-              as int,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      notes: freezed == notes
-          ? _value.notes
-          : notes // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            startTime: null == startTime
+                ? _value.startTime
+                : startTime // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            endTime: null == endTime
+                ? _value.endTime
+                : endTime // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            wordsRead: null == wordsRead
+                ? _value.wordsRead
+                : wordsRead // ignore: cast_nullable_to_non_nullable
+                      as int,
+            startPosition: null == startPosition
+                ? _value.startPosition
+                : startPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            endPosition: null == endPosition
+                ? _value.endPosition
+                : endPosition // ignore: cast_nullable_to_non_nullable
+                      as int,
+            notes: freezed == notes
+                ? _value.notes
+                : notes // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ReadingSessionImplCopyWith<$Res>
     implements $ReadingSessionCopyWith<$Res> {
-  factory _$$ReadingSessionImplCopyWith(_$ReadingSessionImpl value,
-          $Res Function(_$ReadingSessionImpl) then) =
-      __$$ReadingSessionImplCopyWithImpl<$Res>;
+  factory _$$ReadingSessionImplCopyWith(
+    _$ReadingSessionImpl value,
+    $Res Function(_$ReadingSessionImpl) then,
+  ) = __$$ReadingSessionImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String chapterId,
-      DateTime startTime,
-      DateTime endTime,
-      int wordsRead,
-      int startPosition,
-      int endPosition,
-      String? notes});
+  $Res call({
+    String id,
+    String workId,
+    String chapterId,
+    DateTime startTime,
+    DateTime endTime,
+    int wordsRead,
+    int startPosition,
+    int endPosition,
+    String? notes,
+  });
 }
 
 /// @nodoc
@@ -2090,9 +2273,12 @@ class __$$ReadingSessionImplCopyWithImpl<$Res>
     extends _$ReadingSessionCopyWithImpl<$Res, _$ReadingSessionImpl>
     implements _$$ReadingSessionImplCopyWith<$Res> {
   __$$ReadingSessionImplCopyWithImpl(
-      _$ReadingSessionImpl _value, $Res Function(_$ReadingSessionImpl) _then)
-      : super(_value, _then);
+    _$ReadingSessionImpl _value,
+    $Res Function(_$ReadingSessionImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReadingSession
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2106,60 +2292,63 @@ class __$$ReadingSessionImplCopyWithImpl<$Res>
     Object? endPosition = null,
     Object? notes = freezed,
   }) {
-    return _then(_$ReadingSessionImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startTime: null == startTime
-          ? _value.startTime
-          : startTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      endTime: null == endTime
-          ? _value.endTime
-          : endTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      wordsRead: null == wordsRead
-          ? _value.wordsRead
-          : wordsRead // ignore: cast_nullable_to_non_nullable
-              as int,
-      startPosition: null == startPosition
-          ? _value.startPosition
-          : startPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      endPosition: null == endPosition
-          ? _value.endPosition
-          : endPosition // ignore: cast_nullable_to_non_nullable
-              as int,
-      notes: freezed == notes
-          ? _value.notes
-          : notes // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$ReadingSessionImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startTime: null == startTime
+            ? _value.startTime
+            : startTime // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        endTime: null == endTime
+            ? _value.endTime
+            : endTime // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        wordsRead: null == wordsRead
+            ? _value.wordsRead
+            : wordsRead // ignore: cast_nullable_to_non_nullable
+                  as int,
+        startPosition: null == startPosition
+            ? _value.startPosition
+            : startPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        endPosition: null == endPosition
+            ? _value.endPosition
+            : endPosition // ignore: cast_nullable_to_non_nullable
+                  as int,
+        notes: freezed == notes
+            ? _value.notes
+            : notes // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReadingSessionImpl implements _ReadingSession {
-  const _$ReadingSessionImpl(
-      {required this.id,
-      required this.workId,
-      required this.chapterId,
-      required this.startTime,
-      required this.endTime,
-      required this.wordsRead,
-      required this.startPosition,
-      required this.endPosition,
-      this.notes});
+  const _$ReadingSessionImpl({
+    required this.id,
+    required this.workId,
+    required this.chapterId,
+    required this.startTime,
+    required this.endTime,
+    required this.wordsRead,
+    required this.startPosition,
+    required this.endPosition,
+    this.notes,
+  });
 
   factory _$ReadingSessionImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReadingSessionImplFromJson(json);
@@ -2209,37 +2398,50 @@ class _$ReadingSessionImpl implements _ReadingSession {
             (identical(other.notes, notes) || other.notes == notes));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, workId, chapterId, startTime,
-      endTime, wordsRead, startPosition, endPosition, notes);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    workId,
+    chapterId,
+    startTime,
+    endTime,
+    wordsRead,
+    startPosition,
+    endPosition,
+    notes,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReadingSession
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReadingSessionImplCopyWith<_$ReadingSessionImpl> get copyWith =>
       __$$ReadingSessionImplCopyWithImpl<_$ReadingSessionImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReadingSessionImplToJson(
-      this,
-    );
+    return _$$ReadingSessionImplToJson(this);
   }
 }
 
 abstract class _ReadingSession implements ReadingSession {
-  const factory _ReadingSession(
-      {required final String id,
-      required final String workId,
-      required final String chapterId,
-      required final DateTime startTime,
-      required final DateTime endTime,
-      required final int wordsRead,
-      required final int startPosition,
-      required final int endPosition,
-      final String? notes}) = _$ReadingSessionImpl;
+  const factory _ReadingSession({
+    required final String id,
+    required final String workId,
+    required final String chapterId,
+    required final DateTime startTime,
+    required final DateTime endTime,
+    required final int wordsRead,
+    required final int startPosition,
+    required final int endPosition,
+    final String? notes,
+  }) = _$ReadingSessionImpl;
 
   factory _ReadingSession.fromJson(Map<String, dynamic> json) =
       _$ReadingSessionImpl.fromJson;
@@ -2262,8 +2464,11 @@ abstract class _ReadingSession implements ReadingSession {
   int get endPosition;
   @override
   String? get notes;
+
+  /// Create a copy of ReadingSession
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReadingSessionImplCopyWith<_$ReadingSessionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

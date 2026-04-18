@@ -14,7 +14,8 @@ _$PromptTemplateImpl _$$PromptTemplateImplFromJson(Map<String, dynamic> json) =>
       systemPrompt: json['systemPrompt'] as String,
       userPromptTemplate: json['userPromptTemplate'] as String,
       description: json['description'] as String?,
-      variables: (json['variables'] as List<dynamic>?)
+      variables:
+          (json['variables'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
@@ -30,18 +31,18 @@ _$PromptTemplateImpl _$$PromptTemplateImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$PromptTemplateImplToJson(
-        _$PromptTemplateImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'functionType': instance.functionType,
-      'name': instance.name,
-      'systemPrompt': instance.systemPrompt,
-      'userPromptTemplate': instance.userPromptTemplate,
-      'description': instance.description,
-      'variables': instance.variables,
-      'version': instance.version,
-      'isDefault': instance.isDefault,
-      'isBuiltIn': instance.isBuiltIn,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
-    };
+  _$PromptTemplateImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'functionType': instance.functionType,
+  'name': instance.name,
+  'systemPrompt': instance.systemPrompt,
+  'userPromptTemplate': instance.userPromptTemplate,
+  'description': instance.description,
+  'variables': instance.variables,
+  'version': instance.version,
+  'isDefault': instance.isDefault,
+  'isBuiltIn': instance.isBuiltIn,
+  'createdAt': instance.createdAt?.toIso8601String(),
+  'updatedAt': instance.updatedAt?.toIso8601String(),
+};

@@ -9,10 +9,10 @@ import 'package:writing_assistant/l10n/app_localizations.dart';
 import '../../../../app/widgets/app_shell.dart';
 import '../../../features/editor/data/smart_segment_service.dart';
 import '../editor_chat/editor_chat_view.dart';
-import '../view/editor_toolbar.dart';
 import '../view/statistics_panel.dart';
 import '../view/review_options_dialog.dart';
 import 'chapter_editor_logic.dart';
+import 'chapter_editor_sections.dart';
 
 /// 章节编辑器页面
 ///
@@ -85,8 +85,6 @@ class _ChapterEditorViewState extends State<ChapterEditorView> {
 
   @override
   Widget build(BuildContext context) {
-    final s = S.of(context)!;
-
     return Obx(() {
       final chapter = _controller.state.chapter.value;
       if (_isInitializing || chapter == null) {
@@ -112,170 +110,44 @@ class _ChapterEditorViewState extends State<ChapterEditorView> {
                 const _RedoIntent(),
           },
           child: AppPageScaffold(
-          title: chapter.title,
-          constrainWidth: false,
-          bodyPadding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 24.h),
-          actions: [
-            // Save status indicator
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: _SaveStatusDot(
+            title: chapter.title,
+            constrainWidth: false,
+            bodyPadding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 24.h),
+            actions: buildChapterEditorActions(
+              context: context,
+              saveStatusIndicator: _SaveStatusDot(
                 isSaving: _controller.state.isSaving.value,
                 lastSavedAt: _controller.state.lastSavedAt.value,
               ),
-            ),
-            IconButton(
-              tooltip: s.editor_rename,
-              icon: const Icon(Icons.edit_rounded),
-              onPressed: _editTitle,
-            ),
-            IconButton(
-              tooltip: s.editor_saveNow,
-              icon: const Icon(Icons.save_rounded),
-              onPressed: () => _controller.saveContent(
+              isPanelVisible: _controller.state.isPanelVisible.value,
+              onEditTitle: _editTitle,
+              onSaveNow: () => _controller.saveContent(
                 content: _textController.text,
               ),
+              onTogglePanel: _controller.togglePanel,
+              onMenuSelected: _handleMenuAction,
             ),
-            IconButton(
-              tooltip: _controller.state.isPanelVisible.value
-                  ? s.editor_hideSidebar
-                  : s.editor_showSidebar,
-              icon: Icon(_controller.state.isPanelVisible.value
-                  ? Icons.dashboard_customize_rounded
-                  : Icons.dashboard_rounded),
-              onPressed: _controller.togglePanel,
+            child: ChapterEditorResponsiveBody(
+              isPanelVisible: _controller.state.isPanelVisible.value,
+              editorWorkspace: _buildEditorWorkspace(),
+              sidePanel: _buildSidePanel(),
             ),
-            PopupMenuButton<String>(
-              onSelected: _handleMenuAction,
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                    value: 'format',
-                    child: ListTile(
-                        leading: const Icon(Icons.auto_fix_high_rounded),
-                        title: Text(s.editor_polishChapter))),
-                PopupMenuItem(
-                    value: 'smart_segment',
-                    child: ListTile(
-                        leading: const Icon(Icons.segment_rounded),
-                        title: Text(s.editor_smartSegment))),
-                PopupMenuItem(
-                    value: 'export',
-                    child: ListTile(
-                        leading: const Icon(Icons.file_download_rounded),
-                        title: Text(s.editor_exportChapter))),
-                PopupMenuItem(
-                    value: 'review',
-                    child: ListTile(
-                        leading: const Icon(Icons.rate_review_rounded),
-                        title: Text(s.editor_reviewChapter))),
-              ],
-            ),
-            SizedBox(width: 12.w),
-          ],
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final showSideBySide =
-                  _controller.state.isPanelVisible.value && constraints.maxWidth >= 1220;
-              final sidePanelHeight =
-                  constraints.maxWidth >= 960 ? 360.0 : 420.0;
-
-              return Column(
-                children: [
-                  Expanded(
-                    child: showSideBySide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(flex: 8, child: _buildEditorWorkspace()),
-                              SizedBox(width: 18.w),
-                              Expanded(flex: 4, child: _buildSidePanel()),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              Expanded(child: _buildEditorWorkspace()),
-                              if (_controller.state.isPanelVisible.value) ...[
-                                SizedBox(height: 18.h),
-                                SizedBox(
-                                    height: sidePanelHeight, child: _buildSidePanel()),
-                              ],
-                            ],
-                          ),
-                  ),
-                ],
-              );
-            },
           ),
-        ),
         ),
       );
     });
   }
 
   Widget _buildEditorWorkspace() {
-    final theme = Theme.of(context);
-
-    return Column(
-      children: [
-        EditorToolbar(
-          onQuote: _insertDialogueQuotes,
-          onFormat: _formatText,
-          onUndo: _handleUndo,
-          onRedo: _handleRedo,
-        ),
-        SizedBox(height: 16.h),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-                  blurRadius: 24,
-                  offset: const Offset(0, 16),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    focusNode: _focusNode,
-                    scrollController: _scrollController,
-                    maxLines: null,
-                    expands: true,
-                    textAlign: TextAlign.start,
-                    keyboardType: TextInputType.multiline,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontFamily: 'Georgia',
-                      fontFamilyFallback: const ['Noto Serif SC', 'serif'],
-                      fontSize: 17.sp,
-                      height: 1.85,
-                      letterSpacing: 0.2,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: S.of(context)!.editor_startWriting,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      fillColor: Colors.transparent,
-                      contentPadding:
-                          EdgeInsets.fromLTRB(24.w, 14.h, 24.w, 24.h),
-                    ),
-                  ),
-                ),
-                _buildStatusBar(theme),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return ChapterEditorWorkspace(
+      textController: _textController,
+      focusNode: _focusNode,
+      scrollController: _scrollController,
+      onQuote: _insertDialogueQuotes,
+      onFormat: _formatText,
+      onUndo: _handleUndo,
+      onRedo: _handleRedo,
+      statusBar: _buildStatusBar(),
     );
   }
 
@@ -316,6 +188,7 @@ class _ChapterEditorViewState extends State<ChapterEditorView> {
                 children: [
                   EditorChatPanel(
                     chapterContent: () => _textController.text,
+                    workId: _controller.state.chapter.value?.workId,
                     onInsert: _insertText,
                   ),
                   StatisticsPanel(content: _textController.text),
@@ -329,35 +202,17 @@ class _ChapterEditorViewState extends State<ChapterEditorView> {
     );
   }
 
-  Widget _buildStatusBar(ThemeData theme) {
-    final s = S.of(context)!;
+  Widget _buildStatusBar() {
     final wordCount = _controller.getWordCount(_textController.text);
     final paragraphCount = _controller.getParagraphCount(_textController.text);
     final reviewMinutes = (wordCount / 300).ceil();
     final chapter = _controller.state.chapter.value;
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.65),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(20)),
-        border: Border(
-            top:
-                BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45))),
-      ),
-      child: Wrap(
-        spacing: 18,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _StatusItem(icon: Icons.text_fields_rounded, label: s.editor_words(wordCount)),
-          _StatusItem(icon: Icons.view_day_rounded, label: s.editor_paragraphs(paragraphCount)),
-          _StatusItem(icon: Icons.schedule_rounded, label: s.editor_readingTime(reviewMinutes)),
-          if (chapter?.reviewScore != null)
-            _StatusItem(icon: Icons.verified_rounded, label: s.editor_score(chapter!.reviewScore!.toStringAsFixed(1))),
-        ],
-      ),
+    return ChapterEditorStatusBar(
+      wordCount: wordCount,
+      paragraphCount: paragraphCount,
+      reviewMinutes: reviewMinutes,
+      reviewScore: chapter?.reviewScore,
     );
   }
 
@@ -600,25 +455,6 @@ class _ChapterEditorViewState extends State<ChapterEditorView> {
         Get.toNamed('/work/${chapter.workId}/review');
       }
     }
-  }
-}
-
-class _StatusItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _StatusItem({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16.sp),
-        SizedBox(width: 6.w),
-        Text(label),
-      ],
-    );
   }
 }
 

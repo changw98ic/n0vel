@@ -74,7 +74,7 @@ class CreateChapterTool extends ToolDefinition {
         workId,
         volumeId,
         title.trim(),
-        sortOrder: input['sort_order'] as int? ?? 0,
+        sortOrder: _coerceInt(input['sort_order']) ?? 0,
         content: content.trim(),
       );
       final wordCount = content.trim().length;
@@ -85,5 +85,12 @@ class CreateChapterTool extends ToolDefinition {
     } catch (e) {
       return ToolResult.fail('创建章节失败: $e');
     }
+  }
+
+  int? _coerceInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 }

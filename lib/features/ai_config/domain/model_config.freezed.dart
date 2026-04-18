@@ -12,7 +12,8 @@ part of 'model_config.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) {
   return _ModelConfig.fromJson(json);
@@ -33,8 +34,12 @@ mixin _$ModelConfig {
   DateTime? get lastValidatedAt => throw _privateConstructorUsedError;
   bool get isValid => throw _privateConstructorUsedError;
 
+  /// Serializes this ModelConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ModelConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ModelConfigCopyWith<ModelConfig> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -42,22 +47,24 @@ mixin _$ModelConfig {
 /// @nodoc
 abstract class $ModelConfigCopyWith<$Res> {
   factory $ModelConfigCopyWith(
-          ModelConfig value, $Res Function(ModelConfig) then) =
-      _$ModelConfigCopyWithImpl<$Res, ModelConfig>;
+    ModelConfig value,
+    $Res Function(ModelConfig) then,
+  ) = _$ModelConfigCopyWithImpl<$Res, ModelConfig>;
   @useResult
-  $Res call(
-      {ModelTier tier,
-      String providerType,
-      String modelName,
-      String? apiEndpoint,
-      double temperature,
-      int maxOutputTokens,
-      double topP,
-      double frequencyPenalty,
-      double presencePenalty,
-      bool isEnabled,
-      DateTime? lastValidatedAt,
-      bool isValid});
+  $Res call({
+    ModelTier tier,
+    String providerType,
+    String modelName,
+    String? apiEndpoint,
+    double temperature,
+    int maxOutputTokens,
+    double topP,
+    double frequencyPenalty,
+    double presencePenalty,
+    bool isEnabled,
+    DateTime? lastValidatedAt,
+    bool isValid,
+  });
 }
 
 /// @nodoc
@@ -70,6 +77,8 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ModelConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -86,56 +95,59 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
     Object? lastValidatedAt = freezed,
     Object? isValid = null,
   }) {
-    return _then(_value.copyWith(
-      tier: null == tier
-          ? _value.tier
-          : tier // ignore: cast_nullable_to_non_nullable
-              as ModelTier,
-      providerType: null == providerType
-          ? _value.providerType
-          : providerType // ignore: cast_nullable_to_non_nullable
-              as String,
-      modelName: null == modelName
-          ? _value.modelName
-          : modelName // ignore: cast_nullable_to_non_nullable
-              as String,
-      apiEndpoint: freezed == apiEndpoint
-          ? _value.apiEndpoint
-          : apiEndpoint // ignore: cast_nullable_to_non_nullable
-              as String?,
-      temperature: null == temperature
-          ? _value.temperature
-          : temperature // ignore: cast_nullable_to_non_nullable
-              as double,
-      maxOutputTokens: null == maxOutputTokens
-          ? _value.maxOutputTokens
-          : maxOutputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      topP: null == topP
-          ? _value.topP
-          : topP // ignore: cast_nullable_to_non_nullable
-              as double,
-      frequencyPenalty: null == frequencyPenalty
-          ? _value.frequencyPenalty
-          : frequencyPenalty // ignore: cast_nullable_to_non_nullable
-              as double,
-      presencePenalty: null == presencePenalty
-          ? _value.presencePenalty
-          : presencePenalty // ignore: cast_nullable_to_non_nullable
-              as double,
-      isEnabled: null == isEnabled
-          ? _value.isEnabled
-          : isEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      lastValidatedAt: freezed == lastValidatedAt
-          ? _value.lastValidatedAt
-          : lastValidatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      isValid: null == isValid
-          ? _value.isValid
-          : isValid // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            tier: null == tier
+                ? _value.tier
+                : tier // ignore: cast_nullable_to_non_nullable
+                      as ModelTier,
+            providerType: null == providerType
+                ? _value.providerType
+                : providerType // ignore: cast_nullable_to_non_nullable
+                      as String,
+            modelName: null == modelName
+                ? _value.modelName
+                : modelName // ignore: cast_nullable_to_non_nullable
+                      as String,
+            apiEndpoint: freezed == apiEndpoint
+                ? _value.apiEndpoint
+                : apiEndpoint // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            temperature: null == temperature
+                ? _value.temperature
+                : temperature // ignore: cast_nullable_to_non_nullable
+                      as double,
+            maxOutputTokens: null == maxOutputTokens
+                ? _value.maxOutputTokens
+                : maxOutputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            topP: null == topP
+                ? _value.topP
+                : topP // ignore: cast_nullable_to_non_nullable
+                      as double,
+            frequencyPenalty: null == frequencyPenalty
+                ? _value.frequencyPenalty
+                : frequencyPenalty // ignore: cast_nullable_to_non_nullable
+                      as double,
+            presencePenalty: null == presencePenalty
+                ? _value.presencePenalty
+                : presencePenalty // ignore: cast_nullable_to_non_nullable
+                      as double,
+            isEnabled: null == isEnabled
+                ? _value.isEnabled
+                : isEnabled // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            lastValidatedAt: freezed == lastValidatedAt
+                ? _value.lastValidatedAt
+                : lastValidatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            isValid: null == isValid
+                ? _value.isValid
+                : isValid // ignore: cast_nullable_to_non_nullable
+                      as bool,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -143,23 +155,25 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
 abstract class _$$ModelConfigImplCopyWith<$Res>
     implements $ModelConfigCopyWith<$Res> {
   factory _$$ModelConfigImplCopyWith(
-          _$ModelConfigImpl value, $Res Function(_$ModelConfigImpl) then) =
-      __$$ModelConfigImplCopyWithImpl<$Res>;
+    _$ModelConfigImpl value,
+    $Res Function(_$ModelConfigImpl) then,
+  ) = __$$ModelConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {ModelTier tier,
-      String providerType,
-      String modelName,
-      String? apiEndpoint,
-      double temperature,
-      int maxOutputTokens,
-      double topP,
-      double frequencyPenalty,
-      double presencePenalty,
-      bool isEnabled,
-      DateTime? lastValidatedAt,
-      bool isValid});
+  $Res call({
+    ModelTier tier,
+    String providerType,
+    String modelName,
+    String? apiEndpoint,
+    double temperature,
+    int maxOutputTokens,
+    double topP,
+    double frequencyPenalty,
+    double presencePenalty,
+    bool isEnabled,
+    DateTime? lastValidatedAt,
+    bool isValid,
+  });
 }
 
 /// @nodoc
@@ -167,9 +181,12 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     extends _$ModelConfigCopyWithImpl<$Res, _$ModelConfigImpl>
     implements _$$ModelConfigImplCopyWith<$Res> {
   __$$ModelConfigImplCopyWithImpl(
-      _$ModelConfigImpl _value, $Res Function(_$ModelConfigImpl) _then)
-      : super(_value, _then);
+    _$ModelConfigImpl _value,
+    $Res Function(_$ModelConfigImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ModelConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -186,75 +203,78 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     Object? lastValidatedAt = freezed,
     Object? isValid = null,
   }) {
-    return _then(_$ModelConfigImpl(
-      tier: null == tier
-          ? _value.tier
-          : tier // ignore: cast_nullable_to_non_nullable
-              as ModelTier,
-      providerType: null == providerType
-          ? _value.providerType
-          : providerType // ignore: cast_nullable_to_non_nullable
-              as String,
-      modelName: null == modelName
-          ? _value.modelName
-          : modelName // ignore: cast_nullable_to_non_nullable
-              as String,
-      apiEndpoint: freezed == apiEndpoint
-          ? _value.apiEndpoint
-          : apiEndpoint // ignore: cast_nullable_to_non_nullable
-              as String?,
-      temperature: null == temperature
-          ? _value.temperature
-          : temperature // ignore: cast_nullable_to_non_nullable
-              as double,
-      maxOutputTokens: null == maxOutputTokens
-          ? _value.maxOutputTokens
-          : maxOutputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      topP: null == topP
-          ? _value.topP
-          : topP // ignore: cast_nullable_to_non_nullable
-              as double,
-      frequencyPenalty: null == frequencyPenalty
-          ? _value.frequencyPenalty
-          : frequencyPenalty // ignore: cast_nullable_to_non_nullable
-              as double,
-      presencePenalty: null == presencePenalty
-          ? _value.presencePenalty
-          : presencePenalty // ignore: cast_nullable_to_non_nullable
-              as double,
-      isEnabled: null == isEnabled
-          ? _value.isEnabled
-          : isEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      lastValidatedAt: freezed == lastValidatedAt
-          ? _value.lastValidatedAt
-          : lastValidatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      isValid: null == isValid
-          ? _value.isValid
-          : isValid // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
+    return _then(
+      _$ModelConfigImpl(
+        tier: null == tier
+            ? _value.tier
+            : tier // ignore: cast_nullable_to_non_nullable
+                  as ModelTier,
+        providerType: null == providerType
+            ? _value.providerType
+            : providerType // ignore: cast_nullable_to_non_nullable
+                  as String,
+        modelName: null == modelName
+            ? _value.modelName
+            : modelName // ignore: cast_nullable_to_non_nullable
+                  as String,
+        apiEndpoint: freezed == apiEndpoint
+            ? _value.apiEndpoint
+            : apiEndpoint // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        temperature: null == temperature
+            ? _value.temperature
+            : temperature // ignore: cast_nullable_to_non_nullable
+                  as double,
+        maxOutputTokens: null == maxOutputTokens
+            ? _value.maxOutputTokens
+            : maxOutputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        topP: null == topP
+            ? _value.topP
+            : topP // ignore: cast_nullable_to_non_nullable
+                  as double,
+        frequencyPenalty: null == frequencyPenalty
+            ? _value.frequencyPenalty
+            : frequencyPenalty // ignore: cast_nullable_to_non_nullable
+                  as double,
+        presencePenalty: null == presencePenalty
+            ? _value.presencePenalty
+            : presencePenalty // ignore: cast_nullable_to_non_nullable
+                  as double,
+        isEnabled: null == isEnabled
+            ? _value.isEnabled
+            : isEnabled // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        lastValidatedAt: freezed == lastValidatedAt
+            ? _value.lastValidatedAt
+            : lastValidatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        isValid: null == isValid
+            ? _value.isValid
+            : isValid // ignore: cast_nullable_to_non_nullable
+                  as bool,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ModelConfigImpl implements _ModelConfig {
-  const _$ModelConfigImpl(
-      {required this.tier,
-      required this.providerType,
-      required this.modelName,
-      this.apiEndpoint,
-      this.temperature = 0.7,
-      this.maxOutputTokens = 4096,
-      this.topP = 1.0,
-      this.frequencyPenalty = 0.0,
-      this.presencePenalty = 0.0,
-      this.isEnabled = true,
-      this.lastValidatedAt,
-      this.isValid = false});
+  const _$ModelConfigImpl({
+    required this.tier,
+    required this.providerType,
+    required this.modelName,
+    this.apiEndpoint,
+    this.temperature = 0.7,
+    this.maxOutputTokens = 4096,
+    this.topP = 1.0,
+    this.frequencyPenalty = 0.0,
+    this.presencePenalty = 0.0,
+    this.isEnabled = true,
+    this.lastValidatedAt,
+    this.isValid = false,
+  });
 
   factory _$ModelConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$ModelConfigImplFromJson(json);
@@ -324,24 +344,27 @@ class _$ModelConfigImpl implements _ModelConfig {
             (identical(other.isValid, isValid) || other.isValid == isValid));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      tier,
-      providerType,
-      modelName,
-      apiEndpoint,
-      temperature,
-      maxOutputTokens,
-      topP,
-      frequencyPenalty,
-      presencePenalty,
-      isEnabled,
-      lastValidatedAt,
-      isValid);
+    runtimeType,
+    tier,
+    providerType,
+    modelName,
+    apiEndpoint,
+    temperature,
+    maxOutputTokens,
+    topP,
+    frequencyPenalty,
+    presencePenalty,
+    isEnabled,
+    lastValidatedAt,
+    isValid,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ModelConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ModelConfigImplCopyWith<_$ModelConfigImpl> get copyWith =>
@@ -349,26 +372,25 @@ class _$ModelConfigImpl implements _ModelConfig {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ModelConfigImplToJson(
-      this,
-    );
+    return _$$ModelConfigImplToJson(this);
   }
 }
 
 abstract class _ModelConfig implements ModelConfig {
-  const factory _ModelConfig(
-      {required final ModelTier tier,
-      required final String providerType,
-      required final String modelName,
-      final String? apiEndpoint,
-      final double temperature,
-      final int maxOutputTokens,
-      final double topP,
-      final double frequencyPenalty,
-      final double presencePenalty,
-      final bool isEnabled,
-      final DateTime? lastValidatedAt,
-      final bool isValid}) = _$ModelConfigImpl;
+  const factory _ModelConfig({
+    required final ModelTier tier,
+    required final String providerType,
+    required final String modelName,
+    final String? apiEndpoint,
+    final double temperature,
+    final int maxOutputTokens,
+    final double topP,
+    final double frequencyPenalty,
+    final double presencePenalty,
+    final bool isEnabled,
+    final DateTime? lastValidatedAt,
+    final bool isValid,
+  }) = _$ModelConfigImpl;
 
   factory _ModelConfig.fromJson(Map<String, dynamic> json) =
       _$ModelConfigImpl.fromJson;
@@ -397,8 +419,11 @@ abstract class _ModelConfig implements ModelConfig {
   DateTime? get lastValidatedAt;
   @override
   bool get isValid;
+
+  /// Create a copy of ModelConfig
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ModelConfigImplCopyWith<_$ModelConfigImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -413,8 +438,12 @@ mixin _$FunctionMapping {
   String? get overrideTierName => throw _privateConstructorUsedError;
   bool get useOverride => throw _privateConstructorUsedError;
 
+  /// Serializes this FunctionMapping to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of FunctionMapping
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $FunctionMappingCopyWith<FunctionMapping> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -422,8 +451,9 @@ mixin _$FunctionMapping {
 /// @nodoc
 abstract class $FunctionMappingCopyWith<$Res> {
   factory $FunctionMappingCopyWith(
-          FunctionMapping value, $Res Function(FunctionMapping) then) =
-      _$FunctionMappingCopyWithImpl<$Res, FunctionMapping>;
+    FunctionMapping value,
+    $Res Function(FunctionMapping) then,
+  ) = _$FunctionMappingCopyWithImpl<$Res, FunctionMapping>;
   @useResult
   $Res call({String functionKey, String? overrideTierName, bool useOverride});
 }
@@ -438,6 +468,8 @@ class _$FunctionMappingCopyWithImpl<$Res, $Val extends FunctionMapping>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of FunctionMapping
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -445,29 +477,33 @@ class _$FunctionMappingCopyWithImpl<$Res, $Val extends FunctionMapping>
     Object? overrideTierName = freezed,
     Object? useOverride = null,
   }) {
-    return _then(_value.copyWith(
-      functionKey: null == functionKey
-          ? _value.functionKey
-          : functionKey // ignore: cast_nullable_to_non_nullable
-              as String,
-      overrideTierName: freezed == overrideTierName
-          ? _value.overrideTierName
-          : overrideTierName // ignore: cast_nullable_to_non_nullable
-              as String?,
-      useOverride: null == useOverride
-          ? _value.useOverride
-          : useOverride // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            functionKey: null == functionKey
+                ? _value.functionKey
+                : functionKey // ignore: cast_nullable_to_non_nullable
+                      as String,
+            overrideTierName: freezed == overrideTierName
+                ? _value.overrideTierName
+                : overrideTierName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            useOverride: null == useOverride
+                ? _value.useOverride
+                : useOverride // ignore: cast_nullable_to_non_nullable
+                      as bool,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$FunctionMappingImplCopyWith<$Res>
     implements $FunctionMappingCopyWith<$Res> {
-  factory _$$FunctionMappingImplCopyWith(_$FunctionMappingImpl value,
-          $Res Function(_$FunctionMappingImpl) then) =
-      __$$FunctionMappingImplCopyWithImpl<$Res>;
+  factory _$$FunctionMappingImplCopyWith(
+    _$FunctionMappingImpl value,
+    $Res Function(_$FunctionMappingImpl) then,
+  ) = __$$FunctionMappingImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String functionKey, String? overrideTierName, bool useOverride});
@@ -478,9 +514,12 @@ class __$$FunctionMappingImplCopyWithImpl<$Res>
     extends _$FunctionMappingCopyWithImpl<$Res, _$FunctionMappingImpl>
     implements _$$FunctionMappingImplCopyWith<$Res> {
   __$$FunctionMappingImplCopyWithImpl(
-      _$FunctionMappingImpl _value, $Res Function(_$FunctionMappingImpl) _then)
-      : super(_value, _then);
+    _$FunctionMappingImpl _value,
+    $Res Function(_$FunctionMappingImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of FunctionMapping
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -488,31 +527,33 @@ class __$$FunctionMappingImplCopyWithImpl<$Res>
     Object? overrideTierName = freezed,
     Object? useOverride = null,
   }) {
-    return _then(_$FunctionMappingImpl(
-      functionKey: null == functionKey
-          ? _value.functionKey
-          : functionKey // ignore: cast_nullable_to_non_nullable
-              as String,
-      overrideTierName: freezed == overrideTierName
-          ? _value.overrideTierName
-          : overrideTierName // ignore: cast_nullable_to_non_nullable
-              as String?,
-      useOverride: null == useOverride
-          ? _value.useOverride
-          : useOverride // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
+    return _then(
+      _$FunctionMappingImpl(
+        functionKey: null == functionKey
+            ? _value.functionKey
+            : functionKey // ignore: cast_nullable_to_non_nullable
+                  as String,
+        overrideTierName: freezed == overrideTierName
+            ? _value.overrideTierName
+            : overrideTierName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        useOverride: null == useOverride
+            ? _value.useOverride
+            : useOverride // ignore: cast_nullable_to_non_nullable
+                  as bool,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$FunctionMappingImpl extends _FunctionMapping {
-  const _$FunctionMappingImpl(
-      {required this.functionKey,
-      this.overrideTierName,
-      this.useOverride = false})
-      : super._();
+  const _$FunctionMappingImpl({
+    required this.functionKey,
+    this.overrideTierName,
+    this.useOverride = false,
+  }) : super._();
 
   factory _$FunctionMappingImpl.fromJson(Map<String, dynamic> json) =>
       _$$FunctionMappingImplFromJson(json);
@@ -543,31 +584,34 @@ class _$FunctionMappingImpl extends _FunctionMapping {
                 other.useOverride == useOverride));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, functionKey, overrideTierName, useOverride);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of FunctionMapping
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$FunctionMappingImplCopyWith<_$FunctionMappingImpl> get copyWith =>
       __$$FunctionMappingImplCopyWithImpl<_$FunctionMappingImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$FunctionMappingImplToJson(
-      this,
-    );
+    return _$$FunctionMappingImplToJson(this);
   }
 }
 
 abstract class _FunctionMapping extends FunctionMapping {
-  const factory _FunctionMapping(
-      {required final String functionKey,
-      final String? overrideTierName,
-      final bool useOverride}) = _$FunctionMappingImpl;
+  const factory _FunctionMapping({
+    required final String functionKey,
+    final String? overrideTierName,
+    final bool useOverride,
+  }) = _$FunctionMappingImpl;
   const _FunctionMapping._() : super._();
 
   factory _FunctionMapping.fromJson(Map<String, dynamic> json) =
@@ -579,8 +623,11 @@ abstract class _FunctionMapping extends FunctionMapping {
   String? get overrideTierName;
   @override
   bool get useOverride;
+
+  /// Create a copy of FunctionMapping
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$FunctionMappingImplCopyWith<_$FunctionMappingImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

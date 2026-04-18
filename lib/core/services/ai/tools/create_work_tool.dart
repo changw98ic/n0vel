@@ -53,7 +53,7 @@ class CreateWorkTool extends ToolDefinition {
         name.trim(),
         type: (input['type'] as String?)?.trim(),
         description: (input['description'] as String?)?.trim(),
-        targetWords: input['target_words'] as int?,
+        targetWords: _coerceInt(input['target_words']),
       );
       return ToolResult.ok(
         '已创建作品「${result.name}」，ID: ${result.id}',
@@ -62,5 +62,12 @@ class CreateWorkTool extends ToolDefinition {
     } catch (e) {
       return ToolResult.fail('创建作品失败: $e');
     }
+  }
+
+  int? _coerceInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 }

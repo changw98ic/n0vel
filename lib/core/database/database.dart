@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -23,7 +23,7 @@ import 'tables/chat_tables.dart';
 
 part 'database.g.dart';
 
-/// 应用数据库
+/// 搴旂敤鏁版嵁搴?
 @DriftDatabase(
   tables: [
     Works,
@@ -83,53 +83,84 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // 版本 2: 添加 AI 使用统计表
+        // 鐗堟湰 2: 娣诲姞 AI 浣跨敤缁熻琛?
         if (from < 2) {
           await m.createTable(aIUsageRecords);
           await m.createTable(aIUsageSummaries);
         }
-        // 版本 3: 添加 POV 模板表
+        // 鐗堟湰 3: 娣诲姞 POV 妯℃澘琛?
         if (from < 3) {
           await m.createTable(pOVTemplateRecords);
         }
-        // 版本 4: 添加 Agent 运行记录表
+        // 鐗堟湰 4: 娣诲姞 Agent 杩愯璁板綍琛?
         if (from < 4) {
           await m.createTable(agentRuns);
           await m.createTable(agentSteps);
         }
-        // 版本 5: 添加故事弧线和伏笔追踪表
+        // 鐗堟湰 5: 娣诲姞鏁呬簨寮х嚎鍜屼紡绗旇拷韪〃
         if (from < 5) {
           await m.createTable(storyArcs);
           await m.createTable(arcChapters);
           await m.createTable(arcCharacters);
           await m.createTable(foreshadows);
         }
-        // 版本 6: 添加写作统计表
+        // 鐗堟湰 6: 娣诲姞鍐欎綔缁熻琛?
         if (from < 6) {
           await m.createTable(writingSessionsTable);
           await m.createTable(dailyWritingStats);
         }
-        // 版本 7: 添加章节版本和灵感素材表
+        // 鐗堟湰 7: 娣诲姞绔犺妭鐗堟湰鍜岀伒鎰熺礌鏉愯〃
         if (from < 7) {
           await m.createTable(chapterVersions);
           await m.createTable(inspirations);
           await m.createTable(inspirationCollections);
           await m.createTable(inspirationCollectionItems);
         }
-        // 版本 8: 添加 AI 对话表
+        // 鐗堟湰 8: 娣诲姞 AI 瀵硅瘽琛?
         if (from < 8) {
           await m.createTable(chatConversations);
           await m.createTable(chatMessages);
         }
-        // 版本 9: 地点去重 + 添加唯一索引
+        // 鐗堟湰 9: 鍦扮偣鍘婚噸 + 娣诲姞鍞竴绱㈠紩
         if (from < 9) {
-          // 合并同名地点：保留最早创建的，删除重复项
+          await customStatement('DROP TABLE IF EXISTS _location_dedupe_map');
+          await customStatement('''
+            CREATE TEMP TABLE _location_dedupe_map AS
+            SELECT
+              duplicate_location.id AS duplicate_id,
+              (
+                SELECT MIN(keep_location.id)
+                FROM locations AS keep_location
+                WHERE keep_location.work_id = duplicate_location.work_id
+                  AND LOWER(TRIM(keep_location.name)) =
+                      LOWER(TRIM(duplicate_location.name))
+              ) AS keep_id
+            FROM locations AS duplicate_location
+            WHERE duplicate_location.id != (
+              SELECT MIN(keep_location.id)
+              FROM locations AS keep_location
+              WHERE keep_location.work_id = duplicate_location.work_id
+                AND LOWER(TRIM(keep_location.name)) =
+                    LOWER(TRIM(duplicate_location.name))
+            )
+          ''');
+          await customStatement('''
+            UPDATE locations
+            SET parent_id = (
+              SELECT keep_id
+              FROM _location_dedupe_map
+              WHERE duplicate_id = locations.parent_id
+            )
+            WHERE parent_id IN (
+              SELECT duplicate_id FROM _location_dedupe_map
+            )
+          ''');          // 鍚堝苟鍚屽悕鍦扮偣锛氫繚鐣欐渶鏃╁垱寤虹殑锛屽垹闄ら噸澶嶉」
           await customStatement('''
             DELETE FROM locations WHERE id NOT IN (
               SELECT MIN(id) FROM locations GROUP BY work_id, LOWER(TRIM(name))
             )
           ''');
-          // 将被删除地点的子地点重定向到保留的地点
+          // 灏嗚鍒犻櫎鍦扮偣鐨勫瓙鍦扮偣閲嶅畾鍚戝埌淇濈暀鐨勫湴鐐?
           await customStatement('''
             UPDATE locations SET parent_id = (
               SELECT keep.id FROM locations keep
@@ -150,25 +181,26 @@ class AppDatabase extends _$AppDatabase {
             WHERE locations.parent_id IS NOT NULL
             AND locations.parent_id NOT IN (SELECT id FROM locations)
           ''');
-          // 创建唯一索引
+          // 鍒涘缓鍞竴绱㈠紩
           await customStatement(
             'CREATE UNIQUE INDEX IF NOT EXISTS idx_locations_work_name ON locations (work_id, name)',
           );
+          await customStatement('DROP TABLE IF EXISTS _location_dedupe_map');
         }
       },
       beforeOpen: (details) async {
-        // 启用外键约束
+        // 鍚敤澶栭敭绾︽潫
         await customStatement('PRAGMA foreign_keys = ON');
-        // 启用 WAL 模式（更好的并发性能）
+        // 鍚敤 WAL 妯″紡锛堟洿濂界殑骞跺彂鎬ц兘锛?
         await customStatement('PRAGMA journal_mode = WAL');
         await createFTSIndexes();
       },
     );
   }
 
-  /// 创建全文搜索索引
+  /// 鍒涘缓鍏ㄦ枃鎼滅储绱㈠紩
   Future<void> createFTSIndexes() async {
-    // 先删除旧的触发器和 FTS 表，确保 schema 一致
+    // 鍏堝垹闄ゆ棫鐨勮Е鍙戝櫒鍜?FTS 琛紝纭繚 schema 涓€鑷?
     await customStatement('DROP TRIGGER IF EXISTS chapters_ai');
     await customStatement('DROP TRIGGER IF EXISTS chapters_ad');
     await customStatement('DROP TRIGGER IF EXISTS chapters_au');
@@ -178,7 +210,8 @@ class AppDatabase extends _$AppDatabase {
       CREATE VIRTUAL TABLE chapters_fts USING fts5(
         title,
         content,
-        content_rowid=rowid,
+        content='chapters',
+        content_rowid='rowid',
         tokenize='unicode61'
       );
     ''');
@@ -206,19 +239,18 @@ class AppDatabase extends _$AppDatabase {
       END;
     ''');
 
-    // 从现有数据重建 FTS 索引
-    await customStatement('''
-      INSERT INTO chapters_fts(rowid, title, content)
-      SELECT rowid, title, content FROM chapters;
-    ''');
+    // 浠庣幇鏈夋暟鎹噸寤?FTS 绱㈠紩
+    await customStatement(
+      "INSERT INTO chapters_fts(chapters_fts) VALUES ('rebuild');",
+    );
   }
 
-  /// 重建 FTS 索引（触发器失败时调用）
+  /// 閲嶅缓 FTS 绱㈠紩锛堣Е鍙戝櫒澶辫触鏃惰皟鐢級
   Future<void> rebuildFTSIfNeeded() async {
     await createFTSIndexes();
   }
 
-  /// 清理所有数据（用于测试）
+  /// 娓呯悊鎵€鏈夋暟鎹紙鐢ㄤ簬娴嬭瘯锛?
   Future<void> clearAllData() async {
     await transaction(() async {
       for (final table in allTables) {
@@ -228,7 +260,7 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// 打开数据库连接
+/// 鎵撳紑鏁版嵁搴撹繛鎺?
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
@@ -236,3 +268,4 @@ LazyDatabase _openConnection() {
     return NativeDatabase.createInBackground(file);
   });
 }
+

@@ -12,7 +12,8 @@ part of 'character_profile.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 BigFive _$BigFiveFromJson(Map<String, dynamic> json) {
   return _BigFive.fromJson(json);
@@ -26,8 +27,12 @@ mixin _$BigFive {
   int get agreeableness => throw _privateConstructorUsedError; // 宜人性 0-100
   int get neuroticism => throw _privateConstructorUsedError;
 
+  /// Serializes this BigFive to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of BigFive
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $BigFiveCopyWith<BigFive> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -36,12 +41,13 @@ abstract class $BigFiveCopyWith<$Res> {
   factory $BigFiveCopyWith(BigFive value, $Res Function(BigFive) then) =
       _$BigFiveCopyWithImpl<$Res, BigFive>;
   @useResult
-  $Res call(
-      {int openness,
-      int conscientiousness,
-      int extraversion,
-      int agreeableness,
-      int neuroticism});
+  $Res call({
+    int openness,
+    int conscientiousness,
+    int extraversion,
+    int agreeableness,
+    int neuroticism,
+  });
 }
 
 /// @nodoc
@@ -54,6 +60,8 @@ class _$BigFiveCopyWithImpl<$Res, $Val extends BigFive>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of BigFive
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -63,44 +71,49 @@ class _$BigFiveCopyWithImpl<$Res, $Val extends BigFive>
     Object? agreeableness = null,
     Object? neuroticism = null,
   }) {
-    return _then(_value.copyWith(
-      openness: null == openness
-          ? _value.openness
-          : openness // ignore: cast_nullable_to_non_nullable
-              as int,
-      conscientiousness: null == conscientiousness
-          ? _value.conscientiousness
-          : conscientiousness // ignore: cast_nullable_to_non_nullable
-              as int,
-      extraversion: null == extraversion
-          ? _value.extraversion
-          : extraversion // ignore: cast_nullable_to_non_nullable
-              as int,
-      agreeableness: null == agreeableness
-          ? _value.agreeableness
-          : agreeableness // ignore: cast_nullable_to_non_nullable
-              as int,
-      neuroticism: null == neuroticism
-          ? _value.neuroticism
-          : neuroticism // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            openness: null == openness
+                ? _value.openness
+                : openness // ignore: cast_nullable_to_non_nullable
+                      as int,
+            conscientiousness: null == conscientiousness
+                ? _value.conscientiousness
+                : conscientiousness // ignore: cast_nullable_to_non_nullable
+                      as int,
+            extraversion: null == extraversion
+                ? _value.extraversion
+                : extraversion // ignore: cast_nullable_to_non_nullable
+                      as int,
+            agreeableness: null == agreeableness
+                ? _value.agreeableness
+                : agreeableness // ignore: cast_nullable_to_non_nullable
+                      as int,
+            neuroticism: null == neuroticism
+                ? _value.neuroticism
+                : neuroticism // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$BigFiveImplCopyWith<$Res> implements $BigFiveCopyWith<$Res> {
   factory _$$BigFiveImplCopyWith(
-          _$BigFiveImpl value, $Res Function(_$BigFiveImpl) then) =
-      __$$BigFiveImplCopyWithImpl<$Res>;
+    _$BigFiveImpl value,
+    $Res Function(_$BigFiveImpl) then,
+  ) = __$$BigFiveImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int openness,
-      int conscientiousness,
-      int extraversion,
-      int agreeableness,
-      int neuroticism});
+  $Res call({
+    int openness,
+    int conscientiousness,
+    int extraversion,
+    int agreeableness,
+    int neuroticism,
+  });
 }
 
 /// @nodoc
@@ -108,9 +121,12 @@ class __$$BigFiveImplCopyWithImpl<$Res>
     extends _$BigFiveCopyWithImpl<$Res, _$BigFiveImpl>
     implements _$$BigFiveImplCopyWith<$Res> {
   __$$BigFiveImplCopyWithImpl(
-      _$BigFiveImpl _value, $Res Function(_$BigFiveImpl) _then)
-      : super(_value, _then);
+    _$BigFiveImpl _value,
+    $Res Function(_$BigFiveImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of BigFive
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -120,40 +136,43 @@ class __$$BigFiveImplCopyWithImpl<$Res>
     Object? agreeableness = null,
     Object? neuroticism = null,
   }) {
-    return _then(_$BigFiveImpl(
-      openness: null == openness
-          ? _value.openness
-          : openness // ignore: cast_nullable_to_non_nullable
-              as int,
-      conscientiousness: null == conscientiousness
-          ? _value.conscientiousness
-          : conscientiousness // ignore: cast_nullable_to_non_nullable
-              as int,
-      extraversion: null == extraversion
-          ? _value.extraversion
-          : extraversion // ignore: cast_nullable_to_non_nullable
-              as int,
-      agreeableness: null == agreeableness
-          ? _value.agreeableness
-          : agreeableness // ignore: cast_nullable_to_non_nullable
-              as int,
-      neuroticism: null == neuroticism
-          ? _value.neuroticism
-          : neuroticism // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$BigFiveImpl(
+        openness: null == openness
+            ? _value.openness
+            : openness // ignore: cast_nullable_to_non_nullable
+                  as int,
+        conscientiousness: null == conscientiousness
+            ? _value.conscientiousness
+            : conscientiousness // ignore: cast_nullable_to_non_nullable
+                  as int,
+        extraversion: null == extraversion
+            ? _value.extraversion
+            : extraversion // ignore: cast_nullable_to_non_nullable
+                  as int,
+        agreeableness: null == agreeableness
+            ? _value.agreeableness
+            : agreeableness // ignore: cast_nullable_to_non_nullable
+                  as int,
+        neuroticism: null == neuroticism
+            ? _value.neuroticism
+            : neuroticism // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$BigFiveImpl implements _BigFive {
-  const _$BigFiveImpl(
-      {this.openness = 50,
-      this.conscientiousness = 50,
-      this.extraversion = 50,
-      this.agreeableness = 50,
-      this.neuroticism = 50});
+  const _$BigFiveImpl({
+    this.openness = 50,
+    this.conscientiousness = 50,
+    this.extraversion = 50,
+    this.agreeableness = 50,
+    this.neuroticism = 50,
+  });
 
   factory _$BigFiveImpl.fromJson(Map<String, dynamic> json) =>
       _$$BigFiveImplFromJson(json);
@@ -161,19 +180,19 @@ class _$BigFiveImpl implements _BigFive {
   @override
   @JsonKey()
   final int openness;
-// 开放性 0-100
+  // 开放性 0-100
   @override
   @JsonKey()
   final int conscientiousness;
-// 尽责性 0-100
+  // 尽责性 0-100
   @override
   @JsonKey()
   final int extraversion;
-// 外向性 0-100
+  // 外向性 0-100
   @override
   @JsonKey()
   final int agreeableness;
-// 宜人性 0-100
+  // 宜人性 0-100
   @override
   @JsonKey()
   final int neuroticism;
@@ -200,12 +219,20 @@ class _$BigFiveImpl implements _BigFive {
                 other.neuroticism == neuroticism));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, openness, conscientiousness,
-      extraversion, agreeableness, neuroticism);
+  int get hashCode => Object.hash(
+    runtimeType,
+    openness,
+    conscientiousness,
+    extraversion,
+    agreeableness,
+    neuroticism,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of BigFive
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$BigFiveImplCopyWith<_$BigFiveImpl> get copyWith =>
@@ -213,34 +240,36 @@ class _$BigFiveImpl implements _BigFive {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$BigFiveImplToJson(
-      this,
-    );
+    return _$$BigFiveImplToJson(this);
   }
 }
 
 abstract class _BigFive implements BigFive {
-  const factory _BigFive(
-      {final int openness,
-      final int conscientiousness,
-      final int extraversion,
-      final int agreeableness,
-      final int neuroticism}) = _$BigFiveImpl;
+  const factory _BigFive({
+    final int openness,
+    final int conscientiousness,
+    final int extraversion,
+    final int agreeableness,
+    final int neuroticism,
+  }) = _$BigFiveImpl;
 
   factory _BigFive.fromJson(Map<String, dynamic> json) = _$BigFiveImpl.fromJson;
 
   @override
-  int get openness;
-  @override // 开放性 0-100
-  int get conscientiousness;
-  @override // 尽责性 0-100
-  int get extraversion;
-  @override // 外向性 0-100
-  int get agreeableness;
-  @override // 宜人性 0-100
-  int get neuroticism;
+  int get openness; // 开放性 0-100
   @override
-  @JsonKey(ignore: true)
+  int get conscientiousness; // 尽责性 0-100
+  @override
+  int get extraversion; // 外向性 0-100
+  @override
+  int get agreeableness; // 宜人性 0-100
+  @override
+  int get neuroticism;
+
+  /// Create a copy of BigFive
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$BigFiveImplCopyWith<_$BigFiveImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -263,8 +292,12 @@ mixin _$SpeechStyle {
   List<String>? get tabooWords => throw _privateConstructorUsedError; // 避讳词
   List<SpeechExample>? get examples => throw _privateConstructorUsedError;
 
+  /// Serializes this SpeechStyle to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SpeechStyle
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $SpeechStyleCopyWith<SpeechStyle> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -272,18 +305,20 @@ mixin _$SpeechStyle {
 /// @nodoc
 abstract class $SpeechStyleCopyWith<$Res> {
   factory $SpeechStyleCopyWith(
-          SpeechStyle value, $Res Function(SpeechStyle) then) =
-      _$SpeechStyleCopyWithImpl<$Res, SpeechStyle>;
+    SpeechStyle value,
+    $Res Function(SpeechStyle) then,
+  ) = _$SpeechStyleCopyWithImpl<$Res, SpeechStyle>;
   @useResult
-  $Res call(
-      {String? languageStyle,
-      String? toneStyle,
-      String speed,
-      List<String>? sentencePatterns,
-      List<String>? catchphrases,
-      List<String>? vocabularyPreferences,
-      List<String>? tabooWords,
-      List<SpeechExample>? examples});
+  $Res call({
+    String? languageStyle,
+    String? toneStyle,
+    String speed,
+    List<String>? sentencePatterns,
+    List<String>? catchphrases,
+    List<String>? vocabularyPreferences,
+    List<String>? tabooWords,
+    List<SpeechExample>? examples,
+  });
 }
 
 /// @nodoc
@@ -296,6 +331,8 @@ class _$SpeechStyleCopyWithImpl<$Res, $Val extends SpeechStyle>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of SpeechStyle
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -308,40 +345,43 @@ class _$SpeechStyleCopyWithImpl<$Res, $Val extends SpeechStyle>
     Object? tabooWords = freezed,
     Object? examples = freezed,
   }) {
-    return _then(_value.copyWith(
-      languageStyle: freezed == languageStyle
-          ? _value.languageStyle
-          : languageStyle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      toneStyle: freezed == toneStyle
-          ? _value.toneStyle
-          : toneStyle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      speed: null == speed
-          ? _value.speed
-          : speed // ignore: cast_nullable_to_non_nullable
-              as String,
-      sentencePatterns: freezed == sentencePatterns
-          ? _value.sentencePatterns
-          : sentencePatterns // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      catchphrases: freezed == catchphrases
-          ? _value.catchphrases
-          : catchphrases // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      vocabularyPreferences: freezed == vocabularyPreferences
-          ? _value.vocabularyPreferences
-          : vocabularyPreferences // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      tabooWords: freezed == tabooWords
-          ? _value.tabooWords
-          : tabooWords // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      examples: freezed == examples
-          ? _value.examples
-          : examples // ignore: cast_nullable_to_non_nullable
-              as List<SpeechExample>?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            languageStyle: freezed == languageStyle
+                ? _value.languageStyle
+                : languageStyle // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            toneStyle: freezed == toneStyle
+                ? _value.toneStyle
+                : toneStyle // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            speed: null == speed
+                ? _value.speed
+                : speed // ignore: cast_nullable_to_non_nullable
+                      as String,
+            sentencePatterns: freezed == sentencePatterns
+                ? _value.sentencePatterns
+                : sentencePatterns // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            catchphrases: freezed == catchphrases
+                ? _value.catchphrases
+                : catchphrases // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            vocabularyPreferences: freezed == vocabularyPreferences
+                ? _value.vocabularyPreferences
+                : vocabularyPreferences // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            tabooWords: freezed == tabooWords
+                ? _value.tabooWords
+                : tabooWords // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
+            examples: freezed == examples
+                ? _value.examples
+                : examples // ignore: cast_nullable_to_non_nullable
+                      as List<SpeechExample>?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -349,19 +389,21 @@ class _$SpeechStyleCopyWithImpl<$Res, $Val extends SpeechStyle>
 abstract class _$$SpeechStyleImplCopyWith<$Res>
     implements $SpeechStyleCopyWith<$Res> {
   factory _$$SpeechStyleImplCopyWith(
-          _$SpeechStyleImpl value, $Res Function(_$SpeechStyleImpl) then) =
-      __$$SpeechStyleImplCopyWithImpl<$Res>;
+    _$SpeechStyleImpl value,
+    $Res Function(_$SpeechStyleImpl) then,
+  ) = __$$SpeechStyleImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String? languageStyle,
-      String? toneStyle,
-      String speed,
-      List<String>? sentencePatterns,
-      List<String>? catchphrases,
-      List<String>? vocabularyPreferences,
-      List<String>? tabooWords,
-      List<SpeechExample>? examples});
+  $Res call({
+    String? languageStyle,
+    String? toneStyle,
+    String speed,
+    List<String>? sentencePatterns,
+    List<String>? catchphrases,
+    List<String>? vocabularyPreferences,
+    List<String>? tabooWords,
+    List<SpeechExample>? examples,
+  });
 }
 
 /// @nodoc
@@ -369,9 +411,12 @@ class __$$SpeechStyleImplCopyWithImpl<$Res>
     extends _$SpeechStyleCopyWithImpl<$Res, _$SpeechStyleImpl>
     implements _$$SpeechStyleImplCopyWith<$Res> {
   __$$SpeechStyleImplCopyWithImpl(
-      _$SpeechStyleImpl _value, $Res Function(_$SpeechStyleImpl) _then)
-      : super(_value, _then);
+    _$SpeechStyleImpl _value,
+    $Res Function(_$SpeechStyleImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of SpeechStyle
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -384,76 +429,78 @@ class __$$SpeechStyleImplCopyWithImpl<$Res>
     Object? tabooWords = freezed,
     Object? examples = freezed,
   }) {
-    return _then(_$SpeechStyleImpl(
-      languageStyle: freezed == languageStyle
-          ? _value.languageStyle
-          : languageStyle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      toneStyle: freezed == toneStyle
-          ? _value.toneStyle
-          : toneStyle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      speed: null == speed
-          ? _value.speed
-          : speed // ignore: cast_nullable_to_non_nullable
-              as String,
-      sentencePatterns: freezed == sentencePatterns
-          ? _value._sentencePatterns
-          : sentencePatterns // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      catchphrases: freezed == catchphrases
-          ? _value._catchphrases
-          : catchphrases // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      vocabularyPreferences: freezed == vocabularyPreferences
-          ? _value._vocabularyPreferences
-          : vocabularyPreferences // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      tabooWords: freezed == tabooWords
-          ? _value._tabooWords
-          : tabooWords // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      examples: freezed == examples
-          ? _value._examples
-          : examples // ignore: cast_nullable_to_non_nullable
-              as List<SpeechExample>?,
-    ));
+    return _then(
+      _$SpeechStyleImpl(
+        languageStyle: freezed == languageStyle
+            ? _value.languageStyle
+            : languageStyle // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        toneStyle: freezed == toneStyle
+            ? _value.toneStyle
+            : toneStyle // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        speed: null == speed
+            ? _value.speed
+            : speed // ignore: cast_nullable_to_non_nullable
+                  as String,
+        sentencePatterns: freezed == sentencePatterns
+            ? _value._sentencePatterns
+            : sentencePatterns // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        catchphrases: freezed == catchphrases
+            ? _value._catchphrases
+            : catchphrases // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        vocabularyPreferences: freezed == vocabularyPreferences
+            ? _value._vocabularyPreferences
+            : vocabularyPreferences // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        tabooWords: freezed == tabooWords
+            ? _value._tabooWords
+            : tabooWords // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
+        examples: freezed == examples
+            ? _value._examples
+            : examples // ignore: cast_nullable_to_non_nullable
+                  as List<SpeechExample>?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$SpeechStyleImpl implements _SpeechStyle {
-  const _$SpeechStyleImpl(
-      {this.languageStyle,
-      this.toneStyle,
-      this.speed = 'medium',
-      final List<String>? sentencePatterns,
-      final List<String>? catchphrases,
-      final List<String>? vocabularyPreferences,
-      final List<String>? tabooWords,
-      final List<SpeechExample>? examples})
-      : _sentencePatterns = sentencePatterns,
-        _catchphrases = catchphrases,
-        _vocabularyPreferences = vocabularyPreferences,
-        _tabooWords = tabooWords,
-        _examples = examples;
+  const _$SpeechStyleImpl({
+    this.languageStyle,
+    this.toneStyle,
+    this.speed = 'medium',
+    final List<String>? sentencePatterns,
+    final List<String>? catchphrases,
+    final List<String>? vocabularyPreferences,
+    final List<String>? tabooWords,
+    final List<SpeechExample>? examples,
+  }) : _sentencePatterns = sentencePatterns,
+       _catchphrases = catchphrases,
+       _vocabularyPreferences = vocabularyPreferences,
+       _tabooWords = tabooWords,
+       _examples = examples;
 
   factory _$SpeechStyleImpl.fromJson(Map<String, dynamic> json) =>
       _$$SpeechStyleImplFromJson(json);
 
   @override
   final String? languageStyle;
-// 简洁/文雅/粗俗/幽默
+  // 简洁/文雅/粗俗/幽默
   @override
   final String? toneStyle;
-// 冷淡/热情/温和/嘲讽
+  // 冷淡/热情/温和/嘲讽
   @override
   @JsonKey()
   final String speed;
-// 快/中/慢
+  // 快/中/慢
   final List<String>? _sentencePatterns;
-// 快/中/慢
+  // 快/中/慢
   @override
   List<String>? get sentencePatterns {
     final value = _sentencePatterns;
@@ -464,9 +511,9 @@ class _$SpeechStyleImpl implements _SpeechStyle {
     return EqualUnmodifiableListView(value);
   }
 
-// 句式偏好
+  // 句式偏好
   final List<String>? _catchphrases;
-// 句式偏好
+  // 句式偏好
   @override
   List<String>? get catchphrases {
     final value = _catchphrases;
@@ -476,9 +523,9 @@ class _$SpeechStyleImpl implements _SpeechStyle {
     return EqualUnmodifiableListView(value);
   }
 
-// 口头禅
+  // 口头禅
   final List<String>? _vocabularyPreferences;
-// 口头禅
+  // 口头禅
   @override
   List<String>? get vocabularyPreferences {
     final value = _vocabularyPreferences;
@@ -489,9 +536,9 @@ class _$SpeechStyleImpl implements _SpeechStyle {
     return EqualUnmodifiableListView(value);
   }
 
-// 词汇偏好
+  // 词汇偏好
   final List<String>? _tabooWords;
-// 词汇偏好
+  // 词汇偏好
   @override
   List<String>? get tabooWords {
     final value = _tabooWords;
@@ -501,9 +548,9 @@ class _$SpeechStyleImpl implements _SpeechStyle {
     return EqualUnmodifiableListView(value);
   }
 
-// 避讳词
+  // 避讳词
   final List<SpeechExample>? _examples;
-// 避讳词
+  // 避讳词
   @override
   List<SpeechExample>? get examples {
     final value = _examples;
@@ -528,31 +575,42 @@ class _$SpeechStyleImpl implements _SpeechStyle {
             (identical(other.toneStyle, toneStyle) ||
                 other.toneStyle == toneStyle) &&
             (identical(other.speed, speed) || other.speed == speed) &&
-            const DeepCollectionEquality()
-                .equals(other._sentencePatterns, _sentencePatterns) &&
-            const DeepCollectionEquality()
-                .equals(other._catchphrases, _catchphrases) &&
-            const DeepCollectionEquality()
-                .equals(other._vocabularyPreferences, _vocabularyPreferences) &&
-            const DeepCollectionEquality()
-                .equals(other._tabooWords, _tabooWords) &&
+            const DeepCollectionEquality().equals(
+              other._sentencePatterns,
+              _sentencePatterns,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._catchphrases,
+              _catchphrases,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._vocabularyPreferences,
+              _vocabularyPreferences,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._tabooWords,
+              _tabooWords,
+            ) &&
             const DeepCollectionEquality().equals(other._examples, _examples));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      languageStyle,
-      toneStyle,
-      speed,
-      const DeepCollectionEquality().hash(_sentencePatterns),
-      const DeepCollectionEquality().hash(_catchphrases),
-      const DeepCollectionEquality().hash(_vocabularyPreferences),
-      const DeepCollectionEquality().hash(_tabooWords),
-      const DeepCollectionEquality().hash(_examples));
+    runtimeType,
+    languageStyle,
+    toneStyle,
+    speed,
+    const DeepCollectionEquality().hash(_sentencePatterns),
+    const DeepCollectionEquality().hash(_catchphrases),
+    const DeepCollectionEquality().hash(_vocabularyPreferences),
+    const DeepCollectionEquality().hash(_tabooWords),
+    const DeepCollectionEquality().hash(_examples),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SpeechStyle
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SpeechStyleImplCopyWith<_$SpeechStyleImpl> get copyWith =>
@@ -560,44 +618,46 @@ class _$SpeechStyleImpl implements _SpeechStyle {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SpeechStyleImplToJson(
-      this,
-    );
+    return _$$SpeechStyleImplToJson(this);
   }
 }
 
 abstract class _SpeechStyle implements SpeechStyle {
-  const factory _SpeechStyle(
-      {final String? languageStyle,
-      final String? toneStyle,
-      final String speed,
-      final List<String>? sentencePatterns,
-      final List<String>? catchphrases,
-      final List<String>? vocabularyPreferences,
-      final List<String>? tabooWords,
-      final List<SpeechExample>? examples}) = _$SpeechStyleImpl;
+  const factory _SpeechStyle({
+    final String? languageStyle,
+    final String? toneStyle,
+    final String speed,
+    final List<String>? sentencePatterns,
+    final List<String>? catchphrases,
+    final List<String>? vocabularyPreferences,
+    final List<String>? tabooWords,
+    final List<SpeechExample>? examples,
+  }) = _$SpeechStyleImpl;
 
   factory _SpeechStyle.fromJson(Map<String, dynamic> json) =
       _$SpeechStyleImpl.fromJson;
 
   @override
-  String? get languageStyle;
-  @override // 简洁/文雅/粗俗/幽默
-  String? get toneStyle;
-  @override // 冷淡/热情/温和/嘲讽
-  String get speed;
-  @override // 快/中/慢
-  List<String>? get sentencePatterns;
-  @override // 句式偏好
-  List<String>? get catchphrases;
-  @override // 口头禅
-  List<String>? get vocabularyPreferences;
-  @override // 词汇偏好
-  List<String>? get tabooWords;
-  @override // 避讳词
-  List<SpeechExample>? get examples;
+  String? get languageStyle; // 简洁/文雅/粗俗/幽默
   @override
-  @JsonKey(ignore: true)
+  String? get toneStyle; // 冷淡/热情/温和/嘲讽
+  @override
+  String get speed; // 快/中/慢
+  @override
+  List<String>? get sentencePatterns; // 句式偏好
+  @override
+  List<String>? get catchphrases; // 口头禅
+  @override
+  List<String>? get vocabularyPreferences; // 词汇偏好
+  @override
+  List<String>? get tabooWords; // 避讳词
+  @override
+  List<SpeechExample>? get examples;
+
+  /// Create a copy of SpeechStyle
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SpeechStyleImplCopyWith<_$SpeechStyleImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -612,8 +672,12 @@ mixin _$SpeechExample {
   String get emotion => throw _privateConstructorUsedError;
   String get line => throw _privateConstructorUsedError;
 
+  /// Serializes this SpeechExample to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of SpeechExample
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $SpeechExampleCopyWith<SpeechExample> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -621,8 +685,9 @@ mixin _$SpeechExample {
 /// @nodoc
 abstract class $SpeechExampleCopyWith<$Res> {
   factory $SpeechExampleCopyWith(
-          SpeechExample value, $Res Function(SpeechExample) then) =
-      _$SpeechExampleCopyWithImpl<$Res, SpeechExample>;
+    SpeechExample value,
+    $Res Function(SpeechExample) then,
+  ) = _$SpeechExampleCopyWithImpl<$Res, SpeechExample>;
   @useResult
   $Res call({String scene, String emotion, String line});
 }
@@ -637,6 +702,8 @@ class _$SpeechExampleCopyWithImpl<$Res, $Val extends SpeechExample>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of SpeechExample
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -644,20 +711,23 @@ class _$SpeechExampleCopyWithImpl<$Res, $Val extends SpeechExample>
     Object? emotion = null,
     Object? line = null,
   }) {
-    return _then(_value.copyWith(
-      scene: null == scene
-          ? _value.scene
-          : scene // ignore: cast_nullable_to_non_nullable
-              as String,
-      emotion: null == emotion
-          ? _value.emotion
-          : emotion // ignore: cast_nullable_to_non_nullable
-              as String,
-      line: null == line
-          ? _value.line
-          : line // ignore: cast_nullable_to_non_nullable
-              as String,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            scene: null == scene
+                ? _value.scene
+                : scene // ignore: cast_nullable_to_non_nullable
+                      as String,
+            emotion: null == emotion
+                ? _value.emotion
+                : emotion // ignore: cast_nullable_to_non_nullable
+                      as String,
+            line: null == line
+                ? _value.line
+                : line // ignore: cast_nullable_to_non_nullable
+                      as String,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -665,8 +735,9 @@ class _$SpeechExampleCopyWithImpl<$Res, $Val extends SpeechExample>
 abstract class _$$SpeechExampleImplCopyWith<$Res>
     implements $SpeechExampleCopyWith<$Res> {
   factory _$$SpeechExampleImplCopyWith(
-          _$SpeechExampleImpl value, $Res Function(_$SpeechExampleImpl) then) =
-      __$$SpeechExampleImplCopyWithImpl<$Res>;
+    _$SpeechExampleImpl value,
+    $Res Function(_$SpeechExampleImpl) then,
+  ) = __$$SpeechExampleImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String scene, String emotion, String line});
@@ -677,9 +748,12 @@ class __$$SpeechExampleImplCopyWithImpl<$Res>
     extends _$SpeechExampleCopyWithImpl<$Res, _$SpeechExampleImpl>
     implements _$$SpeechExampleImplCopyWith<$Res> {
   __$$SpeechExampleImplCopyWithImpl(
-      _$SpeechExampleImpl _value, $Res Function(_$SpeechExampleImpl) _then)
-      : super(_value, _then);
+    _$SpeechExampleImpl _value,
+    $Res Function(_$SpeechExampleImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of SpeechExample
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -687,28 +761,33 @@ class __$$SpeechExampleImplCopyWithImpl<$Res>
     Object? emotion = null,
     Object? line = null,
   }) {
-    return _then(_$SpeechExampleImpl(
-      scene: null == scene
-          ? _value.scene
-          : scene // ignore: cast_nullable_to_non_nullable
-              as String,
-      emotion: null == emotion
-          ? _value.emotion
-          : emotion // ignore: cast_nullable_to_non_nullable
-              as String,
-      line: null == line
-          ? _value.line
-          : line // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
+    return _then(
+      _$SpeechExampleImpl(
+        scene: null == scene
+            ? _value.scene
+            : scene // ignore: cast_nullable_to_non_nullable
+                  as String,
+        emotion: null == emotion
+            ? _value.emotion
+            : emotion // ignore: cast_nullable_to_non_nullable
+                  as String,
+        line: null == line
+            ? _value.line
+            : line // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$SpeechExampleImpl implements _SpeechExample {
-  const _$SpeechExampleImpl(
-      {required this.scene, required this.emotion, required this.line});
+  const _$SpeechExampleImpl({
+    required this.scene,
+    required this.emotion,
+    required this.line,
+  });
 
   factory _$SpeechExampleImpl.fromJson(Map<String, dynamic> json) =>
       _$$SpeechExampleImplFromJson(json);
@@ -735,11 +814,13 @@ class _$SpeechExampleImpl implements _SpeechExample {
             (identical(other.line, line) || other.line == line));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, scene, emotion, line);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of SpeechExample
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SpeechExampleImplCopyWith<_$SpeechExampleImpl> get copyWith =>
@@ -747,17 +828,16 @@ class _$SpeechExampleImpl implements _SpeechExample {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SpeechExampleImplToJson(
-      this,
-    );
+    return _$$SpeechExampleImplToJson(this);
   }
 }
 
 abstract class _SpeechExample implements SpeechExample {
-  const factory _SpeechExample(
-      {required final String scene,
-      required final String emotion,
-      required final String line}) = _$SpeechExampleImpl;
+  const factory _SpeechExample({
+    required final String scene,
+    required final String emotion,
+    required final String line,
+  }) = _$SpeechExampleImpl;
 
   factory _SpeechExample.fromJson(Map<String, dynamic> json) =
       _$SpeechExampleImpl.fromJson;
@@ -768,8 +848,11 @@ abstract class _SpeechExample implements SpeechExample {
   String get emotion;
   @override
   String get line;
+
+  /// Create a copy of SpeechExample
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SpeechExampleImplCopyWith<_$SpeechExampleImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -784,8 +867,12 @@ mixin _$BehaviorPattern {
   String get behavior => throw _privateConstructorUsedError; // 行为反应
   String? get description => throw _privateConstructorUsedError;
 
+  /// Serializes this BehaviorPattern to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of BehaviorPattern
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $BehaviorPatternCopyWith<BehaviorPattern> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -793,8 +880,9 @@ mixin _$BehaviorPattern {
 /// @nodoc
 abstract class $BehaviorPatternCopyWith<$Res> {
   factory $BehaviorPatternCopyWith(
-          BehaviorPattern value, $Res Function(BehaviorPattern) then) =
-      _$BehaviorPatternCopyWithImpl<$Res, BehaviorPattern>;
+    BehaviorPattern value,
+    $Res Function(BehaviorPattern) then,
+  ) = _$BehaviorPatternCopyWithImpl<$Res, BehaviorPattern>;
   @useResult
   $Res call({String trigger, String behavior, String? description});
 }
@@ -809,6 +897,8 @@ class _$BehaviorPatternCopyWithImpl<$Res, $Val extends BehaviorPattern>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of BehaviorPattern
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -816,29 +906,33 @@ class _$BehaviorPatternCopyWithImpl<$Res, $Val extends BehaviorPattern>
     Object? behavior = null,
     Object? description = freezed,
   }) {
-    return _then(_value.copyWith(
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String,
-      behavior: null == behavior
-          ? _value.behavior
-          : behavior // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            trigger: null == trigger
+                ? _value.trigger
+                : trigger // ignore: cast_nullable_to_non_nullable
+                      as String,
+            behavior: null == behavior
+                ? _value.behavior
+                : behavior // ignore: cast_nullable_to_non_nullable
+                      as String,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$BehaviorPatternImplCopyWith<$Res>
     implements $BehaviorPatternCopyWith<$Res> {
-  factory _$$BehaviorPatternImplCopyWith(_$BehaviorPatternImpl value,
-          $Res Function(_$BehaviorPatternImpl) then) =
-      __$$BehaviorPatternImplCopyWithImpl<$Res>;
+  factory _$$BehaviorPatternImplCopyWith(
+    _$BehaviorPatternImpl value,
+    $Res Function(_$BehaviorPatternImpl) then,
+  ) = __$$BehaviorPatternImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String trigger, String behavior, String? description});
@@ -849,9 +943,12 @@ class __$$BehaviorPatternImplCopyWithImpl<$Res>
     extends _$BehaviorPatternCopyWithImpl<$Res, _$BehaviorPatternImpl>
     implements _$$BehaviorPatternImplCopyWith<$Res> {
   __$$BehaviorPatternImplCopyWithImpl(
-      _$BehaviorPatternImpl _value, $Res Function(_$BehaviorPatternImpl) _then)
-      : super(_value, _then);
+    _$BehaviorPatternImpl _value,
+    $Res Function(_$BehaviorPatternImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of BehaviorPattern
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -859,38 +956,43 @@ class __$$BehaviorPatternImplCopyWithImpl<$Res>
     Object? behavior = null,
     Object? description = freezed,
   }) {
-    return _then(_$BehaviorPatternImpl(
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String,
-      behavior: null == behavior
-          ? _value.behavior
-          : behavior // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$BehaviorPatternImpl(
+        trigger: null == trigger
+            ? _value.trigger
+            : trigger // ignore: cast_nullable_to_non_nullable
+                  as String,
+        behavior: null == behavior
+            ? _value.behavior
+            : behavior // ignore: cast_nullable_to_non_nullable
+                  as String,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$BehaviorPatternImpl implements _BehaviorPattern {
-  const _$BehaviorPatternImpl(
-      {required this.trigger, required this.behavior, this.description});
+  const _$BehaviorPatternImpl({
+    required this.trigger,
+    required this.behavior,
+    this.description,
+  });
 
   factory _$BehaviorPatternImpl.fromJson(Map<String, dynamic> json) =>
       _$$BehaviorPatternImplFromJson(json);
 
   @override
   final String trigger;
-// 触发条件
+  // 触发条件
   @override
   final String behavior;
-// 行为反应
+  // 行为反应
   @override
   final String? description;
 
@@ -911,42 +1013,48 @@ class _$BehaviorPatternImpl implements _BehaviorPattern {
                 other.description == description));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, trigger, behavior, description);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of BehaviorPattern
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$BehaviorPatternImplCopyWith<_$BehaviorPatternImpl> get copyWith =>
       __$$BehaviorPatternImplCopyWithImpl<_$BehaviorPatternImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$BehaviorPatternImplToJson(
-      this,
-    );
+    return _$$BehaviorPatternImplToJson(this);
   }
 }
 
 abstract class _BehaviorPattern implements BehaviorPattern {
-  const factory _BehaviorPattern(
-      {required final String trigger,
-      required final String behavior,
-      final String? description}) = _$BehaviorPatternImpl;
+  const factory _BehaviorPattern({
+    required final String trigger,
+    required final String behavior,
+    final String? description,
+  }) = _$BehaviorPatternImpl;
 
   factory _BehaviorPattern.fromJson(Map<String, dynamic> json) =
       _$BehaviorPatternImpl.fromJson;
 
   @override
-  String get trigger;
-  @override // 触发条件
-  String get behavior;
-  @override // 行为反应
-  String? get description;
+  String get trigger; // 触发条件
   @override
-  @JsonKey(ignore: true)
+  String get behavior; // 行为反应
+  @override
+  String? get description;
+
+  /// Create a copy of BehaviorPattern
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$BehaviorPatternImplCopyWith<_$BehaviorPatternImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -972,8 +1080,12 @@ mixin _$CharacterProfile {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this CharacterProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CharacterProfileCopyWith<CharacterProfile> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -981,23 +1093,25 @@ mixin _$CharacterProfile {
 /// @nodoc
 abstract class $CharacterProfileCopyWith<$Res> {
   factory $CharacterProfileCopyWith(
-          CharacterProfile value, $Res Function(CharacterProfile) then) =
-      _$CharacterProfileCopyWithImpl<$Res, CharacterProfile>;
+    CharacterProfile value,
+    $Res Function(CharacterProfile) then,
+  ) = _$CharacterProfileCopyWithImpl<$Res, CharacterProfile>;
   @useResult
-  $Res call(
-      {String id,
-      String characterId,
-      MBTI? mbti,
-      BigFive? bigFive,
-      List<String> personalityKeywords,
-      String? coreValues,
-      String? fears,
-      String? desires,
-      String? moralBaseline,
-      SpeechStyle? speechStyle,
-      List<BehaviorPattern> behaviorPatterns,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String characterId,
+    MBTI? mbti,
+    BigFive? bigFive,
+    List<String> personalityKeywords,
+    String? coreValues,
+    String? fears,
+    String? desires,
+    String? moralBaseline,
+    SpeechStyle? speechStyle,
+    List<BehaviorPattern> behaviorPatterns,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 
   $BigFiveCopyWith<$Res>? get bigFive;
   $SpeechStyleCopyWith<$Res>? get speechStyle;
@@ -1013,6 +1127,8 @@ class _$CharacterProfileCopyWithImpl<$Res, $Val extends CharacterProfile>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1030,62 +1146,67 @@ class _$CharacterProfileCopyWithImpl<$Res, $Val extends CharacterProfile>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      mbti: freezed == mbti
-          ? _value.mbti
-          : mbti // ignore: cast_nullable_to_non_nullable
-              as MBTI?,
-      bigFive: freezed == bigFive
-          ? _value.bigFive
-          : bigFive // ignore: cast_nullable_to_non_nullable
-              as BigFive?,
-      personalityKeywords: null == personalityKeywords
-          ? _value.personalityKeywords
-          : personalityKeywords // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      coreValues: freezed == coreValues
-          ? _value.coreValues
-          : coreValues // ignore: cast_nullable_to_non_nullable
-              as String?,
-      fears: freezed == fears
-          ? _value.fears
-          : fears // ignore: cast_nullable_to_non_nullable
-              as String?,
-      desires: freezed == desires
-          ? _value.desires
-          : desires // ignore: cast_nullable_to_non_nullable
-              as String?,
-      moralBaseline: freezed == moralBaseline
-          ? _value.moralBaseline
-          : moralBaseline // ignore: cast_nullable_to_non_nullable
-              as String?,
-      speechStyle: freezed == speechStyle
-          ? _value.speechStyle
-          : speechStyle // ignore: cast_nullable_to_non_nullable
-              as SpeechStyle?,
-      behaviorPatterns: null == behaviorPatterns
-          ? _value.behaviorPatterns
-          : behaviorPatterns // ignore: cast_nullable_to_non_nullable
-              as List<BehaviorPattern>,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            mbti: freezed == mbti
+                ? _value.mbti
+                : mbti // ignore: cast_nullable_to_non_nullable
+                      as MBTI?,
+            bigFive: freezed == bigFive
+                ? _value.bigFive
+                : bigFive // ignore: cast_nullable_to_non_nullable
+                      as BigFive?,
+            personalityKeywords: null == personalityKeywords
+                ? _value.personalityKeywords
+                : personalityKeywords // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            coreValues: freezed == coreValues
+                ? _value.coreValues
+                : coreValues // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            fears: freezed == fears
+                ? _value.fears
+                : fears // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            desires: freezed == desires
+                ? _value.desires
+                : desires // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            moralBaseline: freezed == moralBaseline
+                ? _value.moralBaseline
+                : moralBaseline // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            speechStyle: freezed == speechStyle
+                ? _value.speechStyle
+                : speechStyle // ignore: cast_nullable_to_non_nullable
+                      as SpeechStyle?,
+            behaviorPatterns: null == behaviorPatterns
+                ? _value.behaviorPatterns
+                : behaviorPatterns // ignore: cast_nullable_to_non_nullable
+                      as List<BehaviorPattern>,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $BigFiveCopyWith<$Res>? get bigFive {
@@ -1098,6 +1219,8 @@ class _$CharacterProfileCopyWithImpl<$Res, $Val extends CharacterProfile>
     });
   }
 
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $SpeechStyleCopyWith<$Res>? get speechStyle {
@@ -1114,25 +1237,27 @@ class _$CharacterProfileCopyWithImpl<$Res, $Val extends CharacterProfile>
 /// @nodoc
 abstract class _$$CharacterProfileImplCopyWith<$Res>
     implements $CharacterProfileCopyWith<$Res> {
-  factory _$$CharacterProfileImplCopyWith(_$CharacterProfileImpl value,
-          $Res Function(_$CharacterProfileImpl) then) =
-      __$$CharacterProfileImplCopyWithImpl<$Res>;
+  factory _$$CharacterProfileImplCopyWith(
+    _$CharacterProfileImpl value,
+    $Res Function(_$CharacterProfileImpl) then,
+  ) = __$$CharacterProfileImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String characterId,
-      MBTI? mbti,
-      BigFive? bigFive,
-      List<String> personalityKeywords,
-      String? coreValues,
-      String? fears,
-      String? desires,
-      String? moralBaseline,
-      SpeechStyle? speechStyle,
-      List<BehaviorPattern> behaviorPatterns,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String characterId,
+    MBTI? mbti,
+    BigFive? bigFive,
+    List<String> personalityKeywords,
+    String? coreValues,
+    String? fears,
+    String? desires,
+    String? moralBaseline,
+    SpeechStyle? speechStyle,
+    List<BehaviorPattern> behaviorPatterns,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 
   @override
   $BigFiveCopyWith<$Res>? get bigFive;
@@ -1144,10 +1269,13 @@ abstract class _$$CharacterProfileImplCopyWith<$Res>
 class __$$CharacterProfileImplCopyWithImpl<$Res>
     extends _$CharacterProfileCopyWithImpl<$Res, _$CharacterProfileImpl>
     implements _$$CharacterProfileImplCopyWith<$Res> {
-  __$$CharacterProfileImplCopyWithImpl(_$CharacterProfileImpl _value,
-      $Res Function(_$CharacterProfileImpl) _then)
-      : super(_value, _then);
+  __$$CharacterProfileImplCopyWithImpl(
+    _$CharacterProfileImpl _value,
+    $Res Function(_$CharacterProfileImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1165,83 +1293,85 @@ class __$$CharacterProfileImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_$CharacterProfileImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      mbti: freezed == mbti
-          ? _value.mbti
-          : mbti // ignore: cast_nullable_to_non_nullable
-              as MBTI?,
-      bigFive: freezed == bigFive
-          ? _value.bigFive
-          : bigFive // ignore: cast_nullable_to_non_nullable
-              as BigFive?,
-      personalityKeywords: null == personalityKeywords
-          ? _value._personalityKeywords
-          : personalityKeywords // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      coreValues: freezed == coreValues
-          ? _value.coreValues
-          : coreValues // ignore: cast_nullable_to_non_nullable
-              as String?,
-      fears: freezed == fears
-          ? _value.fears
-          : fears // ignore: cast_nullable_to_non_nullable
-              as String?,
-      desires: freezed == desires
-          ? _value.desires
-          : desires // ignore: cast_nullable_to_non_nullable
-              as String?,
-      moralBaseline: freezed == moralBaseline
-          ? _value.moralBaseline
-          : moralBaseline // ignore: cast_nullable_to_non_nullable
-              as String?,
-      speechStyle: freezed == speechStyle
-          ? _value.speechStyle
-          : speechStyle // ignore: cast_nullable_to_non_nullable
-              as SpeechStyle?,
-      behaviorPatterns: null == behaviorPatterns
-          ? _value._behaviorPatterns
-          : behaviorPatterns // ignore: cast_nullable_to_non_nullable
-              as List<BehaviorPattern>,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$CharacterProfileImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        mbti: freezed == mbti
+            ? _value.mbti
+            : mbti // ignore: cast_nullable_to_non_nullable
+                  as MBTI?,
+        bigFive: freezed == bigFive
+            ? _value.bigFive
+            : bigFive // ignore: cast_nullable_to_non_nullable
+                  as BigFive?,
+        personalityKeywords: null == personalityKeywords
+            ? _value._personalityKeywords
+            : personalityKeywords // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        coreValues: freezed == coreValues
+            ? _value.coreValues
+            : coreValues // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        fears: freezed == fears
+            ? _value.fears
+            : fears // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        desires: freezed == desires
+            ? _value.desires
+            : desires // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        moralBaseline: freezed == moralBaseline
+            ? _value.moralBaseline
+            : moralBaseline // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        speechStyle: freezed == speechStyle
+            ? _value.speechStyle
+            : speechStyle // ignore: cast_nullable_to_non_nullable
+                  as SpeechStyle?,
+        behaviorPatterns: null == behaviorPatterns
+            ? _value._behaviorPatterns
+            : behaviorPatterns // ignore: cast_nullable_to_non_nullable
+                  as List<BehaviorPattern>,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CharacterProfileImpl extends _CharacterProfile {
-  const _$CharacterProfileImpl(
-      {required this.id,
-      required this.characterId,
-      this.mbti,
-      this.bigFive,
-      final List<String> personalityKeywords = const [],
-      this.coreValues,
-      this.fears,
-      this.desires,
-      this.moralBaseline,
-      this.speechStyle,
-      final List<BehaviorPattern> behaviorPatterns = const [],
-      required this.createdAt,
-      required this.updatedAt})
-      : _personalityKeywords = personalityKeywords,
-        _behaviorPatterns = behaviorPatterns,
-        super._();
+  const _$CharacterProfileImpl({
+    required this.id,
+    required this.characterId,
+    this.mbti,
+    this.bigFive,
+    final List<String> personalityKeywords = const [],
+    this.coreValues,
+    this.fears,
+    this.desires,
+    this.moralBaseline,
+    this.speechStyle,
+    final List<BehaviorPattern> behaviorPatterns = const [],
+    required this.createdAt,
+    required this.updatedAt,
+  }) : _personalityKeywords = personalityKeywords,
+       _behaviorPatterns = behaviorPatterns,
+       super._();
 
   factory _$CharacterProfileImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterProfileImplFromJson(json);
@@ -1304,8 +1434,10 @@ class _$CharacterProfileImpl extends _CharacterProfile {
                 other.characterId == characterId) &&
             (identical(other.mbti, mbti) || other.mbti == mbti) &&
             (identical(other.bigFive, bigFive) || other.bigFive == bigFive) &&
-            const DeepCollectionEquality()
-                .equals(other._personalityKeywords, _personalityKeywords) &&
+            const DeepCollectionEquality().equals(
+              other._personalityKeywords,
+              _personalityKeywords,
+            ) &&
             (identical(other.coreValues, coreValues) ||
                 other.coreValues == coreValues) &&
             (identical(other.fears, fears) || other.fears == fears) &&
@@ -1314,62 +1446,68 @@ class _$CharacterProfileImpl extends _CharacterProfile {
                 other.moralBaseline == moralBaseline) &&
             (identical(other.speechStyle, speechStyle) ||
                 other.speechStyle == speechStyle) &&
-            const DeepCollectionEquality()
-                .equals(other._behaviorPatterns, _behaviorPatterns) &&
+            const DeepCollectionEquality().equals(
+              other._behaviorPatterns,
+              _behaviorPatterns,
+            ) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      characterId,
-      mbti,
-      bigFive,
-      const DeepCollectionEquality().hash(_personalityKeywords),
-      coreValues,
-      fears,
-      desires,
-      moralBaseline,
-      speechStyle,
-      const DeepCollectionEquality().hash(_behaviorPatterns),
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    characterId,
+    mbti,
+    bigFive,
+    const DeepCollectionEquality().hash(_personalityKeywords),
+    coreValues,
+    fears,
+    desires,
+    moralBaseline,
+    speechStyle,
+    const DeepCollectionEquality().hash(_behaviorPatterns),
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CharacterProfileImplCopyWith<_$CharacterProfileImpl> get copyWith =>
       __$$CharacterProfileImplCopyWithImpl<_$CharacterProfileImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CharacterProfileImplToJson(
-      this,
-    );
+    return _$$CharacterProfileImplToJson(this);
   }
 }
 
 abstract class _CharacterProfile extends CharacterProfile {
-  const factory _CharacterProfile(
-      {required final String id,
-      required final String characterId,
-      final MBTI? mbti,
-      final BigFive? bigFive,
-      final List<String> personalityKeywords,
-      final String? coreValues,
-      final String? fears,
-      final String? desires,
-      final String? moralBaseline,
-      final SpeechStyle? speechStyle,
-      final List<BehaviorPattern> behaviorPatterns,
-      required final DateTime createdAt,
-      required final DateTime updatedAt}) = _$CharacterProfileImpl;
+  const factory _CharacterProfile({
+    required final String id,
+    required final String characterId,
+    final MBTI? mbti,
+    final BigFive? bigFive,
+    final List<String> personalityKeywords,
+    final String? coreValues,
+    final String? fears,
+    final String? desires,
+    final String? moralBaseline,
+    final SpeechStyle? speechStyle,
+    final List<BehaviorPattern> behaviorPatterns,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+  }) = _$CharacterProfileImpl;
   const _CharacterProfile._() : super._();
 
   factory _CharacterProfile.fromJson(Map<String, dynamic> json) =
@@ -1401,8 +1539,11 @@ abstract class _CharacterProfile extends CharacterProfile {
   DateTime get createdAt;
   @override
   DateTime get updatedAt;
+
+  /// Create a copy of CharacterProfile
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CharacterProfileImplCopyWith<_$CharacterProfileImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

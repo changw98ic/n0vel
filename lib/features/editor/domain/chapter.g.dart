@@ -15,7 +15,8 @@ _$ChapterImpl _$$ChapterImplFromJson(Map<String, dynamic> json) =>
       content: json['content'] as String?,
       wordCount: (json['wordCount'] as num?)?.toInt() ?? 0,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-      status: $enumDecodeNullable(_$ChapterStatusEnumMap, json['status']) ??
+      status:
+          $enumDecodeNullable(_$ChapterStatusEnumMap, json['status']) ??
           ChapterStatus.draft,
       reviewScore: (json['reviewScore'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['createdAt'] as String),

@@ -10,6 +10,9 @@ import 'entity_creation_service.dart';
 import 'ai/ai_service.dart';
 import 'ai/context/context_manager.dart' as cm;
 import 'ai/models/model_tier.dart';
+import 'writer_runtime_hooks.dart';
+part 'chat_prompt_helpers.dart';
+part 'chat_stream_helpers.dart';
 
 // ---------------------------------------------------------------------------
 // Stream events
@@ -84,6 +87,40 @@ class ChatToolResult extends ChatStreamEvent {
   });
 }
 
+/// 批量章节进度
+class ChatBatchProgress extends ChatStreamEvent {
+  final String phase;
+  final int completed;
+  final int total;
+  ChatBatchProgress({
+    required this.phase,
+    required this.completed,
+    required this.total,
+  });
+}
+
+/// 批量章节完成
+class ChatBatchChapterDone extends ChatStreamEvent {
+  final int index;
+  final String title;
+  final int wordCount;
+  ChatBatchChapterDone({
+    required this.index,
+    required this.title,
+    required this.wordCount,
+  });
+}
+
+/// 批量章节全部完成
+class ChatBatchComplete extends ChatStreamEvent {
+  final int totalWords;
+  final List<String> chapters;
+  ChatBatchComplete({
+    required this.totalWords,
+    required this.chapters,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // ChatService
 // ---------------------------------------------------------------------------
@@ -95,6 +132,7 @@ class ChatService extends GetxService {
   final cm.ContextManager _contextManager;
   final ChatRepository _chatRepository;
   final AgentService? _agentService;
+  final WriterRuntimeHooks _writerRuntimeHooks;
 
   /// 内存中的对话上下文缓存（conversationId → messages）
   final _contextCache = <String, List<cm.ChatMessage>>{};
@@ -104,10 +142,13 @@ class ChatService extends GetxService {
     required cm.ContextManager contextManager,
     required ChatRepository chatRepository,
     AgentService? agentService,
+    WriterRuntimeHooks? writerRuntimeHooks,
   })  : _aiService = aiService,
         _contextManager = contextManager,
         _chatRepository = chatRepository,
-        _agentService = agentService;
+        _agentService = agentService,
+        _writerRuntimeHooks =
+            writerRuntimeHooks ?? WriterRuntimeHooks();
 
   // ---------------------------------------------------------------------------
   // Conversation CRUD
@@ -174,6 +215,10 @@ class ChatService extends GetxService {
     String? systemPrompt,
     String? contextContent,
   }) async {
+    final conversation =
+        await _chatRepository.getConversationById(conversationId);
+    final scopedWorkId = conversation?.workId ?? '';
+
     // 持久化用户消息
     await _chatRepository.addMessage(
       conversationId: conversationId,
@@ -187,30 +232,53 @@ class ChatService extends GetxService {
       systemPrompt: systemPrompt,
       contextContent: contextContent,
     );
+    final preflight = await _writerRuntimeHooks.runPreRequestChecks(
+      prompt: userMessage,
+      workId: scopedWorkId,
+      contextContent: contextContent,
+      historyCount: context.history.length,
+    );
+    final userPromptText = _buildUserPrompt(context, userMessage);
+    final systemPromptText = _buildSystemPrompt(
+      context,
+      preflightPromptSection: preflight.toPromptSection(),
+    );
 
     // 调用 AI
     final response = await _aiService.generate(
-      prompt: _buildUserPrompt(context, userMessage),
+      prompt: userPromptText,
       config: AIRequestConfig(
         function: AIFunction.chat,
-        systemPrompt: _buildSystemPrompt(context),
-        userPrompt: _buildUserPrompt(context, userMessage),
+        systemPrompt: systemPromptText,
+        userPrompt: userPromptText,
         useCache: false,
         stream: false,
       ),
     );
+    final postflight = await _writerRuntimeHooks.runPostResponseChecks(
+      request: userMessage,
+      response: response.content,
+      usedTools: false,
+    );
+    final finalContent = postflight.shouldBlock
+        ? _buildBlockedResponse(postflight)
+        : _appendPostflightWarnings(
+            response.content,
+            postflight.warnMessages,
+          );
 
     // 持久化助手消息
     final assistantMsg = await _chatRepository.addMessage(
       conversationId: conversationId,
       role: 'assistant',
-      content: response.content,
+      content: finalContent,
+      metadata: postflight.toMetadata(),
     );
 
     // 更新内存缓存
     final cache = _contextCache[conversationId] ?? [];
     cache.add(cm.ChatMessage(role: 'user', content: userMessage));
-    cache.add(cm.ChatMessage(role: 'assistant', content: response.content));
+    cache.add(cm.ChatMessage(role: 'assistant', content: finalContent));
     _contextCache[conversationId] = cache;
 
     return assistantMsg;
@@ -249,6 +317,9 @@ class ChatService extends GetxService {
   }) async {
     try {
       debugPrint('[ChatService] 普通流式模式开始 (convId: $conversationId)');
+      final conversation =
+          await _chatRepository.getConversationById(conversationId);
+      final scopedWorkId = conversation?.workId ?? '';
 
       // 持久化用户消息
       await _chatRepository.addMessage(
@@ -263,6 +334,17 @@ class ChatService extends GetxService {
         systemPrompt: systemPrompt,
         contextContent: contextContent,
       );
+      final preflight = await _writerRuntimeHooks.runPreRequestChecks(
+        prompt: userMessage,
+        workId: scopedWorkId,
+        contextContent: contextContent,
+        historyCount: context.history.length,
+      );
+      final userPromptText = _buildUserPrompt(context, userMessage);
+      final systemPromptText = _buildSystemPrompt(
+        context,
+        preflightPromptSection: preflight.toPromptSection(),
+      );
 
       // 更新内存缓存
       final cache = _contextCache[conversationId] ?? [];
@@ -270,11 +352,11 @@ class ChatService extends GetxService {
 
       // 流式调用 AI
       final stream = _aiService.generateStream(
-        prompt: _buildUserPrompt(context, userMessage),
+        prompt: userPromptText,
         config: AIRequestConfig(
           function: AIFunction.chat,
-          systemPrompt: _buildSystemPrompt(context),
-          userPrompt: _buildUserPrompt(context, userMessage),
+          systemPrompt: systemPromptText,
+          userPrompt: userPromptText,
           useCache: false,
           stream: true,
         ),
@@ -288,31 +370,48 @@ class ChatService extends GetxService {
       }
 
       final fullContent = buffer.toString();
+      final postflight = await _writerRuntimeHooks.runPostResponseChecks(
+        request: userMessage,
+        response: fullContent,
+        usedTools: false,
+      );
+      final postflightMessages = [
+        ...postflight.blockMessages,
+        ...postflight.warnMessages,
+      ];
+      final postflightNotes = _buildPostflightNotes(postflightMessages);
+      if (postflightNotes.isNotEmpty) {
+        controller.add(ChatChunk('\n\n$postflightNotes'));
+      }
+      final finalContent = postflightNotes.isEmpty
+          ? fullContent
+          : '${fullContent.trimRight()}\n\n$postflightNotes';
 
       // Estimate tokens from content (streaming providers may not return usage)
       final inputTokens = _estimateTokens(context.history);
-      final outputTokens = _estimateTokensFromString(fullContent);
+      final outputTokens = _estimateTokensFromString(finalContent);
 
       // 持久化助手消息
       await _chatRepository.addMessage(
         conversationId: conversationId,
         role: 'assistant',
-        content: fullContent,
+        content: finalContent,
+        metadata: postflight.toMetadata(),
       );
 
       // 更新内存缓存
-      cache.add(cm.ChatMessage(role: 'assistant', content: fullContent));
+      cache.add(cm.ChatMessage(role: 'assistant', content: finalContent));
       _contextCache[conversationId] = cache;
 
       controller.add(ChatComplete(
-        fullContent: fullContent,
+        fullContent: finalContent,
         inputTokens: inputTokens,
         outputTokens: outputTokens,
       ));
 
       // 检测实体创建意图
       final entityResult =
-          EntityCreationService.detectEntityInResponse(fullContent);
+          EntityCreationService.detectEntityInResponse(finalContent);
       if (entityResult != null) {
         controller.add(ChatEntityProposal(
           entityType: entityResult.type.name,
@@ -360,6 +459,10 @@ class ChatService extends GetxService {
     String? systemPrompt,
   }) async {
     try {
+      final conversation =
+          await _chatRepository.getConversationById(conversationId);
+      final scopedWorkId = conversation?.workId ?? workId;
+
       // 持久化用户消息
       await _chatRepository.addMessage(
         conversationId: conversationId,
@@ -371,6 +474,12 @@ class ChatService extends GetxService {
       final dbMessages =
           await _chatRepository.getMessages(conversationId);
       final history = dbMessages.map((m) => m.toContextMessage()).toList();
+      final preflight = await _writerRuntimeHooks.runPreRequestChecks(
+        prompt: userMessage,
+        workId: scopedWorkId,
+        contextContent: null,
+        historyCount: history.length,
+      );
 
       // 更新内存缓存
       _contextCache[conversationId] = history;
@@ -390,8 +499,10 @@ class ChatService extends GetxService {
       // 使用 AgentService 执行工具调用
       debugPrint('[ChatService] 使用 Agent 工具模式 (workId: $workId)');
       final agentStream = _agentService.run(
-        task: userMessage,
-        workId: workId,
+        task: preflight.toPromptSection().trim().isEmpty
+            ? userMessage
+            : '${preflight.toPromptSection()}\n\n$userMessage',
+        workId: scopedWorkId,
         tier: ModelTier.middle,
         conversationHistory: history,
       );
@@ -400,33 +511,58 @@ class ChatService extends GetxService {
       int totalInputTokens = 0;
       int totalOutputTokens = 0;
       String lastToolName = '';
+      String effectiveWorkId = workId;
 
       await for (final event in agentStream) {
         switch (event) {
+          case AgentPlan(:final steps):
+            debugPrint('[ChatService] 计划生成: ${steps.length} 步');
+            controller.add(ChatThinking(_formatAgentPlanThinking(steps)));
+          case AgentPlanStepStart(:final stepIndex, :final totalSteps, :final description):
+            controller.add(ChatThinking('步骤 ${stepIndex + 1}/$totalSteps: $description'));
+          case AgentPlanStepComplete(:final stepIndex, :final success, :final summary):
+            debugPrint('[ChatService] 步骤 ${stepIndex + 1} ${success ? "完成" : "失败"}: ${summary.substring(0, summary.length.clamp(0, 80))}');
+          case AgentReflection(:final target, :final passed, :final evaluation, :final feedback):
+            final status = passed ? '✓ 通过' : '✗ 需改进';
+            controller.add(ChatThinking('反思 [$target]: $status — $evaluation'));
+            if (!passed && feedback != null) {
+              controller.add(ChatThinking('改进建议: $feedback'));
+            }
+          case AgentRetry(:final stepIndex, :final retryCount, :final maxRetries, :final reason):
+            controller.add(ChatThinking('重试步骤 ${stepIndex + 1} ($retryCount/$maxRetries): $reason'));
           case AgentThinking(:final thought):
             controller.add(ChatThinking(thought));
           case AgentAction(:final toolName):
             lastToolName = toolName;
             controller.add(ChatToolStatus(
               toolName: toolName,
-              statusMessage: '正在${_friendlyToolName(toolName)}...',
+              statusMessage: _buildToolStatusMessage(toolName),
               isCompleted: false,
             ));
           case AgentObservation(:final result):
             controller.add(ChatToolResult(
               toolName: lastToolName,
-              summary: result.success
-                  ? (result.output.length > 100
-                      ? '${result.output.substring(0, 100)}...'
-                      : result.output)
-                  : '错误: ${result.error}',
+              summary: _summarizeToolResult(result),
               success: result.success,
             ));
             controller.add(ChatToolStatus(
               toolName: lastToolName,
-              statusMessage: '${_friendlyToolName(lastToolName)}完成',
+              statusMessage: _buildToolCompletedMessage(lastToolName),
               isCompleted: true,
             ));
+            // Hook: create_work 成功后，将 work_id 写回 conversation
+            if (lastToolName == 'create_work' &&
+                result.success &&
+                result.data != null) {
+              final createdId = result.data!['id'] as String?;
+              if (createdId != null && createdId.isNotEmpty) {
+                effectiveWorkId = createdId;
+                await _chatRepository.updateWorkId(
+                    conversationId, createdId);
+                debugPrint(
+                    '[ChatService] create_work → hook work_id=$createdId into conversation $conversationId');
+              }
+            }
           case AgentResponseChunk():
             fullContent += event.chunk;
             controller.add(ChatChunk(event.chunk));
@@ -442,28 +578,46 @@ class ChatService extends GetxService {
       }
 
       if (fullContent.isNotEmpty) {
+        final postflight = await _writerRuntimeHooks.runPostResponseChecks(
+          request: userMessage,
+          response: fullContent,
+          usedTools: true,
+        );
+        final postflightMessages = [
+          ...postflight.blockMessages,
+          ...postflight.warnMessages,
+        ];
+        final postflightNotes = _buildPostflightNotes(postflightMessages);
+        if (postflightNotes.isNotEmpty) {
+          controller.add(ChatChunk('\n\n$postflightNotes'));
+        }
+        final finalContent = postflightNotes.isEmpty
+            ? fullContent
+            : '${fullContent.trimRight()}\n\n$postflightNotes';
+
         // 持久化助手消息
         await _chatRepository.addMessage(
           conversationId: conversationId,
           role: 'assistant',
-          content: fullContent,
+          content: finalContent,
+          metadata: postflight.toMetadata(),
         );
 
         // 更新内存缓存
         final cache = _contextCache[conversationId] ?? [];
         cache.add(cm.ChatMessage(role: 'user', content: userMessage));
-        cache.add(cm.ChatMessage(role: 'assistant', content: fullContent));
+        cache.add(cm.ChatMessage(role: 'assistant', content: finalContent));
         _contextCache[conversationId] = cache;
 
         controller.add(ChatComplete(
-          fullContent: fullContent,
+          fullContent: finalContent,
           inputTokens: totalInputTokens,
           outputTokens: totalOutputTokens,
         ));
 
         // 检测实体创建意图
         final entityResult =
-            EntityCreationService.detectEntityInResponse(fullContent);
+            EntityCreationService.detectEntityInResponse(finalContent);
         if (entityResult != null) {
           controller.add(ChatEntityProposal(
             entityType: entityResult.type.name,
@@ -497,18 +651,17 @@ class ChatService extends GetxService {
       );
 
       final response = await _aiService.generate(
-        prompt: '请为以下对话生成一个简短的标题（不超过10个字）：\n\n${firstUserMsg.content}',
+        prompt: _buildTitlePrompt(firstUserMsg.content),
         config: AIRequestConfig(
           function: AIFunction.chat,
-          systemPrompt: '你是一个标题生成器。根据用户消息生成一个简短、概括性的对话标题。只输出标题本身，不要加引号或其他格式。',
+          systemPrompt: _titleGeneratorSystemPrompt,
           userPrompt: firstUserMsg.content,
           useCache: false,
           stream: false,
         ),
       );
 
-      var title = response.content.trim();
-      if (title.length > 30) title = '${title.substring(0, 30)}...';
+      final title = _normalizeGeneratedTitle(response.content);
 
       await _chatRepository.updateTitle(conversationId, title);
     } catch (e) {
@@ -539,32 +692,11 @@ class ChatService extends GetxService {
   Future<void> _emitTypewriter(
     StreamController<ChatStreamEvent> controller,
     String text,
-  ) async {
-    if (text.isEmpty) return;
-    const charsPerSecond = 50;
-    const chunkSize = 2; // 每次 2 个 Unicode 码点
-    final delayMs = (chunkSize * 1000 / charsPerSecond).round(); // 40ms
-
-    final runes = text.runes.toList();
-    for (var i = 0; i < runes.length; i += chunkSize) {
-      final end = (i + chunkSize).clamp(0, runes.length);
-      final chunk = String.fromCharCodes(runes.sublist(i, end));
-      controller.add(ChatChunk(chunk));
-      if (end < runes.length) {
-        await Future.delayed(Duration(milliseconds: delayMs));
-      }
-    }
-  }
+  ) => _emitTypewriterChunks(controller, text);
 
   /// 工具名称到友好中文名的映射
-  static String _friendlyToolName(String toolName) => switch (toolName) {
-        'search_content' || 'search' => '搜索',
-        'generate_content' || 'generate' => '生成',
-        'analyze_content' || 'analyze' => '分析',
-        'check_consistency' => '一致性检查',
-        'extract_settings' || 'extract' => '提取设定',
-        _ => toolName,
-      };
+  static String _friendlyToolName(String toolName) =>
+      _friendlyChatToolName(toolName);
 
   /// 构建对话上下文（从 DB 加载历史消息，执行压缩）
   Future<_ConversationContext> _buildContext({
@@ -602,79 +734,62 @@ class ChatService extends GetxService {
     );
   }
 
-  String _buildSystemPrompt(_ConversationContext context) {
-    final buffer = StringBuffer();
-    buffer.writeln(context.systemPrompt ??
-        '你是一位专业的小说写作助手，请与用户进行友好的对话交流。');
-    buffer.writeln();
-    buffer.writeln(
-        '当用户要求创建角色、地点、物品或势力时，请在回复中使用以下格式输出实体数据：');
-    buffer.writeln('```entity');
-    buffer.writeln(
-        '{"type":"character/location/item/faction","name":"名称","fields":{具体属性}}');
-    buffer.writeln('```');
-    buffer.writeln('然后再用自然语言补充说明。');
-
-    if (context.contextContent != null &&
-        context.contextContent!.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln('---参考资料---');
-      buffer.writeln(context.contextContent);
-      buffer.writeln('---参考资料结束---');
-    }
-
-    // 添加历史摘要
-    for (final msg in context.history) {
-      if (msg.role == 'system' &&
-          msg.content.startsWith('以下是之前对话的摘要')) {
-        buffer.writeln();
-        buffer.write(msg.content);
-      }
-    }
-
-    return buffer.toString();
+  String _buildSystemPrompt(
+    _ConversationContext context, {
+    String? preflightPromptSection,
+  }) {
+    return _buildChatSystemPrompt(
+      context,
+      preflightPromptSection: preflightPromptSection,
+    );
   }
 
   String _buildUserPrompt(_ConversationContext context, String currentUserMsg) {
-    final buffer = StringBuffer();
-
-    // 添加对话历史（排除 system 消息和压缩摘要）
-    final historyMessages = context.history
-        .where((m) =>
-            m.role != 'system' ||
-            !m.content.startsWith('以下是之前对话的摘要'))
-        .toList();
-
-    if (historyMessages.isNotEmpty) {
-      buffer.writeln('---对话历史---');
-      for (final msg in historyMessages) {
-        final label = switch (msg.role) {
-          'user' => '用户',
-          'assistant' => '助手',
-          'tool' => '工具',
-          _ => msg.role,
-        };
-        buffer.writeln('[$label]: ${msg.content}');
-      }
-      buffer.writeln('---对话历史结束---');
-      buffer.writeln();
-    }
-
-    buffer.writeln(currentUserMsg);
-    return buffer.toString();
+    return _buildChatUserPrompt(context, currentUserMsg);
   }
 
   /// 估算对话历史的 input token 数
   int _estimateTokens(List<cm.ChatMessage> history) {
-    final text = history.map((m) => m.content).join('\n');
-    return _estimateTokensFromString(text);
+    return _estimateChatHistoryTokens(history);
   }
 
   /// 估算文本的 token 数（中文约 1.5 字符/token，英文约 4 字符/token）
   int _estimateTokensFromString(String text) {
-    final chinese = RegExp(r'[\u4e00-\u9fff]').allMatches(text).length;
-    final other = text.length - chinese;
-    return (chinese * 0.67 + other * 0.25).ceil();
+    return _estimateChatTokensFromString(text);
+  }
+
+  String _buildBlockedResponse(WriterPostflightChecks postflight) {
+    final buffer = StringBuffer();
+    buffer.writeln('当前结果不适合直接作为最终答复。');
+    for (final message in postflight.blockMessages) {
+      buffer.writeln('- $message');
+    }
+    final recoveryPrompt = postflight.toRecoveryPrompt().trim();
+    if (recoveryPrompt.isNotEmpty) {
+      buffer.writeln();
+      buffer.write(recoveryPrompt);
+    }
+    return buffer.toString().trim();
+  }
+
+  String _appendPostflightWarnings(String content, List<String> warnings) {
+    final postflightNotes = _buildPostflightNotes(warnings);
+    if (postflightNotes.isEmpty) {
+      return content;
+    }
+    return '${content.trimRight()}\n\n$postflightNotes';
+  }
+
+  String _buildPostflightNotes(List<String> messages) {
+    if (messages.isEmpty) {
+      return '';
+    }
+    final buffer = StringBuffer();
+    buffer.writeln('【提示】');
+    for (final message in messages) {
+      buffer.writeln('- $message');
+    }
+    return buffer.toString().trimRight();
   }
 }
 

@@ -5,10 +5,91 @@ import 'dart:convert';
 import '../../../core/database/database.dart';
 import '../domain/workflow_models.dart';
 
+WorkflowClarificationRequest? decodeWorkflowClarificationRequest({
+  required String taskId,
+  required int nodeIndex,
+  required String? rawState,
+}) {
+  if (rawState == null || rawState.trim().isEmpty) {
+    return null;
+  }
+
+  try {
+    final state = jsonDecode(rawState) as Map<String, dynamic>;
+    final results = state['results'] as List<dynamic>? ?? const <dynamic>[];
+    final waitingResult = results
+        .whereType<Map>()
+        .cast<Map<dynamic, dynamic>>()
+        .lastWhere(
+          (entry) => entry['status'] == 'waitingUserInput',
+          orElse: () => const <dynamic, dynamic>{},
+        );
+    if (waitingResult.isEmpty) {
+      return null;
+    }
+
+    final outputValue = waitingResult['output'];
+    if (outputValue is! Map) {
+      return null;
+    }
+    final output = Map<String, dynamic>.from(outputValue);
+
+    return WorkflowClarificationRequest(
+      taskId: taskId,
+      nodeId: waitingResult['nodeId'] as String? ?? '',
+      nodeIndex: nodeIndex,
+      prompt: output['prompt'] as String? ?? '',
+      questions: (output['questions'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList(growable: false),
+      requiredFields:
+          (output['requiredFields'] as List<dynamic>? ?? const <dynamic>[])
+              .map((item) => item.toString())
+              .toList(growable: false),
+      missingFields:
+          (output['missingFields'] as List<dynamic>? ?? const <dynamic>[])
+              .map((item) => item.toString())
+              .toList(growable: false),
+      outputVariable: output['outputVariable'] as String? ?? '',
+      responseKey: output['responseKey'] as String? ?? '',
+      existingAnswers: output['existingAnswers'] is Map
+          ? Map<String, dynamic>.from(output['existingAnswers'] as Map)
+          : <String, dynamic>{},
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 class WorkflowRepository {
   final AppDatabase _db;
 
   WorkflowRepository(this._db);
+
+  Future<String> createTask({
+    required String workId,
+    required String name,
+    required String type,
+    Map<String, dynamic> config = const <String, dynamic>{},
+  }) async {
+    final id = _newId();
+    final now = DateTime.now();
+    await _db.into(_db.aiTasks).insert(
+          AiTasksCompanion(
+            id: Value(id),
+            workId: Value(workId),
+            name: Value(name),
+            type: Value(type),
+            status: const Value('pending'),
+            progress: const Value(0),
+            currentNodeIndex: const Value(0),
+            config: Value(jsonEncode(config)),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return id;
+  }
 
   Future<List<WorkflowTaskSummary>> getTasksByWorkId(String workId) async {
     final rows =
@@ -60,6 +141,79 @@ class WorkflowRepository {
     );
   }
 
+  Future<void> submitClarificationAnswers({
+    required String taskId,
+    required String nodeId,
+    required Map<String, dynamic> answers,
+    bool resume = true,
+  }) async {
+    final config = Map<String, dynamic>.from(
+      await getTaskConfig(taskId) ?? <String, dynamic>{},
+    );
+    final clarificationAnswers = Map<String, dynamic>.from(
+      config['clarificationAnswers'] as Map? ?? const <String, dynamic>{},
+    );
+    clarificationAnswers[nodeId] = answers;
+    config['clarificationAnswers'] = clarificationAnswers;
+    for (final entry in answers.entries) {
+      config[entry.key] = entry.value;
+    }
+
+    final now = DateTime.now();
+    await (_db.update(
+      _db.aiTasks,
+    )..where((table) => table.id.equals(taskId))).write(
+      AiTasksCompanion(
+        config: Value(jsonEncode(config)),
+        status: resume ? const Value('pending') : const Value.absent(),
+        errorMessage: const Value(null),
+        updatedAt: Value(now),
+      ),
+    );
+
+    await createManualCheckpoint(
+      taskId: taskId,
+      nodeIndex: (await getTaskById(taskId))?.currentNodeIndex ?? 0,
+      state: <String, dynamic>{
+        'action': 'submit_clarification_answers',
+        'nodeId': nodeId,
+        'answers': answers,
+      },
+    );
+  }
+
+  Future<void> submitReviewDecision({
+    required String taskId,
+    required bool approved,
+    bool resume = true,
+  }) async {
+    final config = Map<String, dynamic>.from(
+      await getTaskConfig(taskId) ?? <String, dynamic>{},
+    );
+    config['reviewDecision'] = approved;
+
+    final now = DateTime.now();
+    await (_db.update(
+      _db.aiTasks,
+    )..where((table) => table.id.equals(taskId))).write(
+      AiTasksCompanion(
+        config: Value(jsonEncode(config)),
+        status: resume ? const Value('pending') : const Value.absent(),
+        errorMessage: const Value(null),
+        updatedAt: Value(now),
+      ),
+    );
+
+    await createManualCheckpoint(
+      taskId: taskId,
+      nodeIndex: (await getTaskById(taskId))?.currentNodeIndex ?? 0,
+      state: <String, dynamic>{
+        'action': 'submit_review_decision',
+        'approved': approved,
+      },
+    );
+  }
+
   Future<List<WorkflowNodeRunRecord>> getNodeRuns(String taskId) async {
     final rows =
         await (_db.select(_db.workflowNodeRuns)
@@ -92,6 +246,25 @@ class WorkflowRepository {
             .getSingleOrNull();
 
     return row == null ? null : _mapCheckpoint(row);
+  }
+
+  Future<WorkflowClarificationRequest?> getPendingClarification(
+    String taskId,
+  ) async {
+    final task = await getTaskById(taskId);
+    if (task == null) {
+      return null;
+    }
+    if (task.status != WorkflowTaskStatus.waitingUserInput) {
+      return null;
+    }
+
+    final checkpoint = await getLatestCheckpoint(taskId);
+    return decodeWorkflowClarificationRequest(
+      taskId: taskId,
+      nodeIndex: task.currentNodeIndex,
+      rawState: checkpoint?.fullState,
+    );
   }
 
   Future<void> resumeTask(String taskId) async {

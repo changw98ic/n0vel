@@ -10,7 +10,7 @@ import 'package:writing_assistant/features/work/domain/work.dart';
 void main() {
   group('SearchService', () {
     test(
-      'searchAll aggregates work and scoped result groups in order',
+      'searchAll with workId excludes global work matches',
       () async {
         final service = SearchService.test(
           allWorksSource: () async => [_work(id: 'work-1', name: '作品')],
@@ -33,7 +33,6 @@ void main() {
         final results = await service.searchAll(query: '关键词', workId: 'work-1');
 
         expect(results.map((item) => item.type), [
-          SearchResultType.work,
           SearchResultType.chapter,
           SearchResultType.character,
           SearchResultType.item,
@@ -41,7 +40,6 @@ void main() {
           SearchResultType.faction,
         ]);
         expect(results.map((item) => item.id), [
-          'work-1',
           'chapter-1',
           'character-1',
           'item-1',

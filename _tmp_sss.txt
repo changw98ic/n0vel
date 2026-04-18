@@ -1,0 +1,252 @@
+﻿import '../model/editor_state.dart';
+
+// Registered via GetX binding
+
+/// 鏅鸿兘鍒嗘鏈嶅姟
+class SmartSegmentService {
+  /// 瀵硅瘽寮曞彿閰嶅 (寮€鏀惧紩鍙? 鍏抽棴寮曞彿)
+  static const List<(String, String)> _quotePairs = [
+    ('\u201C', '\u201D'), // " "
+    ('\u2018', '\u2019'), // ' '
+    ('\u300C', '\u300D'), // 銆?銆?    ('\u300E', '\u300F'), // 銆?銆?  ];
+
+
+  /// 蹇冪悊娲诲姩鏍囪
+  static final _innerThoughtMarkers = [
+    '蹇冩兂',
+    '鏆楅亾',
+    '蹇冮亾',
+    '蹇冧腑',
+    '鏆楄嚜',
+    '涓嶇',
+    '蹇嶄笉浣忔兂',
+  ];
+
+  /// 瀵规枃鏈繘琛屾櫤鑳藉垎娈?
+SmartSegmentResult segment(
+String text) {
+    final segments = <Segment>[];
+    final detectedSpeakers = <String>[];
+    var dialogueCount = 0;
+    var innerThoughtCount = 0;
+
+    // 鍏堟寜鎹㈣鍒嗗壊
+    final lines = text.split(RegExp(r'\n+'));
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.isEmpty) continue;
+
+      // 妫€娴嬫槸鍚﹀寘鍚璇?
+final dialogueSegments = _extractDialogue(line, i);
+      if (dialogueSegments.isNotEmpty) {
+        for (final seg in dialogueSegments) {
+          segments.add(seg);
+          if (seg.type == SegmentType.dialogue) {
+            dialogueCount++;
+            if (seg.speakerId != null) {
+              detectedSpeakers.add(seg.speakerId!);
+            }
+          }
+        }
+        continue;
+      }
+
+      // 妫€娴嬪績鐞嗘椿鍔?
+if (_isInnerThought(line)) {
+        segments.add(Segment(
+          id: 'seg_$i',
+          text: line,
+          type: SegmentType.innerThought,
+          needsIndent: true,
+        ));
+        innerThoughtCount++;
+        continue;
+      }
+
+      // 妫€娴嬭繃娓℃钀斤紙鐭彞锛?
+if (line.length < 10 && !RegExp(r'[銆傦紒锛焆$').hasMatch(line)) {
+        segments.add(Segment(
+          id: 'seg_$i',
+          text: line,
+          type: SegmentType.transition,
+          needsIndent: false,
+        ));
+        continue;
+      }
+
+      // 榛樿涓哄彊杩?
+segments.add(Segment(
+        id: 'seg_$i',
+        text: line,
+        type: SegmentType.narration,
+        needsIndent: true,
+      ));
+    }
+
+    return SmartSegmentResult(
+      segments: segments,
+      detectedSpeakers: detectedSpeakers.toSet().toList(),
+      dialogueCount: dialogueCount,
+      innerThoughtCount: innerThoughtCount,
+    );
+  }
+
+  /// 鎻愬彇瀵硅瘽
+  List<Segment> _extractDialogue(String line, int baseIndex) {
+    final segments = <Segment>[];
+    var offset = 0;
+
+    // 鍦ㄥ師濮嬫枃鏈笂鎼滅储鎵€鏈夊紩鍙峰鐨勫尮閰嶄綅缃?
+final ranges = <_QuoteMatch>[];
+
+    for (final pair in _quotePairs) {
+      var searchStart = 0;
+      while (searchStart < line.length) {
+        final s = line.indexOf(pair.$1, searchStart);
+        if (s == -1) break;
+        final e = line.indexOf(pair.$2, s + pair.$1.length);
+        if (e == -1) break;
+        ranges.add(_QuoteMatch(s, e, pair.$1, pair.$2));
+        searchStart = e + pair.$2.length;
+      }
+    }
+
+    if (ranges.isEmpty) return [];
+
+    // 鎸夎捣濮嬩綅缃帓搴?
+ranges.sort((a, b) => a.start.compareTo(b.start));
+
+    // 澶勭悊鍖归厤鐨勫紩鍙疯寖鍥达紝璺宠繃閲嶅彔
+    var lastEnd = 0;
+    for (final range in ranges) {
+      if (range.start < lastEnd) continue;
+
+      final beforeQuote = line.substring(lastEnd, range.start);
+      final dialogueContent =
+          line.substring(range.start + range.open.length, range.end);
+
+      if (beforeQuote.trim().isNotEmpty) {
+        segments.add(Segment(
+          id: 'seg_${baseIndex}_${offset++}',
+          text: beforeQuote.trim(),
+          type: SegmentType.narration,
+          needsIndent: false,
+        ));
+      }
+
+      segments.add(Segment(
+        id: 'seg_${baseIndex}_${offset++}',
+        text: '${range.open}$dialogueContent${range.close}',
+        type: SegmentType.dialogue,
+        needsIndent: true,
+        speakerId: _extractSpeaker(beforeQuote),
+      ));
+
+      lastEnd = range.end + range.close.length;
+    }
+
+    // 濡傛灉鏈€鍚庤繕鏈夊墿浣欏唴瀹?
+if (lastEnd < line.length && segments.isNotEmpty) {
+      final remaining = line.substring(lastEnd);
+      if (remaining.trim().isNotEmpty) {
+        segments.add(Segment(
+          id: 'seg_${baseIndex}_${offset++}',
+          text: remaining.trim(),
+          type: SegmentType.narration,
+          needsIndent: false,
+        ));
+      }
+    }
+
+    return segments;
+  }
+
+  /// 妫€娴嬫槸鍚︽槸蹇冪悊娲诲姩
+  bool _isInnerThought(String line) {
+    for (final marker in _innerThoughtMarkers) {
+      if (line.contains(marker)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 鎻愬彇璇磋瘽浜?
+String? _extractSpeaker(
+String text) {
+    // 绠€鍗曞疄鐜帮細鎻愬彇"璇?瀛楀墠闈㈢殑璇?
+final match = RegExp(r'(\S+)(璇磡閬搢闂畖绛?').firstMatch(text);
+    if (match != null) {
+      return match.group(1);
+    }
+    return null;
+  }
+
+  /// 鑷姩娣诲姞瀵硅瘽寮曞彿
+  String addDialogueQuotes(String text, int cursorPosition) {
+    // 妫€娴嬭Е鍙戣瘝
+    final triggers = ['璇?, '閬?, '闂?, '绛?, '绗戦亾', '鍙归亾'];
+
+    for (final trigger in triggers) {
+      final triggerIndex = text.lastIndexOf(trigger, cursorPosition);
+      if (triggerIndex != -1 && triggerIndex > cursorPosition - 10) {
+        // 鍦ㄨЕ鍙戣瘝闄勮繎锛屾坊鍔犲紩鍙?
+final afterTrigger = text.substring(triggerIndex + trigger.length);
+
+        // 濡傛灉鍚庨潰娌℃湁寮曞彿锛屾坊鍔?
+if (afterTrigger.isNotEmpty && !afterTrigger.startsWith(RegExp(r'["銆屻€嶿'))) {
+          return '${text.substring(0, cursorPosition)}"${text.substring(cursorPosition)}"';
+        }
+      }
+    }
+
+    return text;
+  }
+
+  /// 鏍煎紡鍖栨枃鏈紙娣诲姞棣栬缂╄繘锛?
+String formatWithIndent(String text, {
+int indentSpaces = 2}) {
+    final indent = '銆€' * indentSpaces; // 浣跨敤鍏ㄨ绌烘牸
+    final lines = text.split(RegExp(r'\n+'));
+
+    return lines.map((line) {
+      line = line.trim();
+      if (line.isEmpty) return '';
+
+      // 瀵硅瘽宸茬粡鏈夊紩鍙峰紑澶达紝涓嶉渶瑕侀澶栫缉杩?
+if (line.startsWith(RegExp(r'["銆屻€嶿'))) {
+        return indent + line;
+      }
+
+      return indent + line;
+    }).join('\n');
+  }
+
+  /// 娓呯悊澶氫綑绌鸿
+  String cleanupEmptyLines(String text) {
+    // 绉婚櫎杩炵画鐨勭┖琛岋紝鏈€澶氫繚鐣欎竴涓?
+return text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  }
+
+  /// 缁熶竴鏍囩偣绗﹀彿
+  String unifyPunctuation(String text) {
+    return text
+        .replaceAll('銆傘€?, '銆?)
+        .replaceAll('锛岋紝', '锛')
+        .replaceAll('锛侊紒', '锛')
+        .replaceAll('锛燂紵', '锛')
+        .replaceAll('鈥︹€?, '鈥︹€?)
+        .replaceAll(RegExp(r'\.{3,}'), '鈥︹€');
+  }
+}
+
+class _QuoteMatch {
+  final int start;
+  final int end;
+  final String open;
+  final String close;
+  _QuoteMatch(this.start, this.end, this.open, this.close);
+}
+
+

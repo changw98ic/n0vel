@@ -12,7 +12,8 @@ part of 'review_report.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 ReviewReport _$ReviewReportFromJson(Map<String, dynamic> json) {
   return _ReviewReport.fromJson(json);
@@ -30,8 +31,12 @@ mixin _$ReviewReport {
   int get majorCount => throw _privateConstructorUsedError;
   int get minorCount => throw _privateConstructorUsedError;
 
+  /// Serializes this ReviewReport to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReviewReport
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReviewReportCopyWith<ReviewReport> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -39,19 +44,21 @@ mixin _$ReviewReport {
 /// @nodoc
 abstract class $ReviewReportCopyWith<$Res> {
   factory $ReviewReportCopyWith(
-          ReviewReport value, $Res Function(ReviewReport) then) =
-      _$ReviewReportCopyWithImpl<$Res, ReviewReport>;
+    ReviewReport value,
+    $Res Function(ReviewReport) then,
+  ) = _$ReviewReportCopyWithImpl<$Res, ReviewReport>;
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      DateTime createdAt,
-      double overallScore,
-      Map<String, double> dimensionScores,
-      List<ReviewIssue> issues,
-      int criticalCount,
-      int majorCount,
-      int minorCount});
+  $Res call({
+    String id,
+    String chapterId,
+    DateTime createdAt,
+    double overallScore,
+    Map<String, double> dimensionScores,
+    List<ReviewIssue> issues,
+    int criticalCount,
+    int majorCount,
+    int minorCount,
+  });
 }
 
 /// @nodoc
@@ -64,6 +71,8 @@ class _$ReviewReportCopyWithImpl<$Res, $Val extends ReviewReport>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReviewReport
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -77,44 +86,47 @@ class _$ReviewReportCopyWithImpl<$Res, $Val extends ReviewReport>
     Object? majorCount = null,
     Object? minorCount = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      overallScore: null == overallScore
-          ? _value.overallScore
-          : overallScore // ignore: cast_nullable_to_non_nullable
-              as double,
-      dimensionScores: null == dimensionScores
-          ? _value.dimensionScores
-          : dimensionScores // ignore: cast_nullable_to_non_nullable
-              as Map<String, double>,
-      issues: null == issues
-          ? _value.issues
-          : issues // ignore: cast_nullable_to_non_nullable
-              as List<ReviewIssue>,
-      criticalCount: null == criticalCount
-          ? _value.criticalCount
-          : criticalCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      majorCount: null == majorCount
-          ? _value.majorCount
-          : majorCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      minorCount: null == minorCount
-          ? _value.minorCount
-          : minorCount // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            overallScore: null == overallScore
+                ? _value.overallScore
+                : overallScore // ignore: cast_nullable_to_non_nullable
+                      as double,
+            dimensionScores: null == dimensionScores
+                ? _value.dimensionScores
+                : dimensionScores // ignore: cast_nullable_to_non_nullable
+                      as Map<String, double>,
+            issues: null == issues
+                ? _value.issues
+                : issues // ignore: cast_nullable_to_non_nullable
+                      as List<ReviewIssue>,
+            criticalCount: null == criticalCount
+                ? _value.criticalCount
+                : criticalCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            majorCount: null == majorCount
+                ? _value.majorCount
+                : majorCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            minorCount: null == minorCount
+                ? _value.minorCount
+                : minorCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -122,20 +134,22 @@ class _$ReviewReportCopyWithImpl<$Res, $Val extends ReviewReport>
 abstract class _$$ReviewReportImplCopyWith<$Res>
     implements $ReviewReportCopyWith<$Res> {
   factory _$$ReviewReportImplCopyWith(
-          _$ReviewReportImpl value, $Res Function(_$ReviewReportImpl) then) =
-      __$$ReviewReportImplCopyWithImpl<$Res>;
+    _$ReviewReportImpl value,
+    $Res Function(_$ReviewReportImpl) then,
+  ) = __$$ReviewReportImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String chapterId,
-      DateTime createdAt,
-      double overallScore,
-      Map<String, double> dimensionScores,
-      List<ReviewIssue> issues,
-      int criticalCount,
-      int majorCount,
-      int minorCount});
+  $Res call({
+    String id,
+    String chapterId,
+    DateTime createdAt,
+    double overallScore,
+    Map<String, double> dimensionScores,
+    List<ReviewIssue> issues,
+    int criticalCount,
+    int majorCount,
+    int minorCount,
+  });
 }
 
 /// @nodoc
@@ -143,9 +157,12 @@ class __$$ReviewReportImplCopyWithImpl<$Res>
     extends _$ReviewReportCopyWithImpl<$Res, _$ReviewReportImpl>
     implements _$$ReviewReportImplCopyWith<$Res> {
   __$$ReviewReportImplCopyWithImpl(
-      _$ReviewReportImpl _value, $Res Function(_$ReviewReportImpl) _then)
-      : super(_value, _then);
+    _$ReviewReportImpl _value,
+    $Res Function(_$ReviewReportImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReviewReport
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -159,63 +176,65 @@ class __$$ReviewReportImplCopyWithImpl<$Res>
     Object? majorCount = null,
     Object? minorCount = null,
   }) {
-    return _then(_$ReviewReportImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      overallScore: null == overallScore
-          ? _value.overallScore
-          : overallScore // ignore: cast_nullable_to_non_nullable
-              as double,
-      dimensionScores: null == dimensionScores
-          ? _value._dimensionScores
-          : dimensionScores // ignore: cast_nullable_to_non_nullable
-              as Map<String, double>,
-      issues: null == issues
-          ? _value._issues
-          : issues // ignore: cast_nullable_to_non_nullable
-              as List<ReviewIssue>,
-      criticalCount: null == criticalCount
-          ? _value.criticalCount
-          : criticalCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      majorCount: null == majorCount
-          ? _value.majorCount
-          : majorCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      minorCount: null == minorCount
-          ? _value.minorCount
-          : minorCount // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$ReviewReportImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        overallScore: null == overallScore
+            ? _value.overallScore
+            : overallScore // ignore: cast_nullable_to_non_nullable
+                  as double,
+        dimensionScores: null == dimensionScores
+            ? _value._dimensionScores
+            : dimensionScores // ignore: cast_nullable_to_non_nullable
+                  as Map<String, double>,
+        issues: null == issues
+            ? _value._issues
+            : issues // ignore: cast_nullable_to_non_nullable
+                  as List<ReviewIssue>,
+        criticalCount: null == criticalCount
+            ? _value.criticalCount
+            : criticalCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        majorCount: null == majorCount
+            ? _value.majorCount
+            : majorCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        minorCount: null == minorCount
+            ? _value.minorCount
+            : minorCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReviewReportImpl extends _ReviewReport {
-  const _$ReviewReportImpl(
-      {required this.id,
-      required this.chapterId,
-      required this.createdAt,
-      this.overallScore = 0,
-      required final Map<String, double> dimensionScores,
-      required final List<ReviewIssue> issues,
-      this.criticalCount = 0,
-      this.majorCount = 0,
-      this.minorCount = 0})
-      : _dimensionScores = dimensionScores,
-        _issues = issues,
-        super._();
+  const _$ReviewReportImpl({
+    required this.id,
+    required this.chapterId,
+    required this.createdAt,
+    this.overallScore = 0,
+    required final Map<String, double> dimensionScores,
+    required final List<ReviewIssue> issues,
+    this.criticalCount = 0,
+    this.majorCount = 0,
+    this.minorCount = 0,
+  }) : _dimensionScores = dimensionScores,
+       _issues = issues,
+       super._();
 
   factory _$ReviewReportImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReviewReportImplFromJson(json);
@@ -272,8 +291,10 @@ class _$ReviewReportImpl extends _ReviewReport {
                 other.createdAt == createdAt) &&
             (identical(other.overallScore, overallScore) ||
                 other.overallScore == overallScore) &&
-            const DeepCollectionEquality()
-                .equals(other._dimensionScores, _dimensionScores) &&
+            const DeepCollectionEquality().equals(
+              other._dimensionScores,
+              _dimensionScores,
+            ) &&
             const DeepCollectionEquality().equals(other._issues, _issues) &&
             (identical(other.criticalCount, criticalCount) ||
                 other.criticalCount == criticalCount) &&
@@ -283,21 +304,24 @@ class _$ReviewReportImpl extends _ReviewReport {
                 other.minorCount == minorCount));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      chapterId,
-      createdAt,
-      overallScore,
-      const DeepCollectionEquality().hash(_dimensionScores),
-      const DeepCollectionEquality().hash(_issues),
-      criticalCount,
-      majorCount,
-      minorCount);
+    runtimeType,
+    id,
+    chapterId,
+    createdAt,
+    overallScore,
+    const DeepCollectionEquality().hash(_dimensionScores),
+    const DeepCollectionEquality().hash(_issues),
+    criticalCount,
+    majorCount,
+    minorCount,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReviewReport
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReviewReportImplCopyWith<_$ReviewReportImpl> get copyWith =>
@@ -305,23 +329,22 @@ class _$ReviewReportImpl extends _ReviewReport {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReviewReportImplToJson(
-      this,
-    );
+    return _$$ReviewReportImplToJson(this);
   }
 }
 
 abstract class _ReviewReport extends ReviewReport {
-  const factory _ReviewReport(
-      {required final String id,
-      required final String chapterId,
-      required final DateTime createdAt,
-      final double overallScore,
-      required final Map<String, double> dimensionScores,
-      required final List<ReviewIssue> issues,
-      final int criticalCount,
-      final int majorCount,
-      final int minorCount}) = _$ReviewReportImpl;
+  const factory _ReviewReport({
+    required final String id,
+    required final String chapterId,
+    required final DateTime createdAt,
+    final double overallScore,
+    required final Map<String, double> dimensionScores,
+    required final List<ReviewIssue> issues,
+    final int criticalCount,
+    final int majorCount,
+    final int minorCount,
+  }) = _$ReviewReportImpl;
   const _ReviewReport._() : super._();
 
   factory _ReviewReport.fromJson(Map<String, dynamic> json) =
@@ -345,8 +368,11 @@ abstract class _ReviewReport extends ReviewReport {
   int get majorCount;
   @override
   int get minorCount;
+
+  /// Create a copy of ReviewReport
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReviewReportImplCopyWith<_$ReviewReportImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -373,8 +399,12 @@ mixin _$ReviewIssue {
   DateTime? get fixedAt => throw _privateConstructorUsedError;
   String? get fixedBy => throw _privateConstructorUsedError;
 
+  /// Serializes this ReviewIssue to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReviewIssue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReviewIssueCopyWith<ReviewIssue> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -382,25 +412,27 @@ mixin _$ReviewIssue {
 /// @nodoc
 abstract class $ReviewIssueCopyWith<$Res> {
   factory $ReviewIssueCopyWith(
-          ReviewIssue value, $Res Function(ReviewIssue) then) =
-      _$ReviewIssueCopyWithImpl<$Res, ReviewIssue>;
+    ReviewIssue value,
+    $Res Function(ReviewIssue) then,
+  ) = _$ReviewIssueCopyWithImpl<$Res, ReviewIssue>;
   @useResult
-  $Res call(
-      {String id,
-      String reportId,
-      ReviewDimension dimension,
-      IssueSeverity severity,
-      IssueStatus status,
-      String description,
-      String? originalText,
-      String? location,
-      int? startOffset,
-      int? endOffset,
-      String? suggestion,
-      String? relatedCharacterId,
-      String? relatedSettingId,
-      DateTime? fixedAt,
-      String? fixedBy});
+  $Res call({
+    String id,
+    String reportId,
+    ReviewDimension dimension,
+    IssueSeverity severity,
+    IssueStatus status,
+    String description,
+    String? originalText,
+    String? location,
+    int? startOffset,
+    int? endOffset,
+    String? suggestion,
+    String? relatedCharacterId,
+    String? relatedSettingId,
+    DateTime? fixedAt,
+    String? fixedBy,
+  });
 }
 
 /// @nodoc
@@ -413,6 +445,8 @@ class _$ReviewIssueCopyWithImpl<$Res, $Val extends ReviewIssue>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReviewIssue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -432,68 +466,71 @@ class _$ReviewIssueCopyWithImpl<$Res, $Val extends ReviewIssue>
     Object? fixedAt = freezed,
     Object? fixedBy = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      reportId: null == reportId
-          ? _value.reportId
-          : reportId // ignore: cast_nullable_to_non_nullable
-              as String,
-      dimension: null == dimension
-          ? _value.dimension
-          : dimension // ignore: cast_nullable_to_non_nullable
-              as ReviewDimension,
-      severity: null == severity
-          ? _value.severity
-          : severity // ignore: cast_nullable_to_non_nullable
-              as IssueSeverity,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as IssueStatus,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      originalText: freezed == originalText
-          ? _value.originalText
-          : originalText // ignore: cast_nullable_to_non_nullable
-              as String?,
-      location: freezed == location
-          ? _value.location
-          : location // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startOffset: freezed == startOffset
-          ? _value.startOffset
-          : startOffset // ignore: cast_nullable_to_non_nullable
-              as int?,
-      endOffset: freezed == endOffset
-          ? _value.endOffset
-          : endOffset // ignore: cast_nullable_to_non_nullable
-              as int?,
-      suggestion: freezed == suggestion
-          ? _value.suggestion
-          : suggestion // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relatedCharacterId: freezed == relatedCharacterId
-          ? _value.relatedCharacterId
-          : relatedCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relatedSettingId: freezed == relatedSettingId
-          ? _value.relatedSettingId
-          : relatedSettingId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      fixedAt: freezed == fixedAt
-          ? _value.fixedAt
-          : fixedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      fixedBy: freezed == fixedBy
-          ? _value.fixedBy
-          : fixedBy // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            reportId: null == reportId
+                ? _value.reportId
+                : reportId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            dimension: null == dimension
+                ? _value.dimension
+                : dimension // ignore: cast_nullable_to_non_nullable
+                      as ReviewDimension,
+            severity: null == severity
+                ? _value.severity
+                : severity // ignore: cast_nullable_to_non_nullable
+                      as IssueSeverity,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as IssueStatus,
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String,
+            originalText: freezed == originalText
+                ? _value.originalText
+                : originalText // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            location: freezed == location
+                ? _value.location
+                : location // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            startOffset: freezed == startOffset
+                ? _value.startOffset
+                : startOffset // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            endOffset: freezed == endOffset
+                ? _value.endOffset
+                : endOffset // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            suggestion: freezed == suggestion
+                ? _value.suggestion
+                : suggestion // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            relatedCharacterId: freezed == relatedCharacterId
+                ? _value.relatedCharacterId
+                : relatedCharacterId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            relatedSettingId: freezed == relatedSettingId
+                ? _value.relatedSettingId
+                : relatedSettingId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            fixedAt: freezed == fixedAt
+                ? _value.fixedAt
+                : fixedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            fixedBy: freezed == fixedBy
+                ? _value.fixedBy
+                : fixedBy // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -501,26 +538,28 @@ class _$ReviewIssueCopyWithImpl<$Res, $Val extends ReviewIssue>
 abstract class _$$ReviewIssueImplCopyWith<$Res>
     implements $ReviewIssueCopyWith<$Res> {
   factory _$$ReviewIssueImplCopyWith(
-          _$ReviewIssueImpl value, $Res Function(_$ReviewIssueImpl) then) =
-      __$$ReviewIssueImplCopyWithImpl<$Res>;
+    _$ReviewIssueImpl value,
+    $Res Function(_$ReviewIssueImpl) then,
+  ) = __$$ReviewIssueImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String reportId,
-      ReviewDimension dimension,
-      IssueSeverity severity,
-      IssueStatus status,
-      String description,
-      String? originalText,
-      String? location,
-      int? startOffset,
-      int? endOffset,
-      String? suggestion,
-      String? relatedCharacterId,
-      String? relatedSettingId,
-      DateTime? fixedAt,
-      String? fixedBy});
+  $Res call({
+    String id,
+    String reportId,
+    ReviewDimension dimension,
+    IssueSeverity severity,
+    IssueStatus status,
+    String description,
+    String? originalText,
+    String? location,
+    int? startOffset,
+    int? endOffset,
+    String? suggestion,
+    String? relatedCharacterId,
+    String? relatedSettingId,
+    DateTime? fixedAt,
+    String? fixedBy,
+  });
 }
 
 /// @nodoc
@@ -528,9 +567,12 @@ class __$$ReviewIssueImplCopyWithImpl<$Res>
     extends _$ReviewIssueCopyWithImpl<$Res, _$ReviewIssueImpl>
     implements _$$ReviewIssueImplCopyWith<$Res> {
   __$$ReviewIssueImplCopyWithImpl(
-      _$ReviewIssueImpl _value, $Res Function(_$ReviewIssueImpl) _then)
-      : super(_value, _then);
+    _$ReviewIssueImpl _value,
+    $Res Function(_$ReviewIssueImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReviewIssue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -550,91 +592,93 @@ class __$$ReviewIssueImplCopyWithImpl<$Res>
     Object? fixedAt = freezed,
     Object? fixedBy = freezed,
   }) {
-    return _then(_$ReviewIssueImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      reportId: null == reportId
-          ? _value.reportId
-          : reportId // ignore: cast_nullable_to_non_nullable
-              as String,
-      dimension: null == dimension
-          ? _value.dimension
-          : dimension // ignore: cast_nullable_to_non_nullable
-              as ReviewDimension,
-      severity: null == severity
-          ? _value.severity
-          : severity // ignore: cast_nullable_to_non_nullable
-              as IssueSeverity,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as IssueStatus,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      originalText: freezed == originalText
-          ? _value.originalText
-          : originalText // ignore: cast_nullable_to_non_nullable
-              as String?,
-      location: freezed == location
-          ? _value.location
-          : location // ignore: cast_nullable_to_non_nullable
-              as String?,
-      startOffset: freezed == startOffset
-          ? _value.startOffset
-          : startOffset // ignore: cast_nullable_to_non_nullable
-              as int?,
-      endOffset: freezed == endOffset
-          ? _value.endOffset
-          : endOffset // ignore: cast_nullable_to_non_nullable
-              as int?,
-      suggestion: freezed == suggestion
-          ? _value.suggestion
-          : suggestion // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relatedCharacterId: freezed == relatedCharacterId
-          ? _value.relatedCharacterId
-          : relatedCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      relatedSettingId: freezed == relatedSettingId
-          ? _value.relatedSettingId
-          : relatedSettingId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      fixedAt: freezed == fixedAt
-          ? _value.fixedAt
-          : fixedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      fixedBy: freezed == fixedBy
-          ? _value.fixedBy
-          : fixedBy // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$ReviewIssueImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        reportId: null == reportId
+            ? _value.reportId
+            : reportId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        dimension: null == dimension
+            ? _value.dimension
+            : dimension // ignore: cast_nullable_to_non_nullable
+                  as ReviewDimension,
+        severity: null == severity
+            ? _value.severity
+            : severity // ignore: cast_nullable_to_non_nullable
+                  as IssueSeverity,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as IssueStatus,
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String,
+        originalText: freezed == originalText
+            ? _value.originalText
+            : originalText // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        location: freezed == location
+            ? _value.location
+            : location // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        startOffset: freezed == startOffset
+            ? _value.startOffset
+            : startOffset // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        endOffset: freezed == endOffset
+            ? _value.endOffset
+            : endOffset // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        suggestion: freezed == suggestion
+            ? _value.suggestion
+            : suggestion // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        relatedCharacterId: freezed == relatedCharacterId
+            ? _value.relatedCharacterId
+            : relatedCharacterId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        relatedSettingId: freezed == relatedSettingId
+            ? _value.relatedSettingId
+            : relatedSettingId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        fixedAt: freezed == fixedAt
+            ? _value.fixedAt
+            : fixedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        fixedBy: freezed == fixedBy
+            ? _value.fixedBy
+            : fixedBy // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReviewIssueImpl extends _ReviewIssue {
-  const _$ReviewIssueImpl(
-      {required this.id,
-      required this.reportId,
-      required this.dimension,
-      required this.severity,
-      this.status = IssueStatus.pending,
-      required this.description,
-      this.originalText,
-      this.location,
-      this.startOffset,
-      this.endOffset,
-      this.suggestion,
-      this.relatedCharacterId,
-      this.relatedSettingId,
-      this.fixedAt,
-      this.fixedBy})
-      : super._();
+  const _$ReviewIssueImpl({
+    required this.id,
+    required this.reportId,
+    required this.dimension,
+    required this.severity,
+    this.status = IssueStatus.pending,
+    required this.description,
+    this.originalText,
+    this.location,
+    this.startOffset,
+    this.endOffset,
+    this.suggestion,
+    this.relatedCharacterId,
+    this.relatedSettingId,
+    this.fixedAt,
+    this.fixedBy,
+  }) : super._();
 
   factory _$ReviewIssueImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReviewIssueImplFromJson(json);
@@ -709,27 +753,30 @@ class _$ReviewIssueImpl extends _ReviewIssue {
             (identical(other.fixedBy, fixedBy) || other.fixedBy == fixedBy));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      reportId,
-      dimension,
-      severity,
-      status,
-      description,
-      originalText,
-      location,
-      startOffset,
-      endOffset,
-      suggestion,
-      relatedCharacterId,
-      relatedSettingId,
-      fixedAt,
-      fixedBy);
+    runtimeType,
+    id,
+    reportId,
+    dimension,
+    severity,
+    status,
+    description,
+    originalText,
+    location,
+    startOffset,
+    endOffset,
+    suggestion,
+    relatedCharacterId,
+    relatedSettingId,
+    fixedAt,
+    fixedBy,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReviewIssue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReviewIssueImplCopyWith<_$ReviewIssueImpl> get copyWith =>
@@ -737,29 +784,28 @@ class _$ReviewIssueImpl extends _ReviewIssue {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReviewIssueImplToJson(
-      this,
-    );
+    return _$$ReviewIssueImplToJson(this);
   }
 }
 
 abstract class _ReviewIssue extends ReviewIssue {
-  const factory _ReviewIssue(
-      {required final String id,
-      required final String reportId,
-      required final ReviewDimension dimension,
-      required final IssueSeverity severity,
-      final IssueStatus status,
-      required final String description,
-      final String? originalText,
-      final String? location,
-      final int? startOffset,
-      final int? endOffset,
-      final String? suggestion,
-      final String? relatedCharacterId,
-      final String? relatedSettingId,
-      final DateTime? fixedAt,
-      final String? fixedBy}) = _$ReviewIssueImpl;
+  const factory _ReviewIssue({
+    required final String id,
+    required final String reportId,
+    required final ReviewDimension dimension,
+    required final IssueSeverity severity,
+    final IssueStatus status,
+    required final String description,
+    final String? originalText,
+    final String? location,
+    final int? startOffset,
+    final int? endOffset,
+    final String? suggestion,
+    final String? relatedCharacterId,
+    final String? relatedSettingId,
+    final DateTime? fixedAt,
+    final String? fixedBy,
+  }) = _$ReviewIssueImpl;
   const _ReviewIssue._() : super._();
 
   factory _ReviewIssue.fromJson(Map<String, dynamic> json) =
@@ -795,8 +841,11 @@ abstract class _ReviewIssue extends ReviewIssue {
   DateTime? get fixedAt;
   @override
   String? get fixedBy;
+
+  /// Create a copy of ReviewIssue
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReviewIssueImplCopyWith<_$ReviewIssueImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -815,8 +864,12 @@ mixin _$ReviewConfig {
   bool get checkPacing => throw _privateConstructorUsedError;
   String get aiModelId => throw _privateConstructorUsedError;
 
+  /// Serializes this ReviewConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of ReviewConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ReviewConfigCopyWith<ReviewConfig> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -824,16 +877,18 @@ mixin _$ReviewConfig {
 /// @nodoc
 abstract class $ReviewConfigCopyWith<$Res> {
   factory $ReviewConfigCopyWith(
-          ReviewConfig value, $Res Function(ReviewConfig) then) =
-      _$ReviewConfigCopyWithImpl<$Res, ReviewConfig>;
+    ReviewConfig value,
+    $Res Function(ReviewConfig) then,
+  ) = _$ReviewConfigCopyWithImpl<$Res, ReviewConfig>;
   @useResult
-  $Res call(
-      {bool autoReview,
-      Map<String, int> dimensionStrictness,
-      bool checkAiStyle,
-      bool checkPerspective,
-      bool checkPacing,
-      String aiModelId});
+  $Res call({
+    bool autoReview,
+    Map<String, int> dimensionStrictness,
+    bool checkAiStyle,
+    bool checkPerspective,
+    bool checkPacing,
+    String aiModelId,
+  });
 }
 
 /// @nodoc
@@ -846,6 +901,8 @@ class _$ReviewConfigCopyWithImpl<$Res, $Val extends ReviewConfig>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of ReviewConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -856,32 +913,35 @@ class _$ReviewConfigCopyWithImpl<$Res, $Val extends ReviewConfig>
     Object? checkPacing = null,
     Object? aiModelId = null,
   }) {
-    return _then(_value.copyWith(
-      autoReview: null == autoReview
-          ? _value.autoReview
-          : autoReview // ignore: cast_nullable_to_non_nullable
-              as bool,
-      dimensionStrictness: null == dimensionStrictness
-          ? _value.dimensionStrictness
-          : dimensionStrictness // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-      checkAiStyle: null == checkAiStyle
-          ? _value.checkAiStyle
-          : checkAiStyle // ignore: cast_nullable_to_non_nullable
-              as bool,
-      checkPerspective: null == checkPerspective
-          ? _value.checkPerspective
-          : checkPerspective // ignore: cast_nullable_to_non_nullable
-              as bool,
-      checkPacing: null == checkPacing
-          ? _value.checkPacing
-          : checkPacing // ignore: cast_nullable_to_non_nullable
-              as bool,
-      aiModelId: null == aiModelId
-          ? _value.aiModelId
-          : aiModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            autoReview: null == autoReview
+                ? _value.autoReview
+                : autoReview // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            dimensionStrictness: null == dimensionStrictness
+                ? _value.dimensionStrictness
+                : dimensionStrictness // ignore: cast_nullable_to_non_nullable
+                      as Map<String, int>,
+            checkAiStyle: null == checkAiStyle
+                ? _value.checkAiStyle
+                : checkAiStyle // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            checkPerspective: null == checkPerspective
+                ? _value.checkPerspective
+                : checkPerspective // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            checkPacing: null == checkPacing
+                ? _value.checkPacing
+                : checkPacing // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            aiModelId: null == aiModelId
+                ? _value.aiModelId
+                : aiModelId // ignore: cast_nullable_to_non_nullable
+                      as String,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -889,17 +949,19 @@ class _$ReviewConfigCopyWithImpl<$Res, $Val extends ReviewConfig>
 abstract class _$$ReviewConfigImplCopyWith<$Res>
     implements $ReviewConfigCopyWith<$Res> {
   factory _$$ReviewConfigImplCopyWith(
-          _$ReviewConfigImpl value, $Res Function(_$ReviewConfigImpl) then) =
-      __$$ReviewConfigImplCopyWithImpl<$Res>;
+    _$ReviewConfigImpl value,
+    $Res Function(_$ReviewConfigImpl) then,
+  ) = __$$ReviewConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {bool autoReview,
-      Map<String, int> dimensionStrictness,
-      bool checkAiStyle,
-      bool checkPerspective,
-      bool checkPacing,
-      String aiModelId});
+  $Res call({
+    bool autoReview,
+    Map<String, int> dimensionStrictness,
+    bool checkAiStyle,
+    bool checkPerspective,
+    bool checkPacing,
+    String aiModelId,
+  });
 }
 
 /// @nodoc
@@ -907,9 +969,12 @@ class __$$ReviewConfigImplCopyWithImpl<$Res>
     extends _$ReviewConfigCopyWithImpl<$Res, _$ReviewConfigImpl>
     implements _$$ReviewConfigImplCopyWith<$Res> {
   __$$ReviewConfigImplCopyWithImpl(
-      _$ReviewConfigImpl _value, $Res Function(_$ReviewConfigImpl) _then)
-      : super(_value, _then);
+    _$ReviewConfigImpl _value,
+    $Res Function(_$ReviewConfigImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of ReviewConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -920,46 +985,48 @@ class __$$ReviewConfigImplCopyWithImpl<$Res>
     Object? checkPacing = null,
     Object? aiModelId = null,
   }) {
-    return _then(_$ReviewConfigImpl(
-      autoReview: null == autoReview
-          ? _value.autoReview
-          : autoReview // ignore: cast_nullable_to_non_nullable
-              as bool,
-      dimensionStrictness: null == dimensionStrictness
-          ? _value._dimensionStrictness
-          : dimensionStrictness // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-      checkAiStyle: null == checkAiStyle
-          ? _value.checkAiStyle
-          : checkAiStyle // ignore: cast_nullable_to_non_nullable
-              as bool,
-      checkPerspective: null == checkPerspective
-          ? _value.checkPerspective
-          : checkPerspective // ignore: cast_nullable_to_non_nullable
-              as bool,
-      checkPacing: null == checkPacing
-          ? _value.checkPacing
-          : checkPacing // ignore: cast_nullable_to_non_nullable
-              as bool,
-      aiModelId: null == aiModelId
-          ? _value.aiModelId
-          : aiModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
+    return _then(
+      _$ReviewConfigImpl(
+        autoReview: null == autoReview
+            ? _value.autoReview
+            : autoReview // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        dimensionStrictness: null == dimensionStrictness
+            ? _value._dimensionStrictness
+            : dimensionStrictness // ignore: cast_nullable_to_non_nullable
+                  as Map<String, int>,
+        checkAiStyle: null == checkAiStyle
+            ? _value.checkAiStyle
+            : checkAiStyle // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        checkPerspective: null == checkPerspective
+            ? _value.checkPerspective
+            : checkPerspective // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        checkPacing: null == checkPacing
+            ? _value.checkPacing
+            : checkPacing // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        aiModelId: null == aiModelId
+            ? _value.aiModelId
+            : aiModelId // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ReviewConfigImpl implements _ReviewConfig {
-  const _$ReviewConfigImpl(
-      {this.autoReview = true,
-      final Map<String, int> dimensionStrictness = const {},
-      this.checkAiStyle = false,
-      this.checkPerspective = false,
-      this.checkPacing = false,
-      required this.aiModelId})
-      : _dimensionStrictness = dimensionStrictness;
+  const _$ReviewConfigImpl({
+    this.autoReview = true,
+    final Map<String, int> dimensionStrictness = const {},
+    this.checkAiStyle = false,
+    this.checkPerspective = false,
+    this.checkPacing = false,
+    required this.aiModelId,
+  }) : _dimensionStrictness = dimensionStrictness;
 
   factory _$ReviewConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReviewConfigImplFromJson(json);
@@ -977,7 +1044,7 @@ class _$ReviewConfigImpl implements _ReviewConfig {
     return EqualUnmodifiableMapView(_dimensionStrictness);
   }
 
-// 0-100
+  // 0-100
   @override
   @JsonKey()
   final bool checkAiStyle;
@@ -1002,8 +1069,10 @@ class _$ReviewConfigImpl implements _ReviewConfig {
             other is _$ReviewConfigImpl &&
             (identical(other.autoReview, autoReview) ||
                 other.autoReview == autoReview) &&
-            const DeepCollectionEquality()
-                .equals(other._dimensionStrictness, _dimensionStrictness) &&
+            const DeepCollectionEquality().equals(
+              other._dimensionStrictness,
+              _dimensionStrictness,
+            ) &&
             (identical(other.checkAiStyle, checkAiStyle) ||
                 other.checkAiStyle == checkAiStyle) &&
             (identical(other.checkPerspective, checkPerspective) ||
@@ -1014,18 +1083,21 @@ class _$ReviewConfigImpl implements _ReviewConfig {
                 other.aiModelId == aiModelId));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      autoReview,
-      const DeepCollectionEquality().hash(_dimensionStrictness),
-      checkAiStyle,
-      checkPerspective,
-      checkPacing,
-      aiModelId);
+    runtimeType,
+    autoReview,
+    const DeepCollectionEquality().hash(_dimensionStrictness),
+    checkAiStyle,
+    checkPerspective,
+    checkPacing,
+    aiModelId,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of ReviewConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ReviewConfigImplCopyWith<_$ReviewConfigImpl> get copyWith =>
@@ -1033,20 +1105,19 @@ class _$ReviewConfigImpl implements _ReviewConfig {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ReviewConfigImplToJson(
-      this,
-    );
+    return _$$ReviewConfigImplToJson(this);
   }
 }
 
 abstract class _ReviewConfig implements ReviewConfig {
-  const factory _ReviewConfig(
-      {final bool autoReview,
-      final Map<String, int> dimensionStrictness,
-      final bool checkAiStyle,
-      final bool checkPerspective,
-      final bool checkPacing,
-      required final String aiModelId}) = _$ReviewConfigImpl;
+  const factory _ReviewConfig({
+    final bool autoReview,
+    final Map<String, int> dimensionStrictness,
+    final bool checkAiStyle,
+    final bool checkPerspective,
+    final bool checkPacing,
+    required final String aiModelId,
+  }) = _$ReviewConfigImpl;
 
   factory _ReviewConfig.fromJson(Map<String, dynamic> json) =
       _$ReviewConfigImpl.fromJson;
@@ -1054,8 +1125,8 @@ abstract class _ReviewConfig implements ReviewConfig {
   @override
   bool get autoReview;
   @override
-  Map<String, int> get dimensionStrictness;
-  @override // 0-100
+  Map<String, int> get dimensionStrictness; // 0-100
+  @override
   bool get checkAiStyle;
   @override
   bool get checkPerspective;
@@ -1063,8 +1134,11 @@ abstract class _ReviewConfig implements ReviewConfig {
   bool get checkPacing;
   @override
   String get aiModelId;
+
+  /// Create a copy of ReviewConfig
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ReviewConfigImplCopyWith<_$ReviewConfigImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

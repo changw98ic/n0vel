@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/chat_context_builder.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../core/services/entity_creation_service.dart';
+import '../../../core/services/writer_intent_resolver.dart';
 import '../../../features/chat/domain/chat_message_entity.dart';
+import '../../../features/chat/data/chat_repository.dart';
+import '../../../features/editor/data/chapter_repository.dart';
+import '../../../features/inspiration/data/inspiration_repository.dart';
+import '../../../features/settings/data/character_repository.dart';
+import '../../../features/settings/data/relationship_repository.dart';
 import '../../../features/work/data/work_repository.dart';
+import '../../../features/work/data/volume_repository.dart';
 import '../../../features/work/domain/work.dart' as domain;
+import '../../../features/workflow/data/workflow_task_runner.dart';
+import '../../../features/workflow/domain/workflow_models.dart';
 import '../../../shared/data/base_business/base_controller.dart';
 
 class AIChatState {
@@ -25,10 +35,48 @@ class AIChatState {
   final isThinkingExpanded = false.obs;
 }
 
+class AIChatWorkflowDispatch {
+  final String taskId;
+  final WorkflowTaskStatus status;
+  final String displayText;
+
+  const AIChatWorkflowDispatch({
+    required this.taskId,
+    required this.status,
+    required this.displayText,
+  });
+}
+
+class _WorkflowTaskSpec {
+  final String name;
+  final String type;
+  final Map<String, dynamic> config;
+  final String assistantPrompt;
+
+  const _WorkflowTaskSpec({
+    required this.name,
+    required this.type,
+    required this.config,
+    required this.assistantPrompt,
+  });
+}
+
 class AIChatLogic extends BaseController {
   final AIChatState state = AIChatState();
   final ChatService _chatService = Get.find<ChatService>();
+  final ChatRepository _chatRepository = Get.find<ChatRepository>();
   final WorkRepository _workRepository = Get.find<WorkRepository>();
+  final WorkflowTaskRunner _workflowTaskRunner = Get.find<WorkflowTaskRunner>();
+  final WriterIntentResolver _intentResolver = WriterIntentResolver();
+  late final PersistedNovelSnapshotLoader _snapshotLoader =
+      PersistedNovelSnapshotLoader(
+        workRepository: Get.find<WorkRepository>(),
+        volumeRepository: Get.find<VolumeRepository>(),
+        chapterRepository: Get.find<ChapterRepository>(),
+        characterRepository: Get.find<CharacterRepository>(),
+        relationshipRepository: Get.find<RelationshipRepository>(),
+        inspirationRepository: Get.find<InspirationRepository>(),
+      );
 
   @override
   void onInit() {
@@ -98,17 +146,25 @@ class AIChatLogic extends BaseController {
   // Messages
   // ---------------------------------------------------------------------------
 
-  Future<void> sendMessage(String text) async {
+  Future<AIChatWorkflowDispatch?> sendMessage(String text) async {
     if (text.trim().isEmpty || state.isGenerating.value) return;
 
     // 如果没有当前对话，先创建一个
-    if (state.currentConversation.value == null) {
-      await createNewConversation();
-      if (state.currentConversation.value == null) return;
+    if (!await _ensureConversation()) {
+      return null;
     }
 
     final convId = state.currentConversation.value!.id;
-    final workId = state.selectedWorkId.value;
+    final workId = _resolvedWorkId;
+
+    final workflowDispatch = await _tryWorkflowRoute(
+      text: text,
+      workId: workId,
+    );
+    if (workflowDispatch != null) {
+      return workflowDispatch;
+    }
+
     state.isGenerating.value = true;
     state.streamingContent.value = '';
     state.pendingEntity.value = null;
@@ -182,6 +238,12 @@ class AIChatLogic extends BaseController {
           case ChatThinking():
             state.thinkingContent.value = event.thought;
             state.isThinkingExpanded.value = true;
+          case ChatBatchProgress():
+            break;
+          case ChatBatchChapterDone():
+            break;
+          case ChatBatchComplete():
+            break;
         }
       }
     } catch (e) {
@@ -189,6 +251,222 @@ class AIChatLogic extends BaseController {
     } finally {
       state.isGenerating.value = false;
       state.toolStatus.value = null;
+    }
+    return null;
+  }
+
+  Future<void> syncWorkflowTaskMessage(String taskId) async {
+    final task = await _workflowTaskRunner.getStatus(taskId);
+    if (task == null) {
+      return;
+    }
+    final displayText = await _workflowTaskRunner.getDisplayText(taskId);
+    final content = displayText.trim().isNotEmpty
+        ? displayText
+        : switch (task.status) {
+            WorkflowTaskStatus.waitingUserInput => '任务需要补充信息后才能继续执行。',
+            WorkflowTaskStatus.waitingReview => '任务已生成结果，当前等待审核确认。',
+            WorkflowTaskStatus.failed => task.errorMessage ?? '任务执行失败。',
+            _ => '任务状态：${task.status.name}',
+          };
+    await _appendAssistantMessage(
+      content,
+      metadata: <String, dynamic>{
+        'workflowTaskId': taskId,
+        'workflowStatus': task.status.name,
+      },
+    );
+  }
+
+  Future<void> refreshMessages() async {
+    final conversation = state.currentConversation.value;
+    if (conversation == null) {
+      return;
+    }
+    final messages = await _chatService.loadMessages(conversation.id);
+    state.messages.value = messages;
+  }
+
+  Future<bool> _ensureConversation() async {
+    if (state.currentConversation.value == null) {
+      await createNewConversation();
+    }
+    return state.currentConversation.value != null;
+  }
+
+  String? get _resolvedWorkId =>
+      state.selectedWorkId.value ?? state.currentConversation.value?.workId;
+
+  Future<AIChatWorkflowDispatch?> _tryWorkflowRoute({
+    required String text,
+    required String? workId,
+  }) async {
+    if (workId == null || workId.trim().isEmpty) {
+      return null;
+    }
+
+    final snapshot = await _snapshotLoader.load(workId);
+    final snapshotContent = snapshot?.content ?? '';
+    final spec = _buildWorkflowTaskSpec(
+      prompt: text,
+      snapshotContent: snapshotContent,
+    );
+    if (spec == null) {
+      return null;
+    }
+
+    state.isGenerating.value = true;
+    state.streamingContent.value = '';
+    state.pendingEntity.value = null;
+    state.toolStatus.value = null;
+    state.toolResults.clear();
+    state.thinkingContent.value = '';
+    state.isThinkingExpanded.value = false;
+
+    await _appendUserMessage(text);
+    final taskId = await _workflowTaskRunner.startTask(
+      workId: workId,
+      name: spec.name,
+      type: spec.type,
+      config: spec.config,
+    );
+    final status = await _workflowTaskRunner.getStatus(taskId);
+    final displayText = await _workflowTaskRunner.getDisplayText(taskId);
+    await _appendAssistantMessage(
+      displayText.trim().isNotEmpty ? displayText : spec.assistantPrompt,
+      metadata: <String, dynamic>{
+        'workflowTaskId': taskId,
+        'workflowStatus': status?.status.name ?? 'pending',
+      },
+    );
+    state.isGenerating.value = false;
+
+    return AIChatWorkflowDispatch(
+      taskId: taskId,
+      status: status?.status ?? WorkflowTaskStatus.pending,
+      displayText: displayText,
+    );
+  }
+
+  _WorkflowTaskSpec? _buildWorkflowTaskSpec({
+    required String prompt,
+    required String snapshotContent,
+  }) {
+    final resolved = _intentResolver.resolve(prompt);
+    switch (resolved.intent) {
+      case WriterIntent.chapterWriting:
+        return _WorkflowTaskSpec(
+          name: 'AI 对话续写',
+          type: 'generate',
+          config: <String, dynamic>{
+            'previousContent': snapshotContent,
+            'continuationRequest': prompt,
+          },
+          assistantPrompt: '已创建续写任务，正在生成结果。',
+        );
+      case WriterIntent.dialogueGeneration:
+        return _WorkflowTaskSpec(
+          name: 'AI 对话对白',
+          type: 'dialogue',
+          config: <String, dynamic>{
+            'sceneDescription': prompt,
+            'contextContent': snapshotContent,
+          },
+          assistantPrompt: '已创建对白任务，正在生成结果。',
+        );
+      case WriterIntent.planning:
+        return _WorkflowTaskSpec(
+          name: 'AI 对话剧情规划',
+          type: 'plot',
+          config: <String, dynamic>{
+            'chapterContent': snapshotContent,
+            'promptText': prompt,
+          },
+          assistantPrompt: '已创建剧情规划任务，正在生成结果。',
+        );
+      case WriterIntent.contentGeneration:
+        if (_containsAny(prompt, const ['提取', 'extract'])) {
+          return _WorkflowTaskSpec(
+            name: 'AI 对话设定提取',
+            type: 'extract',
+            config: <String, dynamic>{
+              'textContent': snapshotContent,
+            },
+            assistantPrompt: '已创建设定提取任务，正在生成结果。',
+          );
+        }
+        return _WorkflowTaskSpec(
+          name: 'AI 对话自定义任务',
+          type: 'custom_prompt',
+          config: <String, dynamic>{
+            'promptText': prompt,
+            'chapterContent': snapshotContent,
+          },
+          assistantPrompt: '已创建自定义任务，正在生成结果。',
+        );
+      case WriterIntent.review:
+      case WriterIntent.consistencyCheck:
+        return _WorkflowTaskSpec(
+          name: 'AI 对话审查任务',
+          type: 'review',
+          config: <String, dynamic>{
+            'chapterContent': snapshotContent,
+          },
+          assistantPrompt: '已创建审查任务，正在生成结果。',
+        );
+      case WriterIntent.worldbuilding:
+        return _WorkflowTaskSpec(
+          name: 'AI 对话世界观任务',
+          type: 'custom_prompt',
+          config: <String, dynamic>{
+            'promptText': prompt,
+            'chapterContent': snapshotContent,
+          },
+          assistantPrompt: '已创建世界观任务，正在生成结果。',
+        );
+      case WriterIntent.generalChat:
+      case WriterIntent.entityCreation:
+      case WriterIntent.contentSearch:
+        return null;
+    }
+  }
+
+  bool _containsAny(String text, List<String> keywords) {
+    final lower = text.toLowerCase();
+    return keywords.any(lower.contains);
+  }
+
+  Future<void> _appendUserMessage(String text) async {
+    final conversation = state.currentConversation.value;
+    if (conversation == null) {
+      return;
+    }
+    await _chatRepository.addMessage(
+      conversationId: conversation.id,
+      role: 'user',
+      content: text,
+    );
+    await refreshMessages();
+  }
+
+  Future<void> _appendAssistantMessage(
+    String text, {
+    Map<String, dynamic>? metadata,
+  }) async {
+    final conversation = state.currentConversation.value;
+    if (conversation == null) {
+      return;
+    }
+    await _chatRepository.addMessage(
+      conversationId: conversation.id,
+      role: 'assistant',
+      content: text,
+      metadata: metadata,
+    );
+    await refreshMessages();
+    if (state.messages.length <= 2) {
+      unawaited(_chatService.generateTitle(conversation.id));
+      unawaited(loadConversations());
     }
   }
 

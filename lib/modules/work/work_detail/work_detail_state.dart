@@ -12,3 +12,12 @@ class WorkDetailState {
   final isLoading = RxBool(true);
   final selectedPanel = Rx<WorkDetailPanel>(WorkDetailPanel.chapters);
 }
+
+
+WorkDetailPanel? workDetailPanelFromParameter(String? param) {
+  if (param == null) return null;
+  return WorkDetailPanel.values.cast<WorkDetailPanel?>().firstWhere(
+    (panel) => panel?.name == param,
+    orElse: () => null,
+  );
+}

@@ -12,7 +12,8 @@ part of 'word_count.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 /// @nodoc
 mixin _$WordCount {
@@ -21,7 +22,9 @@ mixin _$WordCount {
   int get punctuation => throw _privateConstructorUsedError;
   int get total => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WordCount
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $WordCountCopyWith<WordCount> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -44,6 +47,8 @@ class _$WordCountCopyWithImpl<$Res, $Val extends WordCount>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of WordCount
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -52,24 +57,27 @@ class _$WordCountCopyWithImpl<$Res, $Val extends WordCount>
     Object? punctuation = null,
     Object? total = null,
   }) {
-    return _then(_value.copyWith(
-      chineseChars: null == chineseChars
-          ? _value.chineseChars
-          : chineseChars // ignore: cast_nullable_to_non_nullable
-              as int,
-      englishWords: null == englishWords
-          ? _value.englishWords
-          : englishWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      punctuation: null == punctuation
-          ? _value.punctuation
-          : punctuation // ignore: cast_nullable_to_non_nullable
-              as int,
-      total: null == total
-          ? _value.total
-          : total // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            chineseChars: null == chineseChars
+                ? _value.chineseChars
+                : chineseChars // ignore: cast_nullable_to_non_nullable
+                      as int,
+            englishWords: null == englishWords
+                ? _value.englishWords
+                : englishWords // ignore: cast_nullable_to_non_nullable
+                      as int,
+            punctuation: null == punctuation
+                ? _value.punctuation
+                : punctuation // ignore: cast_nullable_to_non_nullable
+                      as int,
+            total: null == total
+                ? _value.total
+                : total // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -77,8 +85,9 @@ class _$WordCountCopyWithImpl<$Res, $Val extends WordCount>
 abstract class _$$WordCountImplCopyWith<$Res>
     implements $WordCountCopyWith<$Res> {
   factory _$$WordCountImplCopyWith(
-          _$WordCountImpl value, $Res Function(_$WordCountImpl) then) =
-      __$$WordCountImplCopyWithImpl<$Res>;
+    _$WordCountImpl value,
+    $Res Function(_$WordCountImpl) then,
+  ) = __$$WordCountImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({int chineseChars, int englishWords, int punctuation, int total});
@@ -89,9 +98,12 @@ class __$$WordCountImplCopyWithImpl<$Res>
     extends _$WordCountCopyWithImpl<$Res, _$WordCountImpl>
     implements _$$WordCountImplCopyWith<$Res> {
   __$$WordCountImplCopyWithImpl(
-      _$WordCountImpl _value, $Res Function(_$WordCountImpl) _then)
-      : super(_value, _then);
+    _$WordCountImpl _value,
+    $Res Function(_$WordCountImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of WordCount
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -100,36 +112,38 @@ class __$$WordCountImplCopyWithImpl<$Res>
     Object? punctuation = null,
     Object? total = null,
   }) {
-    return _then(_$WordCountImpl(
-      chineseChars: null == chineseChars
-          ? _value.chineseChars
-          : chineseChars // ignore: cast_nullable_to_non_nullable
-              as int,
-      englishWords: null == englishWords
-          ? _value.englishWords
-          : englishWords // ignore: cast_nullable_to_non_nullable
-              as int,
-      punctuation: null == punctuation
-          ? _value.punctuation
-          : punctuation // ignore: cast_nullable_to_non_nullable
-              as int,
-      total: null == total
-          ? _value.total
-          : total // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$WordCountImpl(
+        chineseChars: null == chineseChars
+            ? _value.chineseChars
+            : chineseChars // ignore: cast_nullable_to_non_nullable
+                  as int,
+        englishWords: null == englishWords
+            ? _value.englishWords
+            : englishWords // ignore: cast_nullable_to_non_nullable
+                  as int,
+        punctuation: null == punctuation
+            ? _value.punctuation
+            : punctuation // ignore: cast_nullable_to_non_nullable
+                  as int,
+        total: null == total
+            ? _value.total
+            : total // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$WordCountImpl extends _WordCount {
-  const _$WordCountImpl(
-      {required this.chineseChars,
-      required this.englishWords,
-      required this.punctuation,
-      required this.total})
-      : super._();
+  const _$WordCountImpl({
+    required this.chineseChars,
+    required this.englishWords,
+    required this.punctuation,
+    required this.total,
+  }) : super._();
 
   @override
   final int chineseChars;
@@ -163,7 +177,9 @@ class _$WordCountImpl extends _WordCount {
   int get hashCode =>
       Object.hash(runtimeType, chineseChars, englishWords, punctuation, total);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WordCount
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WordCountImplCopyWith<_$WordCountImpl> get copyWith =>
@@ -171,11 +187,12 @@ class _$WordCountImpl extends _WordCount {
 }
 
 abstract class _WordCount extends WordCount {
-  const factory _WordCount(
-      {required final int chineseChars,
-      required final int englishWords,
-      required final int punctuation,
-      required final int total}) = _$WordCountImpl;
+  const factory _WordCount({
+    required final int chineseChars,
+    required final int englishWords,
+    required final int punctuation,
+    required final int total,
+  }) = _$WordCountImpl;
   const _WordCount._() : super._();
 
   @override
@@ -186,8 +203,11 @@ abstract class _WordCount extends WordCount {
   int get punctuation;
   @override
   int get total;
+
+  /// Create a copy of WordCount
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WordCountImplCopyWith<_$WordCountImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

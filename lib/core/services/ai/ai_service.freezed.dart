@@ -12,7 +12,8 @@ part of 'ai_service.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 /// @nodoc
 mixin _$AIResponse {
@@ -27,7 +28,9 @@ mixin _$AIResponse {
   List<ToolCall> get toolCalls => throw _privateConstructorUsedError;
   String? get thinking => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AIResponse
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $AIResponseCopyWith<AIResponse> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -35,20 +38,22 @@ mixin _$AIResponse {
 /// @nodoc
 abstract class $AIResponseCopyWith<$Res> {
   factory $AIResponseCopyWith(
-          AIResponse value, $Res Function(AIResponse) then) =
-      _$AIResponseCopyWithImpl<$Res, AIResponse>;
+    AIResponse value,
+    $Res Function(AIResponse) then,
+  ) = _$AIResponseCopyWithImpl<$Res, AIResponse>;
   @useResult
-  $Res call(
-      {String content,
-      int inputTokens,
-      int outputTokens,
-      String modelId,
-      Duration responseTime,
-      bool fromCache,
-      String? requestId,
-      Map<String, dynamic>? metadata,
-      List<ToolCall> toolCalls,
-      String? thinking});
+  $Res call({
+    String content,
+    int inputTokens,
+    int outputTokens,
+    String modelId,
+    Duration responseTime,
+    bool fromCache,
+    String? requestId,
+    Map<String, dynamic>? metadata,
+    List<ToolCall> toolCalls,
+    String? thinking,
+  });
 }
 
 /// @nodoc
@@ -61,6 +66,8 @@ class _$AIResponseCopyWithImpl<$Res, $Val extends AIResponse>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of AIResponse
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -75,48 +82,51 @@ class _$AIResponseCopyWithImpl<$Res, $Val extends AIResponse>
     Object? toolCalls = null,
     Object? thinking = freezed,
   }) {
-    return _then(_value.copyWith(
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      inputTokens: null == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      outputTokens: null == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      modelId: null == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      responseTime: null == responseTime
-          ? _value.responseTime
-          : responseTime // ignore: cast_nullable_to_non_nullable
-              as Duration,
-      fromCache: null == fromCache
-          ? _value.fromCache
-          : fromCache // ignore: cast_nullable_to_non_nullable
-              as bool,
-      requestId: freezed == requestId
-          ? _value.requestId
-          : requestId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      metadata: freezed == metadata
-          ? _value.metadata
-          : metadata // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      toolCalls: null == toolCalls
-          ? _value.toolCalls
-          : toolCalls // ignore: cast_nullable_to_non_nullable
-              as List<ToolCall>,
-      thinking: freezed == thinking
-          ? _value.thinking
-          : thinking // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            content: null == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String,
+            inputTokens: null == inputTokens
+                ? _value.inputTokens
+                : inputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            outputTokens: null == outputTokens
+                ? _value.outputTokens
+                : outputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            modelId: null == modelId
+                ? _value.modelId
+                : modelId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            responseTime: null == responseTime
+                ? _value.responseTime
+                : responseTime // ignore: cast_nullable_to_non_nullable
+                      as Duration,
+            fromCache: null == fromCache
+                ? _value.fromCache
+                : fromCache // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            requestId: freezed == requestId
+                ? _value.requestId
+                : requestId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            metadata: freezed == metadata
+                ? _value.metadata
+                : metadata // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>?,
+            toolCalls: null == toolCalls
+                ? _value.toolCalls
+                : toolCalls // ignore: cast_nullable_to_non_nullable
+                      as List<ToolCall>,
+            thinking: freezed == thinking
+                ? _value.thinking
+                : thinking // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -124,21 +134,23 @@ class _$AIResponseCopyWithImpl<$Res, $Val extends AIResponse>
 abstract class _$$AIResponseImplCopyWith<$Res>
     implements $AIResponseCopyWith<$Res> {
   factory _$$AIResponseImplCopyWith(
-          _$AIResponseImpl value, $Res Function(_$AIResponseImpl) then) =
-      __$$AIResponseImplCopyWithImpl<$Res>;
+    _$AIResponseImpl value,
+    $Res Function(_$AIResponseImpl) then,
+  ) = __$$AIResponseImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String content,
-      int inputTokens,
-      int outputTokens,
-      String modelId,
-      Duration responseTime,
-      bool fromCache,
-      String? requestId,
-      Map<String, dynamic>? metadata,
-      List<ToolCall> toolCalls,
-      String? thinking});
+  $Res call({
+    String content,
+    int inputTokens,
+    int outputTokens,
+    String modelId,
+    Duration responseTime,
+    bool fromCache,
+    String? requestId,
+    Map<String, dynamic>? metadata,
+    List<ToolCall> toolCalls,
+    String? thinking,
+  });
 }
 
 /// @nodoc
@@ -146,9 +158,12 @@ class __$$AIResponseImplCopyWithImpl<$Res>
     extends _$AIResponseCopyWithImpl<$Res, _$AIResponseImpl>
     implements _$$AIResponseImplCopyWith<$Res> {
   __$$AIResponseImplCopyWithImpl(
-      _$AIResponseImpl _value, $Res Function(_$AIResponseImpl) _then)
-      : super(_value, _then);
+    _$AIResponseImpl _value,
+    $Res Function(_$AIResponseImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of AIResponse
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -163,67 +178,69 @@ class __$$AIResponseImplCopyWithImpl<$Res>
     Object? toolCalls = null,
     Object? thinking = freezed,
   }) {
-    return _then(_$AIResponseImpl(
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      inputTokens: null == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      outputTokens: null == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      modelId: null == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      responseTime: null == responseTime
-          ? _value.responseTime
-          : responseTime // ignore: cast_nullable_to_non_nullable
-              as Duration,
-      fromCache: null == fromCache
-          ? _value.fromCache
-          : fromCache // ignore: cast_nullable_to_non_nullable
-              as bool,
-      requestId: freezed == requestId
-          ? _value.requestId
-          : requestId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      metadata: freezed == metadata
-          ? _value._metadata
-          : metadata // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      toolCalls: null == toolCalls
-          ? _value._toolCalls
-          : toolCalls // ignore: cast_nullable_to_non_nullable
-              as List<ToolCall>,
-      thinking: freezed == thinking
-          ? _value.thinking
-          : thinking // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$AIResponseImpl(
+        content: null == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String,
+        inputTokens: null == inputTokens
+            ? _value.inputTokens
+            : inputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        outputTokens: null == outputTokens
+            ? _value.outputTokens
+            : outputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        modelId: null == modelId
+            ? _value.modelId
+            : modelId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        responseTime: null == responseTime
+            ? _value.responseTime
+            : responseTime // ignore: cast_nullable_to_non_nullable
+                  as Duration,
+        fromCache: null == fromCache
+            ? _value.fromCache
+            : fromCache // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        requestId: freezed == requestId
+            ? _value.requestId
+            : requestId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        metadata: freezed == metadata
+            ? _value._metadata
+            : metadata // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>?,
+        toolCalls: null == toolCalls
+            ? _value._toolCalls
+            : toolCalls // ignore: cast_nullable_to_non_nullable
+                  as List<ToolCall>,
+        thinking: freezed == thinking
+            ? _value.thinking
+            : thinking // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$AIResponseImpl implements _AIResponse {
-  const _$AIResponseImpl(
-      {required this.content,
-      required this.inputTokens,
-      required this.outputTokens,
-      required this.modelId,
-      required this.responseTime,
-      required this.fromCache,
-      this.requestId,
-      final Map<String, dynamic>? metadata,
-      final List<ToolCall> toolCalls = const [],
-      this.thinking})
-      : _metadata = metadata,
-        _toolCalls = toolCalls;
+  const _$AIResponseImpl({
+    required this.content,
+    required this.inputTokens,
+    required this.outputTokens,
+    required this.modelId,
+    required this.responseTime,
+    required this.fromCache,
+    this.requestId,
+    final Map<String, dynamic>? metadata,
+    final List<ToolCall> toolCalls = const [],
+    this.thinking,
+  }) : _metadata = metadata,
+       _toolCalls = toolCalls;
 
   @override
   final String content;
@@ -284,27 +301,32 @@ class _$AIResponseImpl implements _AIResponse {
             (identical(other.requestId, requestId) ||
                 other.requestId == requestId) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata) &&
-            const DeepCollectionEquality()
-                .equals(other._toolCalls, _toolCalls) &&
+            const DeepCollectionEquality().equals(
+              other._toolCalls,
+              _toolCalls,
+            ) &&
             (identical(other.thinking, thinking) ||
                 other.thinking == thinking));
   }
 
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      content,
-      inputTokens,
-      outputTokens,
-      modelId,
-      responseTime,
-      fromCache,
-      requestId,
-      const DeepCollectionEquality().hash(_metadata),
-      const DeepCollectionEquality().hash(_toolCalls),
-      thinking);
+    runtimeType,
+    content,
+    inputTokens,
+    outputTokens,
+    modelId,
+    responseTime,
+    fromCache,
+    requestId,
+    const DeepCollectionEquality().hash(_metadata),
+    const DeepCollectionEquality().hash(_toolCalls),
+    thinking,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AIResponse
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$AIResponseImplCopyWith<_$AIResponseImpl> get copyWith =>
@@ -312,17 +334,18 @@ class _$AIResponseImpl implements _AIResponse {
 }
 
 abstract class _AIResponse implements AIResponse {
-  const factory _AIResponse(
-      {required final String content,
-      required final int inputTokens,
-      required final int outputTokens,
-      required final String modelId,
-      required final Duration responseTime,
-      required final bool fromCache,
-      final String? requestId,
-      final Map<String, dynamic>? metadata,
-      final List<ToolCall> toolCalls,
-      final String? thinking}) = _$AIResponseImpl;
+  const factory _AIResponse({
+    required final String content,
+    required final int inputTokens,
+    required final int outputTokens,
+    required final String modelId,
+    required final Duration responseTime,
+    required final bool fromCache,
+    final String? requestId,
+    final Map<String, dynamic>? metadata,
+    final List<ToolCall> toolCalls,
+    final String? thinking,
+  }) = _$AIResponseImpl;
 
   @override
   String get content;
@@ -344,8 +367,11 @@ abstract class _AIResponse implements AIResponse {
   List<ToolCall> get toolCalls;
   @override
   String? get thinking;
+
+  /// Create a copy of AIResponse
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$AIResponseImplCopyWith<_$AIResponseImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -365,7 +391,9 @@ mixin _$AIRequestConfig {
   void Function(String)? get onStreamChunk =>
       throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AIRequestConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $AIRequestConfigCopyWith<AIRequestConfig> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -373,21 +401,23 @@ mixin _$AIRequestConfig {
 /// @nodoc
 abstract class $AIRequestConfigCopyWith<$Res> {
   factory $AIRequestConfigCopyWith(
-          AIRequestConfig value, $Res Function(AIRequestConfig) then) =
-      _$AIRequestConfigCopyWithImpl<$Res, AIRequestConfig>;
+    AIRequestConfig value,
+    $Res Function(AIRequestConfig) then,
+  ) = _$AIRequestConfigCopyWithImpl<$Res, AIRequestConfig>;
   @useResult
-  $Res call(
-      {AIFunction function,
-      String? systemPrompt,
-      String userPrompt,
-      Map<String, dynamic>? variables,
-      ModelTier? overrideTier,
-      String? overrideModelId,
-      bool useCache,
-      bool stream,
-      double temperature,
-      int? maxTokens,
-      void Function(String)? onStreamChunk});
+  $Res call({
+    AIFunction function,
+    String? systemPrompt,
+    String userPrompt,
+    Map<String, dynamic>? variables,
+    ModelTier? overrideTier,
+    String? overrideModelId,
+    bool useCache,
+    bool stream,
+    double temperature,
+    int? maxTokens,
+    void Function(String)? onStreamChunk,
+  });
 }
 
 /// @nodoc
@@ -400,6 +430,8 @@ class _$AIRequestConfigCopyWithImpl<$Res, $Val extends AIRequestConfig>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of AIRequestConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -415,75 +447,80 @@ class _$AIRequestConfigCopyWithImpl<$Res, $Val extends AIRequestConfig>
     Object? maxTokens = freezed,
     Object? onStreamChunk = freezed,
   }) {
-    return _then(_value.copyWith(
-      function: null == function
-          ? _value.function
-          : function // ignore: cast_nullable_to_non_nullable
-              as AIFunction,
-      systemPrompt: freezed == systemPrompt
-          ? _value.systemPrompt
-          : systemPrompt // ignore: cast_nullable_to_non_nullable
-              as String?,
-      userPrompt: null == userPrompt
-          ? _value.userPrompt
-          : userPrompt // ignore: cast_nullable_to_non_nullable
-              as String,
-      variables: freezed == variables
-          ? _value.variables
-          : variables // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      overrideTier: freezed == overrideTier
-          ? _value.overrideTier
-          : overrideTier // ignore: cast_nullable_to_non_nullable
-              as ModelTier?,
-      overrideModelId: freezed == overrideModelId
-          ? _value.overrideModelId
-          : overrideModelId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      useCache: null == useCache
-          ? _value.useCache
-          : useCache // ignore: cast_nullable_to_non_nullable
-              as bool,
-      stream: null == stream
-          ? _value.stream
-          : stream // ignore: cast_nullable_to_non_nullable
-              as bool,
-      temperature: null == temperature
-          ? _value.temperature
-          : temperature // ignore: cast_nullable_to_non_nullable
-              as double,
-      maxTokens: freezed == maxTokens
-          ? _value.maxTokens
-          : maxTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-      onStreamChunk: freezed == onStreamChunk
-          ? _value.onStreamChunk
-          : onStreamChunk // ignore: cast_nullable_to_non_nullable
-              as void Function(String)?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            function: null == function
+                ? _value.function
+                : function // ignore: cast_nullable_to_non_nullable
+                      as AIFunction,
+            systemPrompt: freezed == systemPrompt
+                ? _value.systemPrompt
+                : systemPrompt // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            userPrompt: null == userPrompt
+                ? _value.userPrompt
+                : userPrompt // ignore: cast_nullable_to_non_nullable
+                      as String,
+            variables: freezed == variables
+                ? _value.variables
+                : variables // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>?,
+            overrideTier: freezed == overrideTier
+                ? _value.overrideTier
+                : overrideTier // ignore: cast_nullable_to_non_nullable
+                      as ModelTier?,
+            overrideModelId: freezed == overrideModelId
+                ? _value.overrideModelId
+                : overrideModelId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            useCache: null == useCache
+                ? _value.useCache
+                : useCache // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            stream: null == stream
+                ? _value.stream
+                : stream // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            temperature: null == temperature
+                ? _value.temperature
+                : temperature // ignore: cast_nullable_to_non_nullable
+                      as double,
+            maxTokens: freezed == maxTokens
+                ? _value.maxTokens
+                : maxTokens // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            onStreamChunk: freezed == onStreamChunk
+                ? _value.onStreamChunk
+                : onStreamChunk // ignore: cast_nullable_to_non_nullable
+                      as void Function(String)?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$AIRequestConfigImplCopyWith<$Res>
     implements $AIRequestConfigCopyWith<$Res> {
-  factory _$$AIRequestConfigImplCopyWith(_$AIRequestConfigImpl value,
-          $Res Function(_$AIRequestConfigImpl) then) =
-      __$$AIRequestConfigImplCopyWithImpl<$Res>;
+  factory _$$AIRequestConfigImplCopyWith(
+    _$AIRequestConfigImpl value,
+    $Res Function(_$AIRequestConfigImpl) then,
+  ) = __$$AIRequestConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {AIFunction function,
-      String? systemPrompt,
-      String userPrompt,
-      Map<String, dynamic>? variables,
-      ModelTier? overrideTier,
-      String? overrideModelId,
-      bool useCache,
-      bool stream,
-      double temperature,
-      int? maxTokens,
-      void Function(String)? onStreamChunk});
+  $Res call({
+    AIFunction function,
+    String? systemPrompt,
+    String userPrompt,
+    Map<String, dynamic>? variables,
+    ModelTier? overrideTier,
+    String? overrideModelId,
+    bool useCache,
+    bool stream,
+    double temperature,
+    int? maxTokens,
+    void Function(String)? onStreamChunk,
+  });
 }
 
 /// @nodoc
@@ -491,9 +528,12 @@ class __$$AIRequestConfigImplCopyWithImpl<$Res>
     extends _$AIRequestConfigCopyWithImpl<$Res, _$AIRequestConfigImpl>
     implements _$$AIRequestConfigImplCopyWith<$Res> {
   __$$AIRequestConfigImplCopyWithImpl(
-      _$AIRequestConfigImpl _value, $Res Function(_$AIRequestConfigImpl) _then)
-      : super(_value, _then);
+    _$AIRequestConfigImpl _value,
+    $Res Function(_$AIRequestConfigImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of AIRequestConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -509,71 +549,73 @@ class __$$AIRequestConfigImplCopyWithImpl<$Res>
     Object? maxTokens = freezed,
     Object? onStreamChunk = freezed,
   }) {
-    return _then(_$AIRequestConfigImpl(
-      function: null == function
-          ? _value.function
-          : function // ignore: cast_nullable_to_non_nullable
-              as AIFunction,
-      systemPrompt: freezed == systemPrompt
-          ? _value.systemPrompt
-          : systemPrompt // ignore: cast_nullable_to_non_nullable
-              as String?,
-      userPrompt: null == userPrompt
-          ? _value.userPrompt
-          : userPrompt // ignore: cast_nullable_to_non_nullable
-              as String,
-      variables: freezed == variables
-          ? _value._variables
-          : variables // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      overrideTier: freezed == overrideTier
-          ? _value.overrideTier
-          : overrideTier // ignore: cast_nullable_to_non_nullable
-              as ModelTier?,
-      overrideModelId: freezed == overrideModelId
-          ? _value.overrideModelId
-          : overrideModelId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      useCache: null == useCache
-          ? _value.useCache
-          : useCache // ignore: cast_nullable_to_non_nullable
-              as bool,
-      stream: null == stream
-          ? _value.stream
-          : stream // ignore: cast_nullable_to_non_nullable
-              as bool,
-      temperature: null == temperature
-          ? _value.temperature
-          : temperature // ignore: cast_nullable_to_non_nullable
-              as double,
-      maxTokens: freezed == maxTokens
-          ? _value.maxTokens
-          : maxTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-      onStreamChunk: freezed == onStreamChunk
-          ? _value.onStreamChunk
-          : onStreamChunk // ignore: cast_nullable_to_non_nullable
-              as void Function(String)?,
-    ));
+    return _then(
+      _$AIRequestConfigImpl(
+        function: null == function
+            ? _value.function
+            : function // ignore: cast_nullable_to_non_nullable
+                  as AIFunction,
+        systemPrompt: freezed == systemPrompt
+            ? _value.systemPrompt
+            : systemPrompt // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        userPrompt: null == userPrompt
+            ? _value.userPrompt
+            : userPrompt // ignore: cast_nullable_to_non_nullable
+                  as String,
+        variables: freezed == variables
+            ? _value._variables
+            : variables // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>?,
+        overrideTier: freezed == overrideTier
+            ? _value.overrideTier
+            : overrideTier // ignore: cast_nullable_to_non_nullable
+                  as ModelTier?,
+        overrideModelId: freezed == overrideModelId
+            ? _value.overrideModelId
+            : overrideModelId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        useCache: null == useCache
+            ? _value.useCache
+            : useCache // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        stream: null == stream
+            ? _value.stream
+            : stream // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        temperature: null == temperature
+            ? _value.temperature
+            : temperature // ignore: cast_nullable_to_non_nullable
+                  as double,
+        maxTokens: freezed == maxTokens
+            ? _value.maxTokens
+            : maxTokens // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        onStreamChunk: freezed == onStreamChunk
+            ? _value.onStreamChunk
+            : onStreamChunk // ignore: cast_nullable_to_non_nullable
+                  as void Function(String)?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$AIRequestConfigImpl implements _AIRequestConfig {
-  const _$AIRequestConfigImpl(
-      {required this.function,
-      this.systemPrompt,
-      required this.userPrompt,
-      final Map<String, dynamic>? variables,
-      this.overrideTier,
-      this.overrideModelId,
-      this.useCache = true,
-      this.stream = true,
-      this.temperature = 1.0,
-      this.maxTokens,
-      this.onStreamChunk})
-      : _variables = variables;
+  const _$AIRequestConfigImpl({
+    required this.function,
+    this.systemPrompt,
+    required this.userPrompt,
+    final Map<String, dynamic>? variables,
+    this.overrideTier,
+    this.overrideModelId,
+    this.useCache = true,
+    this.stream = true,
+    this.temperature = 1.0,
+    this.maxTokens,
+    this.onStreamChunk,
+  }) : _variables = variables;
 
   @override
   final AIFunction function;
@@ -625,8 +667,10 @@ class _$AIRequestConfigImpl implements _AIRequestConfig {
                 other.systemPrompt == systemPrompt) &&
             (identical(other.userPrompt, userPrompt) ||
                 other.userPrompt == userPrompt) &&
-            const DeepCollectionEquality()
-                .equals(other._variables, _variables) &&
+            const DeepCollectionEquality().equals(
+              other._variables,
+              _variables,
+            ) &&
             (identical(other.overrideTier, overrideTier) ||
                 other.overrideTier == overrideTier) &&
             (identical(other.overrideModelId, overrideModelId) ||
@@ -644,40 +688,46 @@ class _$AIRequestConfigImpl implements _AIRequestConfig {
 
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      function,
-      systemPrompt,
-      userPrompt,
-      const DeepCollectionEquality().hash(_variables),
-      overrideTier,
-      overrideModelId,
-      useCache,
-      stream,
-      temperature,
-      maxTokens,
-      onStreamChunk);
+    runtimeType,
+    function,
+    systemPrompt,
+    userPrompt,
+    const DeepCollectionEquality().hash(_variables),
+    overrideTier,
+    overrideModelId,
+    useCache,
+    stream,
+    temperature,
+    maxTokens,
+    onStreamChunk,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AIRequestConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$AIRequestConfigImplCopyWith<_$AIRequestConfigImpl> get copyWith =>
       __$$AIRequestConfigImplCopyWithImpl<_$AIRequestConfigImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 }
 
 abstract class _AIRequestConfig implements AIRequestConfig {
-  const factory _AIRequestConfig(
-      {required final AIFunction function,
-      final String? systemPrompt,
-      required final String userPrompt,
-      final Map<String, dynamic>? variables,
-      final ModelTier? overrideTier,
-      final String? overrideModelId,
-      final bool useCache,
-      final bool stream,
-      final double temperature,
-      final int? maxTokens,
-      final void Function(String)? onStreamChunk}) = _$AIRequestConfigImpl;
+  const factory _AIRequestConfig({
+    required final AIFunction function,
+    final String? systemPrompt,
+    required final String userPrompt,
+    final Map<String, dynamic>? variables,
+    final ModelTier? overrideTier,
+    final String? overrideModelId,
+    final bool useCache,
+    final bool stream,
+    final double temperature,
+    final int? maxTokens,
+    final void Function(String)? onStreamChunk,
+  }) = _$AIRequestConfigImpl;
 
   @override
   AIFunction get function;
@@ -701,8 +751,11 @@ abstract class _AIRequestConfig implements AIRequestConfig {
   int? get maxTokens;
   @override
   void Function(String)? get onStreamChunk;
+
+  /// Create a copy of AIRequestConfig
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$AIRequestConfigImplCopyWith<_$AIRequestConfigImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

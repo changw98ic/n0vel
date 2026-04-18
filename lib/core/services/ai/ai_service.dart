@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:drift/drift.dart' hide JsonKey;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:get/get.dart' as getx;
-import 'package:uuid/uuid.dart';
 
 import '../../../features/ai_config/data/ai_config_repository.dart';
 import '../../../features/ai_config/domain/model_config.dart' as feature_config;
 import '../../database/database.dart';
+import 'ai_prompt_builder.dart';
+import 'ai_usage_tracker.dart';
 import 'cache/cache_manager.dart';
 import 'models/model_config.dart';
 import 'models/model_tier.dart';
@@ -21,6 +21,7 @@ import 'providers/ollama_provider.dart';
 import 'providers/openai_provider.dart';
 
 part 'ai_service.freezed.dart';
+part 'ai_service_request_helpers.dart';
 
 extension StringToAIProviderType on String {
   AIProviderType toProviderType() {
@@ -35,8 +36,7 @@ extension StringToAIProviderType on String {
   }
 }
 
-/// AI 请求调用的工具
-class ToolCall {
+/// AI 鐠囬攱鐪扮拫鍐暏閻ㄥ嫬浼愰崗?class ToolCall {
   final String id;
   final String name;
   final Map<String, dynamic> arguments;
@@ -140,23 +140,21 @@ class TokenCountException extends AIException {
 class AIService extends getx.GetxController {
   final PromptCacheManager _cacheManager;
   final AIProviderRegistry _providerRegistry;
-  final AppDatabase _db;
-  final Uuid _uuid;
+  final AIPromptBuilder _promptBuilder;
+  final AIUsageTracker _usageTracker;
 
   AIService()
     : _cacheManager = PromptCacheManager(),
       _providerRegistry = AIProviderRegistry(),
-      _db = getx.Get.find<AppDatabase>(),
-      _uuid = const Uuid() {
+      _promptBuilder = const AIPromptBuilder(),
+      _usageTracker = AIUsageTracker(getx.Get.find<AppDatabase>()) {
     _registerDefaultProviders();
   }
 
   void _registerDefaultProviders() {
-    _providerRegistry.register(OpenAIProvider());
-    _providerRegistry.register(AnthropicProvider());
-    _providerRegistry.register(OllamaProvider());
-    _providerRegistry.register(AzureOpenAIProvider());
-    _providerRegistry.register(CustomProvider());
+    for (final provider in buildDefaultAIProviders()) {
+      _providerRegistry.register(provider);
+    }
   }
 
   Future<AIResponse> generate({
@@ -173,14 +171,11 @@ class AIService extends getx.GetxController {
       final cached = _cacheManager.find(
         prompt,
         modelConfig.id,
-        params: {
-          'temperature': config.temperature,
-          'maxTokens': config.maxTokens,
-        },
+        params: buildAIServiceCacheParams(config),
       );
       if (cached != null) {
         stopwatch.stop();
-        await _recordAIUsage(
+        await _usageTracker.recordUsage(
           functionType: config.function.key,
           modelId: modelConfig.id,
           tier: modelConfig.tier.name,
@@ -190,13 +185,12 @@ class AIService extends getx.GetxController {
           responseTimeMs: stopwatch.elapsed.inMilliseconds,
           fromCache: true,
         );
-        return AIResponse(
-          content: cached.response,
-          inputTokens: cached.inputTokens ?? 0,
-          outputTokens: cached.outputTokens ?? 0,
+        return buildCachedAIResponse(
+          cachedResponse: cached.response,
+          inputTokens: cached.inputTokens,
+          outputTokens: cached.outputTokens,
           modelId: modelConfig.id,
           responseTime: stopwatch.elapsed,
-          fromCache: true,
         );
       }
     }
@@ -217,17 +211,20 @@ class AIService extends getx.GetxController {
       );
     }
 
-    final systemPrompt = _appendLang(
-        config.systemPrompt ?? _getDefaultSystemPrompt(config.function));
-    final userPrompt = _buildUserPrompt(prompt, config);
+    final promptBundle = buildAIServicePromptBundle(
+      promptBuilder: _promptBuilder,
+      prompt: prompt,
+      config: config,
+      respondInChinese: shouldAIServiceRespondInChinese(getx.Get.locale),
+    );
 
     try {
       final response = await _retryWithBackoff(
         () => provider.complete(
           config: providerConfig,
           model: modelConfig,
-          systemPrompt: systemPrompt,
-          userPrompt: userPrompt,
+          systemPrompt: promptBundle.systemPrompt,
+          userPrompt: promptBundle.userPrompt,
           temperature: config.temperature,
           maxTokens: config.maxTokens,
           stream: false,
@@ -240,16 +237,13 @@ class AIService extends getx.GetxController {
           prompt,
           modelConfig.id,
           response.content,
-          params: {
-            'temperature': config.temperature,
-            'maxTokens': config.maxTokens,
-          },
+          params: buildAIServiceCacheParams(config),
           inputTokens: response.inputTokens,
           outputTokens: response.outputTokens,
         );
       }
 
-      await _recordAIUsage(
+      await _usageTracker.recordUsage(
         functionType: config.function.key,
         modelId: modelConfig.id,
         tier: modelConfig.tier.name,
@@ -264,7 +258,7 @@ class AIService extends getx.GetxController {
 
       return response;
     } catch (error) {
-      await _recordAIUsage(
+      await _usageTracker.recordUsage(
         functionType: config.function.key,
         modelId: modelConfig.id,
         tier: modelConfig.tier.name,
@@ -304,9 +298,12 @@ class AIService extends getx.GetxController {
       );
     }
 
-    final systemPrompt = _appendLang(
-        config.systemPrompt ?? _getDefaultSystemPrompt(config.function));
-    final userPrompt = _buildUserPrompt(prompt, config);
+    final promptBundle = buildAIServicePromptBundle(
+      promptBuilder: _promptBuilder,
+      prompt: prompt,
+      config: config,
+      respondInChinese: shouldAIServiceRespondInChinese(getx.Get.locale),
+    );
     final controller = StreamController<String>();
     final buffer = StringBuffer();
     final stopwatch = Stopwatch()..start();
@@ -324,8 +321,8 @@ class AIService extends getx.GetxController {
         () => provider.complete(
           config: providerConfig,
           model: modelConfig,
-          systemPrompt: systemPrompt,
-          userPrompt: userPrompt,
+          systemPrompt: promptBundle.systemPrompt,
+          userPrompt: promptBundle.userPrompt,
           temperature: config.temperature,
           maxTokens: config.maxTokens,
           stream: true,
@@ -342,7 +339,7 @@ class AIService extends getx.GetxController {
           .then((_) async {
             stopwatch.stop();
             final inputTokens = await provider.countTokens(
-              '$systemPrompt\n$userPrompt',
+              '${promptBundle.systemPrompt}\n${promptBundle.userPrompt}',
               modelConfig.modelName,
             );
             final outputTokens = await provider.countTokens(
@@ -354,15 +351,12 @@ class AIService extends getx.GetxController {
                 prompt,
                 modelConfig.id,
                 buffer.toString(),
-                params: {
-                  'temperature': config.temperature,
-                  'maxTokens': config.maxTokens,
-                },
+                params: buildAIServiceCacheParams(config),
                 inputTokens: inputTokens,
                 outputTokens: outputTokens,
               );
             }
-            await _recordAIUsage(
+            await _usageTracker.recordUsage(
               functionType: config.function.key,
               modelId: modelConfig.id,
               tier: modelConfig.tier.name,
@@ -376,7 +370,7 @@ class AIService extends getx.GetxController {
           })
           .catchError((error) async {
             stopwatch.stop();
-            await _recordAIUsage(
+            await _usageTracker.recordUsage(
               functionType: config.function.key,
               modelId: modelConfig.id,
               tier: modelConfig.tier.name,
@@ -418,48 +412,8 @@ class AIService extends getx.GetxController {
     return repo.getCoreProviderConfig(featureTier);
   }
 
-  String _getDefaultSystemPrompt(AIFunction function) {
-    return switch (function) {
-      AIFunction.continuation => '你是一位专业的小说作家助手，请根据上下文自然续写。',
-      AIFunction.dialogue => '你是一位专业的小说对话作家，请生成符合角色设定的对话。',
-      AIFunction.characterSimulation => '你是一位专业的角色扮演助手，请根据角色设定进行推演。',
-      AIFunction.review => '你是一位专业的小说编辑，请从一致性、逻辑和节奏维度审查内容。',
-      AIFunction.extraction => '你是一位专业的设定提取助手，请提取角色、地点、物品等信息。',
-      AIFunction.consistencyCheck => '你是一位专业的一致性检查助手，请检查内容中的设定冲突。',
-      AIFunction.timelineExtract => '你是一位专业的时间线提取助手，请提取事件顺序。',
-      AIFunction.oocDetection => '你是一位专业的角色 OOC 检测助手，请检查角色行为是否符合设定。',
-      AIFunction.aiStyleDetection => '你是一位专业的 AI 文风检测助手，请识别明显的 AI 痕迹。',
-      AIFunction.perspectiveCheck => '你是一位专业的视角检测助手，请检查叙事视角是否一致。',
-      AIFunction.pacingAnalysis => '你是一位专业的节奏分析助手，请分析叙事节奏是否合理。',
-      AIFunction.povGeneration => '你是一位专业的视角生成助手，请从指定角色视角重写内容。',
-      AIFunction.chat => '你是一位专业的小说写作助手，请与用户进行友好的对话交流，帮助解决写作相关问题。',
-      AIFunction.entityCreation => '你是一位专业的小说设定创建助手。根据用户的描述生成完整的角色、地点、物品或势力设定。',
-      AIFunction.entityExtraction => '你是一位专业的设定提取助手，请从文本中提取角色、地点、物品等实体信息。',
-    };
-  }
-
-  /// 根据当前 locale 追加语言指令
-  String _appendLang(String systemPrompt) {
-    final isZh = getx.Get.locale?.languageCode.startsWith('zh') ?? true;
-    final langSuffix = isZh ? '请务必使用中文回复。' : 'Please respond in English.';
-    return '$systemPrompt\n$langSuffix';
-  }
-
-  String _buildUserPrompt(String prompt, AIRequestConfig config) {
-    var result = prompt;
-    final variables = config.variables;
-    if (variables != null) {
-      variables.forEach((key, value) {
-        result = result.replaceAll('{$key}', value.toString());
-      });
-    }
-    return result;
-  }
-
-  /// 可重试的 HTTP 状态码
   static const _retryableStatusCodes = {408, 429, 500, 502, 503, 504};
 
-  /// 带指数退避的重试
   Future<T> _retryWithBackoff<T>(
     Future<T> Function() fn, {
     required int maxRetries,
@@ -477,7 +431,10 @@ class AIService extends getx.GetxController {
         attempt++;
         if (attempt > maxRetries) rethrow;
         final delay = Duration(
-          milliseconds: (1000 * (1 << attempt)) + Random().nextInt(1000),
+          milliseconds: buildAIRetryDelayMs(
+            attempt: attempt,
+            random: Random(),
+          ),
         );
         await Future.delayed(delay);
       }
@@ -490,8 +447,7 @@ class AIService extends getx.GetxController {
 
   CacheStats get cacheStats => _cacheManager.stats;
 
-  /// 使用原生 tool calling 生成
-  /// 直接调用 Provider 的 completeWithTools，支持原生 function calling
+  /// 娴ｈ法鏁ら崢鐔烘晸 tool calling 閻㈢喐鍨?  /// 閻╁瓨甯寸拫鍐暏 Provider 閻?completeWithTools閿涘本鏁幐浣稿斧閻?function calling
   Future<AIResponse> generateWithTools({
     required String prompt,
     required AIRequestConfig config,
@@ -519,17 +475,20 @@ class AIService extends getx.GetxController {
       );
     }
 
-    final systemPrompt = _appendLang(
-        config.systemPrompt ?? _getDefaultSystemPrompt(config.function));
-    final userPrompt = _buildUserPrompt(prompt, config);
+    final promptBundle = buildAIServicePromptBundle(
+      promptBuilder: _promptBuilder,
+      prompt: prompt,
+      config: config,
+      respondInChinese: shouldAIServiceRespondInChinese(getx.Get.locale),
+    );
 
     try {
       final response = await _retryWithBackoff(
         () => provider.completeWithTools(
           config: providerConfig,
           model: modelConfig,
-          systemPrompt: systemPrompt,
-          userPrompt: userPrompt,
+          systemPrompt: promptBundle.systemPrompt,
+          userPrompt: promptBundle.userPrompt,
           tools: tools,
           temperature: config.temperature,
           maxTokens: config.maxTokens,
@@ -537,7 +496,7 @@ class AIService extends getx.GetxController {
         maxRetries: providerConfig.maxRetries,
       );
 
-      await _recordAIUsage(
+      await _usageTracker.recordUsage(
         functionType: config.function.key,
         modelId: modelConfig.id,
         tier: modelConfig.tier.name,
@@ -552,7 +511,7 @@ class AIService extends getx.GetxController {
 
       return response;
     } catch (error) {
-      await _recordAIUsage(
+      await _usageTracker.recordUsage(
         functionType: config.function.key,
         modelId: modelConfig.id,
         tier: modelConfig.tier.name,
@@ -567,11 +526,10 @@ class AIService extends getx.GetxController {
     }
   }
 
-  /// 暴露供应商注册表（AgentService 等上层服务需要）
+  /// 閺嗘挳婀舵笟娑樼安閸熷棙鏁為崘宀冦€冮敍鍦揼entService 缁涘绗傜仦鍌涙箛閸旓繝娓剁憰渚婄礆
   AIProviderRegistry get providerRegistry => _providerRegistry;
 
-  /// 解析供应商配置（供 AgentService 等上层服务使用）
-  /// 返回解析后的 ModelConfig、ProviderConfig 和 AIProvider
+  /// 鐟欙絾鐎芥笟娑樼安閸熷棝鍘ょ純顕嗙礄娓?AgentService 缁涘绗傜仦鍌涙箛閸斺€插▏閻㈩煉绱?  /// 鏉╂柨娲栫憴锝嗙€介崥搴ｆ畱 ModelConfig閵嗕赋roviderConfig 閸?AIProvider
   Future<({ModelConfig model, ProviderConfig config, AIProvider provider})>
       resolveProvider(AIRequestConfig config) async {
     final modelConfig = await _getModelConfig(config);
@@ -602,141 +560,6 @@ class AIService extends getx.GetxController {
     );
   }
 
-  Future<void> _recordAIUsage({
-    required String functionType,
-    required String modelId,
-    required String tier,
-    required String status,
-    required int inputTokens,
-    required int outputTokens,
-    required int responseTimeMs,
-    String? errorMessage,
-    String? requestId,
-    required bool fromCache,
-    String? workId,
-    Map<String, dynamic>? metadata,
-  }) async {
-    final record = AIUsageRecordsCompanion.insert(
-      id: _uuid.v4(),
-      workId: Value(workId),
-      functionType: functionType,
-      modelId: modelId,
-      tier: tier,
-      status: status,
-      inputTokens: Value(inputTokens),
-      outputTokens: Value(outputTokens),
-      totalTokens: Value(inputTokens + outputTokens),
-      responseTimeMs: Value(responseTimeMs),
-      errorMessage: Value(errorMessage),
-      requestId: Value(requestId),
-      fromCache: Value(fromCache),
-      metadata: Value(metadata?.toString()),
-      createdAt: DateTime.now(),
-    );
-
-    await _db.into(_db.aIUsageRecords).insert(record);
-
-    await _updateDailySummary(
-      functionType: functionType,
-      modelId: modelId,
-      tier: tier,
-      status: status,
-      inputTokens: inputTokens,
-      outputTokens: outputTokens,
-      responseTimeMs: responseTimeMs,
-      fromCache: fromCache,
-      workId: workId,
-    );
-  }
-
-  Future<void> _updateDailySummary({
-    required String functionType,
-    required String modelId,
-    required String tier,
-    required String status,
-    required int inputTokens,
-    required int outputTokens,
-    required int responseTimeMs,
-    required bool fromCache,
-    String? workId,
-  }) async {
-    final today = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
-
-    final existing =
-        await (_db.select(_db.aIUsageSummaries)
-              ..where(
-                (table) =>
-                    table.workId.equalsNullable(workId) &
-                    table.modelId.equals(modelId) &
-                    table.functionType.equalsNullable(functionType) &
-                    table.date.equals(today),
-              )
-              ..limit(1))
-            .get();
-
-    if (existing.isNotEmpty) {
-      final summary = existing.first;
-      await (_db.update(
-        _db.aIUsageSummaries,
-      )..where((table) => table.id.equals(summary.id))).write(
-        AIUsageSummariesCompanion(
-          requestCount: Value(summary.requestCount + 1),
-          successCount: Value(
-            status == 'success'
-                ? summary.successCount + 1
-                : summary.successCount,
-          ),
-          errorCount: Value(
-            status == 'error' ? summary.errorCount + 1 : summary.errorCount,
-          ),
-          cachedCount: Value(
-            fromCache ? summary.cachedCount + 1 : summary.cachedCount,
-          ),
-          totalInputTokens: Value(summary.totalInputTokens + inputTokens),
-          totalOutputTokens: Value(summary.totalOutputTokens + outputTokens),
-          totalTokens: Value(summary.totalTokens + inputTokens + outputTokens),
-          totalResponseTimeMs: Value(
-            summary.totalResponseTimeMs + responseTimeMs,
-          ),
-          avgResponseTimeMs: Value(
-            (summary.totalResponseTimeMs + responseTimeMs) ~/
-                (summary.requestCount + 1),
-          ),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-      return;
-    }
-
-    await _db
-        .into(_db.aIUsageSummaries)
-        .insert(
-          AIUsageSummariesCompanion.insert(
-            id: _uuid.v4(),
-            workId: Value(workId),
-            modelId: modelId,
-            tier: tier,
-            functionType: Value(functionType),
-            date: today,
-            requestCount: const Value(1),
-            successCount: Value(status == 'success' ? 1 : 0),
-            errorCount: Value(status == 'error' ? 1 : 0),
-            cachedCount: Value(fromCache ? 1 : 0),
-            totalInputTokens: Value(inputTokens),
-            totalOutputTokens: Value(outputTokens),
-            totalTokens: Value(inputTokens + outputTokens),
-            totalResponseTimeMs: Value(responseTimeMs),
-            avgResponseTimeMs: Value(responseTimeMs),
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        );
-  }
-
   Future<List<AIUsageRecord>> getAIUsageStatistics({
     String? workId,
     DateTime? startDate,
@@ -744,26 +567,13 @@ class AIService extends getx.GetxController {
     String? functionType,
     int limit = 100,
   }) async {
-    final query = _db.select(_db.aIUsageRecords);
-
-    if (workId != null) {
-      query.where((table) => table.workId.equals(workId));
-    }
-    if (startDate != null) {
-      query.where((table) => table.createdAt.isBiggerOrEqualValue(startDate));
-    }
-    if (endDate != null) {
-      query.where((table) => table.createdAt.isSmallerOrEqualValue(endDate));
-    }
-    if (functionType != null) {
-      query.where((table) => table.functionType.equals(functionType));
-    }
-
-    query
-      ..orderBy([(table) => OrderingTerm.desc(table.createdAt)])
-      ..limit(limit);
-
-    return query.get();
+    return _usageTracker.getUsageStatistics(
+      workId: workId,
+      startDate: startDate,
+      endDate: endDate,
+      functionType: functionType,
+      limit: limit,
+    );
   }
 
   Future<List<AIUsageSummary>> getAIUsageSummaries({
@@ -772,23 +582,12 @@ class AIService extends getx.GetxController {
     DateTime? endDate,
     String? modelId,
   }) async {
-    final query = _db.select(_db.aIUsageSummaries);
-
-    if (workId != null) {
-      query.where((table) => table.workId.equals(workId));
-    }
-    if (startDate != null) {
-      query.where((table) => table.date.isBiggerOrEqualValue(startDate));
-    }
-    if (endDate != null) {
-      query.where((table) => table.date.isSmallerOrEqualValue(endDate));
-    }
-    if (modelId != null) {
-      query.where((table) => table.modelId.equals(modelId));
-    }
-
-    query.orderBy([(table) => OrderingTerm.desc(table.date)]);
-    return query.get();
+    return _usageTracker.getUsageSummaries(
+      workId: workId,
+      startDate: startDate,
+      endDate: endDate,
+      modelId: modelId,
+    );
   }
 
   Future<Map<String, dynamic>> getModelUsageStats({
@@ -796,40 +595,14 @@ class AIService extends getx.GetxController {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final summaries = await getAIUsageSummaries(
+    return _usageTracker.getModelUsageStats(
       workId: workId,
       startDate: startDate,
       endDate: endDate,
     );
-
-    final result = <String, Map<String, dynamic>>{};
-    for (final summary in summaries) {
-      result.putIfAbsent(summary.modelId, () {
-        return <String, dynamic>{
-          'totalTokens': 0,
-          'totalRequests': 0,
-          'totalCost': 0.0,
-          'avgResponseTime': 0,
-          'tier': summary.tier,
-        };
-      });
-
-      final entry = result[summary.modelId]!;
-      entry['totalTokens'] += summary.totalTokens;
-      entry['totalRequests'] += summary.requestCount;
-      entry['totalCost'] += summary.estimatedCost;
-      entry['avgResponseTime'] =
-          ((entry['avgResponseTime'] as int) + summary.avgResponseTimeMs) ~/ 2;
-    }
-
-    return result;
   }
 
   feature_config.ModelTier _toFeatureTier(ModelTier tier) {
-    return switch (tier) {
-      ModelTier.thinking => feature_config.ModelTier.thinking,
-      ModelTier.middle => feature_config.ModelTier.middle,
-      ModelTier.fast => feature_config.ModelTier.fast,
-    };
+    return toAIServiceFeatureTier(tier);
   }
 }

@@ -12,7 +12,8 @@ part of 'token_usage.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 /// @nodoc
 mixin _$TokenUsage {
@@ -21,7 +22,9 @@ mixin _$TokenUsage {
   String get modelId => throw _privateConstructorUsedError;
   DateTime get timestamp => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TokenUsage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $TokenUsageCopyWith<TokenUsage> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -29,11 +32,16 @@ mixin _$TokenUsage {
 /// @nodoc
 abstract class $TokenUsageCopyWith<$Res> {
   factory $TokenUsageCopyWith(
-          TokenUsage value, $Res Function(TokenUsage) then) =
-      _$TokenUsageCopyWithImpl<$Res, TokenUsage>;
+    TokenUsage value,
+    $Res Function(TokenUsage) then,
+  ) = _$TokenUsageCopyWithImpl<$Res, TokenUsage>;
   @useResult
-  $Res call(
-      {int inputTokens, int outputTokens, String modelId, DateTime timestamp});
+  $Res call({
+    int inputTokens,
+    int outputTokens,
+    String modelId,
+    DateTime timestamp,
+  });
 }
 
 /// @nodoc
@@ -46,6 +54,8 @@ class _$TokenUsageCopyWithImpl<$Res, $Val extends TokenUsage>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of TokenUsage
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -54,24 +64,27 @@ class _$TokenUsageCopyWithImpl<$Res, $Val extends TokenUsage>
     Object? modelId = null,
     Object? timestamp = null,
   }) {
-    return _then(_value.copyWith(
-      inputTokens: null == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      outputTokens: null == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      modelId: null == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      timestamp: null == timestamp
-          ? _value.timestamp
-          : timestamp // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            inputTokens: null == inputTokens
+                ? _value.inputTokens
+                : inputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            outputTokens: null == outputTokens
+                ? _value.outputTokens
+                : outputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            modelId: null == modelId
+                ? _value.modelId
+                : modelId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            timestamp: null == timestamp
+                ? _value.timestamp
+                : timestamp // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -79,12 +92,17 @@ class _$TokenUsageCopyWithImpl<$Res, $Val extends TokenUsage>
 abstract class _$$TokenUsageImplCopyWith<$Res>
     implements $TokenUsageCopyWith<$Res> {
   factory _$$TokenUsageImplCopyWith(
-          _$TokenUsageImpl value, $Res Function(_$TokenUsageImpl) then) =
-      __$$TokenUsageImplCopyWithImpl<$Res>;
+    _$TokenUsageImpl value,
+    $Res Function(_$TokenUsageImpl) then,
+  ) = __$$TokenUsageImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int inputTokens, int outputTokens, String modelId, DateTime timestamp});
+  $Res call({
+    int inputTokens,
+    int outputTokens,
+    String modelId,
+    DateTime timestamp,
+  });
 }
 
 /// @nodoc
@@ -92,9 +110,12 @@ class __$$TokenUsageImplCopyWithImpl<$Res>
     extends _$TokenUsageCopyWithImpl<$Res, _$TokenUsageImpl>
     implements _$$TokenUsageImplCopyWith<$Res> {
   __$$TokenUsageImplCopyWithImpl(
-      _$TokenUsageImpl _value, $Res Function(_$TokenUsageImpl) _then)
-      : super(_value, _then);
+    _$TokenUsageImpl _value,
+    $Res Function(_$TokenUsageImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of TokenUsage
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -103,36 +124,38 @@ class __$$TokenUsageImplCopyWithImpl<$Res>
     Object? modelId = null,
     Object? timestamp = null,
   }) {
-    return _then(_$TokenUsageImpl(
-      inputTokens: null == inputTokens
-          ? _value.inputTokens
-          : inputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      outputTokens: null == outputTokens
-          ? _value.outputTokens
-          : outputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      modelId: null == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      timestamp: null == timestamp
-          ? _value.timestamp
-          : timestamp // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$TokenUsageImpl(
+        inputTokens: null == inputTokens
+            ? _value.inputTokens
+            : inputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        outputTokens: null == outputTokens
+            ? _value.outputTokens
+            : outputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        modelId: null == modelId
+            ? _value.modelId
+            : modelId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        timestamp: null == timestamp
+            ? _value.timestamp
+            : timestamp // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$TokenUsageImpl extends _TokenUsage {
-  const _$TokenUsageImpl(
-      {required this.inputTokens,
-      required this.outputTokens,
-      required this.modelId,
-      required this.timestamp})
-      : super._();
+  const _$TokenUsageImpl({
+    required this.inputTokens,
+    required this.outputTokens,
+    required this.modelId,
+    required this.timestamp,
+  }) : super._();
 
   @override
   final int inputTokens;
@@ -166,7 +189,9 @@ class _$TokenUsageImpl extends _TokenUsage {
   int get hashCode =>
       Object.hash(runtimeType, inputTokens, outputTokens, modelId, timestamp);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TokenUsage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$TokenUsageImplCopyWith<_$TokenUsageImpl> get copyWith =>
@@ -174,11 +199,12 @@ class _$TokenUsageImpl extends _TokenUsage {
 }
 
 abstract class _TokenUsage extends TokenUsage {
-  const factory _TokenUsage(
-      {required final int inputTokens,
-      required final int outputTokens,
-      required final String modelId,
-      required final DateTime timestamp}) = _$TokenUsageImpl;
+  const factory _TokenUsage({
+    required final int inputTokens,
+    required final int outputTokens,
+    required final String modelId,
+    required final DateTime timestamp,
+  }) = _$TokenUsageImpl;
   const _TokenUsage._() : super._();
 
   @override
@@ -189,8 +215,11 @@ abstract class _TokenUsage extends TokenUsage {
   String get modelId;
   @override
   DateTime get timestamp;
+
+  /// Create a copy of TokenUsage
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TokenUsageImplCopyWith<_$TokenUsageImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -204,7 +233,9 @@ mixin _$TokenUsageStats {
   Map<String, int> get byFunction => throw _privateConstructorUsedError;
   Map<String, int> get byModel => throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TokenUsageStats
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $TokenUsageStatsCopyWith<TokenUsageStats> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -212,16 +243,18 @@ mixin _$TokenUsageStats {
 /// @nodoc
 abstract class $TokenUsageStatsCopyWith<$Res> {
   factory $TokenUsageStatsCopyWith(
-          TokenUsageStats value, $Res Function(TokenUsageStats) then) =
-      _$TokenUsageStatsCopyWithImpl<$Res, TokenUsageStats>;
+    TokenUsageStats value,
+    $Res Function(TokenUsageStats) then,
+  ) = _$TokenUsageStatsCopyWithImpl<$Res, TokenUsageStats>;
   @useResult
-  $Res call(
-      {int totalInputTokens,
-      int totalOutputTokens,
-      int requestCount,
-      double estimatedCost,
-      Map<String, int> byFunction,
-      Map<String, int> byModel});
+  $Res call({
+    int totalInputTokens,
+    int totalOutputTokens,
+    int requestCount,
+    double estimatedCost,
+    Map<String, int> byFunction,
+    Map<String, int> byModel,
+  });
 }
 
 /// @nodoc
@@ -234,6 +267,8 @@ class _$TokenUsageStatsCopyWithImpl<$Res, $Val extends TokenUsageStats>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of TokenUsageStats
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -244,50 +279,55 @@ class _$TokenUsageStatsCopyWithImpl<$Res, $Val extends TokenUsageStats>
     Object? byFunction = null,
     Object? byModel = null,
   }) {
-    return _then(_value.copyWith(
-      totalInputTokens: null == totalInputTokens
-          ? _value.totalInputTokens
-          : totalInputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalOutputTokens: null == totalOutputTokens
-          ? _value.totalOutputTokens
-          : totalOutputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      requestCount: null == requestCount
-          ? _value.requestCount
-          : requestCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      estimatedCost: null == estimatedCost
-          ? _value.estimatedCost
-          : estimatedCost // ignore: cast_nullable_to_non_nullable
-              as double,
-      byFunction: null == byFunction
-          ? _value.byFunction
-          : byFunction // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-      byModel: null == byModel
-          ? _value.byModel
-          : byModel // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            totalInputTokens: null == totalInputTokens
+                ? _value.totalInputTokens
+                : totalInputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            totalOutputTokens: null == totalOutputTokens
+                ? _value.totalOutputTokens
+                : totalOutputTokens // ignore: cast_nullable_to_non_nullable
+                      as int,
+            requestCount: null == requestCount
+                ? _value.requestCount
+                : requestCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            estimatedCost: null == estimatedCost
+                ? _value.estimatedCost
+                : estimatedCost // ignore: cast_nullable_to_non_nullable
+                      as double,
+            byFunction: null == byFunction
+                ? _value.byFunction
+                : byFunction // ignore: cast_nullable_to_non_nullable
+                      as Map<String, int>,
+            byModel: null == byModel
+                ? _value.byModel
+                : byModel // ignore: cast_nullable_to_non_nullable
+                      as Map<String, int>,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$TokenUsageStatsImplCopyWith<$Res>
     implements $TokenUsageStatsCopyWith<$Res> {
-  factory _$$TokenUsageStatsImplCopyWith(_$TokenUsageStatsImpl value,
-          $Res Function(_$TokenUsageStatsImpl) then) =
-      __$$TokenUsageStatsImplCopyWithImpl<$Res>;
+  factory _$$TokenUsageStatsImplCopyWith(
+    _$TokenUsageStatsImpl value,
+    $Res Function(_$TokenUsageStatsImpl) then,
+  ) = __$$TokenUsageStatsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int totalInputTokens,
-      int totalOutputTokens,
-      int requestCount,
-      double estimatedCost,
-      Map<String, int> byFunction,
-      Map<String, int> byModel});
+  $Res call({
+    int totalInputTokens,
+    int totalOutputTokens,
+    int requestCount,
+    double estimatedCost,
+    Map<String, int> byFunction,
+    Map<String, int> byModel,
+  });
 }
 
 /// @nodoc
@@ -295,9 +335,12 @@ class __$$TokenUsageStatsImplCopyWithImpl<$Res>
     extends _$TokenUsageStatsCopyWithImpl<$Res, _$TokenUsageStatsImpl>
     implements _$$TokenUsageStatsImplCopyWith<$Res> {
   __$$TokenUsageStatsImplCopyWithImpl(
-      _$TokenUsageStatsImpl _value, $Res Function(_$TokenUsageStatsImpl) _then)
-      : super(_value, _then);
+    _$TokenUsageStatsImpl _value,
+    $Res Function(_$TokenUsageStatsImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of TokenUsageStats
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -308,47 +351,49 @@ class __$$TokenUsageStatsImplCopyWithImpl<$Res>
     Object? byFunction = null,
     Object? byModel = null,
   }) {
-    return _then(_$TokenUsageStatsImpl(
-      totalInputTokens: null == totalInputTokens
-          ? _value.totalInputTokens
-          : totalInputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalOutputTokens: null == totalOutputTokens
-          ? _value.totalOutputTokens
-          : totalOutputTokens // ignore: cast_nullable_to_non_nullable
-              as int,
-      requestCount: null == requestCount
-          ? _value.requestCount
-          : requestCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      estimatedCost: null == estimatedCost
-          ? _value.estimatedCost
-          : estimatedCost // ignore: cast_nullable_to_non_nullable
-              as double,
-      byFunction: null == byFunction
-          ? _value._byFunction
-          : byFunction // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-      byModel: null == byModel
-          ? _value._byModel
-          : byModel // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-    ));
+    return _then(
+      _$TokenUsageStatsImpl(
+        totalInputTokens: null == totalInputTokens
+            ? _value.totalInputTokens
+            : totalInputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        totalOutputTokens: null == totalOutputTokens
+            ? _value.totalOutputTokens
+            : totalOutputTokens // ignore: cast_nullable_to_non_nullable
+                  as int,
+        requestCount: null == requestCount
+            ? _value.requestCount
+            : requestCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        estimatedCost: null == estimatedCost
+            ? _value.estimatedCost
+            : estimatedCost // ignore: cast_nullable_to_non_nullable
+                  as double,
+        byFunction: null == byFunction
+            ? _value._byFunction
+            : byFunction // ignore: cast_nullable_to_non_nullable
+                  as Map<String, int>,
+        byModel: null == byModel
+            ? _value._byModel
+            : byModel // ignore: cast_nullable_to_non_nullable
+                  as Map<String, int>,
+      ),
+    );
   }
 }
 
 /// @nodoc
 
 class _$TokenUsageStatsImpl implements _TokenUsageStats {
-  const _$TokenUsageStatsImpl(
-      {required this.totalInputTokens,
-      required this.totalOutputTokens,
-      required this.requestCount,
-      required this.estimatedCost,
-      required final Map<String, int> byFunction,
-      required final Map<String, int> byModel})
-      : _byFunction = byFunction,
-        _byModel = byModel;
+  const _$TokenUsageStatsImpl({
+    required this.totalInputTokens,
+    required this.totalOutputTokens,
+    required this.requestCount,
+    required this.estimatedCost,
+    required final Map<String, int> byFunction,
+    required final Map<String, int> byModel,
+  }) : _byFunction = byFunction,
+       _byModel = byModel;
 
   @override
   final int totalInputTokens;
@@ -392,37 +437,45 @@ class _$TokenUsageStatsImpl implements _TokenUsageStats {
                 other.requestCount == requestCount) &&
             (identical(other.estimatedCost, estimatedCost) ||
                 other.estimatedCost == estimatedCost) &&
-            const DeepCollectionEquality()
-                .equals(other._byFunction, _byFunction) &&
+            const DeepCollectionEquality().equals(
+              other._byFunction,
+              _byFunction,
+            ) &&
             const DeepCollectionEquality().equals(other._byModel, _byModel));
   }
 
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      totalInputTokens,
-      totalOutputTokens,
-      requestCount,
-      estimatedCost,
-      const DeepCollectionEquality().hash(_byFunction),
-      const DeepCollectionEquality().hash(_byModel));
+    runtimeType,
+    totalInputTokens,
+    totalOutputTokens,
+    requestCount,
+    estimatedCost,
+    const DeepCollectionEquality().hash(_byFunction),
+    const DeepCollectionEquality().hash(_byModel),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TokenUsageStats
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$TokenUsageStatsImplCopyWith<_$TokenUsageStatsImpl> get copyWith =>
       __$$TokenUsageStatsImplCopyWithImpl<_$TokenUsageStatsImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 }
 
 abstract class _TokenUsageStats implements TokenUsageStats {
-  const factory _TokenUsageStats(
-      {required final int totalInputTokens,
-      required final int totalOutputTokens,
-      required final int requestCount,
-      required final double estimatedCost,
-      required final Map<String, int> byFunction,
-      required final Map<String, int> byModel}) = _$TokenUsageStatsImpl;
+  const factory _TokenUsageStats({
+    required final int totalInputTokens,
+    required final int totalOutputTokens,
+    required final int requestCount,
+    required final double estimatedCost,
+    required final Map<String, int> byFunction,
+    required final Map<String, int> byModel,
+  }) = _$TokenUsageStatsImpl;
 
   @override
   int get totalInputTokens;
@@ -436,8 +489,11 @@ abstract class _TokenUsageStats implements TokenUsageStats {
   Map<String, int> get byFunction;
   @override
   Map<String, int> get byModel;
+
+  /// Create a copy of TokenUsageStats
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TokenUsageStatsImplCopyWith<_$TokenUsageStatsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

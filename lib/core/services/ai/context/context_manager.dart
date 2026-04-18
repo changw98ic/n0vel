@@ -61,6 +61,7 @@ const Map<String, int> modelContextWindows = {
   'claude-3-sonnet': 200000,
   'claude-3-haiku': 200000,
   'claude-3-5-sonnet': 200000,
+  'qwen': 256000,
 };
 
 /// 上下文管理器

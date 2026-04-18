@@ -7,28 +7,13 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/database.dart';
 import '../domain/review_report.dart';
 import '../domain/review_result.dart';
+import 'review_repository_helpers.dart';
 
 @visibleForTesting
 Map<String, dynamic>? decodeReviewJson(
   String? raw, {
   String context = 'review payload',
-}) {
-  if (raw == null || raw.trim().isEmpty) {
-    return null;
-  }
-
-  try {
-    final decoded = jsonDecode(raw);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-    debugPrint('ReviewRepository: expected JSON object for $context.');
-  } catch (error) {
-    debugPrint('ReviewRepository: failed to decode $context: $error');
-  }
-
-  return null;
-}
+}) => decodeReviewRepositoryJson(raw, context: context);
 
 @visibleForTesting
 ReviewReport buildReviewReport({
@@ -36,65 +21,12 @@ ReviewReport buildReviewReport({
   required String chapterId,
   required Map<String, dynamic> json,
   DateTime? createdAt,
-}) {
-  final overallScore = (json['overallScore'] as num?)?.toDouble() ?? 0.0;
-  final rawDimensionScores =
-      json['dimensionScores'] as Map<String, dynamic>? ?? const {};
-  final dimensionScores = rawDimensionScores.map(
-    (key, value) => MapEntry(key, (value as num?)?.toDouble() ?? 0.0),
-  );
-
-  final rawIssues = json['issues'] as List<dynamic>? ?? const [];
-  final issues = rawIssues
-      .whereType<Map<String, dynamic>>()
-      .map(
-        (item) => ReviewIssue(
-          id:
-              item['id'] as String? ??
-              DateTime.now().microsecondsSinceEpoch.toString(),
-          reportId: taskId,
-          dimension: ReviewDimension.values.firstWhere(
-            (value) => value.name == item['dimension'],
-            orElse: () => ReviewDimension.consistency,
-          ),
-          severity: IssueSeverity.values.firstWhere(
-            (value) => value.name == item['severity'],
-            orElse: () => IssueSeverity.minor,
-          ),
-          status: IssueStatus.values.firstWhere(
-            (value) => value.name == (item['status'] as String? ?? 'pending'),
-            orElse: () => IssueStatus.pending,
-          ),
-          description: item['description'] as String? ?? '未提供描述',
-          originalText: item['originalText'] as String?,
-          location: item['location'] as String?,
-          suggestion: item['suggestion'] as String?,
-        ),
-      )
-      .toList();
-
-  final criticalCount = issues
-      .where((issue) => issue.severity == IssueSeverity.critical)
-      .length;
-  final majorCount = issues
-      .where((issue) => issue.severity == IssueSeverity.major)
-      .length;
-  final minorCount = issues
-      .where((issue) => issue.severity == IssueSeverity.minor)
-      .length;
-
-  return ReviewReport(
-    id: taskId,
-    chapterId: chapterId,
-    createdAt: createdAt ?? DateTime.now(),
-    overallScore: overallScore,
-    dimensionScores: dimensionScores,
-    issues: issues,
-    criticalCount: criticalCount,
-    majorCount: majorCount,
-    minorCount: minorCount,
-  );
-}
+}) => buildReviewRepositoryReport(
+  taskId: taskId,
+  chapterId: chapterId,
+  json: json,
+  createdAt: createdAt,
+);
 
 class ReviewRepository {
   final AppDatabase _db;
@@ -139,7 +71,7 @@ class ReviewRepository {
       }
 
       results.add(
-        ReviewResult(
+        buildReviewRepositoryResult(
           chapterId: chapter.id,
           chapterTitle: chapter.title,
           score: score,
@@ -174,28 +106,7 @@ class ReviewRepository {
   }
 
   Future<void> saveReviewReport(ReviewReport report) async {
-    final reportJson = {
-      'chapterId': report.chapterId,
-      'overallScore': report.overallScore,
-      'dimensionScores': report.dimensionScores,
-      'issues': report.issues
-          .map(
-            (issue) => {
-              'id': issue.id,
-              'dimension': issue.dimension.name,
-              'severity': issue.severity.name,
-              'status': issue.status.name,
-              'description': issue.description,
-              'originalText': issue.originalText,
-              'location': issue.location,
-              'suggestion': issue.suggestion,
-            },
-          )
-          .toList(),
-      'criticalCount': report.criticalCount,
-      'majorCount': report.majorCount,
-      'minorCount': report.minorCount,
-    };
+    final reportJson = buildReviewRepositoryReportJson(report);
 
     final now = DateTime.now();
     final existingTasks =
@@ -332,14 +243,12 @@ class ReviewRepository {
       }
     }
 
-    final avgScore = scoredCount > 0 ? totalScore / scoredCount : 0.0;
-    final dimensionAvgScores = <ReviewDimension, double>{};
-    for (final entry in dimensionScores.entries) {
-      final scores = entry.value;
-      dimensionAvgScores[entry.key] = scores.isEmpty
-          ? 0.0
-          : scores.reduce((a, b) => a + b) / scores.length;
-    }
+    final avgScore = buildReviewRepositoryAverageScore(
+      totalScore: totalScore,
+      scoredCount: scoredCount,
+    );
+    final dimensionAvgScores =
+        buildReviewRepositoryDimensionAverageScores(dimensionScores);
 
     return ReviewStatistics(
       totalChapters: totalChapters,
@@ -533,27 +442,15 @@ class ReviewRepository {
   }
 
   Iterable<Map<String, dynamic>> _readIssueMaps(Object? value) {
-    final rawList = value is List ? value : const [];
-    return rawList.whereType<Map<String, dynamic>>();
+    return readReviewRepositoryIssueMaps(value);
   }
 
   ReviewStatus _mapTaskStatus(String taskStatus, {required double? score}) {
-    switch (taskStatus) {
-      case 'completed':
-        return score != null && score >= 70
-            ? ReviewStatus.passed
-            : ReviewStatus.needsFix;
-      case 'running':
-        return ReviewStatus.reviewing;
-      case 'failed':
-        return ReviewStatus.failed;
-      default:
-        return ReviewStatus.notReviewed;
-    }
+    return mapReviewRepositoryTaskStatus(taskStatus, score: score);
   }
 
   double? _readDouble(Object? value) {
-    return value is num ? value.toDouble() : null;
+    return readReviewRepositoryDouble(value);
   }
 }
 

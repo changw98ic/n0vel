@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../core/services/ai/models/model_tier.dart';
 import '../../../core/services/workflow_service.dart';
 import '../../../core/services/workflow_templates.dart';
 import 'workflow_repository.dart';
@@ -40,6 +41,7 @@ List<WorkflowNode> buildWorkflowNodes({
           index: 1,
           promptTemplate: 'Analyze workflow task {taskId}',
           outputVariable: 'analysisResult',
+          function: AIFunction.review,
         ),
         DataNode(
           id: 'finalize',
@@ -61,6 +63,21 @@ List<WorkflowNode> buildWorkflowNodes({
     case 'generate':
       final previousContent = config['previousContent'] as String?;
       final continuationRequest = config['continuationRequest'] as String?;
+      if (_isBlank(previousContent) || _isBlank(continuationRequest)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_generate_inputs',
+          name: '补充续写信息',
+          prompt: '继续执行章节续写前，需要先补充关键信息。',
+          questions: <String>[
+            '请提供前文内容或至少概述当前章节前的关键情节。',
+            '请说明这次续写希望发生什么，重点事件或推进方向是什么。',
+          ],
+          requiredFields: <String>[
+            'previousContent',
+            'continuationRequest',
+          ],
+        );
+      }
       if (previousContent != null &&
           previousContent.trim().isNotEmpty &&
           continuationRequest != null &&
@@ -75,6 +92,17 @@ List<WorkflowNode> buildWorkflowNodes({
       break;
     case 'dialogue':
       final sceneDescription = config['sceneDescription'] as String?;
+      if (_isBlank(sceneDescription)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_dialogue_inputs',
+          name: '补充对话场景',
+          prompt: '生成对话前，需要先补充场景描述。',
+          questions: <String>[
+            '这段对话发生在什么场景？请描述时间、地点、人物和核心冲突。',
+          ],
+          requiredFields: <String>['sceneDescription'],
+        );
+      }
       if (sceneDescription != null && sceneDescription.trim().isNotEmpty) {
         return WorkflowTemplates.dialogueGeneration(
           sceneDescription: sceneDescription,
@@ -84,8 +112,106 @@ List<WorkflowNode> buildWorkflowNodes({
         );
       }
       break;
+    case 'plot':
+      final chapterContent = config['chapterContent'] as String?;
+      final promptText = config['promptText'] as String? ?? '';
+      if (_isBlank(chapterContent)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_plot_inputs',
+          name: '补充剧情上下文',
+          prompt: '生成剧情灵感前，需要先提供当前章节或场景内容。',
+          questions: <String>[
+            '请提供当前章节内容，或至少描述当前剧情发展到哪里。',
+          ],
+          requiredFields: <String>['chapterContent'],
+        );
+      }
+      return <WorkflowNode>[
+        AINode(
+          id: 'plot_inspiration',
+          name: '剧情灵感生成',
+          index: 0,
+          promptTemplate: '你是一位小说剧情策划编辑。请基于以下章节内容，提供 3 到 5 个可执行的剧情方向建议。\n\n'
+              '要求：\n'
+              '- 每个方向都要说明核心冲突或推进点\n'
+              '- 尽量避免空泛建议，直接给出可写的事件或转折\n'
+              '- 保持与当前章节气质一致\n\n'
+              '${promptText.trim().isNotEmpty ? "额外要求：\n$promptText\n\n" : ""}'
+              '当前章节内容：\n$chapterContent',
+          outputVariable: 'plotSuggestions',
+          modelTier: 'middle',
+          function: AIFunction.chat,
+        ),
+      ];
+    case 'custom_prompt':
+      final promptText = config['promptText'] as String?;
+      final chapterContext = config['chapterContent'] as String? ?? '';
+      if (_isBlank(promptText)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_custom_prompt_inputs',
+          name: '补充自定义指令',
+          prompt: '执行自定义指令前，需要先填写 prompt。',
+          questions: <String>[
+            '请填写你希望 AI 执行的自定义指令。',
+          ],
+          requiredFields: <String>['promptText'],
+        );
+      }
+      return <WorkflowNode>[
+        AINode(
+          id: 'custom_prompt_execute',
+          name: '执行自定义指令',
+          index: 0,
+          promptTemplate: '你是一位专业的小说写作助手。请执行以下自定义指令，并结合当前章节内容给出结果。\n\n'
+              '自定义指令：\n$promptText\n\n'
+              '${chapterContext.trim().isNotEmpty ? "当前章节内容：\n$chapterContext\n" : ""}',
+          outputVariable: 'customPromptResult',
+          modelTier: 'middle',
+          function: AIFunction.chat,
+        ),
+      ];
+    case 'character_simulation':
+      final chapterContent = config['chapterContent'] as String?;
+      if (_isBlank(chapterContent)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_character_simulation_inputs',
+          name: '补充角色模拟上下文',
+          prompt: '模拟角色反应前，需要先提供章节上下文。',
+          questions: <String>[
+            '请提供当前章节内容，或至少描述角色所处情境和刚刚发生的事件。',
+          ],
+          requiredFields: <String>['chapterContent'],
+        );
+      }
+      return <WorkflowNode>[
+        AINode(
+          id: 'character_simulation',
+          name: '角色模拟',
+          index: 0,
+          promptTemplate: '请根据以下章节内容，模拟主要角色在当前情境下最可能的反应、心理活动和下一步行为。\n\n'
+              '要求：\n'
+              '- 优先保持角色设定一致\n'
+              '- 说明角色为什么会这样反应\n'
+              '- 给出可直接用于写作的具体建议或片段\n\n'
+              '当前章节内容：\n$chapterContent',
+          outputVariable: 'characterSimulationResult',
+          modelTier: 'thinking',
+          function: AIFunction.characterSimulation,
+        ),
+      ];
     case 'extract':
       final textContent = config['textContent'] as String?;
+      if (_isBlank(textContent)) {
+        return _buildClarificationOnlyFlow(
+          id: 'collect_extract_inputs',
+          name: '补充提取源文本',
+          prompt: '执行设定提取前，需要先提供源文本。',
+          questions: <String>[
+            '请提供需要提取设定的正文、片段或章节内容。',
+          ],
+          requiredFields: <String>['textContent'],
+        );
+      }
       if (textContent != null && textContent.trim().isNotEmpty) {
         return WorkflowTemplates.extractionPipeline(
           textContent: textContent,
@@ -110,6 +236,7 @@ List<WorkflowNode> buildWorkflowNodes({
       index: 1,
       promptTemplate: 'Execute workflow task {taskId}',
       outputVariable: 'executionResult',
+      function: _defaultFunctionForTaskType(taskType),
     ),
     DataNode(
       id: 'finalize',
@@ -209,6 +336,8 @@ class WorkflowExecutionService {
       TaskStatus.completed => 'completed',
       TaskStatus.failed => 'failed',
       TaskStatus.paused => 'paused',
+      TaskStatus.waitingReview => 'waitingReview',
+      TaskStatus.waitingUserInput => 'waitingUserInput',
       TaskStatus.running => 'running',
       TaskStatus.pending => 'pending',
       TaskStatus.cancelled => 'cancelled',
@@ -357,4 +486,47 @@ Map<String, String> _readStringMap(Object? raw) {
   return raw.map(
     (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
   );
+}
+
+List<WorkflowNode> _buildClarificationOnlyFlow({
+  required String id,
+  required String name,
+  required String prompt,
+  required List<String> questions,
+  required List<String> requiredFields,
+}) {
+  return <WorkflowNode>[
+    ClarificationNode(
+      id: id,
+      name: name,
+      index: 0,
+      prompt: prompt,
+      questions: questions,
+      requiredFields: requiredFields,
+      outputVariable: 'clarification_$id',
+    ),
+  ];
+}
+
+bool _isBlank(String? value) => value == null || value.trim().isEmpty;
+
+AIFunction _defaultFunctionForTaskType(String taskType) {
+  switch (taskType) {
+    case 'review':
+      return AIFunction.review;
+    case 'generate':
+      return AIFunction.continuation;
+    case 'dialogue':
+      return AIFunction.dialogue;
+    case 'plot':
+      return AIFunction.chat;
+    case 'custom_prompt':
+      return AIFunction.chat;
+    case 'character_simulation':
+      return AIFunction.characterSimulation;
+    case 'extract':
+      return AIFunction.entityExtraction;
+    default:
+      return AIFunction.chat;
+  }
 }

@@ -8,6 +8,8 @@ import '../models/model_config.dart';
 import '../models/provider_config.dart';
 import 'ai_provider.dart';
 
+part 'custom_provider_helpers.dart';
+
 class CustomProvider implements AIProvider {
   @override
   AIProviderType get type => AIProviderType.custom;
@@ -92,16 +94,14 @@ class CustomProvider implements AIProvider {
     final stopwatch = Stopwatch()..start();
     final response = await _dio.post(
       '${config.effectiveEndpoint}/chat/completions',
-      data: {
-        'model': model.modelName,
-        'messages': [
-          {'role': 'system', 'content': systemPrompt},
-          {'role': 'user', 'content': userPrompt},
-        ],
-        'temperature': temperature ?? model.temperature,
-        'max_tokens': maxTokens ?? model.maxOutputTokens,
-        'stream': false,
-      },
+      data: buildCustomProviderChatRequestBody(
+        model: model,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        temperature: temperature,
+        maxTokens: maxTokens,
+        stream: false,
+      ),
       options: Options(
         headers: _headers(config),
         validateStatus: (_) => true,
@@ -109,68 +109,15 @@ class CustomProvider implements AIProvider {
     );
     stopwatch.stop();
 
-    final data = response.data;
-
-    // Handle non-JSON responses
-    if (data is! Map<String, dynamic>) {
-      throw AIException(
-        'API 返回了非预期的响应格式（HTTP ${response.statusCode}）',
-        statusCode: response.statusCode,
-      );
-    }
-
-    // Handle API error responses
-    if (data.containsKey('error')) {
-      final error = data['error'];
-      final errorMessage = error is Map
-          ? error['message'] ?? error.toString()
-          : error.toString();
-      throw AIException(
-        'API 错误: $errorMessage',
-        statusCode: response.statusCode,
-      );
-    }
-
-    // Handle non-200 status without error field
-    if (response.statusCode != null && response.statusCode! ~/ 100 != 2) {
-      throw AIException(
-        'API 请求失败（HTTP ${response.statusCode}）',
-        statusCode: response.statusCode,
-      );
-    }
-
-    // Validate response structure
-    final choices = data['choices'] as List<dynamic>?;
-    if (choices == null || choices.isEmpty) {
-      throw AIException(
-        'API 返回了空的 choices（模型可能未加载）',
-        statusCode: response.statusCode,
-      );
-    }
-
-    final firstChoice = choices.first as Map<String, dynamic>;
-    final message = firstChoice['message'] as Map<String, dynamic>?;
-    if (message == null) {
-      throw AIException(
-        'API 返回格式异常，缺少 message 字段',
-        statusCode: response.statusCode,
-      );
-    }
-
-    final usage = data['usage'] as Map<String, dynamic>?;
-    final content = message['content'] as String? ?? '';
-    // 提取思维链（LM Studio reasoning_content / DeepSeek reasoning_content）
-    final thinking = message['reasoning_content'] as String? ??
-        message['thinking'] as String?;
-    final finishReason = firstChoice['finish_reason'] as String?;
+    final completion = parseCustomProviderCompletionResponse(
+      response.data,
+      statusCode: response.statusCode,
+    );
 
     // 推理耗尽 token 预算：模型把所有 token 都花在了 reasoning 上，
     // 没有剩余给实际内容。自动以双倍 token 预算重试一次。
     if (!isRetry &&
-        content.trim().isEmpty &&
-        thinking != null &&
-        thinking.trim().isNotEmpty &&
-        finishReason == 'length') {
+        shouldRetryCustomProviderCompletion(completion)) {
       final newMaxTokens = (maxTokens ?? model.maxOutputTokens) * 2;
       return _doComplete(
         config: config,
@@ -186,14 +133,14 @@ class CustomProvider implements AIProvider {
     }
 
     return AIResponse(
-      content: content,
-      inputTokens: (usage?['prompt_tokens'] as num?)?.toInt() ?? 0,
-      outputTokens: (usage?['completion_tokens'] as num?)?.toInt() ?? 0,
+      content: completion.content,
+      inputTokens: completion.inputTokens,
+      outputTokens: completion.outputTokens,
       modelId: model.id,
       responseTime: stopwatch.elapsed,
       fromCache: false,
-      requestId: data['id'] as String?,
-      thinking: thinking,
+      requestId: completion.requestId,
+      thinking: completion.thinking,
     );
   }
 
@@ -209,16 +156,14 @@ class CustomProvider implements AIProvider {
   }) async {
     final stopwatch = Stopwatch()..start();
 
-    final requestBody = {
-      'model': model.modelName,
-      'messages': [
-        {'role': 'system', 'content': systemPrompt},
-        {'role': 'user', 'content': userPrompt},
-      ],
-      'temperature': temperature ?? model.temperature,
-      'max_tokens': maxTokens ?? model.maxOutputTokens,
-      'stream': true,
-    };
+    final requestBody = buildCustomProviderChatRequestBody(
+      model: model,
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      temperature: temperature,
+      maxTokens: maxTokens,
+      stream: true,
+    );
 
     try {
       final response = await _dio.post(
@@ -235,31 +180,11 @@ class CustomProvider implements AIProvider {
       String? requestId;
 
       await for (final chunk in stream) {
-        final text = utf8.decode(chunk, allowMalformed: true);
-        final lines = text.split('\n');
-
-        for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final data = line.substring(6);
-            if (data == '[DONE]') continue;
-
-            try {
-              final json = jsonDecode(data) as Map<String, dynamic>;
-              requestId ??= json['id'] as String?;
-
-              final choices = json['choices'] as List?;
-              if (choices != null && choices.isNotEmpty) {
-                final delta = choices.first['delta'] as Map<String, dynamic>?;
-                final content = delta?['content'] as String?;
-                if (content != null) {
-                  buffer.write(content);
-                  onStreamChunk(content);
-                }
-              }
-            } catch (_) {
-              // ignore malformed chunk
-            }
-          }
+        final parsedChunk = parseCustomProviderStreamChunk(chunk);
+        requestId ??= parsedChunk.requestId;
+        for (final content in parsedChunk.contents) {
+          buffer.write(content);
+          onStreamChunk(content);
         }
       }
 
@@ -327,16 +252,14 @@ class CustomProvider implements AIProvider {
       // 尝试原生 function calling（LM Studio 等 OpenAI 兼容 API 支持）
       final response = await _dio.post(
         '${config.effectiveEndpoint}/chat/completions',
-        data: {
-          'model': model.modelName,
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': userPrompt},
-          ],
-          'tools': tools,
-          'temperature': temperature ?? model.temperature,
-          'max_tokens': maxTokens ?? model.maxOutputTokens,
-        },
+        data: buildCustomProviderToolRequestBody(
+          model: model,
+          systemPrompt: systemPrompt,
+          userPrompt: userPrompt,
+          tools: tools,
+          temperature: temperature,
+          maxTokens: maxTokens,
+        ),
         options: Options(
           headers: _headers(config),
           validateStatus: (_) => true,
@@ -371,8 +294,11 @@ class CustomProvider implements AIProvider {
         );
       }
 
-      final choices = data['choices'] as List<dynamic>?;
-      if (choices == null || choices.isEmpty) {
+      final toolCompletion = tryParseCustomProviderToolCompletion(
+        data,
+        statusCode: response.statusCode,
+      );
+      if (toolCompletion == null) {
         return _fallbackPromptBased(
           config: config,
           model: model,
@@ -383,34 +309,10 @@ class CustomProvider implements AIProvider {
           maxTokens: maxTokens,
         );
       }
-
-      final firstChoice = choices.first as Map<String, dynamic>;
-      final message = firstChoice['message'] as Map<String, dynamic>?;
-      if (message == null) {
-        return _fallbackPromptBased(
-          config: config,
-          model: model,
-          systemPrompt: systemPrompt,
-          userPrompt: userPrompt,
-          tools: tools,
-          temperature: temperature,
-          maxTokens: maxTokens,
-        );
-      }
-
-      final usage = data['usage'] as Map<String, dynamic>?;
-      final content = message['content'] as String? ?? '';
-      // 提取思维链
-      final thinking = message['reasoning_content'] as String? ??
-          message['thinking'] as String?;
-      final finishReason = firstChoice['finish_reason'] as String?;
 
       // 推理耗尽 token 预算：自动以双倍预算重试一次
       if (!isRetry &&
-          content.trim().isEmpty &&
-          thinking != null &&
-          thinking.trim().isNotEmpty &&
-          finishReason == 'length') {
+          shouldRetryCustomProviderCompletion(toolCompletion)) {
         final newMaxTokens = (maxTokens ?? model.maxOutputTokens) * 2;
         return _doCompleteWithTools(
           config: config,
@@ -425,40 +327,31 @@ class CustomProvider implements AIProvider {
       }
 
       // 解析原生 tool_calls
-      List<ToolCall> toolCalls = [];
-      final rawToolCalls = message['tool_calls'] as List<dynamic>?;
-      if (rawToolCalls != null && rawToolCalls.isNotEmpty) {
-        toolCalls = rawToolCalls
-            .whereType<Map<String, dynamic>>()
-            .map((tc) {
-          final function = tc['function'] as Map<String, dynamic>;
-          return ToolCall(
-            id: tc['id'] as String? ?? '',
-            name: function['name'] as String? ?? '',
-            arguments: _parseToolArguments(function['arguments']),
-          );
-        }).toList();
-      }
+      var rawToolCalls = toolCompletion.rawToolCalls;
 
       // 如果原生 tool_calls 为空，尝试从文本中解析（降级）
-      if (toolCalls.isEmpty && content.isNotEmpty) {
-        toolCalls = _parseToolCallsFromText(content);
+      if (rawToolCalls.isEmpty && toolCompletion.content.isNotEmpty) {
+        rawToolCalls = parseToolCallsFromText(toolCompletion.content);
       }
 
-      final cleanedContent = toolCalls.isNotEmpty
-          ? _stripToolCallFromText(content)
-          : content;
+      final cleanedContent = rawToolCalls.isNotEmpty
+          ? stripToolCallFromText(toolCompletion.content)
+          : toolCompletion.content;
 
       return AIResponse(
         content: cleanedContent,
-        inputTokens: (usage?['prompt_tokens'] as num?)?.toInt() ?? 0,
-        outputTokens: (usage?['completion_tokens'] as num?)?.toInt() ?? 0,
+        inputTokens: toolCompletion.inputTokens,
+        outputTokens: toolCompletion.outputTokens,
         modelId: model.id,
         responseTime: stopwatch.elapsed,
         fromCache: false,
-        requestId: data['id'] as String?,
-        toolCalls: toolCalls,
-        thinking: thinking,
+        requestId: toolCompletion.requestId,
+        metadata: rawToolCalls.isEmpty
+            ? null
+            : {
+                'rawToolCalls': rawToolCalls,
+              },
+        thinking: toolCompletion.thinking,
       );
     } on DioException catch (e) {
       // 网络错误等不降级，直接抛出
@@ -480,15 +373,7 @@ class CustomProvider implements AIProvider {
     double? temperature,
     int? maxTokens,
   }) async {
-    final toolsDescription = tools.map((t) {
-      final func = t['function'] as Map<String, dynamic>? ?? t;
-      final params = func['parameters'] as Map<String, dynamic>?;
-      final properties = params?['properties'] as Map<String, dynamic>?;
-      final paramStr = properties != null
-          ? ' 参数: ${jsonEncode(properties)}'
-          : '';
-      return '- ${func['name']}: ${func['description']}$paramStr';
-    }).join('\n');
+    final toolsDescription = buildCustomProviderToolsDescription(tools);
     final enhancedSystem =
         '$systemPrompt\n\n你可以使用以下工具来完成任务。\n'
         '如果需要调用工具，请在回复中使用以下 JSON 格式：\n'
@@ -507,9 +392,9 @@ class CustomProvider implements AIProvider {
     );
 
     // 从文本中解析 tool calls
-    final parsedCalls = _parseToolCallsFromText(response.content);
+    final parsedCalls = parseToolCallsFromText(response.content);
     if (parsedCalls.isNotEmpty) {
-      final cleanedContent = _stripToolCallFromText(response.content);
+      final cleanedContent = stripToolCallFromText(response.content);
       return AIResponse(
         content: cleanedContent,
         inputTokens: response.inputTokens,
@@ -518,69 +403,14 @@ class CustomProvider implements AIProvider {
         responseTime: response.responseTime,
         fromCache: response.fromCache,
         requestId: response.requestId,
-        metadata: response.metadata,
-        toolCalls: parsedCalls,
+        metadata: {
+          ...?response.metadata,
+          'rawToolCalls': parsedCalls,
+        },
       );
     }
 
     return response;
-  }
-
-  /// 从文本中解析工具调用
-  static List<ToolCall> _parseToolCallsFromText(String text) {
-    try {
-      // 尝试找到 ```json ... ``` 代码块
-      final jsonRegex = RegExp(r'```json\s*([\s\S]*?)\s*```');
-      final match = jsonRegex.firstMatch(text);
-      String? jsonStr;
-      if (match != null) {
-        jsonStr = match.group(1);
-      } else {
-        // 尝试直接匹配 {"tool_calls": [...]}
-        final directRegex = RegExp(r'\{[\s\S]*"tool_calls"[\s\S]*\}');
-        final directMatch = directRegex.firstMatch(text);
-        if (directMatch == null) return const [];
-        jsonStr = directMatch.group(0);
-      }
-      final json = jsonDecode(jsonStr!) as Map<String, dynamic>;
-      final toolCalls = json['tool_calls'] as List<dynamic>?;
-      if (toolCalls == null) return const [];
-      return toolCalls
-          .whereType<Map<String, dynamic>>()
-          .map((tc) => ToolCall(
-                id: tc['id'] as String? ?? '',
-                name: tc['name'] as String? ?? '',
-                arguments: tc['arguments'] as Map<String, dynamic>? ?? {},
-              ))
-          .toList();
-    } catch (_) {
-      return const [];
-    }
-  }
-
-  /// 从文本中移除工具调用 JSON，只保留自然语言内容
-  static String _stripToolCallFromText(String text) {
-    var cleaned = text;
-    cleaned = cleaned.replaceAll(
-        RegExp(r'```json\s*\{[\s\S]*?"tool_calls"[\s\S]*?\}\s*```'), '');
-    cleaned = cleaned.replaceAll(
-        RegExp(r'\{"tool_calls"\s*:\s*\[[\s\S]*?\]\}'), '');
-    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-    return cleaned.trim();
-  }
-
-  /// 安全解析 tool call arguments
-  static Map<String, dynamic> _parseToolArguments(dynamic rawArgs) {
-    if (rawArgs == null) return {};
-    if (rawArgs is String) {
-      try {
-        return jsonDecode(rawArgs) as Map<String, dynamic>;
-      } catch (_) {
-        return {};
-      }
-    }
-    if (rawArgs is Map) return Map<String, dynamic>.from(rawArgs);
-    return {};
   }
 
   @override

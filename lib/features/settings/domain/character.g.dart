@@ -11,7 +11,8 @@ _$CharacterImpl _$$CharacterImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       workId: json['workId'] as String,
       name: json['name'] as String,
-      aliases: (json['aliases'] as List<dynamic>?)
+      aliases:
+          (json['aliases'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
@@ -23,7 +24,7 @@ _$CharacterImpl _$$CharacterImplFromJson(Map<String, dynamic> json) =>
       bio: json['bio'] as String?,
       lifeStatus:
           $enumDecodeNullable(_$LifeStatusEnumMap, json['lifeStatus']) ??
-              LifeStatus.alive,
+          LifeStatus.alive,
       deathChapterId: json['deathChapterId'] as String?,
       deathReason: json['deathReason'] as String?,
       isArchived: json['isArchived'] as bool? ?? false,

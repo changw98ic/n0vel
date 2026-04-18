@@ -14,7 +14,8 @@ _$POVTaskImpl _$$POVTaskImplFromJson(Map<String, dynamic> json) =>
       characterId: json['characterId'] as String,
       originalContent: json['originalContent'] as String,
       config: POVConfig.fromJson(json['config'] as Map<String, dynamic>),
-      status: $enumDecodeNullable(_$POVTaskStatusEnumMap, json['status']) ??
+      status:
+          $enumDecodeNullable(_$POVTaskStatusEnumMap, json['status']) ??
           POVTaskStatus.pending,
       generatedContent: json['generatedContent'] as String?,
       analysis: json['analysis'] as String?,
@@ -52,21 +53,21 @@ const _$POVTaskStatusEnumMap = {
   POVTaskStatus.cancelled: 'cancelled',
 };
 
-_$POVConfigImpl _$$POVConfigImplFromJson(Map<String, dynamic> json) =>
-    _$POVConfigImpl(
-      mode: $enumDecodeNullable(_$POVModeEnumMap, json['mode']) ??
-          POVMode.rewrite,
-      style: $enumDecodeNullable(_$POVStyleEnumMap, json['style']) ??
-          POVStyle.firstPerson,
-      keepDialogue: json['keepDialogue'] as bool? ?? true,
-      addInnerThoughts: json['addInnerThoughts'] as bool? ?? true,
-      expandObservations: json['expandObservations'] as bool? ?? true,
-      emotionalIntensity:
-          (json['emotionalIntensity'] as num?)?.toDouble() ?? 0.5,
-      useCharacterVoice: json['useCharacterVoice'] as bool? ?? true,
-      customInstructions: json['customInstructions'] as String?,
-      targetWordCount: (json['targetWordCount'] as num?)?.toInt(),
-    );
+_$POVConfigImpl _$$POVConfigImplFromJson(
+  Map<String, dynamic> json,
+) => _$POVConfigImpl(
+  mode: $enumDecodeNullable(_$POVModeEnumMap, json['mode']) ?? POVMode.rewrite,
+  style:
+      $enumDecodeNullable(_$POVStyleEnumMap, json['style']) ??
+      POVStyle.firstPerson,
+  keepDialogue: json['keepDialogue'] as bool? ?? true,
+  addInnerThoughts: json['addInnerThoughts'] as bool? ?? true,
+  expandObservations: json['expandObservations'] as bool? ?? true,
+  emotionalIntensity: (json['emotionalIntensity'] as num?)?.toDouble() ?? 0.5,
+  useCharacterVoice: json['useCharacterVoice'] as bool? ?? true,
+  customInstructions: json['customInstructions'] as String?,
+  targetWordCount: (json['targetWordCount'] as num?)?.toInt(),
+);
 
 Map<String, dynamic> _$$POVConfigImplToJson(_$POVConfigImpl instance) =>
     <String, dynamic>{
@@ -128,24 +129,24 @@ Map<String, dynamic> _$$POVAnalysisImplToJson(_$POVAnalysisImpl instance) =>
     };
 
 _$CharacterAppearanceImpl _$$CharacterAppearanceImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterAppearanceImpl(
-      paragraphIndex: (json['paragraphIndex'] as num).toInt(),
-      originalText: json['originalText'] as String,
-      action: json['action'] as String?,
-      dialogue: json['dialogue'] as String?,
-      contextSummary: json['contextSummary'] as String?,
-    );
+  Map<String, dynamic> json,
+) => _$CharacterAppearanceImpl(
+  paragraphIndex: (json['paragraphIndex'] as num).toInt(),
+  originalText: json['originalText'] as String,
+  action: json['action'] as String?,
+  dialogue: json['dialogue'] as String?,
+  contextSummary: json['contextSummary'] as String?,
+);
 
 Map<String, dynamic> _$$CharacterAppearanceImplToJson(
-        _$CharacterAppearanceImpl instance) =>
-    <String, dynamic>{
-      'paragraphIndex': instance.paragraphIndex,
-      'originalText': instance.originalText,
-      'action': instance.action,
-      'dialogue': instance.dialogue,
-      'contextSummary': instance.contextSummary,
-    };
+  _$CharacterAppearanceImpl instance,
+) => <String, dynamic>{
+  'paragraphIndex': instance.paragraphIndex,
+  'originalText': instance.originalText,
+  'action': instance.action,
+  'dialogue': instance.dialogue,
+  'contextSummary': instance.contextSummary,
+};
 
 _$EmotionPointImpl _$$EmotionPointImplFromJson(Map<String, dynamic> json) =>
     _$EmotionPointImpl(
@@ -189,13 +190,13 @@ _$KeyObservationImpl _$$KeyObservationImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$KeyObservationImplToJson(
-        _$KeyObservationImpl instance) =>
-    <String, dynamic>{
-      'position': instance.position,
-      'content': instance.content,
-      'type': _$ObservationTypeEnumMap[instance.type]!,
-      'characterReaction': instance.characterReaction,
-    };
+  _$KeyObservationImpl instance,
+) => <String, dynamic>{
+  'position': instance.position,
+  'content': instance.content,
+  'type': _$ObservationTypeEnumMap[instance.type]!,
+  'characterReaction': instance.characterReaction,
+};
 
 const _$ObservationTypeEnumMap = {
   ObservationType.character: 'character',
@@ -206,26 +207,26 @@ const _$ObservationTypeEnumMap = {
 };
 
 _$CharacterInteractionImpl _$$CharacterInteractionImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterInteractionImpl(
-      otherCharacterId: json['otherCharacterId'] as String,
-      otherCharacterName: json['otherCharacterName'] as String,
-      position: (json['position'] as num).toInt(),
-      type: $enumDecode(_$InteractionTypeEnumMap, json['type']),
-      content: json['content'] as String?,
-      povCharacterReaction: json['povCharacterReaction'] as String?,
-    );
+  Map<String, dynamic> json,
+) => _$CharacterInteractionImpl(
+  otherCharacterId: json['otherCharacterId'] as String,
+  otherCharacterName: json['otherCharacterName'] as String,
+  position: (json['position'] as num).toInt(),
+  type: $enumDecode(_$InteractionTypeEnumMap, json['type']),
+  content: json['content'] as String?,
+  povCharacterReaction: json['povCharacterReaction'] as String?,
+);
 
 Map<String, dynamic> _$$CharacterInteractionImplToJson(
-        _$CharacterInteractionImpl instance) =>
-    <String, dynamic>{
-      'otherCharacterId': instance.otherCharacterId,
-      'otherCharacterName': instance.otherCharacterName,
-      'position': instance.position,
-      'type': _$InteractionTypeEnumMap[instance.type]!,
-      'content': instance.content,
-      'povCharacterReaction': instance.povCharacterReaction,
-    };
+  _$CharacterInteractionImpl instance,
+) => <String, dynamic>{
+  'otherCharacterId': instance.otherCharacterId,
+  'otherCharacterName': instance.otherCharacterName,
+  'position': instance.position,
+  'type': _$InteractionTypeEnumMap[instance.type]!,
+  'content': instance.content,
+  'povCharacterReaction': instance.povCharacterReaction,
+};
 
 const _$InteractionTypeEnumMap = {
   InteractionType.dialogue: 'dialogue',
@@ -266,7 +267,8 @@ _$POVTemplateImpl _$$POVTemplateImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       description: json['description'] as String,
       config: POVConfig.fromJson(json['config'] as Map<String, dynamic>),
-      suitableCharacterTypes: (json['suitableCharacterTypes'] as List<dynamic>?)
+      suitableCharacterTypes:
+          (json['suitableCharacterTypes'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
@@ -296,12 +298,12 @@ _$POVSaveOptionsImpl _$$POVSaveOptionsImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$POVSaveOptionsImplToJson(
-        _$POVSaveOptionsImpl instance) =>
-    <String, dynamic>{
-      'canSaveAsDraft': instance.canSaveAsDraft,
-      'canReplaceChapter': instance.canReplaceChapter,
-      'canCreateNewChapter': instance.canCreateNewChapter,
-      'currentChapterTitle': instance.currentChapterTitle,
-      'suggestedSortOrder': instance.suggestedSortOrder,
-      'defaultVolumeId': instance.defaultVolumeId,
-    };
+  _$POVSaveOptionsImpl instance,
+) => <String, dynamic>{
+  'canSaveAsDraft': instance.canSaveAsDraft,
+  'canReplaceChapter': instance.canReplaceChapter,
+  'canCreateNewChapter': instance.canCreateNewChapter,
+  'currentChapterTitle': instance.currentChapterTitle,
+  'suggestedSortOrder': instance.suggestedSortOrder,
+  'defaultVolumeId': instance.defaultVolumeId,
+};

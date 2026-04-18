@@ -71,6 +71,32 @@ class EditorChatLogic extends GetxController {
     streamingContent.value = '';
   }
 
+  void startExternalRequest(String prompt) {
+    if (prompt.trim().isEmpty) return;
+    final userMsg = cm.ChatMessage(role: 'user', content: prompt);
+    messages.add(userMsg);
+    _contextHistory.add(userMsg);
+    isGenerating.value = true;
+    streamingContent.value = '';
+  }
+
+  void finishExternalRequest(String content) {
+    if (content.trim().isNotEmpty) {
+      final assistantMsg =
+          cm.ChatMessage(role: 'assistant', content: content);
+      messages.add(assistantMsg);
+      _contextHistory.add(assistantMsg);
+    }
+    isGenerating.value = false;
+    streamingContent.value = '';
+  }
+
+  void failExternalRequest(Object error) {
+    messages.add(cm.ChatMessage(role: 'assistant', content: '生成失败：$error'));
+    isGenerating.value = false;
+    streamingContent.value = '';
+  }
+
   // ---------------------------------------------------------------------------
   // Private
   // ---------------------------------------------------------------------------

@@ -12,7 +12,8 @@ part of 'chapter.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Chapter _$ChapterFromJson(Map<String, dynamic> json) {
   return _Chapter.fromJson(json);
@@ -32,8 +33,12 @@ mixin _$Chapter {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this Chapter to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Chapter
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ChapterCopyWith<Chapter> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -42,18 +47,19 @@ abstract class $ChapterCopyWith<$Res> {
   factory $ChapterCopyWith(Chapter value, $Res Function(Chapter) then) =
       _$ChapterCopyWithImpl<$Res, Chapter>;
   @useResult
-  $Res call(
-      {String id,
-      String volumeId,
-      String workId,
-      String title,
-      String? content,
-      int wordCount,
-      int sortOrder,
-      ChapterStatus status,
-      double? reviewScore,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String volumeId,
+    String workId,
+    String title,
+    String? content,
+    int wordCount,
+    int sortOrder,
+    ChapterStatus status,
+    double? reviewScore,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -66,6 +72,8 @@ class _$ChapterCopyWithImpl<$Res, $Val extends Chapter>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Chapter
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -81,74 +89,79 @@ class _$ChapterCopyWithImpl<$Res, $Val extends Chapter>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      volumeId: null == volumeId
-          ? _value.volumeId
-          : volumeId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      title: null == title
-          ? _value.title
-          : title // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: freezed == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String?,
-      wordCount: null == wordCount
-          ? _value.wordCount
-          : wordCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ChapterStatus,
-      reviewScore: freezed == reviewScore
-          ? _value.reviewScore
-          : reviewScore // ignore: cast_nullable_to_non_nullable
-              as double?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            volumeId: null == volumeId
+                ? _value.volumeId
+                : volumeId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            title: null == title
+                ? _value.title
+                : title // ignore: cast_nullable_to_non_nullable
+                      as String,
+            content: freezed == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            wordCount: null == wordCount
+                ? _value.wordCount
+                : wordCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            sortOrder: null == sortOrder
+                ? _value.sortOrder
+                : sortOrder // ignore: cast_nullable_to_non_nullable
+                      as int,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as ChapterStatus,
+            reviewScore: freezed == reviewScore
+                ? _value.reviewScore
+                : reviewScore // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            updatedAt: null == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$ChapterImplCopyWith<$Res> implements $ChapterCopyWith<$Res> {
   factory _$$ChapterImplCopyWith(
-          _$ChapterImpl value, $Res Function(_$ChapterImpl) then) =
-      __$$ChapterImplCopyWithImpl<$Res>;
+    _$ChapterImpl value,
+    $Res Function(_$ChapterImpl) then,
+  ) = __$$ChapterImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String volumeId,
-      String workId,
-      String title,
-      String? content,
-      int wordCount,
-      int sortOrder,
-      ChapterStatus status,
-      double? reviewScore,
-      DateTime createdAt,
-      DateTime updatedAt});
+  $Res call({
+    String id,
+    String volumeId,
+    String workId,
+    String title,
+    String? content,
+    int wordCount,
+    int sortOrder,
+    ChapterStatus status,
+    double? reviewScore,
+    DateTime createdAt,
+    DateTime updatedAt,
+  });
 }
 
 /// @nodoc
@@ -156,9 +169,12 @@ class __$$ChapterImplCopyWithImpl<$Res>
     extends _$ChapterCopyWithImpl<$Res, _$ChapterImpl>
     implements _$$ChapterImplCopyWith<$Res> {
   __$$ChapterImplCopyWithImpl(
-      _$ChapterImpl _value, $Res Function(_$ChapterImpl) _then)
-      : super(_value, _then);
+    _$ChapterImpl _value,
+    $Res Function(_$ChapterImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Chapter
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -174,71 +190,73 @@ class __$$ChapterImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
-    return _then(_$ChapterImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      volumeId: null == volumeId
-          ? _value.volumeId
-          : volumeId // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      title: null == title
-          ? _value.title
-          : title // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: freezed == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String?,
-      wordCount: null == wordCount
-          ? _value.wordCount
-          : wordCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as ChapterStatus,
-      reviewScore: freezed == reviewScore
-          ? _value.reviewScore
-          : reviewScore // ignore: cast_nullable_to_non_nullable
-              as double?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: null == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-    ));
+    return _then(
+      _$ChapterImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        volumeId: null == volumeId
+            ? _value.volumeId
+            : volumeId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        title: null == title
+            ? _value.title
+            : title // ignore: cast_nullable_to_non_nullable
+                  as String,
+        content: freezed == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        wordCount: null == wordCount
+            ? _value.wordCount
+            : wordCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        sortOrder: null == sortOrder
+            ? _value.sortOrder
+            : sortOrder // ignore: cast_nullable_to_non_nullable
+                  as int,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as ChapterStatus,
+        reviewScore: freezed == reviewScore
+            ? _value.reviewScore
+            : reviewScore // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        updatedAt: null == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ChapterImpl extends _Chapter {
-  const _$ChapterImpl(
-      {required this.id,
-      required this.volumeId,
-      required this.workId,
-      required this.title,
-      this.content,
-      this.wordCount = 0,
-      this.sortOrder = 0,
-      this.status = ChapterStatus.draft,
-      this.reviewScore,
-      required this.createdAt,
-      required this.updatedAt})
-      : super._();
+  const _$ChapterImpl({
+    required this.id,
+    required this.volumeId,
+    required this.workId,
+    required this.title,
+    this.content,
+    this.wordCount = 0,
+    this.sortOrder = 0,
+    this.status = ChapterStatus.draft,
+    this.reviewScore,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : super._();
 
   factory _$ChapterImpl.fromJson(Map<String, dynamic> json) =>
       _$$ChapterImplFromJson(json);
@@ -298,12 +316,26 @@ class _$ChapterImpl extends _Chapter {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, volumeId, workId, title,
-      content, wordCount, sortOrder, status, reviewScore, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    volumeId,
+    workId,
+    title,
+    content,
+    wordCount,
+    sortOrder,
+    status,
+    reviewScore,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Chapter
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ChapterImplCopyWith<_$ChapterImpl> get copyWith =>
@@ -311,25 +343,24 @@ class _$ChapterImpl extends _Chapter {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ChapterImplToJson(
-      this,
-    );
+    return _$$ChapterImplToJson(this);
   }
 }
 
 abstract class _Chapter extends Chapter {
-  const factory _Chapter(
-      {required final String id,
-      required final String volumeId,
-      required final String workId,
-      required final String title,
-      final String? content,
-      final int wordCount,
-      final int sortOrder,
-      final ChapterStatus status,
-      final double? reviewScore,
-      required final DateTime createdAt,
-      required final DateTime updatedAt}) = _$ChapterImpl;
+  const factory _Chapter({
+    required final String id,
+    required final String volumeId,
+    required final String workId,
+    required final String title,
+    final String? content,
+    final int wordCount,
+    final int sortOrder,
+    final ChapterStatus status,
+    final double? reviewScore,
+    required final DateTime createdAt,
+    required final DateTime updatedAt,
+  }) = _$ChapterImpl;
   const _Chapter._() : super._();
 
   factory _Chapter.fromJson(Map<String, dynamic> json) = _$ChapterImpl.fromJson;
@@ -356,8 +387,11 @@ abstract class _Chapter extends Chapter {
   DateTime get createdAt;
   @override
   DateTime get updatedAt;
+
+  /// Create a copy of Chapter
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ChapterImplCopyWith<_$ChapterImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -374,8 +408,12 @@ mixin _$Segment {
   bool get needsIndent => throw _privateConstructorUsedError;
   String? get speakerId => throw _privateConstructorUsedError;
 
+  /// Serializes this Segment to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Segment
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $SegmentCopyWith<Segment> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -384,12 +422,13 @@ abstract class $SegmentCopyWith<$Res> {
   factory $SegmentCopyWith(Segment value, $Res Function(Segment) then) =
       _$SegmentCopyWithImpl<$Res, Segment>;
   @useResult
-  $Res call(
-      {String id,
-      String text,
-      SegmentType type,
-      bool needsIndent,
-      String? speakerId});
+  $Res call({
+    String id,
+    String text,
+    SegmentType type,
+    bool needsIndent,
+    String? speakerId,
+  });
 }
 
 /// @nodoc
@@ -402,6 +441,8 @@ class _$SegmentCopyWithImpl<$Res, $Val extends Segment>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Segment
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -411,44 +452,49 @@ class _$SegmentCopyWithImpl<$Res, $Val extends Segment>
     Object? needsIndent = null,
     Object? speakerId = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      text: null == text
-          ? _value.text
-          : text // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as SegmentType,
-      needsIndent: null == needsIndent
-          ? _value.needsIndent
-          : needsIndent // ignore: cast_nullable_to_non_nullable
-              as bool,
-      speakerId: freezed == speakerId
-          ? _value.speakerId
-          : speakerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            text: null == text
+                ? _value.text
+                : text // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as SegmentType,
+            needsIndent: null == needsIndent
+                ? _value.needsIndent
+                : needsIndent // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            speakerId: freezed == speakerId
+                ? _value.speakerId
+                : speakerId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$SegmentImplCopyWith<$Res> implements $SegmentCopyWith<$Res> {
   factory _$$SegmentImplCopyWith(
-          _$SegmentImpl value, $Res Function(_$SegmentImpl) then) =
-      __$$SegmentImplCopyWithImpl<$Res>;
+    _$SegmentImpl value,
+    $Res Function(_$SegmentImpl) then,
+  ) = __$$SegmentImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String text,
-      SegmentType type,
-      bool needsIndent,
-      String? speakerId});
+  $Res call({
+    String id,
+    String text,
+    SegmentType type,
+    bool needsIndent,
+    String? speakerId,
+  });
 }
 
 /// @nodoc
@@ -456,9 +502,12 @@ class __$$SegmentImplCopyWithImpl<$Res>
     extends _$SegmentCopyWithImpl<$Res, _$SegmentImpl>
     implements _$$SegmentImplCopyWith<$Res> {
   __$$SegmentImplCopyWithImpl(
-      _$SegmentImpl _value, $Res Function(_$SegmentImpl) _then)
-      : super(_value, _then);
+    _$SegmentImpl _value,
+    $Res Function(_$SegmentImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Segment
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -468,41 +517,43 @@ class __$$SegmentImplCopyWithImpl<$Res>
     Object? needsIndent = null,
     Object? speakerId = freezed,
   }) {
-    return _then(_$SegmentImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      text: null == text
-          ? _value.text
-          : text // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as SegmentType,
-      needsIndent: null == needsIndent
-          ? _value.needsIndent
-          : needsIndent // ignore: cast_nullable_to_non_nullable
-              as bool,
-      speakerId: freezed == speakerId
-          ? _value.speakerId
-          : speakerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$SegmentImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        text: null == text
+            ? _value.text
+            : text // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as SegmentType,
+        needsIndent: null == needsIndent
+            ? _value.needsIndent
+            : needsIndent // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        speakerId: freezed == speakerId
+            ? _value.speakerId
+            : speakerId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$SegmentImpl extends _Segment {
-  const _$SegmentImpl(
-      {required this.id,
-      required this.text,
-      required this.type,
-      this.needsIndent = false,
-      this.speakerId})
-      : super._();
+  const _$SegmentImpl({
+    required this.id,
+    required this.text,
+    required this.type,
+    this.needsIndent = false,
+    this.speakerId,
+  }) : super._();
 
   factory _$SegmentImpl.fromJson(Map<String, dynamic> json) =>
       _$$SegmentImplFromJson(json);
@@ -538,12 +589,14 @@ class _$SegmentImpl extends _Segment {
                 other.speakerId == speakerId));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, id, text, type, needsIndent, speakerId);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Segment
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$SegmentImplCopyWith<_$SegmentImpl> get copyWith =>
@@ -551,19 +604,18 @@ class _$SegmentImpl extends _Segment {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SegmentImplToJson(
-      this,
-    );
+    return _$$SegmentImplToJson(this);
   }
 }
 
 abstract class _Segment extends Segment {
-  const factory _Segment(
-      {required final String id,
-      required final String text,
-      required final SegmentType type,
-      final bool needsIndent,
-      final String? speakerId}) = _$SegmentImpl;
+  const factory _Segment({
+    required final String id,
+    required final String text,
+    required final SegmentType type,
+    final bool needsIndent,
+    final String? speakerId,
+  }) = _$SegmentImpl;
   const _Segment._() : super._();
 
   factory _Segment.fromJson(Map<String, dynamic> json) = _$SegmentImpl.fromJson;
@@ -578,8 +630,11 @@ abstract class _Segment extends Segment {
   bool get needsIndent;
   @override
   String? get speakerId;
+
+  /// Create a copy of Segment
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SegmentImplCopyWith<_$SegmentImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

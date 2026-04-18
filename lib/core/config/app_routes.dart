@@ -24,4 +24,6 @@ abstract class AppRoutes {
   static const aiUsageStats = '/work/:id/ai-usage-stats';
   static const workEdit = '/work/:id/edit';
   static const workNew = '/work/new';
+  static const workflowTasks = '/workflow/tasks/:workId';
+  static const workflowTask = '/workflow/task/:taskId';
 }

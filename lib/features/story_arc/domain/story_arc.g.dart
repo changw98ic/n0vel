@@ -16,7 +16,8 @@ _$StoryArcModelImpl _$$StoryArcModelImplFromJson(Map<String, dynamic> json) =>
       startChapterId: json['startChapterId'] as String?,
       endChapterId: json['endChapterId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-      status: $enumDecodeNullable(_$ArcStatusEnumMap, json['status']) ??
+      status:
+          $enumDecodeNullable(_$ArcStatusEnumMap, json['status']) ??
           ArcStatus.active,
       metadata: json['metadata'] as String?,
       createdAt: json['createdAt'] == null
@@ -58,27 +59,28 @@ const _$ArcStatusEnumMap = {
 };
 
 _$ArcChapterModelImpl _$$ArcChapterModelImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ArcChapterModelImpl(
-      id: json['id'] as String,
-      arcId: json['arcId'] as String,
-      chapterId: json['chapterId'] as String,
-      role: $enumDecodeNullable(_$ArcChapterRoleEnumMap, json['role']) ??
-          ArcChapterRole.progression,
-      note: json['note'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+  Map<String, dynamic> json,
+) => _$ArcChapterModelImpl(
+  id: json['id'] as String,
+  arcId: json['arcId'] as String,
+  chapterId: json['chapterId'] as String,
+  role:
+      $enumDecodeNullable(_$ArcChapterRoleEnumMap, json['role']) ??
+      ArcChapterRole.progression,
+  note: json['note'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
 Map<String, dynamic> _$$ArcChapterModelImplToJson(
-        _$ArcChapterModelImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'arcId': instance.arcId,
-      'chapterId': instance.chapterId,
-      'role': _$ArcChapterRoleEnumMap[instance.role]!,
-      'note': instance.note,
-      'sortOrder': instance.sortOrder,
-    };
+  _$ArcChapterModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'arcId': instance.arcId,
+  'chapterId': instance.chapterId,
+  'role': _$ArcChapterRoleEnumMap[instance.role]!,
+  'note': instance.note,
+  'sortOrder': instance.sortOrder,
+};
 
 const _$ArcChapterRoleEnumMap = {
   ArcChapterRole.progression: 'progression',
@@ -90,25 +92,26 @@ const _$ArcChapterRoleEnumMap = {
 };
 
 _$ArcCharacterModelImpl _$$ArcCharacterModelImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ArcCharacterModelImpl(
-      id: json['id'] as String,
-      arcId: json['arcId'] as String,
-      characterId: json['characterId'] as String,
-      role: $enumDecodeNullable(_$ArcCharacterRoleEnumMap, json['role']) ??
-          ArcCharacterRole.participant,
-      note: json['note'] as String?,
-    );
+  Map<String, dynamic> json,
+) => _$ArcCharacterModelImpl(
+  id: json['id'] as String,
+  arcId: json['arcId'] as String,
+  characterId: json['characterId'] as String,
+  role:
+      $enumDecodeNullable(_$ArcCharacterRoleEnumMap, json['role']) ??
+      ArcCharacterRole.participant,
+  note: json['note'] as String?,
+);
 
 Map<String, dynamic> _$$ArcCharacterModelImplToJson(
-        _$ArcCharacterModelImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'arcId': instance.arcId,
-      'characterId': instance.characterId,
-      'role': _$ArcCharacterRoleEnumMap[instance.role]!,
-      'note': instance.note,
-    };
+  _$ArcCharacterModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'arcId': instance.arcId,
+  'characterId': instance.characterId,
+  'role': _$ArcCharacterRoleEnumMap[instance.role]!,
+  'note': instance.note,
+};
 
 const _$ArcCharacterRoleEnumMap = {
   ArcCharacterRole.protagonist: 'protagonist',
@@ -119,47 +122,48 @@ const _$ArcCharacterRoleEnumMap = {
 };
 
 _$ForeshadowModelImpl _$$ForeshadowModelImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ForeshadowModelImpl(
-      id: json['id'] as String,
-      workId: json['workId'] as String,
-      description: json['description'] as String,
-      plantChapterId: json['plantChapterId'] as String?,
-      plantParagraphIndex: (json['plantParagraphIndex'] as num?)?.toInt(),
-      payoffChapterId: json['payoffChapterId'] as String?,
-      payoffParagraphIndex: (json['payoffParagraphIndex'] as num?)?.toInt(),
-      status: $enumDecodeNullable(_$ForeshadowStatusEnumMap, json['status']) ??
-          ForeshadowStatus.planted,
-      importance: $enumDecodeNullable(
-              _$ForeshadowImportanceEnumMap, json['importance']) ??
-          ForeshadowImportance.minor,
-      arcId: json['arcId'] as String?,
-      note: json['note'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
-    );
+  Map<String, dynamic> json,
+) => _$ForeshadowModelImpl(
+  id: json['id'] as String,
+  workId: json['workId'] as String,
+  description: json['description'] as String,
+  plantChapterId: json['plantChapterId'] as String?,
+  plantParagraphIndex: (json['plantParagraphIndex'] as num?)?.toInt(),
+  payoffChapterId: json['payoffChapterId'] as String?,
+  payoffParagraphIndex: (json['payoffParagraphIndex'] as num?)?.toInt(),
+  status:
+      $enumDecodeNullable(_$ForeshadowStatusEnumMap, json['status']) ??
+      ForeshadowStatus.planted,
+  importance:
+      $enumDecodeNullable(_$ForeshadowImportanceEnumMap, json['importance']) ??
+      ForeshadowImportance.minor,
+  arcId: json['arcId'] as String?,
+  note: json['note'] as String?,
+  createdAt: json['createdAt'] == null
+      ? null
+      : DateTime.parse(json['createdAt'] as String),
+  updatedAt: json['updatedAt'] == null
+      ? null
+      : DateTime.parse(json['updatedAt'] as String),
+);
 
 Map<String, dynamic> _$$ForeshadowModelImplToJson(
-        _$ForeshadowModelImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'workId': instance.workId,
-      'description': instance.description,
-      'plantChapterId': instance.plantChapterId,
-      'plantParagraphIndex': instance.plantParagraphIndex,
-      'payoffChapterId': instance.payoffChapterId,
-      'payoffParagraphIndex': instance.payoffParagraphIndex,
-      'status': _$ForeshadowStatusEnumMap[instance.status]!,
-      'importance': _$ForeshadowImportanceEnumMap[instance.importance]!,
-      'arcId': instance.arcId,
-      'note': instance.note,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
-    };
+  _$ForeshadowModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'workId': instance.workId,
+  'description': instance.description,
+  'plantChapterId': instance.plantChapterId,
+  'plantParagraphIndex': instance.plantParagraphIndex,
+  'payoffChapterId': instance.payoffChapterId,
+  'payoffParagraphIndex': instance.payoffParagraphIndex,
+  'status': _$ForeshadowStatusEnumMap[instance.status]!,
+  'importance': _$ForeshadowImportanceEnumMap[instance.importance]!,
+  'arcId': instance.arcId,
+  'note': instance.note,
+  'createdAt': instance.createdAt?.toIso8601String(),
+  'updatedAt': instance.updatedAt?.toIso8601String(),
+};
 
 const _$ForeshadowStatusEnumMap = {
   ForeshadowStatus.planted: 'planted',

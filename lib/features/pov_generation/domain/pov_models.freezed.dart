@@ -12,7 +12,8 @@ part of 'pov_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 POVTask _$POVTaskFromJson(Map<String, dynamic> json) {
   return _POVTask.fromJson(json);
@@ -34,8 +35,12 @@ mixin _$POVTask {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get completedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this POVTask to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $POVTaskCopyWith<POVTask> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -44,20 +49,21 @@ abstract class $POVTaskCopyWith<$Res> {
   factory $POVTaskCopyWith(POVTask value, $Res Function(POVTask) then) =
       _$POVTaskCopyWithImpl<$Res, POVTask>;
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String chapterId,
-      String characterId,
-      String originalContent,
-      POVConfig config,
-      POVTaskStatus status,
-      String? generatedContent,
-      String? analysis,
-      int tokenUsage,
-      String? errorMessage,
-      DateTime createdAt,
-      DateTime? completedAt});
+  $Res call({
+    String id,
+    String workId,
+    String chapterId,
+    String characterId,
+    String originalContent,
+    POVConfig config,
+    POVTaskStatus status,
+    String? generatedContent,
+    String? analysis,
+    int tokenUsage,
+    String? errorMessage,
+    DateTime createdAt,
+    DateTime? completedAt,
+  });
 
   $POVConfigCopyWith<$Res> get config;
 }
@@ -72,6 +78,8 @@ class _$POVTaskCopyWithImpl<$Res, $Val extends POVTask>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -89,62 +97,67 @@ class _$POVTaskCopyWithImpl<$Res, $Val extends POVTask>
     Object? createdAt = null,
     Object? completedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      originalContent: null == originalContent
-          ? _value.originalContent
-          : originalContent // ignore: cast_nullable_to_non_nullable
-              as String,
-      config: null == config
-          ? _value.config
-          : config // ignore: cast_nullable_to_non_nullable
-              as POVConfig,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as POVTaskStatus,
-      generatedContent: freezed == generatedContent
-          ? _value.generatedContent
-          : generatedContent // ignore: cast_nullable_to_non_nullable
-              as String?,
-      analysis: freezed == analysis
-          ? _value.analysis
-          : analysis // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tokenUsage: null == tokenUsage
-          ? _value.tokenUsage
-          : tokenUsage // ignore: cast_nullable_to_non_nullable
-              as int,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      completedAt: freezed == completedAt
-          ? _value.completedAt
-          : completedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            workId: null == workId
+                ? _value.workId
+                : workId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            chapterId: null == chapterId
+                ? _value.chapterId
+                : chapterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            characterId: null == characterId
+                ? _value.characterId
+                : characterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            originalContent: null == originalContent
+                ? _value.originalContent
+                : originalContent // ignore: cast_nullable_to_non_nullable
+                      as String,
+            config: null == config
+                ? _value.config
+                : config // ignore: cast_nullable_to_non_nullable
+                      as POVConfig,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as POVTaskStatus,
+            generatedContent: freezed == generatedContent
+                ? _value.generatedContent
+                : generatedContent // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            analysis: freezed == analysis
+                ? _value.analysis
+                : analysis // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            tokenUsage: null == tokenUsage
+                ? _value.tokenUsage
+                : tokenUsage // ignore: cast_nullable_to_non_nullable
+                      as int,
+            errorMessage: freezed == errorMessage
+                ? _value.errorMessage
+                : errorMessage // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            completedAt: freezed == completedAt
+                ? _value.completedAt
+                : completedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $POVConfigCopyWith<$Res> get config {
@@ -157,24 +170,26 @@ class _$POVTaskCopyWithImpl<$Res, $Val extends POVTask>
 /// @nodoc
 abstract class _$$POVTaskImplCopyWith<$Res> implements $POVTaskCopyWith<$Res> {
   factory _$$POVTaskImplCopyWith(
-          _$POVTaskImpl value, $Res Function(_$POVTaskImpl) then) =
-      __$$POVTaskImplCopyWithImpl<$Res>;
+    _$POVTaskImpl value,
+    $Res Function(_$POVTaskImpl) then,
+  ) = __$$POVTaskImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String workId,
-      String chapterId,
-      String characterId,
-      String originalContent,
-      POVConfig config,
-      POVTaskStatus status,
-      String? generatedContent,
-      String? analysis,
-      int tokenUsage,
-      String? errorMessage,
-      DateTime createdAt,
-      DateTime? completedAt});
+  $Res call({
+    String id,
+    String workId,
+    String chapterId,
+    String characterId,
+    String originalContent,
+    POVConfig config,
+    POVTaskStatus status,
+    String? generatedContent,
+    String? analysis,
+    int tokenUsage,
+    String? errorMessage,
+    DateTime createdAt,
+    DateTime? completedAt,
+  });
 
   @override
   $POVConfigCopyWith<$Res> get config;
@@ -185,9 +200,12 @@ class __$$POVTaskImplCopyWithImpl<$Res>
     extends _$POVTaskCopyWithImpl<$Res, _$POVTaskImpl>
     implements _$$POVTaskImplCopyWith<$Res> {
   __$$POVTaskImplCopyWithImpl(
-      _$POVTaskImpl _value, $Res Function(_$POVTaskImpl) _then)
-      : super(_value, _then);
+    _$POVTaskImpl _value,
+    $Res Function(_$POVTaskImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -205,80 +223,83 @@ class __$$POVTaskImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? completedAt = freezed,
   }) {
-    return _then(_$POVTaskImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      workId: null == workId
-          ? _value.workId
-          : workId // ignore: cast_nullable_to_non_nullable
-              as String,
-      chapterId: null == chapterId
-          ? _value.chapterId
-          : chapterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      characterId: null == characterId
-          ? _value.characterId
-          : characterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      originalContent: null == originalContent
-          ? _value.originalContent
-          : originalContent // ignore: cast_nullable_to_non_nullable
-              as String,
-      config: null == config
-          ? _value.config
-          : config // ignore: cast_nullable_to_non_nullable
-              as POVConfig,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as POVTaskStatus,
-      generatedContent: freezed == generatedContent
-          ? _value.generatedContent
-          : generatedContent // ignore: cast_nullable_to_non_nullable
-              as String?,
-      analysis: freezed == analysis
-          ? _value.analysis
-          : analysis // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tokenUsage: null == tokenUsage
-          ? _value.tokenUsage
-          : tokenUsage // ignore: cast_nullable_to_non_nullable
-              as int,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      completedAt: freezed == completedAt
-          ? _value.completedAt
-          : completedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$POVTaskImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        workId: null == workId
+            ? _value.workId
+            : workId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        chapterId: null == chapterId
+            ? _value.chapterId
+            : chapterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        characterId: null == characterId
+            ? _value.characterId
+            : characterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        originalContent: null == originalContent
+            ? _value.originalContent
+            : originalContent // ignore: cast_nullable_to_non_nullable
+                  as String,
+        config: null == config
+            ? _value.config
+            : config // ignore: cast_nullable_to_non_nullable
+                  as POVConfig,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as POVTaskStatus,
+        generatedContent: freezed == generatedContent
+            ? _value.generatedContent
+            : generatedContent // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        analysis: freezed == analysis
+            ? _value.analysis
+            : analysis // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        tokenUsage: null == tokenUsage
+            ? _value.tokenUsage
+            : tokenUsage // ignore: cast_nullable_to_non_nullable
+                  as int,
+        errorMessage: freezed == errorMessage
+            ? _value.errorMessage
+            : errorMessage // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        completedAt: freezed == completedAt
+            ? _value.completedAt
+            : completedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$POVTaskImpl implements _POVTask {
-  const _$POVTaskImpl(
-      {required this.id,
-      required this.workId,
-      required this.chapterId,
-      required this.characterId,
-      required this.originalContent,
-      required this.config,
-      this.status = POVTaskStatus.pending,
-      this.generatedContent,
-      this.analysis,
-      this.tokenUsage = 0,
-      this.errorMessage,
-      required this.createdAt,
-      this.completedAt});
+  const _$POVTaskImpl({
+    required this.id,
+    required this.workId,
+    required this.chapterId,
+    required this.characterId,
+    required this.originalContent,
+    required this.config,
+    this.status = POVTaskStatus.pending,
+    this.generatedContent,
+    this.analysis,
+    this.tokenUsage = 0,
+    this.errorMessage,
+    required this.createdAt,
+    this.completedAt,
+  });
 
   factory _$POVTaskImpl.fromJson(Map<String, dynamic> json) =>
       _$$POVTaskImplFromJson(json);
@@ -346,25 +367,28 @@ class _$POVTaskImpl implements _POVTask {
                 other.completedAt == completedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workId,
-      chapterId,
-      characterId,
-      originalContent,
-      config,
-      status,
-      generatedContent,
-      analysis,
-      tokenUsage,
-      errorMessage,
-      createdAt,
-      completedAt);
+    runtimeType,
+    id,
+    workId,
+    chapterId,
+    characterId,
+    originalContent,
+    config,
+    status,
+    generatedContent,
+    analysis,
+    tokenUsage,
+    errorMessage,
+    createdAt,
+    completedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$POVTaskImplCopyWith<_$POVTaskImpl> get copyWith =>
@@ -372,27 +396,26 @@ class _$POVTaskImpl implements _POVTask {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$POVTaskImplToJson(
-      this,
-    );
+    return _$$POVTaskImplToJson(this);
   }
 }
 
 abstract class _POVTask implements POVTask {
-  const factory _POVTask(
-      {required final String id,
-      required final String workId,
-      required final String chapterId,
-      required final String characterId,
-      required final String originalContent,
-      required final POVConfig config,
-      final POVTaskStatus status,
-      final String? generatedContent,
-      final String? analysis,
-      final int tokenUsage,
-      final String? errorMessage,
-      required final DateTime createdAt,
-      final DateTime? completedAt}) = _$POVTaskImpl;
+  const factory _POVTask({
+    required final String id,
+    required final String workId,
+    required final String chapterId,
+    required final String characterId,
+    required final String originalContent,
+    required final POVConfig config,
+    final POVTaskStatus status,
+    final String? generatedContent,
+    final String? analysis,
+    final int tokenUsage,
+    final String? errorMessage,
+    required final DateTime createdAt,
+    final DateTime? completedAt,
+  }) = _$POVTaskImpl;
 
   factory _POVTask.fromJson(Map<String, dynamic> json) = _$POVTaskImpl.fromJson;
 
@@ -422,8 +445,11 @@ abstract class _POVTask implements POVTask {
   DateTime get createdAt;
   @override
   DateTime? get completedAt;
+
+  /// Create a copy of POVTask
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$POVTaskImplCopyWith<_$POVTaskImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -444,8 +470,12 @@ mixin _$POVConfig {
   String? get customInstructions => throw _privateConstructorUsedError;
   int? get targetWordCount => throw _privateConstructorUsedError;
 
+  /// Serializes this POVConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of POVConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $POVConfigCopyWith<POVConfig> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -455,16 +485,17 @@ abstract class $POVConfigCopyWith<$Res> {
   factory $POVConfigCopyWith(POVConfig value, $Res Function(POVConfig) then) =
       _$POVConfigCopyWithImpl<$Res, POVConfig>;
   @useResult
-  $Res call(
-      {POVMode mode,
-      POVStyle style,
-      bool keepDialogue,
-      bool addInnerThoughts,
-      bool expandObservations,
-      double emotionalIntensity,
-      bool useCharacterVoice,
-      String? customInstructions,
-      int? targetWordCount});
+  $Res call({
+    POVMode mode,
+    POVStyle style,
+    bool keepDialogue,
+    bool addInnerThoughts,
+    bool expandObservations,
+    double emotionalIntensity,
+    bool useCharacterVoice,
+    String? customInstructions,
+    int? targetWordCount,
+  });
 }
 
 /// @nodoc
@@ -477,6 +508,8 @@ class _$POVConfigCopyWithImpl<$Res, $Val extends POVConfig>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of POVConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -490,44 +523,47 @@ class _$POVConfigCopyWithImpl<$Res, $Val extends POVConfig>
     Object? customInstructions = freezed,
     Object? targetWordCount = freezed,
   }) {
-    return _then(_value.copyWith(
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as POVMode,
-      style: null == style
-          ? _value.style
-          : style // ignore: cast_nullable_to_non_nullable
-              as POVStyle,
-      keepDialogue: null == keepDialogue
-          ? _value.keepDialogue
-          : keepDialogue // ignore: cast_nullable_to_non_nullable
-              as bool,
-      addInnerThoughts: null == addInnerThoughts
-          ? _value.addInnerThoughts
-          : addInnerThoughts // ignore: cast_nullable_to_non_nullable
-              as bool,
-      expandObservations: null == expandObservations
-          ? _value.expandObservations
-          : expandObservations // ignore: cast_nullable_to_non_nullable
-              as bool,
-      emotionalIntensity: null == emotionalIntensity
-          ? _value.emotionalIntensity
-          : emotionalIntensity // ignore: cast_nullable_to_non_nullable
-              as double,
-      useCharacterVoice: null == useCharacterVoice
-          ? _value.useCharacterVoice
-          : useCharacterVoice // ignore: cast_nullable_to_non_nullable
-              as bool,
-      customInstructions: freezed == customInstructions
-          ? _value.customInstructions
-          : customInstructions // ignore: cast_nullable_to_non_nullable
-              as String?,
-      targetWordCount: freezed == targetWordCount
-          ? _value.targetWordCount
-          : targetWordCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            mode: null == mode
+                ? _value.mode
+                : mode // ignore: cast_nullable_to_non_nullable
+                      as POVMode,
+            style: null == style
+                ? _value.style
+                : style // ignore: cast_nullable_to_non_nullable
+                      as POVStyle,
+            keepDialogue: null == keepDialogue
+                ? _value.keepDialogue
+                : keepDialogue // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            addInnerThoughts: null == addInnerThoughts
+                ? _value.addInnerThoughts
+                : addInnerThoughts // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            expandObservations: null == expandObservations
+                ? _value.expandObservations
+                : expandObservations // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            emotionalIntensity: null == emotionalIntensity
+                ? _value.emotionalIntensity
+                : emotionalIntensity // ignore: cast_nullable_to_non_nullable
+                      as double,
+            useCharacterVoice: null == useCharacterVoice
+                ? _value.useCharacterVoice
+                : useCharacterVoice // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            customInstructions: freezed == customInstructions
+                ? _value.customInstructions
+                : customInstructions // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            targetWordCount: freezed == targetWordCount
+                ? _value.targetWordCount
+                : targetWordCount // ignore: cast_nullable_to_non_nullable
+                      as int?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -535,20 +571,22 @@ class _$POVConfigCopyWithImpl<$Res, $Val extends POVConfig>
 abstract class _$$POVConfigImplCopyWith<$Res>
     implements $POVConfigCopyWith<$Res> {
   factory _$$POVConfigImplCopyWith(
-          _$POVConfigImpl value, $Res Function(_$POVConfigImpl) then) =
-      __$$POVConfigImplCopyWithImpl<$Res>;
+    _$POVConfigImpl value,
+    $Res Function(_$POVConfigImpl) then,
+  ) = __$$POVConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {POVMode mode,
-      POVStyle style,
-      bool keepDialogue,
-      bool addInnerThoughts,
-      bool expandObservations,
-      double emotionalIntensity,
-      bool useCharacterVoice,
-      String? customInstructions,
-      int? targetWordCount});
+  $Res call({
+    POVMode mode,
+    POVStyle style,
+    bool keepDialogue,
+    bool addInnerThoughts,
+    bool expandObservations,
+    double emotionalIntensity,
+    bool useCharacterVoice,
+    String? customInstructions,
+    int? targetWordCount,
+  });
 }
 
 /// @nodoc
@@ -556,9 +594,12 @@ class __$$POVConfigImplCopyWithImpl<$Res>
     extends _$POVConfigCopyWithImpl<$Res, _$POVConfigImpl>
     implements _$$POVConfigImplCopyWith<$Res> {
   __$$POVConfigImplCopyWithImpl(
-      _$POVConfigImpl _value, $Res Function(_$POVConfigImpl) _then)
-      : super(_value, _then);
+    _$POVConfigImpl _value,
+    $Res Function(_$POVConfigImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of POVConfig
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -572,60 +613,63 @@ class __$$POVConfigImplCopyWithImpl<$Res>
     Object? customInstructions = freezed,
     Object? targetWordCount = freezed,
   }) {
-    return _then(_$POVConfigImpl(
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as POVMode,
-      style: null == style
-          ? _value.style
-          : style // ignore: cast_nullable_to_non_nullable
-              as POVStyle,
-      keepDialogue: null == keepDialogue
-          ? _value.keepDialogue
-          : keepDialogue // ignore: cast_nullable_to_non_nullable
-              as bool,
-      addInnerThoughts: null == addInnerThoughts
-          ? _value.addInnerThoughts
-          : addInnerThoughts // ignore: cast_nullable_to_non_nullable
-              as bool,
-      expandObservations: null == expandObservations
-          ? _value.expandObservations
-          : expandObservations // ignore: cast_nullable_to_non_nullable
-              as bool,
-      emotionalIntensity: null == emotionalIntensity
-          ? _value.emotionalIntensity
-          : emotionalIntensity // ignore: cast_nullable_to_non_nullable
-              as double,
-      useCharacterVoice: null == useCharacterVoice
-          ? _value.useCharacterVoice
-          : useCharacterVoice // ignore: cast_nullable_to_non_nullable
-              as bool,
-      customInstructions: freezed == customInstructions
-          ? _value.customInstructions
-          : customInstructions // ignore: cast_nullable_to_non_nullable
-              as String?,
-      targetWordCount: freezed == targetWordCount
-          ? _value.targetWordCount
-          : targetWordCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ));
+    return _then(
+      _$POVConfigImpl(
+        mode: null == mode
+            ? _value.mode
+            : mode // ignore: cast_nullable_to_non_nullable
+                  as POVMode,
+        style: null == style
+            ? _value.style
+            : style // ignore: cast_nullable_to_non_nullable
+                  as POVStyle,
+        keepDialogue: null == keepDialogue
+            ? _value.keepDialogue
+            : keepDialogue // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        addInnerThoughts: null == addInnerThoughts
+            ? _value.addInnerThoughts
+            : addInnerThoughts // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        expandObservations: null == expandObservations
+            ? _value.expandObservations
+            : expandObservations // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        emotionalIntensity: null == emotionalIntensity
+            ? _value.emotionalIntensity
+            : emotionalIntensity // ignore: cast_nullable_to_non_nullable
+                  as double,
+        useCharacterVoice: null == useCharacterVoice
+            ? _value.useCharacterVoice
+            : useCharacterVoice // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        customInstructions: freezed == customInstructions
+            ? _value.customInstructions
+            : customInstructions // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        targetWordCount: freezed == targetWordCount
+            ? _value.targetWordCount
+            : targetWordCount // ignore: cast_nullable_to_non_nullable
+                  as int?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$POVConfigImpl implements _POVConfig {
-  const _$POVConfigImpl(
-      {this.mode = POVMode.rewrite,
-      this.style = POVStyle.firstPerson,
-      this.keepDialogue = true,
-      this.addInnerThoughts = true,
-      this.expandObservations = true,
-      this.emotionalIntensity = 0.5,
-      this.useCharacterVoice = true,
-      this.customInstructions,
-      this.targetWordCount});
+  const _$POVConfigImpl({
+    this.mode = POVMode.rewrite,
+    this.style = POVStyle.firstPerson,
+    this.keepDialogue = true,
+    this.addInnerThoughts = true,
+    this.expandObservations = true,
+    this.emotionalIntensity = 0.5,
+    this.useCharacterVoice = true,
+    this.customInstructions,
+    this.targetWordCount,
+  });
 
   factory _$POVConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$POVConfigImplFromJson(json);
@@ -684,21 +728,24 @@ class _$POVConfigImpl implements _POVConfig {
                 other.targetWordCount == targetWordCount));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      mode,
-      style,
-      keepDialogue,
-      addInnerThoughts,
-      expandObservations,
-      emotionalIntensity,
-      useCharacterVoice,
-      customInstructions,
-      targetWordCount);
+    runtimeType,
+    mode,
+    style,
+    keepDialogue,
+    addInnerThoughts,
+    expandObservations,
+    emotionalIntensity,
+    useCharacterVoice,
+    customInstructions,
+    targetWordCount,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of POVConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$POVConfigImplCopyWith<_$POVConfigImpl> get copyWith =>
@@ -706,23 +753,22 @@ class _$POVConfigImpl implements _POVConfig {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$POVConfigImplToJson(
-      this,
-    );
+    return _$$POVConfigImplToJson(this);
   }
 }
 
 abstract class _POVConfig implements POVConfig {
-  const factory _POVConfig(
-      {final POVMode mode,
-      final POVStyle style,
-      final bool keepDialogue,
-      final bool addInnerThoughts,
-      final bool expandObservations,
-      final double emotionalIntensity,
-      final bool useCharacterVoice,
-      final String? customInstructions,
-      final int? targetWordCount}) = _$POVConfigImpl;
+  const factory _POVConfig({
+    final POVMode mode,
+    final POVStyle style,
+    final bool keepDialogue,
+    final bool addInnerThoughts,
+    final bool expandObservations,
+    final double emotionalIntensity,
+    final bool useCharacterVoice,
+    final String? customInstructions,
+    final int? targetWordCount,
+  }) = _$POVConfigImpl;
 
   factory _POVConfig.fromJson(Map<String, dynamic> json) =
       _$POVConfigImpl.fromJson;
@@ -745,8 +791,11 @@ abstract class _POVConfig implements POVConfig {
   String? get customInstructions;
   @override
   int? get targetWordCount;
+
+  /// Create a copy of POVConfig
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$POVConfigImplCopyWith<_$POVConfigImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -767,8 +816,12 @@ mixin _$POVAnalysis {
       throw _privateConstructorUsedError;
   List<String> get suggestions => throw _privateConstructorUsedError;
 
+  /// Serializes this POVAnalysis to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of POVAnalysis
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $POVAnalysisCopyWith<POVAnalysis> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -776,16 +829,18 @@ mixin _$POVAnalysis {
 /// @nodoc
 abstract class $POVAnalysisCopyWith<$Res> {
   factory $POVAnalysisCopyWith(
-          POVAnalysis value, $Res Function(POVAnalysis) then) =
-      _$POVAnalysisCopyWithImpl<$Res, POVAnalysis>;
+    POVAnalysis value,
+    $Res Function(POVAnalysis) then,
+  ) = _$POVAnalysisCopyWithImpl<$Res, POVAnalysis>;
   @useResult
-  $Res call(
-      {List<CharacterAppearance> appearances,
-      List<EmotionPoint> emotionCurve,
-      List<KeyObservation> observations,
-      List<CharacterInteraction> interactions,
-      List<InnerThought> suggestedThoughts,
-      List<String> suggestions});
+  $Res call({
+    List<CharacterAppearance> appearances,
+    List<EmotionPoint> emotionCurve,
+    List<KeyObservation> observations,
+    List<CharacterInteraction> interactions,
+    List<InnerThought> suggestedThoughts,
+    List<String> suggestions,
+  });
 }
 
 /// @nodoc
@@ -798,6 +853,8 @@ class _$POVAnalysisCopyWithImpl<$Res, $Val extends POVAnalysis>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of POVAnalysis
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -808,32 +865,35 @@ class _$POVAnalysisCopyWithImpl<$Res, $Val extends POVAnalysis>
     Object? suggestedThoughts = null,
     Object? suggestions = null,
   }) {
-    return _then(_value.copyWith(
-      appearances: null == appearances
-          ? _value.appearances
-          : appearances // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAppearance>,
-      emotionCurve: null == emotionCurve
-          ? _value.emotionCurve
-          : emotionCurve // ignore: cast_nullable_to_non_nullable
-              as List<EmotionPoint>,
-      observations: null == observations
-          ? _value.observations
-          : observations // ignore: cast_nullable_to_non_nullable
-              as List<KeyObservation>,
-      interactions: null == interactions
-          ? _value.interactions
-          : interactions // ignore: cast_nullable_to_non_nullable
-              as List<CharacterInteraction>,
-      suggestedThoughts: null == suggestedThoughts
-          ? _value.suggestedThoughts
-          : suggestedThoughts // ignore: cast_nullable_to_non_nullable
-              as List<InnerThought>,
-      suggestions: null == suggestions
-          ? _value.suggestions
-          : suggestions // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            appearances: null == appearances
+                ? _value.appearances
+                : appearances // ignore: cast_nullable_to_non_nullable
+                      as List<CharacterAppearance>,
+            emotionCurve: null == emotionCurve
+                ? _value.emotionCurve
+                : emotionCurve // ignore: cast_nullable_to_non_nullable
+                      as List<EmotionPoint>,
+            observations: null == observations
+                ? _value.observations
+                : observations // ignore: cast_nullable_to_non_nullable
+                      as List<KeyObservation>,
+            interactions: null == interactions
+                ? _value.interactions
+                : interactions // ignore: cast_nullable_to_non_nullable
+                      as List<CharacterInteraction>,
+            suggestedThoughts: null == suggestedThoughts
+                ? _value.suggestedThoughts
+                : suggestedThoughts // ignore: cast_nullable_to_non_nullable
+                      as List<InnerThought>,
+            suggestions: null == suggestions
+                ? _value.suggestions
+                : suggestions // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -841,17 +901,19 @@ class _$POVAnalysisCopyWithImpl<$Res, $Val extends POVAnalysis>
 abstract class _$$POVAnalysisImplCopyWith<$Res>
     implements $POVAnalysisCopyWith<$Res> {
   factory _$$POVAnalysisImplCopyWith(
-          _$POVAnalysisImpl value, $Res Function(_$POVAnalysisImpl) then) =
-      __$$POVAnalysisImplCopyWithImpl<$Res>;
+    _$POVAnalysisImpl value,
+    $Res Function(_$POVAnalysisImpl) then,
+  ) = __$$POVAnalysisImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {List<CharacterAppearance> appearances,
-      List<EmotionPoint> emotionCurve,
-      List<KeyObservation> observations,
-      List<CharacterInteraction> interactions,
-      List<InnerThought> suggestedThoughts,
-      List<String> suggestions});
+  $Res call({
+    List<CharacterAppearance> appearances,
+    List<EmotionPoint> emotionCurve,
+    List<KeyObservation> observations,
+    List<CharacterInteraction> interactions,
+    List<InnerThought> suggestedThoughts,
+    List<String> suggestions,
+  });
 }
 
 /// @nodoc
@@ -859,9 +921,12 @@ class __$$POVAnalysisImplCopyWithImpl<$Res>
     extends _$POVAnalysisCopyWithImpl<$Res, _$POVAnalysisImpl>
     implements _$$POVAnalysisImplCopyWith<$Res> {
   __$$POVAnalysisImplCopyWithImpl(
-      _$POVAnalysisImpl _value, $Res Function(_$POVAnalysisImpl) _then)
-      : super(_value, _then);
+    _$POVAnalysisImpl _value,
+    $Res Function(_$POVAnalysisImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of POVAnalysis
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -872,51 +937,53 @@ class __$$POVAnalysisImplCopyWithImpl<$Res>
     Object? suggestedThoughts = null,
     Object? suggestions = null,
   }) {
-    return _then(_$POVAnalysisImpl(
-      appearances: null == appearances
-          ? _value._appearances
-          : appearances // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAppearance>,
-      emotionCurve: null == emotionCurve
-          ? _value._emotionCurve
-          : emotionCurve // ignore: cast_nullable_to_non_nullable
-              as List<EmotionPoint>,
-      observations: null == observations
-          ? _value._observations
-          : observations // ignore: cast_nullable_to_non_nullable
-              as List<KeyObservation>,
-      interactions: null == interactions
-          ? _value._interactions
-          : interactions // ignore: cast_nullable_to_non_nullable
-              as List<CharacterInteraction>,
-      suggestedThoughts: null == suggestedThoughts
-          ? _value._suggestedThoughts
-          : suggestedThoughts // ignore: cast_nullable_to_non_nullable
-              as List<InnerThought>,
-      suggestions: null == suggestions
-          ? _value._suggestions
-          : suggestions // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ));
+    return _then(
+      _$POVAnalysisImpl(
+        appearances: null == appearances
+            ? _value._appearances
+            : appearances // ignore: cast_nullable_to_non_nullable
+                  as List<CharacterAppearance>,
+        emotionCurve: null == emotionCurve
+            ? _value._emotionCurve
+            : emotionCurve // ignore: cast_nullable_to_non_nullable
+                  as List<EmotionPoint>,
+        observations: null == observations
+            ? _value._observations
+            : observations // ignore: cast_nullable_to_non_nullable
+                  as List<KeyObservation>,
+        interactions: null == interactions
+            ? _value._interactions
+            : interactions // ignore: cast_nullable_to_non_nullable
+                  as List<CharacterInteraction>,
+        suggestedThoughts: null == suggestedThoughts
+            ? _value._suggestedThoughts
+            : suggestedThoughts // ignore: cast_nullable_to_non_nullable
+                  as List<InnerThought>,
+        suggestions: null == suggestions
+            ? _value._suggestions
+            : suggestions // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$POVAnalysisImpl implements _POVAnalysis {
-  const _$POVAnalysisImpl(
-      {required final List<CharacterAppearance> appearances,
-      required final List<EmotionPoint> emotionCurve,
-      required final List<KeyObservation> observations,
-      required final List<CharacterInteraction> interactions,
-      required final List<InnerThought> suggestedThoughts,
-      required final List<String> suggestions})
-      : _appearances = appearances,
-        _emotionCurve = emotionCurve,
-        _observations = observations,
-        _interactions = interactions,
-        _suggestedThoughts = suggestedThoughts,
-        _suggestions = suggestions;
+  const _$POVAnalysisImpl({
+    required final List<CharacterAppearance> appearances,
+    required final List<EmotionPoint> emotionCurve,
+    required final List<KeyObservation> observations,
+    required final List<CharacterInteraction> interactions,
+    required final List<InnerThought> suggestedThoughts,
+    required final List<String> suggestions,
+  }) : _appearances = appearances,
+       _emotionCurve = emotionCurve,
+       _observations = observations,
+       _interactions = interactions,
+       _suggestedThoughts = suggestedThoughts,
+       _suggestions = suggestions;
 
   factory _$POVAnalysisImpl.fromJson(Map<String, dynamic> json) =>
       _$$POVAnalysisImplFromJson(json);
@@ -980,32 +1047,47 @@ class _$POVAnalysisImpl implements _POVAnalysis {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$POVAnalysisImpl &&
-            const DeepCollectionEquality()
-                .equals(other._appearances, _appearances) &&
-            const DeepCollectionEquality()
-                .equals(other._emotionCurve, _emotionCurve) &&
-            const DeepCollectionEquality()
-                .equals(other._observations, _observations) &&
-            const DeepCollectionEquality()
-                .equals(other._interactions, _interactions) &&
-            const DeepCollectionEquality()
-                .equals(other._suggestedThoughts, _suggestedThoughts) &&
-            const DeepCollectionEquality()
-                .equals(other._suggestions, _suggestions));
+            const DeepCollectionEquality().equals(
+              other._appearances,
+              _appearances,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._emotionCurve,
+              _emotionCurve,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._observations,
+              _observations,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._interactions,
+              _interactions,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._suggestedThoughts,
+              _suggestedThoughts,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._suggestions,
+              _suggestions,
+            ));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      const DeepCollectionEquality().hash(_appearances),
-      const DeepCollectionEquality().hash(_emotionCurve),
-      const DeepCollectionEquality().hash(_observations),
-      const DeepCollectionEquality().hash(_interactions),
-      const DeepCollectionEquality().hash(_suggestedThoughts),
-      const DeepCollectionEquality().hash(_suggestions));
+    runtimeType,
+    const DeepCollectionEquality().hash(_appearances),
+    const DeepCollectionEquality().hash(_emotionCurve),
+    const DeepCollectionEquality().hash(_observations),
+    const DeepCollectionEquality().hash(_interactions),
+    const DeepCollectionEquality().hash(_suggestedThoughts),
+    const DeepCollectionEquality().hash(_suggestions),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of POVAnalysis
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$POVAnalysisImplCopyWith<_$POVAnalysisImpl> get copyWith =>
@@ -1013,20 +1095,19 @@ class _$POVAnalysisImpl implements _POVAnalysis {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$POVAnalysisImplToJson(
-      this,
-    );
+    return _$$POVAnalysisImplToJson(this);
   }
 }
 
 abstract class _POVAnalysis implements POVAnalysis {
-  const factory _POVAnalysis(
-      {required final List<CharacterAppearance> appearances,
-      required final List<EmotionPoint> emotionCurve,
-      required final List<KeyObservation> observations,
-      required final List<CharacterInteraction> interactions,
-      required final List<InnerThought> suggestedThoughts,
-      required final List<String> suggestions}) = _$POVAnalysisImpl;
+  const factory _POVAnalysis({
+    required final List<CharacterAppearance> appearances,
+    required final List<EmotionPoint> emotionCurve,
+    required final List<KeyObservation> observations,
+    required final List<CharacterInteraction> interactions,
+    required final List<InnerThought> suggestedThoughts,
+    required final List<String> suggestions,
+  }) = _$POVAnalysisImpl;
 
   factory _POVAnalysis.fromJson(Map<String, dynamic> json) =
       _$POVAnalysisImpl.fromJson;
@@ -1043,8 +1124,11 @@ abstract class _POVAnalysis implements POVAnalysis {
   List<InnerThought> get suggestedThoughts;
   @override
   List<String> get suggestions;
+
+  /// Create a copy of POVAnalysis
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$POVAnalysisImplCopyWith<_$POVAnalysisImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1061,8 +1145,12 @@ mixin _$CharacterAppearance {
   String? get dialogue => throw _privateConstructorUsedError;
   String? get contextSummary => throw _privateConstructorUsedError;
 
+  /// Serializes this CharacterAppearance to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CharacterAppearance
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CharacterAppearanceCopyWith<CharacterAppearance> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1070,15 +1158,17 @@ mixin _$CharacterAppearance {
 /// @nodoc
 abstract class $CharacterAppearanceCopyWith<$Res> {
   factory $CharacterAppearanceCopyWith(
-          CharacterAppearance value, $Res Function(CharacterAppearance) then) =
-      _$CharacterAppearanceCopyWithImpl<$Res, CharacterAppearance>;
+    CharacterAppearance value,
+    $Res Function(CharacterAppearance) then,
+  ) = _$CharacterAppearanceCopyWithImpl<$Res, CharacterAppearance>;
   @useResult
-  $Res call(
-      {int paragraphIndex,
-      String originalText,
-      String? action,
-      String? dialogue,
-      String? contextSummary});
+  $Res call({
+    int paragraphIndex,
+    String originalText,
+    String? action,
+    String? dialogue,
+    String? contextSummary,
+  });
 }
 
 /// @nodoc
@@ -1091,6 +1181,8 @@ class _$CharacterAppearanceCopyWithImpl<$Res, $Val extends CharacterAppearance>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of CharacterAppearance
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1100,55 +1192,63 @@ class _$CharacterAppearanceCopyWithImpl<$Res, $Val extends CharacterAppearance>
     Object? dialogue = freezed,
     Object? contextSummary = freezed,
   }) {
-    return _then(_value.copyWith(
-      paragraphIndex: null == paragraphIndex
-          ? _value.paragraphIndex
-          : paragraphIndex // ignore: cast_nullable_to_non_nullable
-              as int,
-      originalText: null == originalText
-          ? _value.originalText
-          : originalText // ignore: cast_nullable_to_non_nullable
-              as String,
-      action: freezed == action
-          ? _value.action
-          : action // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dialogue: freezed == dialogue
-          ? _value.dialogue
-          : dialogue // ignore: cast_nullable_to_non_nullable
-              as String?,
-      contextSummary: freezed == contextSummary
-          ? _value.contextSummary
-          : contextSummary // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            paragraphIndex: null == paragraphIndex
+                ? _value.paragraphIndex
+                : paragraphIndex // ignore: cast_nullable_to_non_nullable
+                      as int,
+            originalText: null == originalText
+                ? _value.originalText
+                : originalText // ignore: cast_nullable_to_non_nullable
+                      as String,
+            action: freezed == action
+                ? _value.action
+                : action // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            dialogue: freezed == dialogue
+                ? _value.dialogue
+                : dialogue // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            contextSummary: freezed == contextSummary
+                ? _value.contextSummary
+                : contextSummary // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$CharacterAppearanceImplCopyWith<$Res>
     implements $CharacterAppearanceCopyWith<$Res> {
-  factory _$$CharacterAppearanceImplCopyWith(_$CharacterAppearanceImpl value,
-          $Res Function(_$CharacterAppearanceImpl) then) =
-      __$$CharacterAppearanceImplCopyWithImpl<$Res>;
+  factory _$$CharacterAppearanceImplCopyWith(
+    _$CharacterAppearanceImpl value,
+    $Res Function(_$CharacterAppearanceImpl) then,
+  ) = __$$CharacterAppearanceImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int paragraphIndex,
-      String originalText,
-      String? action,
-      String? dialogue,
-      String? contextSummary});
+  $Res call({
+    int paragraphIndex,
+    String originalText,
+    String? action,
+    String? dialogue,
+    String? contextSummary,
+  });
 }
 
 /// @nodoc
 class __$$CharacterAppearanceImplCopyWithImpl<$Res>
     extends _$CharacterAppearanceCopyWithImpl<$Res, _$CharacterAppearanceImpl>
     implements _$$CharacterAppearanceImplCopyWith<$Res> {
-  __$$CharacterAppearanceImplCopyWithImpl(_$CharacterAppearanceImpl _value,
-      $Res Function(_$CharacterAppearanceImpl) _then)
-      : super(_value, _then);
+  __$$CharacterAppearanceImplCopyWithImpl(
+    _$CharacterAppearanceImpl _value,
+    $Res Function(_$CharacterAppearanceImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of CharacterAppearance
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1158,40 +1258,43 @@ class __$$CharacterAppearanceImplCopyWithImpl<$Res>
     Object? dialogue = freezed,
     Object? contextSummary = freezed,
   }) {
-    return _then(_$CharacterAppearanceImpl(
-      paragraphIndex: null == paragraphIndex
-          ? _value.paragraphIndex
-          : paragraphIndex // ignore: cast_nullable_to_non_nullable
-              as int,
-      originalText: null == originalText
-          ? _value.originalText
-          : originalText // ignore: cast_nullable_to_non_nullable
-              as String,
-      action: freezed == action
-          ? _value.action
-          : action // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dialogue: freezed == dialogue
-          ? _value.dialogue
-          : dialogue // ignore: cast_nullable_to_non_nullable
-              as String?,
-      contextSummary: freezed == contextSummary
-          ? _value.contextSummary
-          : contextSummary // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$CharacterAppearanceImpl(
+        paragraphIndex: null == paragraphIndex
+            ? _value.paragraphIndex
+            : paragraphIndex // ignore: cast_nullable_to_non_nullable
+                  as int,
+        originalText: null == originalText
+            ? _value.originalText
+            : originalText // ignore: cast_nullable_to_non_nullable
+                  as String,
+        action: freezed == action
+            ? _value.action
+            : action // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        dialogue: freezed == dialogue
+            ? _value.dialogue
+            : dialogue // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        contextSummary: freezed == contextSummary
+            ? _value.contextSummary
+            : contextSummary // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CharacterAppearanceImpl implements _CharacterAppearance {
-  const _$CharacterAppearanceImpl(
-      {required this.paragraphIndex,
-      required this.originalText,
-      this.action,
-      this.dialogue,
-      this.contextSummary});
+  const _$CharacterAppearanceImpl({
+    required this.paragraphIndex,
+    required this.originalText,
+    this.action,
+    this.dialogue,
+    this.contextSummary,
+  });
 
   factory _$CharacterAppearanceImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterAppearanceImplFromJson(json);
@@ -1228,33 +1331,42 @@ class _$CharacterAppearanceImpl implements _CharacterAppearance {
                 other.contextSummary == contextSummary));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, paragraphIndex, originalText,
-      action, dialogue, contextSummary);
+  int get hashCode => Object.hash(
+    runtimeType,
+    paragraphIndex,
+    originalText,
+    action,
+    dialogue,
+    contextSummary,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CharacterAppearance
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CharacterAppearanceImplCopyWith<_$CharacterAppearanceImpl> get copyWith =>
       __$$CharacterAppearanceImplCopyWithImpl<_$CharacterAppearanceImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CharacterAppearanceImplToJson(
-      this,
-    );
+    return _$$CharacterAppearanceImplToJson(this);
   }
 }
 
 abstract class _CharacterAppearance implements CharacterAppearance {
-  const factory _CharacterAppearance(
-      {required final int paragraphIndex,
-      required final String originalText,
-      final String? action,
-      final String? dialogue,
-      final String? contextSummary}) = _$CharacterAppearanceImpl;
+  const factory _CharacterAppearance({
+    required final int paragraphIndex,
+    required final String originalText,
+    final String? action,
+    final String? dialogue,
+    final String? contextSummary,
+  }) = _$CharacterAppearanceImpl;
 
   factory _CharacterAppearance.fromJson(Map<String, dynamic> json) =
       _$CharacterAppearanceImpl.fromJson;
@@ -1269,8 +1381,11 @@ abstract class _CharacterAppearance implements CharacterAppearance {
   String? get dialogue;
   @override
   String? get contextSummary;
+
+  /// Create a copy of CharacterAppearance
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CharacterAppearanceImplCopyWith<_$CharacterAppearanceImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1287,8 +1402,12 @@ mixin _$EmotionPoint {
   String? get trigger => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
 
+  /// Serializes this EmotionPoint to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of EmotionPoint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $EmotionPointCopyWith<EmotionPoint> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1296,15 +1415,17 @@ mixin _$EmotionPoint {
 /// @nodoc
 abstract class $EmotionPointCopyWith<$Res> {
   factory $EmotionPointCopyWith(
-          EmotionPoint value, $Res Function(EmotionPoint) then) =
-      _$EmotionPointCopyWithImpl<$Res, EmotionPoint>;
+    EmotionPoint value,
+    $Res Function(EmotionPoint) then,
+  ) = _$EmotionPointCopyWithImpl<$Res, EmotionPoint>;
   @useResult
-  $Res call(
-      {int position,
-      EmotionType type,
-      double intensity,
-      String? trigger,
-      String? description});
+  $Res call({
+    int position,
+    EmotionType type,
+    double intensity,
+    String? trigger,
+    String? description,
+  });
 }
 
 /// @nodoc
@@ -1317,6 +1438,8 @@ class _$EmotionPointCopyWithImpl<$Res, $Val extends EmotionPoint>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of EmotionPoint
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1326,28 +1449,31 @@ class _$EmotionPointCopyWithImpl<$Res, $Val extends EmotionPoint>
     Object? trigger = freezed,
     Object? description = freezed,
   }) {
-    return _then(_value.copyWith(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EmotionType,
-      intensity: null == intensity
-          ? _value.intensity
-          : intensity // ignore: cast_nullable_to_non_nullable
-              as double,
-      trigger: freezed == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            position: null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                      as int,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as EmotionType,
+            intensity: null == intensity
+                ? _value.intensity
+                : intensity // ignore: cast_nullable_to_non_nullable
+                      as double,
+            trigger: freezed == trigger
+                ? _value.trigger
+                : trigger // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -1355,16 +1481,18 @@ class _$EmotionPointCopyWithImpl<$Res, $Val extends EmotionPoint>
 abstract class _$$EmotionPointImplCopyWith<$Res>
     implements $EmotionPointCopyWith<$Res> {
   factory _$$EmotionPointImplCopyWith(
-          _$EmotionPointImpl value, $Res Function(_$EmotionPointImpl) then) =
-      __$$EmotionPointImplCopyWithImpl<$Res>;
+    _$EmotionPointImpl value,
+    $Res Function(_$EmotionPointImpl) then,
+  ) = __$$EmotionPointImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int position,
-      EmotionType type,
-      double intensity,
-      String? trigger,
-      String? description});
+  $Res call({
+    int position,
+    EmotionType type,
+    double intensity,
+    String? trigger,
+    String? description,
+  });
 }
 
 /// @nodoc
@@ -1372,9 +1500,12 @@ class __$$EmotionPointImplCopyWithImpl<$Res>
     extends _$EmotionPointCopyWithImpl<$Res, _$EmotionPointImpl>
     implements _$$EmotionPointImplCopyWith<$Res> {
   __$$EmotionPointImplCopyWithImpl(
-      _$EmotionPointImpl _value, $Res Function(_$EmotionPointImpl) _then)
-      : super(_value, _then);
+    _$EmotionPointImpl _value,
+    $Res Function(_$EmotionPointImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of EmotionPoint
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1384,40 +1515,43 @@ class __$$EmotionPointImplCopyWithImpl<$Res>
     Object? trigger = freezed,
     Object? description = freezed,
   }) {
-    return _then(_$EmotionPointImpl(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EmotionType,
-      intensity: null == intensity
-          ? _value.intensity
-          : intensity // ignore: cast_nullable_to_non_nullable
-              as double,
-      trigger: freezed == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String?,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$EmotionPointImpl(
+        position: null == position
+            ? _value.position
+            : position // ignore: cast_nullable_to_non_nullable
+                  as int,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as EmotionType,
+        intensity: null == intensity
+            ? _value.intensity
+            : intensity // ignore: cast_nullable_to_non_nullable
+                  as double,
+        trigger: freezed == trigger
+            ? _value.trigger
+            : trigger // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$EmotionPointImpl implements _EmotionPoint {
-  const _$EmotionPointImpl(
-      {required this.position,
-      required this.type,
-      required this.intensity,
-      this.trigger,
-      this.description});
+  const _$EmotionPointImpl({
+    required this.position,
+    required this.type,
+    required this.intensity,
+    this.trigger,
+    this.description,
+  });
 
   factory _$EmotionPointImpl.fromJson(Map<String, dynamic> json) =>
       _$$EmotionPointImplFromJson(json);
@@ -1453,12 +1587,14 @@ class _$EmotionPointImpl implements _EmotionPoint {
                 other.description == description));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, position, type, intensity, trigger, description);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of EmotionPoint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$EmotionPointImplCopyWith<_$EmotionPointImpl> get copyWith =>
@@ -1466,19 +1602,18 @@ class _$EmotionPointImpl implements _EmotionPoint {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$EmotionPointImplToJson(
-      this,
-    );
+    return _$$EmotionPointImplToJson(this);
   }
 }
 
 abstract class _EmotionPoint implements EmotionPoint {
-  const factory _EmotionPoint(
-      {required final int position,
-      required final EmotionType type,
-      required final double intensity,
-      final String? trigger,
-      final String? description}) = _$EmotionPointImpl;
+  const factory _EmotionPoint({
+    required final int position,
+    required final EmotionType type,
+    required final double intensity,
+    final String? trigger,
+    final String? description,
+  }) = _$EmotionPointImpl;
 
   factory _EmotionPoint.fromJson(Map<String, dynamic> json) =
       _$EmotionPointImpl.fromJson;
@@ -1493,8 +1628,11 @@ abstract class _EmotionPoint implements EmotionPoint {
   String? get trigger;
   @override
   String? get description;
+
+  /// Create a copy of EmotionPoint
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$EmotionPointImplCopyWith<_$EmotionPointImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1510,8 +1648,12 @@ mixin _$KeyObservation {
   ObservationType get type => throw _privateConstructorUsedError;
   String? get characterReaction => throw _privateConstructorUsedError;
 
+  /// Serializes this KeyObservation to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of KeyObservation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $KeyObservationCopyWith<KeyObservation> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1519,14 +1661,16 @@ mixin _$KeyObservation {
 /// @nodoc
 abstract class $KeyObservationCopyWith<$Res> {
   factory $KeyObservationCopyWith(
-          KeyObservation value, $Res Function(KeyObservation) then) =
-      _$KeyObservationCopyWithImpl<$Res, KeyObservation>;
+    KeyObservation value,
+    $Res Function(KeyObservation) then,
+  ) = _$KeyObservationCopyWithImpl<$Res, KeyObservation>;
   @useResult
-  $Res call(
-      {int position,
-      String content,
-      ObservationType type,
-      String? characterReaction});
+  $Res call({
+    int position,
+    String content,
+    ObservationType type,
+    String? characterReaction,
+  });
 }
 
 /// @nodoc
@@ -1539,6 +1683,8 @@ class _$KeyObservationCopyWithImpl<$Res, $Val extends KeyObservation>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of KeyObservation
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1547,40 +1693,45 @@ class _$KeyObservationCopyWithImpl<$Res, $Val extends KeyObservation>
     Object? type = null,
     Object? characterReaction = freezed,
   }) {
-    return _then(_value.copyWith(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ObservationType,
-      characterReaction: freezed == characterReaction
-          ? _value.characterReaction
-          : characterReaction // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            position: null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                      as int,
+            content: null == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as ObservationType,
+            characterReaction: freezed == characterReaction
+                ? _value.characterReaction
+                : characterReaction // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$KeyObservationImplCopyWith<$Res>
     implements $KeyObservationCopyWith<$Res> {
-  factory _$$KeyObservationImplCopyWith(_$KeyObservationImpl value,
-          $Res Function(_$KeyObservationImpl) then) =
-      __$$KeyObservationImplCopyWithImpl<$Res>;
+  factory _$$KeyObservationImplCopyWith(
+    _$KeyObservationImpl value,
+    $Res Function(_$KeyObservationImpl) then,
+  ) = __$$KeyObservationImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int position,
-      String content,
-      ObservationType type,
-      String? characterReaction});
+  $Res call({
+    int position,
+    String content,
+    ObservationType type,
+    String? characterReaction,
+  });
 }
 
 /// @nodoc
@@ -1588,9 +1739,12 @@ class __$$KeyObservationImplCopyWithImpl<$Res>
     extends _$KeyObservationCopyWithImpl<$Res, _$KeyObservationImpl>
     implements _$$KeyObservationImplCopyWith<$Res> {
   __$$KeyObservationImplCopyWithImpl(
-      _$KeyObservationImpl _value, $Res Function(_$KeyObservationImpl) _then)
-      : super(_value, _then);
+    _$KeyObservationImpl _value,
+    $Res Function(_$KeyObservationImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of KeyObservation
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1599,35 +1753,38 @@ class __$$KeyObservationImplCopyWithImpl<$Res>
     Object? type = null,
     Object? characterReaction = freezed,
   }) {
-    return _then(_$KeyObservationImpl(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ObservationType,
-      characterReaction: freezed == characterReaction
-          ? _value.characterReaction
-          : characterReaction // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$KeyObservationImpl(
+        position: null == position
+            ? _value.position
+            : position // ignore: cast_nullable_to_non_nullable
+                  as int,
+        content: null == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as ObservationType,
+        characterReaction: freezed == characterReaction
+            ? _value.characterReaction
+            : characterReaction // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$KeyObservationImpl implements _KeyObservation {
-  const _$KeyObservationImpl(
-      {required this.position,
-      required this.content,
-      required this.type,
-      this.characterReaction});
+  const _$KeyObservationImpl({
+    required this.position,
+    required this.content,
+    required this.type,
+    this.characterReaction,
+  });
 
   factory _$KeyObservationImpl.fromJson(Map<String, dynamic> json) =>
       _$$KeyObservationImplFromJson(json);
@@ -1659,32 +1816,35 @@ class _$KeyObservationImpl implements _KeyObservation {
                 other.characterReaction == characterReaction));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, position, content, type, characterReaction);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of KeyObservation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$KeyObservationImplCopyWith<_$KeyObservationImpl> get copyWith =>
       __$$KeyObservationImplCopyWithImpl<_$KeyObservationImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$KeyObservationImplToJson(
-      this,
-    );
+    return _$$KeyObservationImplToJson(this);
   }
 }
 
 abstract class _KeyObservation implements KeyObservation {
-  const factory _KeyObservation(
-      {required final int position,
-      required final String content,
-      required final ObservationType type,
-      final String? characterReaction}) = _$KeyObservationImpl;
+  const factory _KeyObservation({
+    required final int position,
+    required final String content,
+    required final ObservationType type,
+    final String? characterReaction,
+  }) = _$KeyObservationImpl;
 
   factory _KeyObservation.fromJson(Map<String, dynamic> json) =
       _$KeyObservationImpl.fromJson;
@@ -1697,8 +1857,11 @@ abstract class _KeyObservation implements KeyObservation {
   ObservationType get type;
   @override
   String? get characterReaction;
+
+  /// Create a copy of KeyObservation
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$KeyObservationImplCopyWith<_$KeyObservationImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1716,30 +1879,38 @@ mixin _$CharacterInteraction {
   String? get content => throw _privateConstructorUsedError;
   String? get povCharacterReaction => throw _privateConstructorUsedError;
 
+  /// Serializes this CharacterInteraction to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CharacterInteraction
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CharacterInteractionCopyWith<CharacterInteraction> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $CharacterInteractionCopyWith<$Res> {
-  factory $CharacterInteractionCopyWith(CharacterInteraction value,
-          $Res Function(CharacterInteraction) then) =
-      _$CharacterInteractionCopyWithImpl<$Res, CharacterInteraction>;
+  factory $CharacterInteractionCopyWith(
+    CharacterInteraction value,
+    $Res Function(CharacterInteraction) then,
+  ) = _$CharacterInteractionCopyWithImpl<$Res, CharacterInteraction>;
   @useResult
-  $Res call(
-      {String otherCharacterId,
-      String otherCharacterName,
-      int position,
-      InteractionType type,
-      String? content,
-      String? povCharacterReaction});
+  $Res call({
+    String otherCharacterId,
+    String otherCharacterName,
+    int position,
+    InteractionType type,
+    String? content,
+    String? povCharacterReaction,
+  });
 }
 
 /// @nodoc
-class _$CharacterInteractionCopyWithImpl<$Res,
-        $Val extends CharacterInteraction>
+class _$CharacterInteractionCopyWithImpl<
+  $Res,
+  $Val extends CharacterInteraction
+>
     implements $CharacterInteractionCopyWith<$Res> {
   _$CharacterInteractionCopyWithImpl(this._value, this._then);
 
@@ -1748,6 +1919,8 @@ class _$CharacterInteractionCopyWithImpl<$Res,
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of CharacterInteraction
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1758,60 +1931,68 @@ class _$CharacterInteractionCopyWithImpl<$Res,
     Object? content = freezed,
     Object? povCharacterReaction = freezed,
   }) {
-    return _then(_value.copyWith(
-      otherCharacterId: null == otherCharacterId
-          ? _value.otherCharacterId
-          : otherCharacterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      otherCharacterName: null == otherCharacterName
-          ? _value.otherCharacterName
-          : otherCharacterName // ignore: cast_nullable_to_non_nullable
-              as String,
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as InteractionType,
-      content: freezed == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String?,
-      povCharacterReaction: freezed == povCharacterReaction
-          ? _value.povCharacterReaction
-          : povCharacterReaction // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            otherCharacterId: null == otherCharacterId
+                ? _value.otherCharacterId
+                : otherCharacterId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            otherCharacterName: null == otherCharacterName
+                ? _value.otherCharacterName
+                : otherCharacterName // ignore: cast_nullable_to_non_nullable
+                      as String,
+            position: null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                      as int,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as InteractionType,
+            content: freezed == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            povCharacterReaction: freezed == povCharacterReaction
+                ? _value.povCharacterReaction
+                : povCharacterReaction // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$CharacterInteractionImplCopyWith<$Res>
     implements $CharacterInteractionCopyWith<$Res> {
-  factory _$$CharacterInteractionImplCopyWith(_$CharacterInteractionImpl value,
-          $Res Function(_$CharacterInteractionImpl) then) =
-      __$$CharacterInteractionImplCopyWithImpl<$Res>;
+  factory _$$CharacterInteractionImplCopyWith(
+    _$CharacterInteractionImpl value,
+    $Res Function(_$CharacterInteractionImpl) then,
+  ) = __$$CharacterInteractionImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String otherCharacterId,
-      String otherCharacterName,
-      int position,
-      InteractionType type,
-      String? content,
-      String? povCharacterReaction});
+  $Res call({
+    String otherCharacterId,
+    String otherCharacterName,
+    int position,
+    InteractionType type,
+    String? content,
+    String? povCharacterReaction,
+  });
 }
 
 /// @nodoc
 class __$$CharacterInteractionImplCopyWithImpl<$Res>
     extends _$CharacterInteractionCopyWithImpl<$Res, _$CharacterInteractionImpl>
     implements _$$CharacterInteractionImplCopyWith<$Res> {
-  __$$CharacterInteractionImplCopyWithImpl(_$CharacterInteractionImpl _value,
-      $Res Function(_$CharacterInteractionImpl) _then)
-      : super(_value, _then);
+  __$$CharacterInteractionImplCopyWithImpl(
+    _$CharacterInteractionImpl _value,
+    $Res Function(_$CharacterInteractionImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of CharacterInteraction
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1822,45 +2003,48 @@ class __$$CharacterInteractionImplCopyWithImpl<$Res>
     Object? content = freezed,
     Object? povCharacterReaction = freezed,
   }) {
-    return _then(_$CharacterInteractionImpl(
-      otherCharacterId: null == otherCharacterId
-          ? _value.otherCharacterId
-          : otherCharacterId // ignore: cast_nullable_to_non_nullable
-              as String,
-      otherCharacterName: null == otherCharacterName
-          ? _value.otherCharacterName
-          : otherCharacterName // ignore: cast_nullable_to_non_nullable
-              as String,
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as InteractionType,
-      content: freezed == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String?,
-      povCharacterReaction: freezed == povCharacterReaction
-          ? _value.povCharacterReaction
-          : povCharacterReaction // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$CharacterInteractionImpl(
+        otherCharacterId: null == otherCharacterId
+            ? _value.otherCharacterId
+            : otherCharacterId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        otherCharacterName: null == otherCharacterName
+            ? _value.otherCharacterName
+            : otherCharacterName // ignore: cast_nullable_to_non_nullable
+                  as String,
+        position: null == position
+            ? _value.position
+            : position // ignore: cast_nullable_to_non_nullable
+                  as int,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as InteractionType,
+        content: freezed == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        povCharacterReaction: freezed == povCharacterReaction
+            ? _value.povCharacterReaction
+            : povCharacterReaction // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CharacterInteractionImpl implements _CharacterInteraction {
-  const _$CharacterInteractionImpl(
-      {required this.otherCharacterId,
-      required this.otherCharacterName,
-      required this.position,
-      required this.type,
-      this.content,
-      this.povCharacterReaction});
+  const _$CharacterInteractionImpl({
+    required this.otherCharacterId,
+    required this.otherCharacterName,
+    required this.position,
+    required this.type,
+    this.content,
+    this.povCharacterReaction,
+  });
 
   factory _$CharacterInteractionImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterInteractionImplFromJson(json);
@@ -1900,35 +2084,45 @@ class _$CharacterInteractionImpl implements _CharacterInteraction {
                 other.povCharacterReaction == povCharacterReaction));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, otherCharacterId,
-      otherCharacterName, position, type, content, povCharacterReaction);
+  int get hashCode => Object.hash(
+    runtimeType,
+    otherCharacterId,
+    otherCharacterName,
+    position,
+    type,
+    content,
+    povCharacterReaction,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CharacterInteraction
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CharacterInteractionImplCopyWith<_$CharacterInteractionImpl>
-      get copyWith =>
-          __$$CharacterInteractionImplCopyWithImpl<_$CharacterInteractionImpl>(
-              this, _$identity);
+  get copyWith =>
+      __$$CharacterInteractionImplCopyWithImpl<_$CharacterInteractionImpl>(
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CharacterInteractionImplToJson(
-      this,
-    );
+    return _$$CharacterInteractionImplToJson(this);
   }
 }
 
 abstract class _CharacterInteraction implements CharacterInteraction {
-  const factory _CharacterInteraction(
-      {required final String otherCharacterId,
-      required final String otherCharacterName,
-      required final int position,
-      required final InteractionType type,
-      final String? content,
-      final String? povCharacterReaction}) = _$CharacterInteractionImpl;
+  const factory _CharacterInteraction({
+    required final String otherCharacterId,
+    required final String otherCharacterName,
+    required final int position,
+    required final InteractionType type,
+    final String? content,
+    final String? povCharacterReaction,
+  }) = _$CharacterInteractionImpl;
 
   factory _CharacterInteraction.fromJson(Map<String, dynamic> json) =
       _$CharacterInteractionImpl.fromJson;
@@ -1945,10 +2139,13 @@ abstract class _CharacterInteraction implements CharacterInteraction {
   String? get content;
   @override
   String? get povCharacterReaction;
+
+  /// Create a copy of CharacterInteraction
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CharacterInteractionImplCopyWith<_$CharacterInteractionImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  get copyWith => throw _privateConstructorUsedError;
 }
 
 InnerThought _$InnerThoughtFromJson(Map<String, dynamic> json) {
@@ -1962,8 +2159,12 @@ mixin _$InnerThought {
   ThoughtType get type => throw _privateConstructorUsedError;
   String? get trigger => throw _privateConstructorUsedError;
 
+  /// Serializes this InnerThought to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of InnerThought
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $InnerThoughtCopyWith<InnerThought> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -1971,8 +2172,9 @@ mixin _$InnerThought {
 /// @nodoc
 abstract class $InnerThoughtCopyWith<$Res> {
   factory $InnerThoughtCopyWith(
-          InnerThought value, $Res Function(InnerThought) then) =
-      _$InnerThoughtCopyWithImpl<$Res, InnerThought>;
+    InnerThought value,
+    $Res Function(InnerThought) then,
+  ) = _$InnerThoughtCopyWithImpl<$Res, InnerThought>;
   @useResult
   $Res call({int position, String content, ThoughtType type, String? trigger});
 }
@@ -1987,6 +2189,8 @@ class _$InnerThoughtCopyWithImpl<$Res, $Val extends InnerThought>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of InnerThought
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1995,24 +2199,27 @@ class _$InnerThoughtCopyWithImpl<$Res, $Val extends InnerThought>
     Object? type = null,
     Object? trigger = freezed,
   }) {
-    return _then(_value.copyWith(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ThoughtType,
-      trigger: freezed == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            position: null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                      as int,
+            content: null == content
+                ? _value.content
+                : content // ignore: cast_nullable_to_non_nullable
+                      as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as ThoughtType,
+            trigger: freezed == trigger
+                ? _value.trigger
+                : trigger // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -2020,8 +2227,9 @@ class _$InnerThoughtCopyWithImpl<$Res, $Val extends InnerThought>
 abstract class _$$InnerThoughtImplCopyWith<$Res>
     implements $InnerThoughtCopyWith<$Res> {
   factory _$$InnerThoughtImplCopyWith(
-          _$InnerThoughtImpl value, $Res Function(_$InnerThoughtImpl) then) =
-      __$$InnerThoughtImplCopyWithImpl<$Res>;
+    _$InnerThoughtImpl value,
+    $Res Function(_$InnerThoughtImpl) then,
+  ) = __$$InnerThoughtImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({int position, String content, ThoughtType type, String? trigger});
@@ -2032,9 +2240,12 @@ class __$$InnerThoughtImplCopyWithImpl<$Res>
     extends _$InnerThoughtCopyWithImpl<$Res, _$InnerThoughtImpl>
     implements _$$InnerThoughtImplCopyWith<$Res> {
   __$$InnerThoughtImplCopyWithImpl(
-      _$InnerThoughtImpl _value, $Res Function(_$InnerThoughtImpl) _then)
-      : super(_value, _then);
+    _$InnerThoughtImpl _value,
+    $Res Function(_$InnerThoughtImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of InnerThought
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2043,35 +2254,38 @@ class __$$InnerThoughtImplCopyWithImpl<$Res>
     Object? type = null,
     Object? trigger = freezed,
   }) {
-    return _then(_$InnerThoughtImpl(
-      position: null == position
-          ? _value.position
-          : position // ignore: cast_nullable_to_non_nullable
-              as int,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as ThoughtType,
-      trigger: freezed == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$InnerThoughtImpl(
+        position: null == position
+            ? _value.position
+            : position // ignore: cast_nullable_to_non_nullable
+                  as int,
+        content: null == content
+            ? _value.content
+            : content // ignore: cast_nullable_to_non_nullable
+                  as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as ThoughtType,
+        trigger: freezed == trigger
+            ? _value.trigger
+            : trigger // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$InnerThoughtImpl implements _InnerThought {
-  const _$InnerThoughtImpl(
-      {required this.position,
-      required this.content,
-      required this.type,
-      this.trigger});
+  const _$InnerThoughtImpl({
+    required this.position,
+    required this.content,
+    required this.type,
+    this.trigger,
+  });
 
   factory _$InnerThoughtImpl.fromJson(Map<String, dynamic> json) =>
       _$$InnerThoughtImplFromJson(json);
@@ -2102,12 +2316,14 @@ class _$InnerThoughtImpl implements _InnerThought {
             (identical(other.trigger, trigger) || other.trigger == trigger));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, position, content, type, trigger);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of InnerThought
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$InnerThoughtImplCopyWith<_$InnerThoughtImpl> get copyWith =>
@@ -2115,18 +2331,17 @@ class _$InnerThoughtImpl implements _InnerThought {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$InnerThoughtImplToJson(
-      this,
-    );
+    return _$$InnerThoughtImplToJson(this);
   }
 }
 
 abstract class _InnerThought implements InnerThought {
-  const factory _InnerThought(
-      {required final int position,
-      required final String content,
-      required final ThoughtType type,
-      final String? trigger}) = _$InnerThoughtImpl;
+  const factory _InnerThought({
+    required final int position,
+    required final String content,
+    required final ThoughtType type,
+    final String? trigger,
+  }) = _$InnerThoughtImpl;
 
   factory _InnerThought.fromJson(Map<String, dynamic> json) =
       _$InnerThoughtImpl.fromJson;
@@ -2139,8 +2354,11 @@ abstract class _InnerThought implements InnerThought {
   ThoughtType get type;
   @override
   String? get trigger;
+
+  /// Create a copy of InnerThought
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$InnerThoughtImplCopyWith<_$InnerThoughtImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -2159,8 +2377,12 @@ mixin _$POVTemplate {
   String? get exampleOutput => throw _privateConstructorUsedError;
   bool get isBuiltIn => throw _privateConstructorUsedError;
 
+  /// Serializes this POVTemplate to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $POVTemplateCopyWith<POVTemplate> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -2168,17 +2390,19 @@ mixin _$POVTemplate {
 /// @nodoc
 abstract class $POVTemplateCopyWith<$Res> {
   factory $POVTemplateCopyWith(
-          POVTemplate value, $Res Function(POVTemplate) then) =
-      _$POVTemplateCopyWithImpl<$Res, POVTemplate>;
+    POVTemplate value,
+    $Res Function(POVTemplate) then,
+  ) = _$POVTemplateCopyWithImpl<$Res, POVTemplate>;
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      String description,
-      POVConfig config,
-      List<String> suitableCharacterTypes,
-      String? exampleOutput,
-      bool isBuiltIn});
+  $Res call({
+    String id,
+    String name,
+    String description,
+    POVConfig config,
+    List<String> suitableCharacterTypes,
+    String? exampleOutput,
+    bool isBuiltIn,
+  });
 
   $POVConfigCopyWith<$Res> get config;
 }
@@ -2193,6 +2417,8 @@ class _$POVTemplateCopyWithImpl<$Res, $Val extends POVTemplate>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2204,38 +2430,43 @@ class _$POVTemplateCopyWithImpl<$Res, $Val extends POVTemplate>
     Object? exampleOutput = freezed,
     Object? isBuiltIn = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      config: null == config
-          ? _value.config
-          : config // ignore: cast_nullable_to_non_nullable
-              as POVConfig,
-      suitableCharacterTypes: null == suitableCharacterTypes
-          ? _value.suitableCharacterTypes
-          : suitableCharacterTypes // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      exampleOutput: freezed == exampleOutput
-          ? _value.exampleOutput
-          : exampleOutput // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isBuiltIn: null == isBuiltIn
-          ? _value.isBuiltIn
-          : isBuiltIn // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            description: null == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String,
+            config: null == config
+                ? _value.config
+                : config // ignore: cast_nullable_to_non_nullable
+                      as POVConfig,
+            suitableCharacterTypes: null == suitableCharacterTypes
+                ? _value.suitableCharacterTypes
+                : suitableCharacterTypes // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            exampleOutput: freezed == exampleOutput
+                ? _value.exampleOutput
+                : exampleOutput // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isBuiltIn: null == isBuiltIn
+                ? _value.isBuiltIn
+                : isBuiltIn // ignore: cast_nullable_to_non_nullable
+                      as bool,
+          )
+          as $Val,
+    );
   }
 
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $POVConfigCopyWith<$Res> get config {
@@ -2249,18 +2480,20 @@ class _$POVTemplateCopyWithImpl<$Res, $Val extends POVTemplate>
 abstract class _$$POVTemplateImplCopyWith<$Res>
     implements $POVTemplateCopyWith<$Res> {
   factory _$$POVTemplateImplCopyWith(
-          _$POVTemplateImpl value, $Res Function(_$POVTemplateImpl) then) =
-      __$$POVTemplateImplCopyWithImpl<$Res>;
+    _$POVTemplateImpl value,
+    $Res Function(_$POVTemplateImpl) then,
+  ) = __$$POVTemplateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      String description,
-      POVConfig config,
-      List<String> suitableCharacterTypes,
-      String? exampleOutput,
-      bool isBuiltIn});
+  $Res call({
+    String id,
+    String name,
+    String description,
+    POVConfig config,
+    List<String> suitableCharacterTypes,
+    String? exampleOutput,
+    bool isBuiltIn,
+  });
 
   @override
   $POVConfigCopyWith<$Res> get config;
@@ -2271,9 +2504,12 @@ class __$$POVTemplateImplCopyWithImpl<$Res>
     extends _$POVTemplateCopyWithImpl<$Res, _$POVTemplateImpl>
     implements _$$POVTemplateImplCopyWith<$Res> {
   __$$POVTemplateImplCopyWithImpl(
-      _$POVTemplateImpl _value, $Res Function(_$POVTemplateImpl) _then)
-      : super(_value, _then);
+    _$POVTemplateImpl _value,
+    $Res Function(_$POVTemplateImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2285,51 +2521,53 @@ class __$$POVTemplateImplCopyWithImpl<$Res>
     Object? exampleOutput = freezed,
     Object? isBuiltIn = null,
   }) {
-    return _then(_$POVTemplateImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      config: null == config
-          ? _value.config
-          : config // ignore: cast_nullable_to_non_nullable
-              as POVConfig,
-      suitableCharacterTypes: null == suitableCharacterTypes
-          ? _value._suitableCharacterTypes
-          : suitableCharacterTypes // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      exampleOutput: freezed == exampleOutput
-          ? _value.exampleOutput
-          : exampleOutput // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isBuiltIn: null == isBuiltIn
-          ? _value.isBuiltIn
-          : isBuiltIn // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
+    return _then(
+      _$POVTemplateImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        description: null == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String,
+        config: null == config
+            ? _value.config
+            : config // ignore: cast_nullable_to_non_nullable
+                  as POVConfig,
+        suitableCharacterTypes: null == suitableCharacterTypes
+            ? _value._suitableCharacterTypes
+            : suitableCharacterTypes // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        exampleOutput: freezed == exampleOutput
+            ? _value.exampleOutput
+            : exampleOutput // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isBuiltIn: null == isBuiltIn
+            ? _value.isBuiltIn
+            : isBuiltIn // ignore: cast_nullable_to_non_nullable
+                  as bool,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$POVTemplateImpl implements _POVTemplate {
-  const _$POVTemplateImpl(
-      {required this.id,
-      required this.name,
-      required this.description,
-      required this.config,
-      final List<String> suitableCharacterTypes = const [],
-      this.exampleOutput,
-      this.isBuiltIn = false})
-      : _suitableCharacterTypes = suitableCharacterTypes;
+  const _$POVTemplateImpl({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.config,
+    final List<String> suitableCharacterTypes = const [],
+    this.exampleOutput,
+    this.isBuiltIn = false,
+  }) : _suitableCharacterTypes = suitableCharacterTypes;
 
   factory _$POVTemplateImpl.fromJson(Map<String, dynamic> json) =>
       _$$POVTemplateImplFromJson(json);
@@ -2374,26 +2612,31 @@ class _$POVTemplateImpl implements _POVTemplate {
                 other.description == description) &&
             (identical(other.config, config) || other.config == config) &&
             const DeepCollectionEquality().equals(
-                other._suitableCharacterTypes, _suitableCharacterTypes) &&
+              other._suitableCharacterTypes,
+              _suitableCharacterTypes,
+            ) &&
             (identical(other.exampleOutput, exampleOutput) ||
                 other.exampleOutput == exampleOutput) &&
             (identical(other.isBuiltIn, isBuiltIn) ||
                 other.isBuiltIn == isBuiltIn));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      description,
-      config,
-      const DeepCollectionEquality().hash(_suitableCharacterTypes),
-      exampleOutput,
-      isBuiltIn);
+    runtimeType,
+    id,
+    name,
+    description,
+    config,
+    const DeepCollectionEquality().hash(_suitableCharacterTypes),
+    exampleOutput,
+    isBuiltIn,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$POVTemplateImplCopyWith<_$POVTemplateImpl> get copyWith =>
@@ -2401,21 +2644,20 @@ class _$POVTemplateImpl implements _POVTemplate {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$POVTemplateImplToJson(
-      this,
-    );
+    return _$$POVTemplateImplToJson(this);
   }
 }
 
 abstract class _POVTemplate implements POVTemplate {
-  const factory _POVTemplate(
-      {required final String id,
-      required final String name,
-      required final String description,
-      required final POVConfig config,
-      final List<String> suitableCharacterTypes,
-      final String? exampleOutput,
-      final bool isBuiltIn}) = _$POVTemplateImpl;
+  const factory _POVTemplate({
+    required final String id,
+    required final String name,
+    required final String description,
+    required final POVConfig config,
+    final List<String> suitableCharacterTypes,
+    final String? exampleOutput,
+    final bool isBuiltIn,
+  }) = _$POVTemplateImpl;
 
   factory _POVTemplate.fromJson(Map<String, dynamic> json) =
       _$POVTemplateImpl.fromJson;
@@ -2434,8 +2676,11 @@ abstract class _POVTemplate implements POVTemplate {
   String? get exampleOutput;
   @override
   bool get isBuiltIn;
+
+  /// Create a copy of POVTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$POVTemplateImplCopyWith<_$POVTemplateImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -2453,8 +2698,12 @@ mixin _$POVSaveOptions {
   int get suggestedSortOrder => throw _privateConstructorUsedError;
   String? get defaultVolumeId => throw _privateConstructorUsedError;
 
+  /// Serializes this POVSaveOptions to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of POVSaveOptions
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $POVSaveOptionsCopyWith<POVSaveOptions> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -2462,16 +2711,18 @@ mixin _$POVSaveOptions {
 /// @nodoc
 abstract class $POVSaveOptionsCopyWith<$Res> {
   factory $POVSaveOptionsCopyWith(
-          POVSaveOptions value, $Res Function(POVSaveOptions) then) =
-      _$POVSaveOptionsCopyWithImpl<$Res, POVSaveOptions>;
+    POVSaveOptions value,
+    $Res Function(POVSaveOptions) then,
+  ) = _$POVSaveOptionsCopyWithImpl<$Res, POVSaveOptions>;
   @useResult
-  $Res call(
-      {bool canSaveAsDraft,
-      bool canReplaceChapter,
-      bool canCreateNewChapter,
-      String? currentChapterTitle,
-      int suggestedSortOrder,
-      String? defaultVolumeId});
+  $Res call({
+    bool canSaveAsDraft,
+    bool canReplaceChapter,
+    bool canCreateNewChapter,
+    String? currentChapterTitle,
+    int suggestedSortOrder,
+    String? defaultVolumeId,
+  });
 }
 
 /// @nodoc
@@ -2484,6 +2735,8 @@ class _$POVSaveOptionsCopyWithImpl<$Res, $Val extends POVSaveOptions>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of POVSaveOptions
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2494,50 +2747,55 @@ class _$POVSaveOptionsCopyWithImpl<$Res, $Val extends POVSaveOptions>
     Object? suggestedSortOrder = null,
     Object? defaultVolumeId = freezed,
   }) {
-    return _then(_value.copyWith(
-      canSaveAsDraft: null == canSaveAsDraft
-          ? _value.canSaveAsDraft
-          : canSaveAsDraft // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canReplaceChapter: null == canReplaceChapter
-          ? _value.canReplaceChapter
-          : canReplaceChapter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canCreateNewChapter: null == canCreateNewChapter
-          ? _value.canCreateNewChapter
-          : canCreateNewChapter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      currentChapterTitle: freezed == currentChapterTitle
-          ? _value.currentChapterTitle
-          : currentChapterTitle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      suggestedSortOrder: null == suggestedSortOrder
-          ? _value.suggestedSortOrder
-          : suggestedSortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultVolumeId: freezed == defaultVolumeId
-          ? _value.defaultVolumeId
-          : defaultVolumeId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            canSaveAsDraft: null == canSaveAsDraft
+                ? _value.canSaveAsDraft
+                : canSaveAsDraft // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            canReplaceChapter: null == canReplaceChapter
+                ? _value.canReplaceChapter
+                : canReplaceChapter // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            canCreateNewChapter: null == canCreateNewChapter
+                ? _value.canCreateNewChapter
+                : canCreateNewChapter // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            currentChapterTitle: freezed == currentChapterTitle
+                ? _value.currentChapterTitle
+                : currentChapterTitle // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            suggestedSortOrder: null == suggestedSortOrder
+                ? _value.suggestedSortOrder
+                : suggestedSortOrder // ignore: cast_nullable_to_non_nullable
+                      as int,
+            defaultVolumeId: freezed == defaultVolumeId
+                ? _value.defaultVolumeId
+                : defaultVolumeId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$POVSaveOptionsImplCopyWith<$Res>
     implements $POVSaveOptionsCopyWith<$Res> {
-  factory _$$POVSaveOptionsImplCopyWith(_$POVSaveOptionsImpl value,
-          $Res Function(_$POVSaveOptionsImpl) then) =
-      __$$POVSaveOptionsImplCopyWithImpl<$Res>;
+  factory _$$POVSaveOptionsImplCopyWith(
+    _$POVSaveOptionsImpl value,
+    $Res Function(_$POVSaveOptionsImpl) then,
+  ) = __$$POVSaveOptionsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {bool canSaveAsDraft,
-      bool canReplaceChapter,
-      bool canCreateNewChapter,
-      String? currentChapterTitle,
-      int suggestedSortOrder,
-      String? defaultVolumeId});
+  $Res call({
+    bool canSaveAsDraft,
+    bool canReplaceChapter,
+    bool canCreateNewChapter,
+    String? currentChapterTitle,
+    int suggestedSortOrder,
+    String? defaultVolumeId,
+  });
 }
 
 /// @nodoc
@@ -2545,9 +2803,12 @@ class __$$POVSaveOptionsImplCopyWithImpl<$Res>
     extends _$POVSaveOptionsCopyWithImpl<$Res, _$POVSaveOptionsImpl>
     implements _$$POVSaveOptionsImplCopyWith<$Res> {
   __$$POVSaveOptionsImplCopyWithImpl(
-      _$POVSaveOptionsImpl _value, $Res Function(_$POVSaveOptionsImpl) _then)
-      : super(_value, _then);
+    _$POVSaveOptionsImpl _value,
+    $Res Function(_$POVSaveOptionsImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of POVSaveOptions
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2558,45 +2819,48 @@ class __$$POVSaveOptionsImplCopyWithImpl<$Res>
     Object? suggestedSortOrder = null,
     Object? defaultVolumeId = freezed,
   }) {
-    return _then(_$POVSaveOptionsImpl(
-      canSaveAsDraft: null == canSaveAsDraft
-          ? _value.canSaveAsDraft
-          : canSaveAsDraft // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canReplaceChapter: null == canReplaceChapter
-          ? _value.canReplaceChapter
-          : canReplaceChapter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canCreateNewChapter: null == canCreateNewChapter
-          ? _value.canCreateNewChapter
-          : canCreateNewChapter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      currentChapterTitle: freezed == currentChapterTitle
-          ? _value.currentChapterTitle
-          : currentChapterTitle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      suggestedSortOrder: null == suggestedSortOrder
-          ? _value.suggestedSortOrder
-          : suggestedSortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultVolumeId: freezed == defaultVolumeId
-          ? _value.defaultVolumeId
-          : defaultVolumeId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return _then(
+      _$POVSaveOptionsImpl(
+        canSaveAsDraft: null == canSaveAsDraft
+            ? _value.canSaveAsDraft
+            : canSaveAsDraft // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        canReplaceChapter: null == canReplaceChapter
+            ? _value.canReplaceChapter
+            : canReplaceChapter // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        canCreateNewChapter: null == canCreateNewChapter
+            ? _value.canCreateNewChapter
+            : canCreateNewChapter // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        currentChapterTitle: freezed == currentChapterTitle
+            ? _value.currentChapterTitle
+            : currentChapterTitle // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        suggestedSortOrder: null == suggestedSortOrder
+            ? _value.suggestedSortOrder
+            : suggestedSortOrder // ignore: cast_nullable_to_non_nullable
+                  as int,
+        defaultVolumeId: freezed == defaultVolumeId
+            ? _value.defaultVolumeId
+            : defaultVolumeId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$POVSaveOptionsImpl implements _POVSaveOptions {
-  const _$POVSaveOptionsImpl(
-      {required this.canSaveAsDraft,
-      required this.canReplaceChapter,
-      required this.canCreateNewChapter,
-      this.currentChapterTitle,
-      required this.suggestedSortOrder,
-      this.defaultVolumeId});
+  const _$POVSaveOptionsImpl({
+    required this.canSaveAsDraft,
+    required this.canReplaceChapter,
+    required this.canCreateNewChapter,
+    this.currentChapterTitle,
+    required this.suggestedSortOrder,
+    this.defaultVolumeId,
+  });
 
   factory _$POVSaveOptionsImpl.fromJson(Map<String, dynamic> json) =>
       _$$POVSaveOptionsImplFromJson(json);
@@ -2638,40 +2902,44 @@ class _$POVSaveOptionsImpl implements _POVSaveOptions {
                 other.defaultVolumeId == defaultVolumeId));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      canSaveAsDraft,
-      canReplaceChapter,
-      canCreateNewChapter,
-      currentChapterTitle,
-      suggestedSortOrder,
-      defaultVolumeId);
+    runtimeType,
+    canSaveAsDraft,
+    canReplaceChapter,
+    canCreateNewChapter,
+    currentChapterTitle,
+    suggestedSortOrder,
+    defaultVolumeId,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of POVSaveOptions
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$POVSaveOptionsImplCopyWith<_$POVSaveOptionsImpl> get copyWith =>
       __$$POVSaveOptionsImplCopyWithImpl<_$POVSaveOptionsImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$POVSaveOptionsImplToJson(
-      this,
-    );
+    return _$$POVSaveOptionsImplToJson(this);
   }
 }
 
 abstract class _POVSaveOptions implements POVSaveOptions {
-  const factory _POVSaveOptions(
-      {required final bool canSaveAsDraft,
-      required final bool canReplaceChapter,
-      required final bool canCreateNewChapter,
-      final String? currentChapterTitle,
-      required final int suggestedSortOrder,
-      final String? defaultVolumeId}) = _$POVSaveOptionsImpl;
+  const factory _POVSaveOptions({
+    required final bool canSaveAsDraft,
+    required final bool canReplaceChapter,
+    required final bool canCreateNewChapter,
+    final String? currentChapterTitle,
+    required final int suggestedSortOrder,
+    final String? defaultVolumeId,
+  }) = _$POVSaveOptionsImpl;
 
   factory _POVSaveOptions.fromJson(Map<String, dynamic> json) =
       _$POVSaveOptionsImpl.fromJson;
@@ -2688,8 +2956,11 @@ abstract class _POVSaveOptions implements POVSaveOptions {
   int get suggestedSortOrder;
   @override
   String? get defaultVolumeId;
+
+  /// Create a copy of POVSaveOptions
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$POVSaveOptionsImplCopyWith<_$POVSaveOptionsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

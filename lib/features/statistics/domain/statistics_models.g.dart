@@ -24,8 +24,8 @@ _$WorkStatisticsImpl _$$WorkStatisticsImplFromJson(Map<String, dynamic> json) =>
       averageChapterWords: (json['averageChapterWords'] as num).toDouble(),
       writingDays: (json['writingDays'] as num).toInt(),
       totalWritingMinutes: (json['totalWritingMinutes'] as num).toInt(),
-      averageDailyWritingMinutes:
-          (json['averageDailyWritingMinutes'] as num).toDouble(),
+      averageDailyWritingMinutes: (json['averageDailyWritingMinutes'] as num)
+          .toDouble(),
       completionRate: (json['completionRate'] as num).toDouble(),
       estimatedDaysToComplete: (json['estimatedDaysToComplete'] as num).toInt(),
       estimatedCompletionDate: json['estimatedCompletionDate'] == null
@@ -44,36 +44,36 @@ _$WorkStatisticsImpl _$$WorkStatisticsImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$WorkStatisticsImplToJson(
-        _$WorkStatisticsImpl instance) =>
-    <String, dynamic>{
-      'workId': instance.workId,
-      'workTitle': instance.workTitle,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
-      'totalVolumes': instance.totalVolumes,
-      'totalChapters': instance.totalChapters,
-      'publishedChapters': instance.publishedChapters,
-      'draftChapters': instance.draftChapters,
-      'totalWords': instance.totalWords,
-      'publishedWords': instance.publishedWords,
-      'dailyAverageWords': instance.dailyAverageWords,
-      'maxChapterWords': instance.maxChapterWords,
-      'minChapterWords': instance.minChapterWords,
-      'averageChapterWords': instance.averageChapterWords,
-      'writingDays': instance.writingDays,
-      'totalWritingMinutes': instance.totalWritingMinutes,
-      'averageDailyWritingMinutes': instance.averageDailyWritingMinutes,
-      'completionRate': instance.completionRate,
-      'estimatedDaysToComplete': instance.estimatedDaysToComplete,
-      'estimatedCompletionDate':
-          instance.estimatedCompletionDate?.toIso8601String(),
-      'totalCharacters': instance.totalCharacters,
-      'protagonistCount': instance.protagonistCount,
-      'supportingCount': instance.supportingCount,
-      'minorCount': instance.minorCount,
-      'recentWordCounts': instance.recentWordCounts,
-      'chapterProgressList': instance.chapterProgressList,
-    };
+  _$WorkStatisticsImpl instance,
+) => <String, dynamic>{
+  'workId': instance.workId,
+  'workTitle': instance.workTitle,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'updatedAt': instance.updatedAt.toIso8601String(),
+  'totalVolumes': instance.totalVolumes,
+  'totalChapters': instance.totalChapters,
+  'publishedChapters': instance.publishedChapters,
+  'draftChapters': instance.draftChapters,
+  'totalWords': instance.totalWords,
+  'publishedWords': instance.publishedWords,
+  'dailyAverageWords': instance.dailyAverageWords,
+  'maxChapterWords': instance.maxChapterWords,
+  'minChapterWords': instance.minChapterWords,
+  'averageChapterWords': instance.averageChapterWords,
+  'writingDays': instance.writingDays,
+  'totalWritingMinutes': instance.totalWritingMinutes,
+  'averageDailyWritingMinutes': instance.averageDailyWritingMinutes,
+  'completionRate': instance.completionRate,
+  'estimatedDaysToComplete': instance.estimatedDaysToComplete,
+  'estimatedCompletionDate': instance.estimatedCompletionDate
+      ?.toIso8601String(),
+  'totalCharacters': instance.totalCharacters,
+  'protagonistCount': instance.protagonistCount,
+  'supportingCount': instance.supportingCount,
+  'minorCount': instance.minorCount,
+  'recentWordCounts': instance.recentWordCounts,
+  'chapterProgressList': instance.chapterProgressList,
+};
 
 _$DailyWordCountImpl _$$DailyWordCountImplFromJson(Map<String, dynamic> json) =>
     _$DailyWordCountImpl(
@@ -84,37 +84,37 @@ _$DailyWordCountImpl _$$DailyWordCountImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$DailyWordCountImplToJson(
-        _$DailyWordCountImpl instance) =>
-    <String, dynamic>{
-      'date': instance.date.toIso8601String(),
-      'wordCount': instance.wordCount,
-      'chapterCount': instance.chapterCount,
-      'writingMinutes': instance.writingMinutes,
-    };
+  _$DailyWordCountImpl instance,
+) => <String, dynamic>{
+  'date': instance.date.toIso8601String(),
+  'wordCount': instance.wordCount,
+  'chapterCount': instance.chapterCount,
+  'writingMinutes': instance.writingMinutes,
+};
 
 _$ChapterProgressImpl _$$ChapterProgressImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ChapterProgressImpl(
-      chapterId: json['chapterId'] as String,
-      chapterTitle: json['chapterTitle'] as String,
-      order: (json['order'] as num).toInt(),
-      wordCount: (json['wordCount'] as num).toInt(),
-      status: $enumDecode(_$ChapterStatusEnumMap, json['status']),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-      reviewScore: (json['reviewScore'] as num?)?.toDouble(),
-    );
+  Map<String, dynamic> json,
+) => _$ChapterProgressImpl(
+  chapterId: json['chapterId'] as String,
+  chapterTitle: json['chapterTitle'] as String,
+  order: (json['order'] as num).toInt(),
+  wordCount: (json['wordCount'] as num).toInt(),
+  status: $enumDecode(_$ChapterStatusEnumMap, json['status']),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
+  reviewScore: (json['reviewScore'] as num?)?.toDouble(),
+);
 
 Map<String, dynamic> _$$ChapterProgressImplToJson(
-        _$ChapterProgressImpl instance) =>
-    <String, dynamic>{
-      'chapterId': instance.chapterId,
-      'chapterTitle': instance.chapterTitle,
-      'order': instance.order,
-      'wordCount': instance.wordCount,
-      'status': _$ChapterStatusEnumMap[instance.status]!,
-      'updatedAt': instance.updatedAt.toIso8601String(),
-      'reviewScore': instance.reviewScore,
-    };
+  _$ChapterProgressImpl instance,
+) => <String, dynamic>{
+  'chapterId': instance.chapterId,
+  'chapterTitle': instance.chapterTitle,
+  'order': instance.order,
+  'wordCount': instance.wordCount,
+  'status': _$ChapterStatusEnumMap[instance.status]!,
+  'updatedAt': instance.updatedAt.toIso8601String(),
+  'reviewScore': instance.reviewScore,
+};
 
 const _$ChapterStatusEnumMap = {
   ChapterStatus.draft: 'draft',
@@ -125,28 +125,28 @@ const _$ChapterStatusEnumMap = {
 };
 
 _$WritingSessionStatsImpl _$$WritingSessionStatsImplFromJson(
-        Map<String, dynamic> json) =>
-    _$WritingSessionStatsImpl(
-      date: DateTime.parse(json['date'] as String),
-      totalMinutes: (json['totalMinutes'] as num).toInt(),
-      totalWords: (json['totalWords'] as num).toInt(),
-      sessionCount: (json['sessionCount'] as num).toInt(),
-      hourlyDistribution:
-          (json['hourlyDistribution'] as Map<String, dynamic>).map(
-        (k, e) => MapEntry(int.parse(k), (e as num).toInt()),
-      ),
-    );
+  Map<String, dynamic> json,
+) => _$WritingSessionStatsImpl(
+  date: DateTime.parse(json['date'] as String),
+  totalMinutes: (json['totalMinutes'] as num).toInt(),
+  totalWords: (json['totalWords'] as num).toInt(),
+  sessionCount: (json['sessionCount'] as num).toInt(),
+  hourlyDistribution: (json['hourlyDistribution'] as Map<String, dynamic>).map(
+    (k, e) => MapEntry(int.parse(k), (e as num).toInt()),
+  ),
+);
 
 Map<String, dynamic> _$$WritingSessionStatsImplToJson(
-        _$WritingSessionStatsImpl instance) =>
-    <String, dynamic>{
-      'date': instance.date.toIso8601String(),
-      'totalMinutes': instance.totalMinutes,
-      'totalWords': instance.totalWords,
-      'sessionCount': instance.sessionCount,
-      'hourlyDistribution':
-          instance.hourlyDistribution.map((k, e) => MapEntry(k.toString(), e)),
-    };
+  _$WritingSessionStatsImpl instance,
+) => <String, dynamic>{
+  'date': instance.date.toIso8601String(),
+  'totalMinutes': instance.totalMinutes,
+  'totalWords': instance.totalWords,
+  'sessionCount': instance.sessionCount,
+  'hourlyDistribution': instance.hourlyDistribution.map(
+    (k, e) => MapEntry(k.toString(), e),
+  ),
+};
 
 _$WordCountTrendImpl _$$WordCountTrendImplFromJson(Map<String, dynamic> json) =>
     _$WordCountTrendImpl(
@@ -159,13 +159,13 @@ _$WordCountTrendImpl _$$WordCountTrendImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$WordCountTrendImplToJson(
-        _$WordCountTrendImpl instance) =>
-    <String, dynamic>{
-      'period': _$TrendPeriodEnumMap[instance.period]!,
-      'dataPoints': instance.dataPoints,
-      'growthRate': instance.growthRate,
-      'totalGrowth': instance.totalGrowth,
-    };
+  _$WordCountTrendImpl instance,
+) => <String, dynamic>{
+  'period': _$TrendPeriodEnumMap[instance.period]!,
+  'dataPoints': instance.dataPoints,
+  'growthRate': instance.growthRate,
+  'totalGrowth': instance.totalGrowth,
+};
 
 const _$TrendPeriodEnumMap = {
   TrendPeriod.daily: 'daily',
@@ -181,36 +181,36 @@ _$TrendDataPointImpl _$$TrendDataPointImplFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$$TrendDataPointImplToJson(
-        _$TrendDataPointImpl instance) =>
-    <String, dynamic>{
-      'date': instance.date.toIso8601String(),
-      'value': instance.value,
-      'cumulativeValue': instance.cumulativeValue,
-    };
+  _$TrendDataPointImpl instance,
+) => <String, dynamic>{
+  'date': instance.date.toIso8601String(),
+  'value': instance.value,
+  'cumulativeValue': instance.cumulativeValue,
+};
 
 _$CharacterAppearanceStatsImpl _$$CharacterAppearanceStatsImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterAppearanceStatsImpl(
-      characterId: json['characterId'] as String,
-      characterName: json['characterName'] as String,
-      appearanceCount: (json['appearanceCount'] as num).toInt(),
-      dialogueCount: (json['dialogueCount'] as num).toInt(),
-      chapterIds: (json['chapterIds'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
-      screenTimePercentage: (json['screenTimePercentage'] as num).toDouble(),
-    );
+  Map<String, dynamic> json,
+) => _$CharacterAppearanceStatsImpl(
+  characterId: json['characterId'] as String,
+  characterName: json['characterName'] as String,
+  appearanceCount: (json['appearanceCount'] as num).toInt(),
+  dialogueCount: (json['dialogueCount'] as num).toInt(),
+  chapterIds: (json['chapterIds'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
+  screenTimePercentage: (json['screenTimePercentage'] as num).toDouble(),
+);
 
 Map<String, dynamic> _$$CharacterAppearanceStatsImplToJson(
-        _$CharacterAppearanceStatsImpl instance) =>
-    <String, dynamic>{
-      'characterId': instance.characterId,
-      'characterName': instance.characterName,
-      'appearanceCount': instance.appearanceCount,
-      'dialogueCount': instance.dialogueCount,
-      'chapterIds': instance.chapterIds,
-      'screenTimePercentage': instance.screenTimePercentage,
-    };
+  _$CharacterAppearanceStatsImpl instance,
+) => <String, dynamic>{
+  'characterId': instance.characterId,
+  'characterName': instance.characterName,
+  'appearanceCount': instance.appearanceCount,
+  'dialogueCount': instance.dialogueCount,
+  'chapterIds': instance.chapterIds,
+  'screenTimePercentage': instance.screenTimePercentage,
+};
 
 _$WritingGoalImpl _$$WritingGoalImplFromJson(Map<String, dynamic> json) =>
     _$WritingGoalImpl(
@@ -295,37 +295,37 @@ const _$ReportPeriodEnumMap = {
 };
 
 _$StatisticsExportOptionsImpl _$$StatisticsExportOptionsImplFromJson(
-        Map<String, dynamic> json) =>
-    _$StatisticsExportOptionsImpl(
-      format: $enumDecode(_$StatisticsExportFormatEnumMap, json['format']),
-      includeWorkStatistics: json['includeWorkStatistics'] as bool? ?? true,
-      includeWordCountTrend: json['includeWordCountTrend'] as bool? ?? true,
-      includeCharacterAppearances:
-          json['includeCharacterAppearances'] as bool? ?? true,
-      includeDailyBreakdown: json['includeDailyBreakdown'] as bool? ?? true,
-      includeAIUsage: json['includeAIUsage'] as bool? ?? false,
-      startDate: json['startDate'] == null
-          ? null
-          : DateTime.parse(json['startDate'] as String),
-      endDate: json['endDate'] == null
-          ? null
-          : DateTime.parse(json['endDate'] as String),
-      days: (json['days'] as num?)?.toInt(),
-    );
+  Map<String, dynamic> json,
+) => _$StatisticsExportOptionsImpl(
+  format: $enumDecode(_$StatisticsExportFormatEnumMap, json['format']),
+  includeWorkStatistics: json['includeWorkStatistics'] as bool? ?? true,
+  includeWordCountTrend: json['includeWordCountTrend'] as bool? ?? true,
+  includeCharacterAppearances:
+      json['includeCharacterAppearances'] as bool? ?? true,
+  includeDailyBreakdown: json['includeDailyBreakdown'] as bool? ?? true,
+  includeAIUsage: json['includeAIUsage'] as bool? ?? false,
+  startDate: json['startDate'] == null
+      ? null
+      : DateTime.parse(json['startDate'] as String),
+  endDate: json['endDate'] == null
+      ? null
+      : DateTime.parse(json['endDate'] as String),
+  days: (json['days'] as num?)?.toInt(),
+);
 
 Map<String, dynamic> _$$StatisticsExportOptionsImplToJson(
-        _$StatisticsExportOptionsImpl instance) =>
-    <String, dynamic>{
-      'format': _$StatisticsExportFormatEnumMap[instance.format]!,
-      'includeWorkStatistics': instance.includeWorkStatistics,
-      'includeWordCountTrend': instance.includeWordCountTrend,
-      'includeCharacterAppearances': instance.includeCharacterAppearances,
-      'includeDailyBreakdown': instance.includeDailyBreakdown,
-      'includeAIUsage': instance.includeAIUsage,
-      'startDate': instance.startDate?.toIso8601String(),
-      'endDate': instance.endDate?.toIso8601String(),
-      'days': instance.days,
-    };
+  _$StatisticsExportOptionsImpl instance,
+) => <String, dynamic>{
+  'format': _$StatisticsExportFormatEnumMap[instance.format]!,
+  'includeWorkStatistics': instance.includeWorkStatistics,
+  'includeWordCountTrend': instance.includeWordCountTrend,
+  'includeCharacterAppearances': instance.includeCharacterAppearances,
+  'includeDailyBreakdown': instance.includeDailyBreakdown,
+  'includeAIUsage': instance.includeAIUsage,
+  'startDate': instance.startDate?.toIso8601String(),
+  'endDate': instance.endDate?.toIso8601String(),
+  'days': instance.days,
+};
 
 const _$StatisticsExportFormatEnumMap = {
   StatisticsExportFormat.json: 'json',

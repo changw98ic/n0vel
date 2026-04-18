@@ -12,7 +12,8 @@ part of 'prompt_template.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 PromptTemplate _$PromptTemplateFromJson(Map<String, dynamic> json) {
   return _PromptTemplate.fromJson(json);
@@ -34,8 +35,12 @@ mixin _$PromptTemplate {
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
+  /// Serializes this PromptTemplate to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of PromptTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $PromptTemplateCopyWith<PromptTemplate> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -43,22 +48,24 @@ mixin _$PromptTemplate {
 /// @nodoc
 abstract class $PromptTemplateCopyWith<$Res> {
   factory $PromptTemplateCopyWith(
-          PromptTemplate value, $Res Function(PromptTemplate) then) =
-      _$PromptTemplateCopyWithImpl<$Res, PromptTemplate>;
+    PromptTemplate value,
+    $Res Function(PromptTemplate) then,
+  ) = _$PromptTemplateCopyWithImpl<$Res, PromptTemplate>;
   @useResult
-  $Res call(
-      {String id,
-      String functionType,
-      String name,
-      String systemPrompt,
-      String userPromptTemplate,
-      String? description,
-      List<String> variables,
-      int version,
-      bool isDefault,
-      bool isBuiltIn,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String functionType,
+    String name,
+    String systemPrompt,
+    String userPromptTemplate,
+    String? description,
+    List<String> variables,
+    int version,
+    bool isDefault,
+    bool isBuiltIn,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -71,6 +78,8 @@ class _$PromptTemplateCopyWithImpl<$Res, $Val extends PromptTemplate>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of PromptTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -87,80 +96,85 @@ class _$PromptTemplateCopyWithImpl<$Res, $Val extends PromptTemplate>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      functionType: null == functionType
-          ? _value.functionType
-          : functionType // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      systemPrompt: null == systemPrompt
-          ? _value.systemPrompt
-          : systemPrompt // ignore: cast_nullable_to_non_nullable
-              as String,
-      userPromptTemplate: null == userPromptTemplate
-          ? _value.userPromptTemplate
-          : userPromptTemplate // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      variables: null == variables
-          ? _value.variables
-          : variables // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as int,
-      isDefault: null == isDefault
-          ? _value.isDefault
-          : isDefault // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isBuiltIn: null == isBuiltIn
-          ? _value.isBuiltIn
-          : isBuiltIn // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            functionType: null == functionType
+                ? _value.functionType
+                : functionType // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            systemPrompt: null == systemPrompt
+                ? _value.systemPrompt
+                : systemPrompt // ignore: cast_nullable_to_non_nullable
+                      as String,
+            userPromptTemplate: null == userPromptTemplate
+                ? _value.userPromptTemplate
+                : userPromptTemplate // ignore: cast_nullable_to_non_nullable
+                      as String,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            variables: null == variables
+                ? _value.variables
+                : variables // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            version: null == version
+                ? _value.version
+                : version // ignore: cast_nullable_to_non_nullable
+                      as int,
+            isDefault: null == isDefault
+                ? _value.isDefault
+                : isDefault // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            isBuiltIn: null == isBuiltIn
+                ? _value.isBuiltIn
+                : isBuiltIn // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            updatedAt: freezed == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$PromptTemplateImplCopyWith<$Res>
     implements $PromptTemplateCopyWith<$Res> {
-  factory _$$PromptTemplateImplCopyWith(_$PromptTemplateImpl value,
-          $Res Function(_$PromptTemplateImpl) then) =
-      __$$PromptTemplateImplCopyWithImpl<$Res>;
+  factory _$$PromptTemplateImplCopyWith(
+    _$PromptTemplateImpl value,
+    $Res Function(_$PromptTemplateImpl) then,
+  ) = __$$PromptTemplateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String functionType,
-      String name,
-      String systemPrompt,
-      String userPromptTemplate,
-      String? description,
-      List<String> variables,
-      int version,
-      bool isDefault,
-      bool isBuiltIn,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String functionType,
+    String name,
+    String systemPrompt,
+    String userPromptTemplate,
+    String? description,
+    List<String> variables,
+    int version,
+    bool isDefault,
+    bool isBuiltIn,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -168,9 +182,12 @@ class __$$PromptTemplateImplCopyWithImpl<$Res>
     extends _$PromptTemplateCopyWithImpl<$Res, _$PromptTemplateImpl>
     implements _$$PromptTemplateImplCopyWith<$Res> {
   __$$PromptTemplateImplCopyWithImpl(
-      _$PromptTemplateImpl _value, $Res Function(_$PromptTemplateImpl) _then)
-      : super(_value, _then);
+    _$PromptTemplateImpl _value,
+    $Res Function(_$PromptTemplateImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of PromptTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -187,77 +204,79 @@ class __$$PromptTemplateImplCopyWithImpl<$Res>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_$PromptTemplateImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      functionType: null == functionType
-          ? _value.functionType
-          : functionType // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      systemPrompt: null == systemPrompt
-          ? _value.systemPrompt
-          : systemPrompt // ignore: cast_nullable_to_non_nullable
-              as String,
-      userPromptTemplate: null == userPromptTemplate
-          ? _value.userPromptTemplate
-          : userPromptTemplate // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      variables: null == variables
-          ? _value._variables
-          : variables // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as int,
-      isDefault: null == isDefault
-          ? _value.isDefault
-          : isDefault // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isBuiltIn: null == isBuiltIn
-          ? _value.isBuiltIn
-          : isBuiltIn // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$PromptTemplateImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        functionType: null == functionType
+            ? _value.functionType
+            : functionType // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        systemPrompt: null == systemPrompt
+            ? _value.systemPrompt
+            : systemPrompt // ignore: cast_nullable_to_non_nullable
+                  as String,
+        userPromptTemplate: null == userPromptTemplate
+            ? _value.userPromptTemplate
+            : userPromptTemplate // ignore: cast_nullable_to_non_nullable
+                  as String,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        variables: null == variables
+            ? _value._variables
+            : variables // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        version: null == version
+            ? _value.version
+            : version // ignore: cast_nullable_to_non_nullable
+                  as int,
+        isDefault: null == isDefault
+            ? _value.isDefault
+            : isDefault // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        isBuiltIn: null == isBuiltIn
+            ? _value.isBuiltIn
+            : isBuiltIn // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        updatedAt: freezed == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$PromptTemplateImpl extends _PromptTemplate {
-  const _$PromptTemplateImpl(
-      {required this.id,
-      required this.functionType,
-      required this.name,
-      required this.systemPrompt,
-      required this.userPromptTemplate,
-      this.description,
-      final List<String> variables = const [],
-      this.version = 1,
-      this.isDefault = false,
-      this.isBuiltIn = false,
-      this.createdAt,
-      this.updatedAt})
-      : _variables = variables,
-        super._();
+  const _$PromptTemplateImpl({
+    required this.id,
+    required this.functionType,
+    required this.name,
+    required this.systemPrompt,
+    required this.userPromptTemplate,
+    this.description,
+    final List<String> variables = const [],
+    this.version = 1,
+    this.isDefault = false,
+    this.isBuiltIn = false,
+    this.createdAt,
+    this.updatedAt,
+  }) : _variables = variables,
+       super._();
 
   factory _$PromptTemplateImpl.fromJson(Map<String, dynamic> json) =>
       _$$PromptTemplateImplFromJson(json);
@@ -266,7 +285,7 @@ class _$PromptTemplateImpl extends _PromptTemplate {
   final String id;
   @override
   final String functionType;
-// 对应 AIFunction.key
+  // 对应 AIFunction.key
   @override
   final String name;
   @override
@@ -284,7 +303,7 @@ class _$PromptTemplateImpl extends _PromptTemplate {
     return EqualUnmodifiableListView(_variables);
   }
 
-// 模板变量列表
+  // 模板变量列表
   @override
   @JsonKey()
   final int version;
@@ -319,8 +338,10 @@ class _$PromptTemplateImpl extends _PromptTemplate {
                 other.userPromptTemplate == userPromptTemplate) &&
             (identical(other.description, description) ||
                 other.description == description) &&
-            const DeepCollectionEquality()
-                .equals(other._variables, _variables) &&
+            const DeepCollectionEquality().equals(
+              other._variables,
+              _variables,
+            ) &&
             (identical(other.version, version) || other.version == version) &&
             (identical(other.isDefault, isDefault) ||
                 other.isDefault == isDefault) &&
@@ -332,52 +353,56 @@ class _$PromptTemplateImpl extends _PromptTemplate {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      functionType,
-      name,
-      systemPrompt,
-      userPromptTemplate,
-      description,
-      const DeepCollectionEquality().hash(_variables),
-      version,
-      isDefault,
-      isBuiltIn,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    functionType,
+    name,
+    systemPrompt,
+    userPromptTemplate,
+    description,
+    const DeepCollectionEquality().hash(_variables),
+    version,
+    isDefault,
+    isBuiltIn,
+    createdAt,
+    updatedAt,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of PromptTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$PromptTemplateImplCopyWith<_$PromptTemplateImpl> get copyWith =>
       __$$PromptTemplateImplCopyWithImpl<_$PromptTemplateImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PromptTemplateImplToJson(
-      this,
-    );
+    return _$$PromptTemplateImplToJson(this);
   }
 }
 
 abstract class _PromptTemplate extends PromptTemplate {
-  const factory _PromptTemplate(
-      {required final String id,
-      required final String functionType,
-      required final String name,
-      required final String systemPrompt,
-      required final String userPromptTemplate,
-      final String? description,
-      final List<String> variables,
-      final int version,
-      final bool isDefault,
-      final bool isBuiltIn,
-      final DateTime? createdAt,
-      final DateTime? updatedAt}) = _$PromptTemplateImpl;
+  const factory _PromptTemplate({
+    required final String id,
+    required final String functionType,
+    required final String name,
+    required final String systemPrompt,
+    required final String userPromptTemplate,
+    final String? description,
+    final List<String> variables,
+    final int version,
+    final bool isDefault,
+    final bool isBuiltIn,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+  }) = _$PromptTemplateImpl;
   const _PromptTemplate._() : super._();
 
   factory _PromptTemplate.fromJson(Map<String, dynamic> json) =
@@ -386,8 +411,8 @@ abstract class _PromptTemplate extends PromptTemplate {
   @override
   String get id;
   @override
-  String get functionType;
-  @override // 对应 AIFunction.key
+  String get functionType; // 对应 AIFunction.key
+  @override
   String get name;
   @override
   String get systemPrompt;
@@ -396,8 +421,8 @@ abstract class _PromptTemplate extends PromptTemplate {
   @override
   String? get description;
   @override
-  List<String> get variables;
-  @override // 模板变量列表
+  List<String> get variables; // 模板变量列表
+  @override
   int get version;
   @override
   bool get isDefault;
@@ -407,8 +432,11 @@ abstract class _PromptTemplate extends PromptTemplate {
   DateTime? get createdAt;
   @override
   DateTime? get updatedAt;
+
+  /// Create a copy of PromptTemplate
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$PromptTemplateImplCopyWith<_$PromptTemplateImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

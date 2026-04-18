@@ -47,17 +47,17 @@ const _$ModelTierEnumMap = {
 };
 
 _$FunctionMappingImpl _$$FunctionMappingImplFromJson(
-        Map<String, dynamic> json) =>
-    _$FunctionMappingImpl(
-      functionKey: json['functionKey'] as String,
-      overrideTierName: json['overrideTierName'] as String?,
-      useOverride: json['useOverride'] as bool? ?? false,
-    );
+  Map<String, dynamic> json,
+) => _$FunctionMappingImpl(
+  functionKey: json['functionKey'] as String,
+  overrideTierName: json['overrideTierName'] as String?,
+  useOverride: json['useOverride'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$$FunctionMappingImplToJson(
-        _$FunctionMappingImpl instance) =>
-    <String, dynamic>{
-      'functionKey': instance.functionKey,
-      'overrideTierName': instance.overrideTierName,
-      'useOverride': instance.useOverride,
-    };
+  _$FunctionMappingImpl instance,
+) => <String, dynamic>{
+  'functionKey': instance.functionKey,
+  'overrideTierName': instance.overrideTierName,
+  'useOverride': instance.useOverride,
+};
