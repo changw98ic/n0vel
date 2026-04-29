@@ -1,0 +1,182 @@
+{
+  "pages": {
+    "project_list": {
+      "prd": "prd-01-project-list.md",
+      "primary_frame": "nXod8",
+      "related_frames": ["MS3Oh", "az4YP", "qW9NX", "X4Udf", "01wqz"],
+      "smoke_tests": ["Smoke 01", "Smoke 09", "Smoke 10"]
+    },
+    "writing_workbench": {
+      "prd": "prd-02-writing-workbench.md",
+      "primary_frame": "47nGt",
+      "related_frames": ["WT5mH", "aBO8C", "XBhIG", "AMlNT", "i2PgM", "y6Ufy", "ea0WQ", "go6Qc", "FPMUS", "O5wWx", "dSehn", "6RjjP", "WmFpE", "emCHR", "o6hOU", "eOH82", "4K0UK", "lV0iX", "bgE7z"],
+      "smoke_tests": ["Smoke 01", "Smoke 02", "Smoke 04", "Smoke 05", "Smoke 06", "Smoke 12"]
+    },
+    "sandbox_monitor": {
+      "prd": "prd-03-sandbox-monitor.md",
+      "primary_frame": "YTrUo",
+      "related_frames": ["fBn5z", "VK4F1", "ma61v", "JJh0t", "GtV8t", "Fekvk"],
+      "smoke_tests": ["Smoke 04", "Smoke 05", "Smoke 06"]
+    },
+    "character_library": {
+      "prd": "prd-04-character-library.md",
+      "primary_frame": "4KVQe",
+      "related_frames": ["qpmBd", "tfAqU", "zlKdA", "bRkQL"],
+      "smoke_tests": ["Smoke 12"]
+    },
+    "worldbuilding": {
+      "prd": "prd-05-worldbuilding.md",
+      "primary_frame": "dH2Mr",
+      "related_frames": ["5HcpF", "mMbsG", "bJvYY", "CQycp"],
+      "smoke_tests": ["Smoke 12"]
+    },
+    "style_panel": {
+      "prd": "prd-06-style-panel.md",
+      "primary_frame": "ff8vo",
+      "related_frames": ["hs0KX", "uZkEL", "6TNF5", "ABdeI", "6iQPW", "bPxYh", "3sKz3", "ToU7Z", "fjUbH", "tosI5"],
+      "smoke_tests": ["Smoke 11"]
+    },
+    "audit_center": {
+      "prd": "prd-07-audit-center.md",
+      "primary_frame": "p8Lkt",
+      "related_frames": ["bAyGg", "THj8i", "IfzpB", "55YHH", "25jQz", "BskXB"],
+      "smoke_tests": []
+    },
+    "chapter_versions": {
+      "prd": "prd-08-version-history.md",
+      "primary_frame": "Ym6ea",
+      "related_frames": ["PUmdJ", "uHxFC", "v82se", "xY5Bh", "rr4J7", "XEwpS", "pblhy"],
+      "smoke_tests": ["Smoke 08"]
+    },
+    "project_import_export": {
+      "prd": "prd-09-project-import-export.md",
+      "primary_frame": "z0mJ1",
+      "related_frames": ["aYhVV", "XrBiQ", "kJVPV", "YqiXr", "f4cfp", "O5g2A", "nJ1Vf", "sqxPi", "4U4Ue"],
+      "smoke_tests": ["Smoke 09", "Smoke 10"]
+    },
+    "settings_byok": {
+      "prd": "prd-10-settings-byok.md",
+      "primary_frame": "DnwrZ",
+      "related_frames": ["WwWEh", "6yJaH", "hroTw", "NVC2a", "YwhiQ", "a0Ywa", "oyTF3", "sOHyn", "AGfYb", "9Ukuf", "URbAX", "yRdSE", "1KpPn", "BtJNK", "HcPSf", "1ppB0", "2W8bB"],
+      "smoke_tests": ["Smoke 11"]
+    },
+    "reading_mode": {
+      "prd": "prd-11-reading-mode.md",
+      "primary_frame": "GD63C",
+      "related_frames": ["WGzHM", "Cz57s", "mDkBH", "ATuaL", "cqffu"],
+      "smoke_tests": ["Smoke 07"]
+    }
+  },
+  "supplemental_pages": {
+    "scene_management": {
+      "design_source": "runtime supplement",
+      "primary_frame": "PIRts",
+      "related_frames": ["aI0tb", "GKvUk", "fhYDR", "nl6rr", "h4puH", "OiGfq"],
+      "runtime_evidence": ["test/scene_surfaces_test.dart"]
+    }
+  },
+  "interaction_tracks": {
+    "ai_edit_confirm_restore": {
+      "frames": ["XYBaG", "XkB5L", "rQbOu", "8JkLW"],
+      "prds": ["prd-02-writing-workbench.md"],
+      "smoke_tests": ["Smoke 03"]
+    },
+    "ai_continue_accept_failed": {
+      "frames": ["VT3Da", "eOH82"],
+      "prds": ["prd-02-writing-workbench.md"],
+      "runtime_evidence": ["test/workbench_shell_test.dart"]
+    },
+    "workbench_ai_blocking": {
+      "frames": ["y6Ufy", "go6Qc", "FPMUS"],
+      "prds": ["prd-02-writing-workbench.md"],
+      "smoke_tests": ["Smoke 02"]
+    },
+    "workbench_ai_config_recovery": {
+      "frames": ["NqgGR", "jbGIZ", "aZupZ"],
+      "prds": ["prd-02-writing-workbench.md", "prd-10-settings-byok.md"],
+      "runtime_evidence": ["test/workbench_shell_test.dart"]
+    },
+    "workbench_resource_scene_dialogs": {
+      "frames": ["IhizR", "VCoJM", "ttVz8"],
+      "prds": ["prd-02-writing-workbench.md"],
+      "runtime_evidence": ["test/workbench_shell_test.dart"]
+    },
+    "simulation_roundtrip": {
+      "frames": ["O5wWx", "dSehn", "YTrUo"],
+      "prds": ["prd-02-writing-workbench.md", "prd-03-sandbox-monitor.md"],
+      "smoke_tests": ["Smoke 05", "Smoke 06"]
+    },
+    "sandbox_interaction_states": {
+      "frames": ["VK4F1", "ma61v"],
+      "prds": ["prd-03-sandbox-monitor.md"],
+      "runtime_evidence": ["test/workbench_shell_test.dart"]
+    },
+    "reading_return_anchor": {
+      "frames": ["GD63C", "WGzHM", "mDkBH", "cqffu"],
+      "prds": ["prd-11-reading-mode.md"],
+      "smoke_tests": ["Smoke 07"]
+    },
+    "version_restore_and_eviction": {
+      "frames": ["Ym6ea", "rr4J7", "XEwpS", "pblhy"],
+      "prds": ["prd-08-version-history.md"],
+      "smoke_tests": ["Smoke 08"]
+    },
+    "import_and_overwrite_success": {
+      "frames": ["aYhVV", "XrBiQ"],
+      "prds": ["prd-09-project-import-export.md"],
+      "smoke_tests": ["Smoke 09", "Smoke 10"]
+    },
+    "export_success": {
+      "frames": ["4U4Ue"],
+      "prds": ["prd-09-project-import-export.md"],
+      "smoke_tests": ["Smoke 09"]
+    },
+    "settings_save_recovery_timeout": {
+      "frames": ["HcPSf", "a0Ywa", "oyTF3", "sOHyn", "AGfYb", "9Ukuf"],
+      "prds": ["prd-10-settings-byok.md"],
+      "smoke_tests": ["Smoke 11"],
+      "runtime_evidence": ["test/settings_persistence_test.dart"]
+    },
+    "global_shell_config_warnings": {
+      "frames": ["cObbS", "SGKvq"],
+      "prds": ["shell-level supplement"],
+      "runtime_evidence": ["test/project_surfaces_test.dart", "test/settings_persistence_test.dart"]
+    },
+    "style_dynamic_states": {
+      "frames": ["uZkEL", "6TNF5"],
+      "prds": ["prd-06-style-panel.md"],
+      "runtime_evidence": ["test/style_panel_test.dart"]
+    },
+    "audit_feedback_states": {
+      "frames": ["THj8i", "IfzpB"],
+      "prds": ["prd-07-audit-center.md"],
+      "runtime_evidence": ["test/reference_surfaces_test.dart"]
+    },
+    "reference_invalidation_recovery": {
+      "frames": ["WmFpE", "emCHR"],
+      "prds": ["prd-02-writing-workbench.md", "prd-04-character-library.md", "prd-05-worldbuilding.md"],
+      "smoke_tests": ["Smoke 12"]
+    },
+    "workbench_ai_history_and_ready": {
+      "frames": ["4K0UK", "lV0iX", "bgE7z"],
+      "prds": ["prd-02-writing-workbench.md"],
+      "runtime_evidence": ["test/workbench_shell_test.dart"]
+    },
+    "scene_move": {
+      "frames": ["OiGfq"],
+      "prds": ["runtime supplement"],
+      "runtime_evidence": ["test/scene_surfaces_test.dart"]
+    },
+    "settings_connection_and_migration": {
+      "frames": ["1ppB0", "2W8bB"],
+      "prds": ["prd-10-settings-byok.md"],
+      "smoke_tests": ["Smoke 11"],
+      "runtime_evidence": ["test/settings_persistence_test.dart"]
+    },
+    "settings_save_effective_next_request": {
+      "frames": ["HcPSf"],
+      "prds": ["prd-10-settings-byok.md"],
+      "smoke_tests": ["Smoke 11"]
+    }
+  }
+}

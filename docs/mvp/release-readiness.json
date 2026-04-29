@@ -1,0 +1,15 @@
+{
+  "status": "ready_for_implementation",
+  "top_level_docs_and_assets": 27,
+  "prd_docs": 11,
+  "canonical_frame_names": 149,
+  "canonical_frame_ids": 151,
+  "smoke_tests": 12,
+  "high_priority_behavior_gaps_closed": true,
+  "primary_entrypoints": {
+    "engineering": "implementation-handoff.md",
+    "qa": "milestone-verification-checklist.md",
+    "smoke": "runtime-smoke-tests.md",
+    "traceability": "traceability-matrix.md"
+  }
+}

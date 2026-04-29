@@ -1,0 +1,167 @@
+{
+  "smoke_tests": [
+    {
+      "id": "smoke_01",
+      "title": "工作台打开",
+      "related_frames": ["47nGt", "WT5mH", "i2PgM"],
+      "related_docs": ["prd-02-writing-workbench.md", "implementation-handoff.md"],
+      "prerequisites": ["本地已有至少一个项目", "可进入 Writing Workbench"],
+      "steps": [
+        "打开任意项目并进入工作台",
+        "确认左侧只显示隐藏 menu drawer 把手",
+        "确认顶部显示 breadcrumb",
+        "确认右侧工具条存在且可见"
+      ],
+      "pass_criteria": [
+        "正文是主视觉中心",
+        "menu drawer、breadcrumb、右侧工具条层级清楚"
+      ]
+    },
+    {
+      "id": "smoke_02",
+      "title": "AI 改写阻断",
+      "related_frames": ["go6Qc"],
+      "related_docs": ["prd-02-writing-workbench.md"],
+      "prerequisites": ["当前工作台中制造一个重叠选区"],
+      "steps": ["在正文里创建多个重叠选区", "发起一次 AI 修改"],
+      "pass_criteria": [
+        "请求不发出",
+        "出现 Writing Workbench / Overlapping Selections",
+        "正文不改动"
+      ]
+    },
+    {
+      "id": "smoke_03",
+      "title": "AI 修改确认与恢复",
+      "related_frames": ["XYBaG", "XkB5L", "8JkLW", "rQbOu"],
+      "related_docs": ["prd-02-writing-workbench.md"],
+      "prerequisites": ["当前工作台可正常返回 AI 修改结果"],
+      "steps": [
+        "发起一次包含多个修改块的 AI 修改",
+        "在确认弹窗里排除其中一个修改块",
+        "恢复该修改块",
+        "接受变更"
+      ],
+      "pass_criteria": [
+        "已排除块可恢复",
+        "接受后只生成 1 个章节版本",
+        "正文只在接受后改动"
+      ]
+    },
+    {
+      "id": "smoke_04",
+      "title": "无模拟记录",
+      "related_frames": ["ea0WQ", "fBn5z"],
+      "related_docs": ["prd-02-writing-workbench.md", "prd-03-sandbox-monitor.md"],
+      "prerequisites": ["当前章节从未运行过 SimulationRun"],
+      "steps": ["打开工作台", "尝试查看模拟过程"],
+      "pass_criteria": [
+        "工作台显示轻提示，而不是弹空壳监视器页",
+        "不打断正文编辑"
+      ]
+    },
+    {
+      "id": "smoke_05",
+      "title": "模拟完成回传",
+      "related_frames": ["O5wWx", "YTrUo"],
+      "related_docs": ["prd-02-writing-workbench.md", "prd-03-sandbox-monitor.md"],
+      "prerequisites": ["当前章节成功运行一次 SimulationRun"],
+      "steps": ["完成模拟", "返回工作台", "观察顶部摘要条", "从摘要条进入模拟过程"],
+      "pass_criteria": ["工作台出现完成摘要", "能再次打开同一轮模拟结果"]
+    },
+    {
+      "id": "smoke_06",
+      "title": "模拟失败回传",
+      "related_frames": ["dSehn", "GtV8t"],
+      "related_docs": ["prd-02-writing-workbench.md", "prd-03-sandbox-monitor.md"],
+      "prerequisites": ["当前章节运行一次会失败的 SimulationRun"],
+      "steps": ["触发失败模拟", "返回工作台", "打开失败详情"],
+      "pass_criteria": [
+        "工作台出现失败摘要",
+        "明确说明正文未改动",
+        "失败详情可再次查看"
+      ]
+    },
+    {
+      "id": "smoke_07",
+      "title": "阅读器返回锚点",
+      "related_frames": ["GD63C", "WGzHM", "mDkBH", "cqffu"],
+      "related_docs": ["prd-11-reading-mode.md"],
+      "prerequisites": ["工作台已有明确的滚动位置与光标位置"],
+      "steps": ["从工作台进入 Reading Mode", "翻页数次", "关闭阅读器"],
+      "pass_criteria": [
+        "返回到进入前的章节 / Scene",
+        "滚动位置恢复",
+        "光标或选区锚点恢复"
+      ]
+    },
+    {
+      "id": "smoke_08",
+      "title": "版本恢复",
+      "related_frames": ["Ym6ea", "XEwpS", "pblhy", "rr4J7"],
+      "related_docs": ["prd-08-version-history.md"],
+      "prerequisites": ["当前章节至少有 2 个可恢复版本"],
+      "steps": ["进入 Chapter Versions", "恢复一个历史版本"],
+      "pass_criteria": [
+        "新增一个恢复版本作为当前版本",
+        "原历史版本仍保留",
+        "若版本池已满，最旧版本只在恢复结果落盘成功后淘汰"
+      ]
+    },
+    {
+      "id": "smoke_09",
+      "title": "导入成功",
+      "related_frames": ["aYhVV"],
+      "related_docs": ["prd-09-project-import-export.md"],
+      "prerequisites": ["准备一个合法工程包"],
+      "steps": ["在导入导出页执行导入", "观察成功摘要", "点击打开项目"],
+      "pass_criteria": [
+        "成功摘要出现",
+        "明确显示索引刷新完成",
+        "可直接进入导入后的项目"
+      ]
+    },
+    {
+      "id": "smoke_10",
+      "title": "覆盖导入成功",
+      "related_frames": ["XrBiQ", "kJVPV"],
+      "related_docs": ["prd-09-project-import-export.md"],
+      "prerequisites": ["准备一个会命中当前项目 ID 的工程包"],
+      "steps": ["选择覆盖导入", "完成确认", "观察覆盖成功摘要"],
+      "pass_criteria": [
+        "旧索引被替换刷新",
+        "角色 / 世界观 / 风格 / 版本 / 最近写作位置同步更新"
+      ]
+    },
+    {
+      "id": "smoke_11",
+      "title": "设置保存后生效",
+      "related_frames": ["HcPSf", "DnwrZ"],
+      "related_docs": ["prd-10-settings-byok.md"],
+      "prerequisites": ["已修改一组有效 Provider 配置"],
+      "steps": ["保存配置", "观察保存成功状态", "回到工作台重新发起一次 AI 请求"],
+      "pass_criteria": [
+        "保存成功后提示下一次 AI 请求生效",
+        "已失败旧请求不会自动重试",
+        "下一次新请求读取新配置"
+      ]
+    },
+    {
+      "id": "smoke_12",
+      "title": "引用失效回收",
+      "related_frames": ["WmFpE", "emCHR", "bRkQL", "CQycp"],
+      "related_docs": [
+        "prd-02-writing-workbench.md",
+        "prd-04-character-library.md",
+        "prd-05-worldbuilding.md"
+      ],
+      "prerequisites": ["删除一个被工作台场景引用的角色或世界观节点"],
+      "steps": ["删除被引用资料", "回到对应工作台场景"],
+      "pass_criteria": [
+        "工作台出现引用失效提示",
+        "正文仍可继续编辑",
+        "相关摘要 / 约束 / 模拟入口进入失效状态"
+      ]
+    }
+  ]
+}

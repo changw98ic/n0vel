@@ -1,0 +1,14 @@
+{
+  "title": "MVP 文档集总览",
+  "status": "active",
+  "primary_links": {
+    "readme_markdown": "README.md",
+    "doc_manifest": "doc-manifest.json",
+    "canonical_frame_map": "canonical-frame-map.json",
+    "implementation_handoff": "implementation-handoff.md",
+    "milestone_checklist": "milestone-verification-checklist.md",
+    "runtime_smoke_tests": "runtime-smoke-tests.md",
+    "traceability_matrix": "traceability-matrix.md",
+    "release_readiness": "release-readiness.md"
+  }
+}

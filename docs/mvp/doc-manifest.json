@@ -1,0 +1,31 @@
+{
+  "assets": [
+    {"path": "README.md", "title": "MVP 文档集总览", "category": "index", "format": "markdown"},
+    {"path": "README.json", "title": "MVP 文档集总览 (JSON)", "category": "index", "format": "json"},
+    {"path": "behavior-gap-audit.md", "title": "MVP 行为缺口审计", "category": "governance", "format": "markdown"},
+    {"path": "canonical-frame-map.json", "title": "Canonical Frame Map (JSON)", "category": "design-handoff", "format": "json"},
+    {"path": "doc-manifest.json", "title": "MVP 文档清单 (JSON)", "category": "governance", "format": "json"},
+    {"path": "figma-links.md", "title": "Figma / FigJam 入口清单", "category": "reference", "format": "markdown"},
+    {"path": "frame-state-coverage.json", "title": "Frame / State Coverage (JSON)", "category": "design-handoff", "format": "json"},
+    {"path": "frame-state-coverage.md", "title": "Frame / State Coverage", "category": "design-handoff", "format": "markdown"},
+    {"path": "implementation-handoff.md", "title": "MVP 实现交接稿", "category": "handoff", "format": "markdown"},
+    {"path": "implementation-handoff.json", "title": "MVP 实现交接稿 (JSON)", "category": "handoff", "format": "json"},
+    {"path": "legacy-frame-audit.md", "title": "Legacy Frame 审计", "category": "design-handoff", "format": "markdown"},
+    {"path": "milestone-verification-checklist.json", "title": "MVP 里程碑验收清单 (JSON)", "category": "qa", "format": "json"},
+    {"path": "milestone-verification-checklist.md", "title": "MVP 里程碑验收清单", "category": "qa", "format": "markdown"},
+    {"path": "mvp-architecture.md", "title": "MVP 架构图", "category": "architecture", "format": "markdown"},
+    {"path": "mvp-core-flows.md", "title": "MVP 核心流程与状态流转", "category": "architecture", "format": "markdown"},
+    {"path": "mvp-index.json", "title": "MVP 总入口索引 (JSON)", "category": "index", "format": "json"},
+    {"path": "release-readiness.json", "title": "MVP 设计交付完成度 (JSON)", "category": "governance", "format": "json"},
+    {"path": "release-readiness.md", "title": "MVP 设计交付完成度", "category": "governance", "format": "markdown"},
+    {"path": "runtime-smoke-tests.json", "title": "MVP 运行时 Smoke Test 清单 (JSON)", "category": "qa", "format": "json"},
+    {"path": "runtime-smoke-tests.md", "title": "MVP 运行时 Smoke Test 清单", "category": "qa", "format": "markdown"},
+    {"path": "start-here-by-role.json", "title": "MVP 按角色开始 (JSON)", "category": "index", "format": "json"},
+    {"path": "start-here-by-role.md", "title": "MVP 按角色开始", "category": "index", "format": "markdown"},
+    {"path": "style-questionnaire-spec.md", "title": "风格问卷规格说明", "category": "spec", "format": "markdown"},
+    {"path": "traceability-matrix.json", "title": "MVP 追踪矩阵 (JSON)", "category": "governance", "format": "json"},
+    {"path": "traceability-matrix.md", "title": "MVP 追踪矩阵", "category": "governance", "format": "markdown"},
+    {"path": "ui-design-standards.md", "title": "UI 设计稿标准与偏好", "category": "design", "format": "markdown"},
+    {"path": "validate_mvp_docs.py", "title": "MVP 文档校验脚本", "category": "tooling", "format": "python"}
+  ]
+}

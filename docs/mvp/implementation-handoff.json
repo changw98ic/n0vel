@@ -1,0 +1,65 @@
+{
+  "status": "ready_for_engineering",
+  "current_conclusion": {
+    "static_pages_and_states_complete": true,
+    "high_priority_interaction_rules_complete": true,
+    "recommended_next_phase": "implementation_and_integration"
+  },
+  "implementation_priority": [
+    { "order": 1, "label": "写作工作台主壳层" },
+    { "order": 2, "label": "AI 修改确认流" },
+    { "order": 3, "label": "纯净阅读" },
+    { "order": 4, "label": "模拟过程弹窗" },
+    { "order": 5, "label": "设置与 BYOK" },
+    { "order": 6, "label": "工程导入导出" },
+    { "order": 7, "label": "章节版本" },
+    { "order": 8, "label": "角色库 / 世界观 / 审计中心" }
+  ],
+  "milestones": {
+    "M1": {
+      "title": "壳层与主工作台",
+      "related_frames": ["47nGt", "WT5mH", "i2PgM", "y6Ufy", "o6hOU", "WmFpE", "emCHR"],
+      "done_when": [
+        "左侧 menu drawer、breadcrumb、右侧工具条稳定",
+        "正文保持主视觉中心",
+        "阻断 / 轻提示态不打断正文上下文"
+      ]
+    },
+    "M2": {
+      "title": "AI 修改流",
+      "related_frames": ["XBhIG", "AMlNT", "go6Qc", "FPMUS", "XYBaG", "XkB5L", "rQbOu", "8JkLW"],
+      "done_when": [
+        "选区、排除、恢复、接受、拒绝语义闭环",
+        "失败态不改正文、不落版本"
+      ]
+    },
+    "M3": {
+      "title": "阅读与版本",
+      "related_frames": ["GD63C", "WGzHM", "Cz57s", "mDkBH", "ATuaL", "cqffu", "Ym6ea", "uHxFC", "rr4J7", "XEwpS", "pblhy"],
+      "done_when": [
+        "阅读返回锚点恢复",
+        "最近 5 个版本策略稳定",
+        "历史 AI 展开 / 记忆逻辑稳定"
+      ]
+    },
+    "M4": {
+      "title": "模拟与导入导出",
+      "related_frames": ["YTrUo", "fBn5z", "JJh0t", "GtV8t", "Fekvk", "z0mJ1", "aYhVV", "XrBiQ", "kJVPV", "f4cfp", "nJ1Vf", "sqxPi", "O5g2A"],
+      "done_when": [
+        "SimulationRun 回传和刷新模式稳定",
+        "导入成功 / 覆盖成功后的索引刷新稳定",
+        "导入阻断态和轻警告态清晰分层"
+      ]
+    }
+  },
+  "legacy_notes": {
+    "Project List / Search No Results": {
+      "canonical": "az4YP",
+      "legacy": "UbuvO"
+    },
+    "Settings / Missing API Key": {
+      "canonical": "6yJaH",
+      "legacy": "9izFv"
+    }
+  }
+}

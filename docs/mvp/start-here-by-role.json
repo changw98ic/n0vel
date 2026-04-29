@@ -1,0 +1,37 @@
+{
+  "roles": {
+    "engineering": {
+      "docs": [
+        "implementation-handoff.md",
+        "canonical-frame-map.json",
+        "milestone-verification-checklist.md"
+      ],
+      "command": "make mvp-docs-check"
+    },
+    "qa": {
+      "docs": [
+        "runtime-smoke-tests.md",
+        "milestone-verification-checklist.md",
+        "traceability-matrix.md"
+      ],
+      "command": "make mvp-docs-check"
+    },
+    "product_design": {
+      "docs": [
+        "release-readiness.md",
+        "frame-state-coverage.md",
+        "traceability-matrix.md"
+      ]
+    },
+    "automation": {
+      "docs": [
+        "canonical-frame-map.json",
+        "frame-state-coverage.json",
+        "traceability-matrix.json",
+        "runtime-smoke-tests.json",
+        "doc-manifest.json"
+      ],
+      "command": "make mvp-docs-check"
+    }
+  }
+}
