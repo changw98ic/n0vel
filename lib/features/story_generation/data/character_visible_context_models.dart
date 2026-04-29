@@ -42,6 +42,29 @@ class VisibilityAcl {
     if (characterIds.contains(characterId)) return true;
     return groupIds.any(characterGroupIds.contains);
   }
+
+  Map<String, Object?> toJson() {
+    return {
+      'isPublic': isPublic,
+      'isAuthorOnly': isAuthorOnly,
+      'characterIds': characterIds.toList(),
+      'groupIds': groupIds.toList(),
+    };
+  }
+
+  factory VisibilityAcl.fromJson(Map<String, Object?> json) {
+    return VisibilityAcl(
+      isPublic: json['isPublic'] == true,
+      isAuthorOnly: json['isAuthorOnly'] == true,
+      characterIds: _stringSet(json['characterIds']),
+      groupIds: _stringSet(json['groupIds']),
+    );
+  }
+
+  static Set<String> _stringSet(Object? raw) {
+    if (raw is! List) return const <String>{};
+    return raw.whereType<String>().toSet();
+  }
 }
 
 class PublicSceneState {

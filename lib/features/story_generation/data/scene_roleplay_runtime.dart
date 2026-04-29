@@ -1,5 +1,6 @@
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
+import 'character_memory_delta_models.dart';
 import 'character_visible_context_builder.dart';
 import 'role_skill_registry.dart';
 import 'scene_arbiter_skill.dart';
@@ -42,6 +43,7 @@ class SceneRoleplayRuntime {
     required SceneDirectorOutput director,
     SceneTaskCard? taskCard,
     String? ragContext,
+    Map<String, List<CharacterMemoryDelta>> memoryDeltasByCharacter = const {},
     void Function(String message)? onStatus,
   }) async {
     final result = await runSession(
@@ -50,6 +52,7 @@ class SceneRoleplayRuntime {
       director: director,
       taskCard: taskCard,
       ragContext: ragContext,
+      memoryDeltasByCharacter: memoryDeltasByCharacter,
       onStatus: onStatus,
     );
     return result.outputs;
@@ -61,6 +64,7 @@ class SceneRoleplayRuntime {
     required SceneDirectorOutput director,
     SceneTaskCard? taskCard,
     String? ragContext,
+    Map<String, List<CharacterMemoryDelta>> memoryDeltasByCharacter = const {},
     void Function(String message)? onStatus,
   }) async {
     if (cast.isEmpty) {
@@ -102,6 +106,9 @@ class SceneRoleplayRuntime {
           round: round,
           sceneState: sceneState,
           transcript: transcript,
+          memoryDeltas:
+              memoryDeltasByCharacter[member.characterId] ??
+              const <CharacterMemoryDelta>[],
         );
         transcript.add(turn);
         roundTurns.add(turn);
@@ -164,6 +171,7 @@ class SceneRoleplayRuntime {
     required int round,
     required String sceneState,
     required List<SceneRoleplayTurn> transcript,
+    required List<CharacterMemoryDelta> memoryDeltas,
     SceneTaskCard? taskCard,
   }) async {
     final visibleContext = _visibleContextBuilder.build(
@@ -172,6 +180,7 @@ class SceneRoleplayRuntime {
       director: director,
       publicSceneState: sceneState,
       transcript: transcript,
+      memoryDeltas: memoryDeltas,
       taskCard: taskCard,
     );
     final skill = _roleSkillRegistry.resolve(

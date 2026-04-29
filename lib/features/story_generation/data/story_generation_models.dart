@@ -1,8 +1,13 @@
 export 'scene_context_models.dart' hide KnowledgeAtom, PresentationState;
 export 'character_visible_context_models.dart';
+export 'character_memory_delta_models.dart';
+export 'character_memory_store.dart';
+export 'character_memory_store_io.dart';
 export 'role_turn_skill.dart';
 export 'role_skill_registry.dart';
 export 'scene_arbiter_skill.dart';
+export 'roleplay_session_store.dart';
+export 'roleplay_session_store_io.dart';
 export 'scene_runtime_models.dart'
     hide ContextCapsule, RolePlayTurnOutput, SceneEditorialDraft, SceneTaskCard;
 export 'scene_review_models.dart';

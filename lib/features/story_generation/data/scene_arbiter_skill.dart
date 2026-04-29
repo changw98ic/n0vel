@@ -1,6 +1,8 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
+import 'character_memory_delta_models.dart';
+import 'character_visible_context_models.dart';
 import 'scene_roleplay_session_models.dart';
 import 'story_generation_pass_retry.dart';
 
@@ -132,6 +134,13 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
       rawText: raw,
       skillId: skillId,
       skillVersion: version,
+      acceptedMemoryDeltas: [
+        if (fact.isNotEmpty)
+          _publicFactDelta(
+            round: roundTurns.isEmpty ? 0 : roundTurns.first.round,
+            fact: fact,
+          ),
+      ],
     );
   }
 
@@ -170,5 +179,30 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
     final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalized.length <= maxChars) return normalized;
     return '${normalized.substring(0, maxChars - 3)}...';
+  }
+
+  CharacterMemoryDelta _publicFactDelta({
+    required int round,
+    required String fact,
+  }) {
+    final id = 'fact-${round}-${_stableHash(fact)}';
+    return CharacterMemoryDelta(
+      deltaId: id,
+      kind: CharacterMemoryDeltaKind.observation,
+      content: fact,
+      acl: VisibilityAcl.public(),
+      sourceRound: round,
+      sourceTurnId: 'arbiter:$round',
+      accepted: true,
+    );
+  }
+
+  String _stableHash(String input) {
+    var hash = 0x811c9dc5;
+    for (final unit in input.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
   }
 }

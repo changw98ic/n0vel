@@ -1,3 +1,5 @@
+import 'character_memory_delta_models.dart';
+
 class SceneRoleplaySession {
   SceneRoleplaySession({
     required this.chapterId,
@@ -24,6 +26,8 @@ class SceneRoleplaySession {
       for (final round in rounds) ...round.toPromptLines(),
       if (committedFacts.isNotEmpty) '已提交事实：',
       for (final fact in committedFacts) '- ${fact.toPromptLine()}',
+      if (acceptedMemoryDeltas.isNotEmpty) '已接受记忆变化：',
+      for (final delta in acceptedMemoryDeltas) '- ${delta.toPromptLine()}',
       if (finalPublicState.trim().isNotEmpty) '最终局面：$finalPublicState',
     ];
     return _compact(lines.join('\n'), maxChars: maxChars);
@@ -35,6 +39,9 @@ class SceneRoleplaySession {
       for (final round in rounds) ...round.toPublicPromptLines(),
       if (committedFacts.isNotEmpty) '已提交事实：',
       for (final fact in committedFacts) '- ${fact.toPromptLine()}',
+      if (acceptedMemoryDeltas.isNotEmpty) '已接受公开记忆：',
+      for (final delta in acceptedMemoryDeltas)
+        if (delta.characterId.isEmpty) '- ${delta.toPromptLine()}',
       if (finalPublicState.trim().isNotEmpty) '最终公开局面：$finalPublicState',
     ];
     return _compact(lines.join('\n'), maxChars: maxChars);
@@ -44,6 +51,12 @@ class SceneRoleplaySession {
     final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalized.length <= maxChars) return normalized;
     return '${normalized.substring(0, maxChars - 3)}...';
+  }
+
+  List<CharacterMemoryDelta> get acceptedMemoryDeltas {
+    return [
+      for (final round in rounds) ...round.arbitration.acceptedMemoryDeltas,
+    ];
   }
 }
 
@@ -111,6 +124,7 @@ class SceneRoleplayTurn {
     required this.rawText,
     this.skillId = '',
     this.skillVersion = '',
+    this.proposedMemoryDeltas = const [],
   });
 
   final int round;
@@ -124,6 +138,7 @@ class SceneRoleplayTurn {
   final String rawText;
   final String skillId;
   final String skillVersion;
+  final List<CharacterMemoryDelta> proposedMemoryDeltas;
 
   bool get hasPublicEvent =>
       visibleAction.trim().isNotEmpty || dialogue.trim().isNotEmpty;
@@ -162,6 +177,8 @@ class SceneRoleplayArbitration {
     required this.rawText,
     this.skillId = '',
     this.skillVersion = '',
+    this.acceptedMemoryDeltas = const [],
+    this.rejectedMemoryDeltas = const [],
   });
 
   final String fact;
@@ -172,6 +189,8 @@ class SceneRoleplayArbitration {
   final String rawText;
   final String skillId;
   final String skillVersion;
+  final List<CharacterMemoryDelta> acceptedMemoryDeltas;
+  final List<CharacterMemoryDelta> rejectedMemoryDeltas;
 
   String toPromptLine() {
     return [
@@ -179,6 +198,8 @@ class SceneRoleplayArbitration {
       if (fact.isNotEmpty) '事实=$fact',
       if (state.isNotEmpty) '状态=$state',
       if (pressure.isNotEmpty) '压力=$pressure',
+      if (acceptedMemoryDeltas.isNotEmpty)
+        '记忆=${acceptedMemoryDeltas.map((delta) => delta.deltaId).join(",")}',
       '收束=${shouldStop ? '是' : '否'}',
     ].join('；');
   }

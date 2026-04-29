@@ -11,6 +11,8 @@ import 'scene_director_orchestrator.dart';
 import 'scene_prose_generator.dart';
 import 'scene_quality_scorer.dart';
 import 'scene_review_coordinator.dart';
+import 'roleplay_session_store.dart';
+import 'character_memory_store.dart';
 import 'story_context_cache.dart';
 import 'story_embedding_provider.dart';
 import 'story_memory_retriever.dart';
@@ -38,7 +40,12 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
   );
 
   registry.registerFactory<DynamicRoleAgentService>(
-    (r) => DynamicRoleAgentRunner(settingsStore: r.resolve()),
+    (r) => DynamicRoleAgentRunner(
+      settingsStore: r.resolve(),
+      characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
+          ? r.resolve()
+          : null,
+    ),
   );
 
   registry.registerFactory<SceneProseService>(
@@ -88,6 +95,12 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
       memoryStorage: r.resolve(),
       memoryRetriever: r.resolve(),
       thoughtUpdater: r.resolve(),
+      roleplaySessionStore: registry.isRegistered<RoleplaySessionStore>()
+          ? r.resolve()
+          : null,
+      characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
+          ? r.resolve()
+          : null,
       ragOrchestrator: registry.isRegistered<RagOrchestrator>()
           ? r.resolve()
           : null,

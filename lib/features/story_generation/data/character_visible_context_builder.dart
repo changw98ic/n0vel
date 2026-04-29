@@ -1,4 +1,5 @@
 import 'character_visible_context_models.dart';
+import 'character_memory_delta_models.dart';
 import 'scene_pipeline_models.dart' show SceneTaskCard;
 import 'scene_roleplay_session_models.dart';
 import '../domain/scene_models.dart';
@@ -12,6 +13,7 @@ class CharacterVisibleContextBuilder {
     required SceneDirectorOutput director,
     required String publicSceneState,
     required List<SceneRoleplayTurn> transcript,
+    List<CharacterMemoryDelta> memoryDeltas = const [],
     SceneTaskCard? taskCard,
   }) {
     return CharacterVisibleContext(
@@ -25,7 +27,11 @@ class CharacterVisibleContextBuilder {
       ),
       publicSceneState: PublicSceneState(summary: publicSceneState),
       visibleEvents: _visibleEvents(transcript),
-      knownFacts: _knownFacts(brief: brief, member: member),
+      knownFacts: _knownFacts(
+        brief: brief,
+        member: member,
+        memoryDeltas: memoryDeltas,
+      ),
       beliefs: _beliefs(taskCard: taskCard, member: member),
       relationships: _relationships(taskCard: taskCard, member: member),
       socialPositions: _socialPositions(taskCard: taskCard, member: member),
@@ -50,6 +56,7 @@ class CharacterVisibleContextBuilder {
   List<CharacterKnownFact> _knownFacts({
     required SceneBrief brief,
     required ResolvedSceneCastMember member,
+    required List<CharacterMemoryDelta> memoryDeltas,
   }) {
     final facts = <CharacterKnownFact>[];
     void addVisible(Object? raw, VisibilityAcl acl, {String source = ''}) {
@@ -60,6 +67,20 @@ class CharacterVisibleContextBuilder {
 
     for (final raw in _listValue(brief.metadata['publicKnownFacts'])) {
       addVisible(raw, VisibilityAcl.public(), source: 'publicKnownFacts');
+    }
+
+    for (final delta in memoryDeltas) {
+      if (!delta.accepted || !delta.acl.canSee(member.characterId)) {
+        continue;
+      }
+      facts.add(
+        CharacterKnownFact(
+          content: delta.content,
+          acl: delta.acl,
+          confidence: delta.confidence,
+          source: delta.sourceTurnId,
+        ),
+      );
     }
 
     final byCharacter =

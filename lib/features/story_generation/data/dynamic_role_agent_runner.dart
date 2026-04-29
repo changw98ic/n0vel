@@ -4,15 +4,21 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'scene_pipeline_models.dart' show SceneTaskCard;
 import 'scene_roleplay_runtime.dart';
 import 'scene_roleplay_session_models.dart';
+import 'character_memory_delta_models.dart';
+import 'character_memory_store.dart';
 import 'story_generation_pass_retry.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
 class DynamicRoleAgentRunner implements DynamicRoleAgentService {
-  DynamicRoleAgentRunner({required AppSettingsStore settingsStore})
-    : _settingsStore = settingsStore;
+  DynamicRoleAgentRunner({
+    required AppSettingsStore settingsStore,
+    CharacterMemoryStore? characterMemoryStore,
+  }) : _settingsStore = settingsStore,
+       _characterMemoryStore = characterMemoryStore;
 
   final AppSettingsStore _settingsStore;
+  final CharacterMemoryStore? _characterMemoryStore;
   SceneRoleplaySession? _lastRoleplaySession;
 
   SceneRoleplaySession? get lastRoleplaySession => _lastRoleplaySession;
@@ -41,6 +47,10 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     }
 
     if (brief.metadata['legacyRoleIntentOnly'] != true) {
+      final memoryDeltasByCharacter = await _loadVisibleMemories(
+        brief: brief,
+        cast: cast,
+      );
       final result = await SceneRoleplayRuntime(settingsStore: _settingsStore)
           .runSession(
             brief: brief,
@@ -48,6 +58,7 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
             director: director,
             taskCard: taskCard,
             ragContext: ragContext,
+            memoryDeltasByCharacter: memoryDeltasByCharacter,
             onStatus: onStatus,
           );
       _lastRoleplaySession = result.session;
@@ -67,6 +78,28 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     ]);
     _lastRoleplaySession = null;
     return List<DynamicRoleAgentOutput>.unmodifiable(outputs);
+  }
+
+  Future<Map<String, List<CharacterMemoryDelta>>> _loadVisibleMemories({
+    required SceneBrief brief,
+    required List<ResolvedSceneCastMember> cast,
+  }) async {
+    final store = _characterMemoryStore;
+    if (store == null) {
+      return const <String, List<CharacterMemoryDelta>>{};
+    }
+    final projectId = brief.projectId ?? brief.chapterId;
+    final entries = await Future.wait([
+      for (final member in cast)
+        store.loadCharacterMemories(
+          projectId: projectId,
+          characterId: member.characterId,
+        ),
+    ]);
+    return {
+      for (var index = 0; index < cast.length; index += 1)
+        cast[index].characterId: entries[index],
+    };
   }
 
   DynamicRoleAgentOutput _localMemberOutput({

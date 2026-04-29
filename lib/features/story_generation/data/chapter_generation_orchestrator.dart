@@ -13,6 +13,8 @@ import 'narrative_arc_tracker.dart';
 import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_review_coordinator.dart';
 import 'scene_polish_pass.dart';
+import 'roleplay_session_store.dart';
+import 'character_memory_store.dart';
 import 'scene_runtime_models.dart'
     show ResolvedBeat, SceneState, SceneStateDelta, SceneStateDeltaKind;
 import 'scene_state_resolver.dart';
@@ -39,6 +41,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     StoryMemoryStorage? memoryStorage,
     StoryMemoryRetrieverService? memoryRetriever,
     ThoughtMemoryService? thoughtUpdater,
+    RoleplaySessionStore? roleplaySessionStore,
+    CharacterMemoryStore? characterMemoryStore,
     RagOrchestrator? ragOrchestrator,
     StoryContextCache? contextCache,
     ChapterContextBridgeService? chapterContextBridge,
@@ -48,7 +52,10 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
            SceneDirectorOrchestrator(settingsStore: settingsStore),
        _dynamicRoleAgentRunner =
            dynamicRoleAgentRunner ??
-           DynamicRoleAgentRunner(settingsStore: settingsStore),
+           DynamicRoleAgentRunner(
+             settingsStore: settingsStore,
+             characterMemoryStore: characterMemoryStore,
+           ),
        _stateResolver =
            stateResolver ?? SceneStateResolver(settingsStore: settingsStore),
        _editorialGenerator =
@@ -64,6 +71,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
        _memoryStorage = memoryStorage,
        _memoryRetriever = memoryRetriever,
        _thoughtUpdater = thoughtUpdater,
+       _roleplaySessionStore = roleplaySessionStore,
+       _characterMemoryStore = characterMemoryStore,
        _ragOrchestrator = ragOrchestrator,
        _contextCache = contextCache,
        _chapterContextBridge = chapterContextBridge,
@@ -83,6 +92,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   final StoryMemoryStorage? _memoryStorage;
   final StoryMemoryRetrieverService? _memoryRetriever;
   final ThoughtMemoryService? _thoughtUpdater;
+  final RoleplaySessionStore? _roleplaySessionStore;
+  final CharacterMemoryStore? _characterMemoryStore;
   final RagOrchestrator? _ragOrchestrator;
   final StoryContextCache? _contextCache;
   final ChapterContextBridgeService? _chapterContextBridge;
@@ -400,8 +411,39 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         );
       }
 
+      await _persistRoleplayArtifacts(
+        projectId: brief.projectId ?? brief.chapterId,
+        output: output,
+      );
+
       return output;
     }
+  }
+
+  Future<void> _persistRoleplayArtifacts({
+    required String projectId,
+    required SceneRuntimeOutput output,
+  }) async {
+    final session = output.roleplaySession;
+    if (session == null || session.isEmpty) {
+      return;
+    }
+    await _roleplaySessionStore?.saveSession(
+      projectId: projectId,
+      session: session,
+    );
+    final acceptedDeltas = session.acceptedMemoryDeltas
+        .where((delta) => delta.accepted)
+        .toList(growable: false);
+    if (acceptedDeltas.isEmpty) {
+      return;
+    }
+    await _characterMemoryStore?.saveAcceptedDeltas(
+      projectId: projectId,
+      chapterId: output.brief.chapterId,
+      sceneId: output.brief.sceneId,
+      deltas: acceptedDeltas,
+    );
   }
 
   String? _composeDirectorContext({String? memoryContext, String? ragContext}) {
