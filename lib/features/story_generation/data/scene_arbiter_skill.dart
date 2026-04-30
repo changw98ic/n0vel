@@ -41,13 +41,13 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
   }) async {
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      shouldRetryOutput: _shouldRetryMalformedArbitration,
       messages: [
         const AppLlmChatMessage(
           role: 'system',
           content:
               'You are a neutral scene arbiter. Resolve only public facts from '
-              'visible actions and dialogue. Do not write prose. Output exactly '
-              '4 short lines:\n'
+              'visible actions and dialogue. Use this 4-line public summary:\n'
               '事实：...\n'
               '状态：...\n'
               '压力：...\n'
@@ -140,8 +140,76 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
             round: roundTurns.isEmpty ? 0 : roundTurns.first.round,
             fact: fact,
           ),
+        ..._acceptedPrivateDeltas(roundTurns),
       ],
     );
+  }
+
+  bool _shouldRetryMalformedArbitration(String raw) {
+    var hasFact = false;
+    var hasState = false;
+    var hasPressure = false;
+    var hasClosure = false;
+    var fact = '';
+    var state = '';
+    var pressure = '';
+
+    for (final line in raw.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('事实：')) {
+        hasFact = true;
+        fact = trimmed.substring('事实：'.length).trim();
+      } else if (trimmed.startsWith('状态：')) {
+        hasState = true;
+        state = trimmed.substring('状态：'.length).trim();
+      } else if (trimmed.startsWith('压力：')) {
+        hasPressure = true;
+        pressure = trimmed.substring('压力：'.length).trim();
+      } else if (trimmed.startsWith('收束：')) {
+        hasClosure = true;
+      }
+    }
+
+    if (!hasFact || !hasState || !hasPressure || !hasClosure) {
+      return true;
+    }
+    return _isPlaceholder(fact) ||
+        _isPlaceholder(state) ||
+        _isPlaceholder(pressure);
+  }
+
+  bool _isPlaceholder(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ||
+        normalized == '-' ||
+        normalized == '—' ||
+        normalized == '...' ||
+        normalized == '…' ||
+        normalized == '……';
+  }
+
+  List<CharacterMemoryDelta> _acceptedPrivateDeltas(
+    List<SceneRoleplayTurn> roundTurns,
+  ) {
+    final seen = <String>{};
+    final accepted = <CharacterMemoryDelta>[];
+    for (final turn in roundTurns) {
+      for (final delta in turn.proposedMemoryDeltas) {
+        final content = _normalizeMemoryContent(delta.content);
+        if (content.length < 2) continue;
+        if (delta.characterId.isEmpty) continue;
+        if (!delta.acl.canSee(delta.characterId)) continue;
+        if (delta.confidence < 0.45) continue;
+        final key = '${delta.characterId}|${delta.kind.name}|$content';
+        if (!seen.add(key)) continue;
+        accepted.add(delta.accept());
+      }
+    }
+    return accepted;
+  }
+
+  String _normalizeMemoryContent(String value) {
+    return value.replaceAll(RegExp(r'\s+'), '').trim();
   }
 
   String _fallbackState({
@@ -185,7 +253,7 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
     required int round,
     required String fact,
   }) {
-    final id = 'fact-${round}-${_stableHash(fact)}';
+    final id = 'fact-$round-${_stableHash(fact)}';
     return CharacterMemoryDelta(
       deltaId: id,
       kind: CharacterMemoryDeltaKind.observation,

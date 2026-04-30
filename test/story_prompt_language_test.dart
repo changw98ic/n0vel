@@ -17,7 +17,10 @@ void main() {
   group('PromptLanguage', () {
     test('has exactly two values', () {
       expect(PromptLanguage.values, hasLength(2));
-      expect(PromptLanguage.values, containsAll([PromptLanguage.zh, PromptLanguage.en]));
+      expect(
+        PromptLanguage.values,
+        containsAll([PromptLanguage.zh, PromptLanguage.en]),
+      );
     });
   });
 
@@ -38,10 +41,22 @@ void main() {
     });
 
     test('zh and en locales have different format labels', () {
-      expect(PromptLocale.zh.targetLabel, isNot(equals(PromptLocale.en.targetLabel)));
-      expect(PromptLocale.zh.conflictLabel, isNot(equals(PromptLocale.en.conflictLabel)));
-      expect(PromptLocale.zh.decisionLabel, isNot(equals(PromptLocale.en.decisionLabel)));
-      expect(PromptLocale.zh.reasonLabel, isNot(equals(PromptLocale.en.reasonLabel)));
+      expect(
+        PromptLocale.zh.targetLabel,
+        isNot(equals(PromptLocale.en.targetLabel)),
+      );
+      expect(
+        PromptLocale.zh.conflictLabel,
+        isNot(equals(PromptLocale.en.conflictLabel)),
+      );
+      expect(
+        PromptLocale.zh.decisionLabel,
+        isNot(equals(PromptLocale.en.decisionLabel)),
+      );
+      expect(
+        PromptLocale.zh.reasonLabel,
+        isNot(equals(PromptLocale.en.reasonLabel)),
+      );
       expect(PromptLocale.zh.beatFact, isNot(equals(PromptLocale.en.beatFact)));
     });
 
@@ -118,7 +133,10 @@ void main() {
       expect(StoryPromptTemplates.sysSceneDirectorPolish, contains('English'));
       expect(StoryPromptTemplates.sysSceneEditorial, contains('English'));
       expect(StoryPromptTemplates.sysDynamicRoleAgent, contains('English'));
-      expect(StoryPromptTemplates.sysDynamicRoleAgentWithTools, contains('English'));
+      expect(
+        StoryPromptTemplates.sysDynamicRoleAgentWithTools,
+        contains('English'),
+      );
       expect(StoryPromptTemplates.sysSceneBeatResolve, contains('English'));
     });
 
@@ -127,6 +145,24 @@ void main() {
       StoryPromptTemplates.language = PromptLanguage.zh;
       expect(StoryPromptTemplates.sysSceneProse, contains('Chinese'));
     });
+
+    test(
+      'runWithLanguage scopes locale without mutating global default',
+      () async {
+        StoryPromptTemplates.language = PromptLanguage.zh;
+
+        final scopedLanguage = await StoryPromptTemplates.runWithLanguage(
+          PromptLanguage.en,
+          () async {
+            await Future<void>.delayed(Duration.zero);
+            return StoryPromptTemplates.locale.novelLanguage;
+          },
+        );
+
+        expect(scopedLanguage, 'English');
+        expect(StoryPromptTemplates.language, PromptLanguage.zh);
+      },
+    );
 
     test('sysSceneReview interpolates passName', () {
       StoryPromptTemplates.language = PromptLanguage.zh;
@@ -172,6 +208,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
       );
@@ -186,6 +223,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
         promptLanguage: PromptLanguage.en,
@@ -229,6 +267,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
         promptLanguage: PromptLanguage.en,
@@ -246,6 +285,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
       );
@@ -261,6 +301,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
         promptLanguage: PromptLanguage.zh,
@@ -277,6 +318,7 @@ void main() {
         apiKey: 'key',
         timeoutMs: 30000,
         maxConcurrentRequests: 1,
+        maxTokens: 1024,
         hasApiKey: true,
         themePreference: AppThemePreference.light,
         promptLanguage: PromptLanguage.en,
@@ -307,7 +349,7 @@ void main() {
       expect(zh.editorialFeedbackLabel, '编辑反馈');
       expect(zh.proseLabel, '正文');
       expect(zh.reviewLabel, '评审');
-      expect(zh.rulesOnlyBlocking, '规则：只找阻塞问题，不改写正文');
+      expect(zh.rulesOnlyBlocking, '规则：聚焦阻塞问题，正文改写交给后续步骤');
       expect(zh.knownFactsLabel, '已知事实');
       expect(zh.toneFieldLabel, '基调');
       expect(zh.pacingFieldLabel, '节奏');
@@ -334,7 +376,10 @@ void main() {
       expect(en.editorialFeedbackLabel, 'Editorial feedback');
       expect(en.proseLabel, 'Prose');
       expect(en.reviewLabel, 'Review');
-      expect(en.rulesOnlyBlocking, 'Rules: Only flag blocking issues, do not rewrite prose');
+      expect(
+        en.rulesOnlyBlocking,
+        'Rules: focus on blocking issues; prose rewriting happens in later steps',
+      );
       expect(en.knownFactsLabel, 'Known facts');
       expect(en.toneFieldLabel, 'Tone');
       expect(en.pacingFieldLabel, 'Pacing');
@@ -345,10 +390,22 @@ void main() {
     });
 
     test('zh and en user prompt labels differ', () {
-      expect(PromptLocale.zh.taskLabel, isNot(equals(PromptLocale.en.taskLabel)));
-      expect(PromptLocale.zh.summaryLabel, isNot(equals(PromptLocale.en.summaryLabel)));
-      expect(PromptLocale.zh.noneLabel, isNot(equals(PromptLocale.en.noneLabel)));
-      expect(PromptLocale.zh.listSeparator, isNot(equals(PromptLocale.en.listSeparator)));
+      expect(
+        PromptLocale.zh.taskLabel,
+        isNot(equals(PromptLocale.en.taskLabel)),
+      );
+      expect(
+        PromptLocale.zh.summaryLabel,
+        isNot(equals(PromptLocale.en.summaryLabel)),
+      );
+      expect(
+        PromptLocale.zh.noneLabel,
+        isNot(equals(PromptLocale.en.noneLabel)),
+      );
+      expect(
+        PromptLocale.zh.listSeparator,
+        isNot(equals(PromptLocale.en.listSeparator)),
+      );
     });
   });
 
@@ -507,7 +564,8 @@ void main() {
       final output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
-        text: 'Stance: suspicious\nAction: questions\nTaboo: violence\nRetrieval: character_profile|protagonist background|confirm motive',
+        text:
+            'Stance: suspicious\nAction: questions\nTaboo: violence\nRetrieval: character_profile|protagonist background|confirm motive',
       );
       final turn = RolePlayTurnOutput.fromDynamicAgentOutput(output);
       expect(turn.retrievalIntents, hasLength(1));

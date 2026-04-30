@@ -93,10 +93,9 @@ class RoleAgentController {
     required AppSettingsStore settingsStore,
     ContextCapsuleCompressor? capsuleCompressor,
     int maxRetrievalRounds = 2,
-  })  : _settingsStore = settingsStore,
-        _capsuleCompressor =
-            capsuleCompressor ?? ContextCapsuleCompressor(),
-        _maxRetrievalRounds = maxRetrievalRounds;
+  }) : _settingsStore = settingsStore,
+       _capsuleCompressor = capsuleCompressor ?? ContextCapsuleCompressor(),
+       _maxRetrievalRounds = maxRetrievalRounds;
 
   final AppSettingsStore _settingsStore;
   final ContextCapsuleCompressor _capsuleCompressor;
@@ -181,15 +180,15 @@ class RoleAgentController {
           role: 'system',
           content:
               'You are a dynamic role agent for a Chinese novel scene. '
-              'Output exactly 3 short lines and nothing else:\n'
+              'Use this 3-line role brief:\n'
               '立场：...\n'
               '动作：...\n'
               '禁忌：...\n'
-              'If you lack critical context to decide, instead output:\n'
+              'When critical context would help the decision, use:\n'
               'RETRIEVE:tool_name:param=value\n'
               'where tool_name is one of: character_profile, '
               'relationship_history, scene_context, world_rule.\n'
-              'Keep every line concrete and brief. No prose.',
+              'Keep every line concrete and brief.',
         ),
         AppLlmChatMessage(
           role: 'user',

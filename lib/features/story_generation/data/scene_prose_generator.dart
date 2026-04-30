@@ -22,6 +22,7 @@ class SceneProseGenerator implements SceneProseService {
   }) async {
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      initialMaxTokens: storyGenerationEditorialMaxTokens,
       messages: [
         const AppLlmChatMessage(
           role: 'system',
@@ -29,7 +30,7 @@ class SceneProseGenerator implements SceneProseService {
               'You are a scene prose generator for a Chinese novel. '
               'Synthesize the director plan and character role-play outputs '
               'into polished scene prose. '
-              'Return only the finished scene prose in plain text.',
+              'Return the finished scene prose in plain text.',
         ),
         AppLlmChatMessage(
           role: 'user',

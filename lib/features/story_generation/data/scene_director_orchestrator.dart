@@ -100,8 +100,8 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
 
   static const _systemPrompt =
       'You are a scene plan polisher for a Chinese novel.\n'
-      'Polish the existing plan only; do not invent a new scene.\n'
-      'Return exactly 4 non-empty Chinese lines and nothing else:\n'
+      'Polish the existing plan while preserving the current scene.\n'
+      'Use this 4-line Chinese plan shape:\n'
       '目标：...\n'
       '冲突：...\n'
       '推进：...\n'

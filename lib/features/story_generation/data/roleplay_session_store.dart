@@ -17,5 +17,9 @@ abstract interface class RoleplaySessionStore {
     required String chapterId,
   });
 
+  Future<List<SceneRoleplaySession>> loadProjectSessions({
+    required String projectId,
+  });
+
   Future<void> clearProject(String projectId);
 }

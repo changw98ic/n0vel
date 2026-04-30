@@ -61,49 +61,48 @@ void main() {
       final orchestrator = SceneDirectorOrchestrator(
         settingsStore: settingsStore,
       );
-      final output = await orchestrator.run(
-        brief: _brief(),
-        cast: const [],
-      );
+      final output = await orchestrator.run(brief: _brief(), cast: const []);
 
       expect(output.text, contains('冲突：围绕场景目标推进'));
     });
 
-    test('local plan falls back to sceneSummary when targetBeat is empty',
-        () async {
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: FakeAppLlmClient(
-          responder: (_) => const AppLlmChatResult.failure(
-            failureKind: AppLlmFailureKind.network,
-            detail: 'offline',
+    test(
+      'local plan falls back to sceneSummary when targetBeat is empty',
+      () async {
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: FakeAppLlmClient(
+            responder: (_) => const AppLlmChatResult.failure(
+              failureKind: AppLlmFailureKind.network,
+              detail: 'offline',
+            ),
           ),
-        ),
-      );
-      addTearDown(settingsStore.dispose);
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = SceneDirectorOrchestrator(
-        settingsStore: settingsStore,
-      );
-      final output = await orchestrator.run(
-        brief: SceneBrief(
-          chapterId: 'chapter-02',
-          chapterTitle: '第二章',
-          sceneId: 'scene-02',
-          sceneTitle: '巷口',
-          sceneSummary: '柳溪独自站在雨中等待消息。',
-          targetBeat: '',
-          worldNodeIds: const [],
-        ),
-        cast: const [],
-      );
+        final orchestrator = SceneDirectorOrchestrator(
+          settingsStore: settingsStore,
+        );
+        final output = await orchestrator.run(
+          brief: SceneBrief(
+            chapterId: 'chapter-02',
+            chapterTitle: '第二章',
+            sceneId: 'scene-02',
+            sceneTitle: '巷口',
+            sceneSummary: '柳溪独自站在雨中等待消息。',
+            targetBeat: '',
+            worldNodeIds: const [],
+          ),
+          cast: const [],
+        );
 
-      final lines = output.text.split('\n');
-      expect(lines[0], startsWith('目标：'));
-      expect(lines[0], contains('柳溪独自站在雨中等待消息'));
-      expect(lines[2], startsWith('推进：'));
-      expect(lines[2], contains('柳溪独自站在雨中等待消息'));
-    });
+        final lines = output.text.split('\n');
+        expect(lines[0], startsWith('目标：'));
+        expect(lines[0], contains('柳溪独自站在雨中等待消息'));
+        expect(lines[2], startsWith('推进：'));
+        expect(lines[2], contains('柳溪独自站在雨中等待消息'));
+      },
+    );
 
     test('local plan includes worldNodeIds in constraints', () async {
       final settingsStore = AppSettingsStore(
@@ -132,42 +131,41 @@ void main() {
         cast: const [],
       );
 
-      expect(
-        output.text,
-        contains('约束：遵守old-harbor/customs-yard相关规则'),
-      );
+      expect(output.text, contains('约束：遵守old-harbor/customs-yard相关规则'));
     });
 
-    test('local plan uses default constraints when worldNodeIds is empty',
-        () async {
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: FakeAppLlmClient(
-          responder: (_) => const AppLlmChatResult.failure(
-            failureKind: AppLlmFailureKind.network,
-            detail: 'offline',
+    test(
+      'local plan uses default constraints when worldNodeIds is empty',
+      () async {
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: FakeAppLlmClient(
+            responder: (_) => const AppLlmChatResult.failure(
+              failureKind: AppLlmFailureKind.network,
+              detail: 'offline',
+            ),
           ),
-        ),
-      );
-      addTearDown(settingsStore.dispose);
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = SceneDirectorOrchestrator(
-        settingsStore: settingsStore,
-      );
-      final output = await orchestrator.run(
-        brief: SceneBrief(
-          chapterId: 'chapter-01',
-          chapterTitle: '第一章',
-          sceneId: 'scene-01',
-          sceneTitle: '码头',
-          sceneSummary: '交易现场。',
-          worldNodeIds: const [],
-        ),
-        cast: const [],
-      );
+        final orchestrator = SceneDirectorOrchestrator(
+          settingsStore: settingsStore,
+        );
+        final output = await orchestrator.run(
+          brief: SceneBrief(
+            chapterId: 'chapter-01',
+            chapterTitle: '第一章',
+            sceneId: 'scene-01',
+            sceneTitle: '码头',
+            sceneSummary: '交易现场。',
+            worldNodeIds: const [],
+          ),
+          cast: const [],
+        );
 
-      expect(output.text, contains('约束：遵守当前世界观和角色设定'));
-    });
+        expect(output.text, contains('约束：遵守当前世界观和角色设定'));
+      },
+    );
 
     test('local plan always outputs exactly 4 lines', () async {
       final settingsStore = AppSettingsStore(
@@ -196,9 +194,8 @@ void main() {
 
     test('system prompt instructs 4-line structured output', () async {
       final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：逼问\n冲突：施压\n推进：突破\n约束：不拖延',
-        ),
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '目标：逼问\n冲突：施压\n推进：突破\n约束：不拖延'),
       );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
@@ -219,44 +216,44 @@ void main() {
       expect(systemPrompt, contains('冲突：'));
       expect(systemPrompt, contains('推进：'));
       expect(systemPrompt, contains('约束：'));
-      expect(systemPrompt, contains('Polish the existing plan only'));
+      expect(systemPrompt, contains('preserving the current scene'));
     });
 
-    test('user prompt contains task type, chapter, scene, and local plan',
-        () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：a\n冲突：b\n推进：c\n约束：d',
-        ),
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
+    test(
+      'user prompt contains task type, chapter, scene, and local plan',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (_) =>
+              const AppLlmChatResult.success(text: '目标：a\n冲突：b\n推进：c\n约束：d'),
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = SceneDirectorOrchestrator(
-        settingsStore: settingsStore,
-      );
-      await orchestrator.run(brief: _brief(), cast: const []);
+        final orchestrator = SceneDirectorOrchestrator(
+          settingsStore: settingsStore,
+        );
+        await orchestrator.run(brief: _brief(), cast: const []);
 
-      final request = fakeClient.requests.single;
-      final userPrompt = request.messages.last.content;
+        final request = fakeClient.requests.single;
+        final userPrompt = request.messages.last.content;
 
-      expect(userPrompt, contains('任务：scene_director_polish'));
-      expect(userPrompt, contains('格式：目标/冲突/推进/约束'));
-      expect(userPrompt, contains('章：'));
-      expect(userPrompt, contains('第一章'));
-      expect(userPrompt, contains('场：'));
-      expect(userPrompt, contains('仓库门外'));
-      expect(userPrompt, contains('本地计划：'));
-    });
+        expect(userPrompt, contains('任务：scene_director_polish'));
+        expect(userPrompt, contains('格式：目标/冲突/推进/约束'));
+        expect(userPrompt, contains('章：'));
+        expect(userPrompt, contains('第一章'));
+        expect(userPrompt, contains('场：'));
+        expect(userPrompt, contains('仓库门外'));
+        expect(userPrompt, contains('本地计划：'));
+      },
+    );
 
     test('user prompt includes RAG context when provided', () async {
       final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：a\n冲突：b\n推进：c\n约束：d',
-        ),
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '目标：a\n冲突：b\n推进：c\n约束：d'),
       );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
@@ -281,9 +278,8 @@ void main() {
 
     test('user prompt omits RAG context when null or empty', () async {
       final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：a\n冲突：b\n推进：c\n约束：d',
-        ),
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '目标：a\n冲突：b\n推进：c\n约束：d'),
       );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
@@ -316,63 +312,66 @@ void main() {
       }
     });
 
-    test('returns polished plan when LLM returns valid 4-line output',
-        () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：逼问账本下落\n冲突：柳溪与岳刃正面施压\n推进：信息逐步揭露\n约束：不离题、不拖延',
-        ),
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
-
-      final orchestrator = SceneDirectorOrchestrator(
-        settingsStore: settingsStore,
-      );
-      final output = await orchestrator.run(brief: _brief(), cast: const []);
-
-      expect(output.text, contains('逼问账本下落'));
-      expect(output.text, contains('柳溪与岳刃正面施压'));
-      expect(output.text, contains('信息逐步揭露'));
-      expect(output.text, contains('不离题、不拖延'));
-    });
-
-    test('falls back to local plan when LLM returns unstructured text',
-        () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '这场戏需要柳溪用压迫感逼岳刃开口，同时保持悬念。',
-        ),
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
-
-      final orchestrator = SceneDirectorOrchestrator(
-        settingsStore: settingsStore,
-      );
-      final output = await orchestrator.run(
-        brief: _brief(),
-        cast: [
-          ResolvedSceneCastMember(
-            characterId: 'char-liuxi',
-            name: '柳溪',
-            role: '调查记者',
-            contributions: const [SceneCastContribution.action],
+    test(
+      'returns polished plan when LLM returns valid 4-line output',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (_) => const AppLlmChatResult.success(
+            text: '目标：逼问账本下落\n冲突：柳溪与岳刃正面施压\n推进：信息逐步揭露\n约束：不离题、不拖延',
           ),
-        ],
-      );
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
 
-      // Should be the local plan, not the unstructured LLM text
-      expect(output.text, isNot(contains('这场戏需要')));
-      expect(output.text, startsWith('目标：'));
-      expect(output.text, contains('柳溪在目标上相互施压'));
-    });
+        final orchestrator = SceneDirectorOrchestrator(
+          settingsStore: settingsStore,
+        );
+        final output = await orchestrator.run(brief: _brief(), cast: const []);
+
+        expect(output.text, contains('逼问账本下落'));
+        expect(output.text, contains('柳溪与岳刃正面施压'));
+        expect(output.text, contains('信息逐步揭露'));
+        expect(output.text, contains('不离题、不拖延'));
+      },
+    );
+
+    test(
+      'falls back to local plan when LLM returns unstructured text',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (_) =>
+              const AppLlmChatResult.success(text: '这场戏需要柳溪用压迫感逼岳刃开口，同时保持悬念。'),
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = SceneDirectorOrchestrator(
+          settingsStore: settingsStore,
+        );
+        final output = await orchestrator.run(
+          brief: _brief(),
+          cast: [
+            ResolvedSceneCastMember(
+              characterId: 'char-liuxi',
+              name: '柳溪',
+              role: '调查记者',
+              contributions: const [SceneCastContribution.action],
+            ),
+          ],
+        );
+
+        // Should be the local plan, not the unstructured LLM text
+        expect(output.text, isNot(contains('这场戏需要')));
+        expect(output.text, startsWith('目标：'));
+        expect(output.text, contains('柳溪在目标上相互施压'));
+      },
+    );
 
     test('falls back when LLM returns 3 lines instead of 4', () async {
       final fakeClient = FakeAppLlmClient(
@@ -397,8 +396,8 @@ void main() {
 
     test('falls back when LLM output has wrong line prefixes', () async {
       final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：a\n冲突：b\n发展：c\n约束：d'),
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '目标：a\n冲突：b\n发展：c\n约束：d'),
       );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
@@ -418,9 +417,8 @@ void main() {
 
     test('truncates long chapter and scene identifiers to 40 chars', () async {
       final fakeClient = FakeAppLlmClient(
-        responder: (_) => const AppLlmChatResult.success(
-          text: '目标：a\n冲突：b\n推进：c\n约束：d',
-        ),
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '目标：a\n冲突：b\n推进：c\n约束：d'),
       );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
@@ -448,10 +446,12 @@ void main() {
       final request = fakeClient.requests.single;
       final userPrompt = request.messages.last.content;
 
-      final chapterLine =
-          userPrompt.split('\n').firstWhere((line) => line.startsWith('章：'));
-      final sceneLine =
-          userPrompt.split('\n').firstWhere((line) => line.startsWith('场：'));
+      final chapterLine = userPrompt
+          .split('\n')
+          .firstWhere((line) => line.startsWith('章：'));
+      final sceneLine = userPrompt
+          .split('\n')
+          .firstWhere((line) => line.startsWith('场：'));
 
       // _compact with maxChars: 40 → chapter/scene identifier ≤ 40 chars
       expect(chapterLine.length, lessThanOrEqualTo(42)); // '章：' prefix + 40
@@ -470,7 +470,8 @@ void main() {
       );
       addTearDown(settingsStore.dispose);
 
-      final longSummary = '这是'
+      final longSummary =
+          '这是'
           '一个非常非常非常非常非常非常非常非常非常非常'
           '非常非常非常非常非常长的场景摘要超过四十八个字符的限制';
 
@@ -517,19 +518,29 @@ void main() {
 
     test('pressure is clamped to 0.0-1.0', () {
       final high = DirectorCue(
-        id: 'h', sceneId: 's', label: 'x', pressure: 5.0,
+        id: 'h',
+        sceneId: 's',
+        label: 'x',
+        pressure: 5.0,
       );
       expect(high.pressure, equals(1.0));
       final low = DirectorCue(
-        id: 'l', sceneId: 's', label: 'x', pressure: -1.0,
+        id: 'l',
+        sceneId: 's',
+        label: 'x',
+        pressure: -1.0,
       );
       expect(low.pressure, equals(0.0));
     });
 
     test('toPromptText includes label and goal', () {
       final cue = DirectorCue(
-        id: 'cue-1', sceneId: 's1', label: 'conflict',
-        goal: '柳溪与岳刃正面施压', pressure: 0.8, pacing: '渐强',
+        id: 'cue-1',
+        sceneId: 's1',
+        label: 'conflict',
+        goal: '柳溪与岳刃正面施压',
+        pressure: 0.8,
+        pacing: '渐强',
       );
       final text = cue.toPromptText();
       expect(text, contains('指令[conflict]: 柳溪与岳刃正面施压'));
@@ -539,7 +550,10 @@ void main() {
 
     test('toPromptText omits empty optional fields', () {
       final cue = DirectorCue(
-        id: 'c1', sceneId: 's1', label: 'test', goal: 'do something',
+        id: 'c1',
+        sceneId: 's1',
+        label: 'test',
+        goal: 'do something',
       );
       final text = cue.toPromptText();
       expect(text, isNot(contains('节奏:')));
@@ -579,7 +593,11 @@ void main() {
     test('isExhausted tracks round vs maxRounds', () {
       final fresh = DirectorRoundState(sceneId: 's1', round: 0, maxRounds: 3);
       expect(fresh.isExhausted, isFalse);
-      final exhausted = DirectorRoundState(sceneId: 's1', round: 3, maxRounds: 3);
+      final exhausted = DirectorRoundState(
+        sceneId: 's1',
+        round: 3,
+        maxRounds: 3,
+      );
       expect(exhausted.isExhausted, isTrue);
     });
 
@@ -589,7 +607,9 @@ void main() {
       final withCard = DirectorRoundState(
         sceneId: 's1',
         taskCard: DirectorTaskCard(
-          sceneId: 's1', sceneTitle: 't', objective: 'o',
+          sceneId: 's1',
+          sceneTitle: 't',
+          objective: 'o',
         ),
       );
       expect(withCard.hasTaskCard, isTrue);
@@ -601,11 +621,11 @@ void main() {
         round: 1,
         maxRounds: 3,
         taskCard: DirectorTaskCard(
-          sceneId: 's1', sceneTitle: '巷口', objective: '侦查',
+          sceneId: 's1',
+          sceneTitle: '巷口',
+          objective: '侦查',
         ),
-        appliedCues: [
-          DirectorCue(id: 'c1', sceneId: 's1', label: 'goal'),
-        ],
+        appliedCues: [DirectorCue(id: 'c1', sceneId: 's1', label: 'goal')],
         outcome: 'partial',
       );
       final decoded = DirectorRoundState.fromJson(state.toJson());
@@ -643,8 +663,11 @@ void main() {
           round: 0,
           appliedCues: [
             DirectorCue(
-              id: 'c1', sceneId: 'scene-01', label: 'conflict',
-              goal: '柳溪与岳刃正面施压', pressure: 0.8,
+              id: 'c1',
+              sceneId: 'scene-01',
+              label: 'conflict',
+              goal: '柳溪与岳刃正面施压',
+              pressure: 0.8,
             ),
           ],
         ),
@@ -663,10 +686,7 @@ void main() {
       final roundState = DirectorRoundState(sceneId: 's1', round: 1);
       final memory = DirectorMemory(activeRoundState: roundState);
       final updated = memory.incorporate(
-        SceneReviewDigest(
-          sceneId: 's1',
-          decision: SceneReviewDecision.pass,
-        ),
+        SceneReviewDigest(sceneId: 's1', decision: SceneReviewDecision.pass),
       );
       expect(updated.activeRoundState, isNotNull);
       expect(updated.activeRoundState!.sceneId, equals('s1'));

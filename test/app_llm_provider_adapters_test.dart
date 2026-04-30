@@ -192,7 +192,7 @@ void main() {
       );
       expect(body['model'], 'claude-3');
       expect(body['stream'], isTrue);
-      expect(body['max_tokens'], 4096);
+      expect(body['max_tokens'], 1024);
       expect(body['system'], 'sys prompt');
       expect(body['messages'], [
         {'role': 'user', 'content': 'hello'},

@@ -89,6 +89,7 @@ abstract interface class ChapterGenerationService {
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
     void Function(String message)? onStatus,
+    void Function()? onSpeculationReady,
   });
 
   RetrievalTrace? get lastRetrievalTrace;

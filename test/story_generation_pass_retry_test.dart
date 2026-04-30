@@ -32,6 +32,15 @@ void main() {
       expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
     });
 
+    test('returns true for rate limited failures', () {
+      const result = AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.rateLimited,
+        statusCode: 429,
+        detail: 'too many requests',
+      );
+      expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
+    });
+
     test('returns false for unauthorized failures', () {
       const result = AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.unauthorized,
@@ -58,6 +67,10 @@ void main() {
         'Software caused connection abort',
         'Connection terminated',
         'Temporarily unavailable',
+        'Server overloaded, please retry shortly',
+        'Server error. Please try again in 30 seconds.',
+        'Too many requests',
+        'Rate limit exceeded',
         'Timed out',
       ];
       for (final detail in retryableDetails) {
@@ -118,9 +131,7 @@ void main() {
       AppSettingsStore.debugLlmClientOverride = fakeLlm;
       settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
-        eventLog: AppEventLog(
-          storage: _DiscardingAppEventLogStorage(),
-        ),
+        eventLog: AppEventLog(storage: _DiscardingAppEventLogStorage()),
       );
     });
 
@@ -129,9 +140,7 @@ void main() {
     });
 
     test('returns successful result immediately without retry', () async {
-      fakeLlm.enqueue([
-        const AppLlmChatResult.success(text: 'good result'),
-      ]);
+      fakeLlm.enqueue([const AppLlmChatResult.success(text: 'good result')]);
 
       final result = await requestStoryGenerationPassWithRetry(
         settingsStore: settingsStore,
@@ -142,28 +151,85 @@ void main() {
       expect(result.succeeded, isTrue);
       expect(result.text, 'good result');
       expect(fakeLlm.callCount, 1);
+      expect(fakeLlm.maxTokensSeen, [storyGenerationDefaultMaxTokens]);
     });
 
-    test('retries on retryable failure and succeeds on second attempt',
-        () async {
+    test(
+      'escalates empty output but retries semantic output at the same token budget',
+      () async {
+        fakeLlm.enqueue([
+          const AppLlmChatResult.success(text: ''),
+          const AppLlmChatResult.success(text: 'still malformed'),
+          const AppLlmChatResult.success(text: 'usable result'),
+        ]);
+
+        final result = await requestStoryGenerationPassWithRetry(
+          settingsStore: settingsStore,
+          messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
+          shouldRetryOutput: (text) => text.contains('malformed'),
+        );
+
+        expect(result.text, 'usable result');
+        expect(fakeLlm.maxTokensSeen, [1024, 4096, 4096]);
+      },
+    );
+
+    test('stops semantic output retries at maxOutputRetries', () async {
       fakeLlm.enqueue([
-        const AppLlmChatResult.failure(
-          failureKind: AppLlmFailureKind.network,
-          detail: 'connection refused',
-        ),
-        const AppLlmChatResult.success(text: 'recovered'),
+        const AppLlmChatResult.success(text: 'still malformed 1'),
+        const AppLlmChatResult.success(text: 'still malformed 2'),
+        const AppLlmChatResult.success(text: 'still malformed 3'),
       ]);
 
       final result = await requestStoryGenerationPassWithRetry(
         settingsStore: settingsStore,
         messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
-        maxTransientRetries: 2,
+        shouldRetryOutput: (text) => text.contains('malformed'),
+        maxOutputRetries: 2,
       );
 
-      expect(result.succeeded, isTrue);
-      expect(result.text, 'recovered');
-      expect(fakeLlm.callCount, 2);
+      expect(result.text, 'still malformed 3');
+      expect(fakeLlm.maxTokensSeen, [1024, 1024, 1024]);
     });
+
+    test('starts editorial retries at 4096 and can escalate to 8192', () async {
+      fakeLlm.enqueue([
+        const AppLlmChatResult.success(text: 'draft truncated，'),
+        const AppLlmChatResult.success(text: 'complete draft'),
+      ]);
+
+      final result = await requestStoryGenerationPassWithRetry(
+        settingsStore: settingsStore,
+        messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
+        initialMaxTokens: storyGenerationEditorialMaxTokens,
+      );
+
+      expect(result.text, 'complete draft');
+      expect(fakeLlm.maxTokensSeen, [4096, 8192]);
+    });
+
+    test(
+      'retries on retryable failure and succeeds on second attempt',
+      () async {
+        fakeLlm.enqueue([
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.network,
+            detail: 'connection refused',
+          ),
+          const AppLlmChatResult.success(text: 'recovered'),
+        ]);
+
+        final result = await requestStoryGenerationPassWithRetry(
+          settingsStore: settingsStore,
+          messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
+          maxTransientRetries: 2,
+        );
+
+        expect(result.succeeded, isTrue);
+        expect(result.text, 'recovered');
+        expect(fakeLlm.callCount, 2);
+      },
+    );
 
     test('retries up to max retries then returns last failure', () async {
       fakeLlm.enqueue([
@@ -254,26 +320,28 @@ void main() {
       expect(fakeLlm.callCount, 2);
     });
 
-    test('does not retry on server failure with non-retryable detail',
-        () async {
-      fakeLlm.enqueue([
-        const AppLlmChatResult.failure(
-          failureKind: AppLlmFailureKind.server,
-          statusCode: 500,
-          detail: 'internal server error',
-        ),
-      ]);
+    test(
+      'does not retry on server failure with non-retryable detail',
+      () async {
+        fakeLlm.enqueue([
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.server,
+            statusCode: 500,
+            detail: 'internal server error',
+          ),
+        ]);
 
-      final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: settingsStore,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
-        maxTransientRetries: 2,
-      );
+        final result = await requestStoryGenerationPassWithRetry(
+          settingsStore: settingsStore,
+          messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
+          maxTransientRetries: 2,
+        );
 
-      expect(result.succeeded, isFalse);
-      expect(result.failureKind, AppLlmFailureKind.server);
-      expect(fakeLlm.callCount, 1);
-    });
+        expect(result.succeeded, isFalse);
+        expect(result.failureKind, AppLlmFailureKind.server);
+        expect(fakeLlm.callCount, 1);
+      },
+    );
 
     test('respects maxConcurrentRequests from settings', () async {
       final completers = <Completer<AppLlmChatResult>>[
@@ -290,9 +358,7 @@ void main() {
       final gateSettingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
         llmClient: blockingClient,
-        eventLog: AppEventLog(
-          storage: _DiscardingAppEventLogStorage(),
-        ),
+        eventLog: AppEventLog(storage: _DiscardingAppEventLogStorage()),
       );
       await gateSettingsStore.save(
         providerName: 'test',
@@ -337,6 +403,7 @@ void main() {
 
 class _SequencedFakeLlmClient implements AppLlmClient {
   final List<AppLlmChatResult> _results = [];
+  final List<int> maxTokensSeen = [];
   int callCount = 0;
 
   void enqueue(List<AppLlmChatResult> results) {
@@ -346,6 +413,7 @@ class _SequencedFakeLlmClient implements AppLlmClient {
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     callCount += 1;
+    maxTokensSeen.add(request.maxTokens);
     if (_results.isEmpty) {
       throw StateError('no more results enqueued');
     }

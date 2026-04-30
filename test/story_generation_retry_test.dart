@@ -80,21 +80,27 @@ void main() {
       expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
     });
 
-    test('returns true for server failure with "connection closed before full header was received"', () {
-      const result = AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-        detail: 'Connection closed before full header was received',
-      );
-      expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
-    });
+    test(
+      'returns true for server failure with "connection closed before full header was received"',
+      () {
+        const result = AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+          detail: 'Connection closed before full header was received',
+        );
+        expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
+      },
+    );
 
-    test('returns true for server failure with "software caused connection abort"', () {
-      const result = AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-        detail: 'Software caused connection abort',
-      );
-      expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
-    });
+    test(
+      'returns true for server failure with "software caused connection abort"',
+      () {
+        const result = AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+          detail: 'Software caused connection abort',
+        );
+        expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
+      },
+    );
 
     test('returns true for server failure with "connection terminated"', () {
       const result = AppLlmChatResult.failure(
@@ -108,6 +114,16 @@ void main() {
       const result = AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
         detail: 'Service temporarily unavailable',
+      );
+      expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
+    });
+
+    test('returns true for server failure asking to try again later', () {
+      const result = AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.server,
+        statusCode: 500,
+        detail:
+            '<html><h1>Error: Server Error</h1><h2>Please try again in 30 seconds.</h2></html>',
       );
       expect(isRetryableStoryGenerationTransportFailure(result), isTrue);
     });
@@ -286,7 +302,7 @@ void main() {
       final fakeClient = FakeAppLlmClient(
         responder: (_) => const AppLlmChatResult.failure(
           failureKind: AppLlmFailureKind.server,
-          detail: 'Internal server error: rate limit exceeded',
+          detail: 'Internal server error',
         ),
       );
       final store = setupStore(fakeClient);

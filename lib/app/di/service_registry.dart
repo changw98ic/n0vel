@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 typedef ServiceFactory<T> = T Function(ServiceRegistry registry);
 
@@ -69,6 +70,8 @@ class ServiceRegistry {
     for (final type in _creationOrder.reversed) {
       final instance = _instances[type];
       if (instance is ChangeNotifier) {
+        instance.dispose();
+      } else if (instance is sqlite3.Database) {
         instance.dispose();
       }
     }

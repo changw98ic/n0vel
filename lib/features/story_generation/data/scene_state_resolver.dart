@@ -248,6 +248,8 @@ class SceneStateResolver {
     final l = StoryPromptTemplates.locale;
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      maxTransientRetries: 0,
+      maxEscalatedTokens: storyGenerationEditorialMaxTokens,
       messages: [
         AppLlmChatMessage(
           role: 'system',
@@ -409,8 +411,9 @@ class SceneStateResolver {
     if (turns.isEmpty) return '${l.roleInputLabel}${l.colon}${l.noneLabel}';
     return '${l.roleInputLabel}${l.colon}${PromptStringUtils.mapJoin(turns, (t) {
       final process = t.disclosure.trim().isEmpty ? '' : '/过程${l.colon}${t.disclosure}';
+      final prose = t.proseFragment.trim().isEmpty ? '' : '/正文片段${l.colon}${t.proseFragment}';
       final taboo = t.taboo.trim().isEmpty ? '' : '/${l.tabooLabel}${l.colon}${t.taboo}';
-      return '${t.name}${l.colon}${l.stanceLabel}${t.stance}/${l.actionLabel}${t.action}$taboo$process';
+      return '${t.name}${l.colon}${l.stanceLabel}${t.stance}/${l.actionLabel}${t.action}$taboo$process$prose';
     }, separator: l.listSeparator)}';
   }
 

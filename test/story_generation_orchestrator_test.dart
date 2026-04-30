@@ -10,7 +10,6 @@ import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_r
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
-import 'package:novel_writer/features/story_generation/data/scene_review_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
 import 'test_support/fake_app_llm_client.dart';
@@ -192,8 +191,13 @@ void main() {
 
         final fakeClient = FakeAppLlmClient(
           responder: (request) async {
-            final systemPrompt = request.messages.first.content;
-            if (!systemPrompt.contains('dynamic role agent')) {
+            final userPrompt = request.messages.last.content;
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return const AppLlmChatResult.success(
+                text: '事实：柳溪与沈渡同时逼近\n状态：对峙推进\n压力：升级\n收束：是',
+              );
+            }
+            if (!userPrompt.contains('任务：scene_roleplay_turn')) {
               return const AppLlmChatResult.success(text: 'unused');
             }
 
@@ -208,8 +212,8 @@ void main() {
 
             await release.future;
             activeRequests -= 1;
-            return AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延 ${request.messages.last.content}',
+            return const AppLlmChatResult.success(
+              text: '意图：压迫\n可见动作：逼近半步\n对白：继续\n内心：先稳住节奏',
             );
           },
         );
@@ -268,10 +272,9 @@ void main() {
                 text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
               );
             }
-            if (systemPrompt.contains('dynamic role agent')) {
-              return const AppLlmChatResult.success(
-                text: '立场：强压\n动作：逼近\n禁忌：拖沓',
-              );
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
             }
             if (systemPrompt.contains('scene beat resolver')) {
               return const AppLlmChatResult.success(
@@ -315,13 +318,13 @@ void main() {
 
         final roleRequest = fakeClient.requests.firstWhere(
           (request) =>
-              request.messages.first.content.contains('dynamic role agent'),
+              request.messages.last.content.contains('任务：scene_roleplay_turn'),
         );
         expect(
           roleRequest.messages.first.content,
-          contains('Output exactly 3 short lines'),
+          contains('Use this five-line shape'),
         );
-        expect(roleRequest.messages.last.content, contains('格式：立场/动作/禁忌'));
+        expect(roleRequest.messages.last.content, contains('当前行动角色：'));
 
         final judgeRequest = fakeClient.requests.firstWhere(
           (request) =>
@@ -329,7 +332,7 @@ void main() {
         );
         expect(
           judgeRequest.messages.first.content,
-          contains('Output exactly 2 lines'),
+          contains('Use a 2-line review format'),
         );
         expect(judgeRequest.messages.first.content, contains('原因：'));
         expect(judgeRequest.messages.last.content, contains('正文：'));
@@ -349,16 +352,22 @@ void main() {
                 text: '目标：逼出账本\n冲突：互相试探\n推进：沈渡被拖入\n约束：雨夜码头',
               );
             }
-            if (systemPrompt.contains('dynamic role agent')) {
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
               return const AppLlmChatResult.success(
                 text:
-                    '立场：柳溪不再相信岳刃\n动作：用旧照片逼问\n禁忌：不能暴露害怕沈渡涉案'
-                    '\n检索：past_event|岳刃|确认旧线索',
+                    '意图：柳溪不再相信岳刃\n'
+                    '可见动作：柳溪用旧照片逼问岳刃\n'
+                    '对白：你还想骗我第二次？\n'
+                    '内心：先守住沈渡涉案这条线',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return const AppLlmChatResult.success(
+                text: '事实：柳溪用旧照片逼问岳刃\n状态：岳刃被迫回应\n压力：升级\n收束：是',
               );
             }
             if (systemPrompt.contains('scene beat resolver')) {
-              expect(userPrompt, contains('检索上下文：'));
-              expect(userPrompt, contains('岳刃三天前引导柳溪离开码头'));
+              expect(userPrompt, contains('柳溪用旧照片逼问岳刃'));
               expect(userPrompt, isNot(contains('RAW_TOOL_PAYLOAD')));
               return const AppLlmChatResult.success(
                 text:
@@ -447,8 +456,8 @@ void main() {
         expect(
           fakeClient.requests
               .where(
-                (request) => request.messages.first.content.contains(
-                  'dynamic role agent',
+                (request) => request.messages.last.content.contains(
+                  '任务：scene_roleplay_turn',
                 ),
               )
               .length,
@@ -458,9 +467,12 @@ void main() {
     );
 
     test(
-      'reruns prose for soft review failures and eventually passes',
+      'retries editorial prose without rerunning roleplay for soft review failures',
       () async {
         var proseAttempts = 0;
+        var speculationReadyCount = 0;
+        final roleplayRounds = <int>[];
+        final arbitrationRounds = <int>[];
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
             final systemPrompt = request.messages.first.content;
@@ -470,8 +482,28 @@ void main() {
               return const AppLlmChatResult.success(text: '导演计划：先试探，再摊牌。');
             }
 
-            if (systemPrompt.contains('dynamic role agent')) {
-              return const AppLlmChatResult.success(text: '角色视角：我先压住怒气，再逼近一步。');
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
+              final round = _roundFromPrompt(userPrompt);
+              roleplayRounds.add(round);
+              return AppLlmChatResult.success(
+                text:
+                    '意图：压住怒气第$round轮\n'
+                    '可见动作：柳溪逼近半步\n'
+                    '对白：货单在哪\n'
+                    '内心：必须逼出破绽',
+              );
+            }
+
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              final round = _roundFromPrompt(userPrompt);
+              arbitrationRounds.add(round);
+              return AppLlmChatResult.success(
+                text:
+                    '事实：柳溪持续施压第$round轮\n'
+                    '状态：岳刃退让\n'
+                    '压力：升级\n'
+                    '收束：否',
+              );
             }
 
             if (systemPrompt.contains('scene beat resolver')) {
@@ -500,6 +532,12 @@ void main() {
             if (systemPrompt.contains('scene consistency review')) {
               return const AppLlmChatResult.success(
                 text: '决定：PASS\n原因：角色行动与场面调度一致。',
+              );
+            }
+
+            if (systemPrompt.contains('scene roleplay fidelity review')) {
+              return const AppLlmChatResult.success(
+                text: '决定：PASS\n原因：角色扮演过程忠实落地。',
               );
             }
 
@@ -540,6 +578,9 @@ void main() {
               ),
             ],
           ),
+          onSpeculationReady: () {
+            speculationReadyCount += 1;
+          },
         );
 
         expect(result.review.decision, SceneReviewDecision.pass);
@@ -550,6 +591,10 @@ void main() {
         expect(result.resolvedCast.map((member) => member.characterId), [
           'char-liuxi',
         ]);
+        expect(roleplayRounds, [1]);
+        expect(arbitrationRounds, [1]);
+        expect(result.roleplaySession?.rounds, hasLength(1));
+        expect(speculationReadyCount, 1);
         expect(result.softFailureCount, 1);
         expect(
           fakeClient.requests
@@ -564,7 +609,7 @@ void main() {
     );
 
     test(
-      'returns replan decision when either review pass requests replanning',
+      'returns replan decision when the combined review requests replanning',
       () async {
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
@@ -573,8 +618,9 @@ void main() {
             if (systemPrompt.contains('scene plan polisher')) {
               return const AppLlmChatResult.success(text: '导演计划：逼问线索。');
             }
-            if (systemPrompt.contains('dynamic role agent')) {
-              return const AppLlmChatResult.success(text: '角色输入：立刻反压。');
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
             }
             if (systemPrompt.contains('scene beat resolver')) {
               return const AppLlmChatResult.success(
@@ -584,12 +630,7 @@ void main() {
             if (systemPrompt.contains('scene editor')) {
               return const AppLlmChatResult.success(text: '正文：冲突形成但空间关系混乱。');
             }
-            if (systemPrompt.contains('scene judge review')) {
-              return const AppLlmChatResult.success(
-                text: '决定：PASS\n原因：戏剧推进成立。',
-              );
-            }
-            if (systemPrompt.contains('scene consistency review')) {
+            if (systemPrompt.contains('scene combined review')) {
               return const AppLlmChatResult.success(
                 text: '决定：REPLAN_SCENE\n原因：空间调度自相矛盾，需要重排场面。',
               );
@@ -612,7 +653,7 @@ void main() {
         final result = await orchestrator.runScene(_brief());
 
         expect(result.review.decision, SceneReviewDecision.replanScene);
-        expect(result.review.judge.status, SceneReviewStatus.pass);
+        expect(result.review.judge.status, SceneReviewStatus.replanScene);
         expect(result.review.consistency.status, SceneReviewStatus.replanScene);
         expect(result.prose.attempt, 1);
         expect(result.softFailureCount, 0);
@@ -627,8 +668,9 @@ void main() {
           if (systemPrompt.contains('scene plan polisher')) {
             return const AppLlmChatResult.success(text: '导演计划：连续逼问。');
           }
-          if (systemPrompt.contains('dynamic role agent')) {
-            return const AppLlmChatResult.success(text: '角色输入：持续对抗。');
+          final roleplay = _defaultRoleplayResponse(request);
+          if (roleplay != null) {
+            return roleplay;
           }
           if (systemPrompt.contains('scene beat resolver')) {
             return const AppLlmChatResult.success(
@@ -669,17 +711,88 @@ void main() {
     });
 
     test(
+      'retries editorial draft locally when prose exceeds hard length limit',
+      () async {
+        var proseAttempts = 0;
+        var reviewCalls = 0;
+        final overlongDraft = List.filled(1701, '长').join();
+        const compactDraft = '柳溪逼近半步，岳刃终于交出账本线索。';
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(text: '导演计划：逼问账本。');
+            }
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
+              return const AppLlmChatResult.success(
+                text: '意图：压迫对方\n可见动作：柳溪逼近半步\n对白：账本在哪\n内心：必须问出来',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return const AppLlmChatResult.success(
+                text: '事实：柳溪逼近半步，岳刃露出破绽\n状态：逼问推进\n压力：升级\n收束：是',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @char-yueren 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              proseAttempts += 1;
+              return AppLlmChatResult.success(
+                text: proseAttempts == 1 ? overlongDraft : compactDraft,
+              );
+            }
+            if (systemPrompt.contains('scene judge review')) {
+              reviewCalls += 1;
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+            }
+            if (systemPrompt.contains('scene consistency review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：设定一致。');
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+          maxProseRetries: 1,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief().copyWith(targetLength: 800),
+        );
+
+        expect(result.prose.attempt, 2);
+        expect(result.prose.text, compactDraft);
+        expect(result.review.decision, SceneReviewDecision.pass);
+        expect(result.softFailureCount, 1);
+        expect(reviewCalls, 1);
+      },
+    );
+
+    test(
       'retries transient dynamic role pass failures before failing scene',
       () async {
         var roleAttempts = 0;
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
             final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
 
             if (systemPrompt.contains('scene plan polisher')) {
               return const AppLlmChatResult.success(text: '导演计划：先压住，再追问。');
             }
-            if (systemPrompt.contains('dynamic role agent')) {
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
               roleAttempts += 1;
               if (roleAttempts == 1) {
                 return const AppLlmChatResult.failure(
@@ -687,7 +800,14 @@ void main() {
                   detail: 'Connection reset by peer',
                 );
               }
-              return const AppLlmChatResult.success(text: '角色输入：我盯住对方，继续施压。');
+              return const AppLlmChatResult.success(
+                text: '意图：继续施压\n可见动作：我盯住对方\n对白：别躲\n内心：逼出破绽',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return const AppLlmChatResult.success(
+                text: '事实：柳溪继续施压\n状态：对峙升级\n压力：升级\n收束：是',
+              );
             }
             if (systemPrompt.contains('scene beat resolver')) {
               return const AppLlmChatResult.success(
@@ -726,8 +846,8 @@ void main() {
         expect(
           fakeClient.requests
               .where(
-                (request) => request.messages.first.content.contains(
-                  'dynamic role agent',
+                (request) => request.messages.last.content.contains(
+                  '任务：scene_roleplay_turn',
                 ),
               )
               .length,
@@ -745,8 +865,9 @@ void main() {
           if (systemPrompt.contains('scene plan polisher')) {
             return const AppLlmChatResult.success(text: '导演计划：逼近后突然转问。');
           }
-          if (systemPrompt.contains('dynamic role agent')) {
-            return const AppLlmChatResult.success(text: '角色输入：稳住表情，继续压迫。');
+          final roleplay = _defaultRoleplayResponse(request);
+          if (roleplay != null) {
+            return roleplay;
           }
           if (systemPrompt.contains('scene beat resolver')) {
             return const AppLlmChatResult.success(
@@ -809,8 +930,9 @@ void main() {
             if (systemPrompt.contains('scene plan polisher')) {
               return const AppLlmChatResult.success(text: '导演计划：试压。');
             }
-            if (systemPrompt.contains('dynamic role agent')) {
-              return const AppLlmChatResult.success(text: '角色输入：试探。');
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
             }
             if (systemPrompt.contains('scene beat resolver')) {
               return const AppLlmChatResult.success(
@@ -1065,4 +1187,24 @@ SceneBrief _brief() {
       SceneCastCandidate(characterId: 'char-crowd', name: '避雨的人群', role: '背景'),
     ],
   );
+}
+
+int _roundFromPrompt(String prompt) {
+  final match = RegExp(r'回合：(\d+)').firstMatch(prompt);
+  return int.parse(match!.group(1)!);
+}
+
+AppLlmChatResult? _defaultRoleplayResponse(AppLlmChatRequest request) {
+  final userPrompt = request.messages.last.content;
+  if (userPrompt.contains('任务：scene_roleplay_turn')) {
+    return const AppLlmChatResult.success(
+      text: '意图：压迫对方\n可见动作：柳溪逼近半步\n对白：账本在哪\n内心：必须问出来',
+    );
+  }
+  if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+    return const AppLlmChatResult.success(
+      text: '事实：柳溪逼近半步，岳刃露出破绽\n状态：逼问推进\n压力：升级\n收束：是',
+    );
+  }
+  return null;
 }

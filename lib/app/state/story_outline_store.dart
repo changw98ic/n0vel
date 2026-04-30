@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:novel_writer/features/story_generation/domain/outline_plan_models.dart';
 
 import 'app_project_scoped_store.dart';
@@ -36,11 +37,11 @@ class StoryOutlineCastSnapshot {
   }
 
   StoryOutlineCastSnapshot deepCopy() => StoryOutlineCastSnapshot(
-      characterId: characterId,
-      name: name,
-      role: role,
-      metadata: cloneStorageMap(metadata),
-    );
+    characterId: characterId,
+    name: name,
+    role: role,
+    metadata: cloneStorageMap(metadata),
+  );
 
   Map<String, Object?> toJson() {
     return {
@@ -93,12 +94,12 @@ class StoryOutlineSceneSnapshot {
   }
 
   StoryOutlineSceneSnapshot deepCopy() => StoryOutlineSceneSnapshot(
-      id: id,
-      title: title,
-      summary: summary,
-      cast: [for (final c in cast) c.deepCopy()],
-      metadata: cloneStorageMap(metadata),
-    );
+    id: id,
+    title: title,
+    summary: summary,
+    cast: [for (final c in cast) c.deepCopy()],
+    metadata: cloneStorageMap(metadata),
+  );
 
   Map<String, Object?> toJson() {
     return {
@@ -158,12 +159,12 @@ class StoryOutlineChapterSnapshot {
   }
 
   StoryOutlineChapterSnapshot deepCopy() => StoryOutlineChapterSnapshot(
-      id: id,
-      title: title,
-      summary: summary,
-      scenes: [for (final s in scenes) s.deepCopy()],
-      metadata: cloneStorageMap(metadata),
-    );
+    id: id,
+    title: title,
+    summary: summary,
+    scenes: [for (final s in scenes) s.deepCopy()],
+    metadata: cloneStorageMap(metadata),
+  );
 
   Map<String, Object?> toJson() {
     return {
@@ -250,11 +251,11 @@ class StoryOutlineSnapshot {
   }
 
   StoryOutlineSnapshot deepCopy() => StoryOutlineSnapshot(
-      projectId: projectId,
-      chapters: [for (final chapter in chapters) chapter.deepCopy()],
-      metadata: cloneStorageMap(metadata),
-      executablePlan: executablePlan,
-    );
+    projectId: projectId,
+    chapters: [for (final chapter in chapters) chapter.deepCopy()],
+    metadata: cloneStorageMap(metadata),
+    executablePlan: executablePlan,
+  );
 
   static StoryOutlineSnapshot fromJson(Map<String, Object?> json) {
     final projectId =
@@ -297,21 +298,18 @@ class StoryOutlineSnapshot {
 }
 
 class StoryOutlineStore extends AppProjectScopedStore {
-  StoryOutlineStore({
-    StoryOutlineStorage? storage,
-    super.workspaceStore,
-  }) : _storage =
-           storage ??
-           debugStorageOverride ??
-           createDefaultStoryOutlineStorage(),
-       super(
-         scopeMode: AppStoreScopeMode.project,
-         fallbackProjectId: _fallbackStoryOutlineProjectId,
-       ) {
+  StoryOutlineStore({StoryOutlineStorage? storage, super.workspaceStore})
+    : _storage =
+          storage ?? debugStorageOverride ?? createDefaultStoryOutlineStorage(),
+      super(
+        scopeMode: AppStoreScopeMode.project,
+        fallbackProjectId: _fallbackStoryOutlineProjectId,
+      ) {
     _snapshot = StoryOutlineSnapshot.empty(activeProjectId);
     onRestore();
   }
 
+  @visibleForTesting
   static StoryOutlineStorage? debugStorageOverride;
 
   final StoryOutlineStorage _storage;
@@ -369,8 +367,5 @@ Map<String, Object?> _asStringObjectMap(Object? value) {
   if (value is! Map) {
     return const {};
   }
-  return {
-    for (final entry in value.entries)
-      entry.key.toString(): entry.value,
-  };
+  return {for (final entry in value.entries) entry.key.toString(): entry.value};
 }

@@ -130,6 +130,8 @@ class ScenePipelineOrchestrator {
     SceneReviewCoordinator? reviewCoordinator,
     ScenePolishPass? polishPass,
     RetrievalController? retrievalController,
+    RoleplaySessionStore? roleplaySessionStore,
+    CharacterMemoryStore? characterMemoryStore,
   }) : _castResolver = castResolver ?? SceneCastResolver(),
        _directorOrchestrator =
            directorOrchestrator ??
@@ -148,7 +150,9 @@ class ScenePipelineOrchestrator {
        _polishPass =
            polishPass ?? ScenePolishPass(settingsStore: settingsStore),
        _retrievalController =
-           retrievalController ?? const RetrievalController();
+           retrievalController ?? const RetrievalController(),
+       _roleplaySessionStore = roleplaySessionStore,
+       _characterMemoryStore = characterMemoryStore;
 
   final int maxProseRetries;
   final int maxReplanRetries;
@@ -161,6 +165,8 @@ class ScenePipelineOrchestrator {
   final SceneReviewCoordinator _reviewCoordinator;
   final ScenePolishPass _polishPass;
   final RetrievalController _retrievalController;
+  final RoleplaySessionStore? _roleplaySessionStore;
+  final CharacterMemoryStore? _characterMemoryStore;
   DirectorMemory _directorMemory = DirectorMemory();
 
   /// Run the full pipeline for a single scene.
@@ -214,6 +220,11 @@ class ScenePipelineOrchestrator {
       onStatus: statusCallback,
     );
     final roleplaySession = _dynamicRoleAgentRunner.lastRoleplaySession;
+    await _persistRoleplaySession(
+      projectId: brief.projectId ?? brief.chapterId,
+      brief: brief,
+      session: roleplaySession,
+    );
 
     final roleTurns = [
       for (final raw in rawRoleOutputs)
@@ -308,7 +319,7 @@ class ScenePipelineOrchestrator {
           softFailureCount += 1;
           if (softFailureCount <= maxProseRetries) {
             attempt += 1;
-            reviewFeedback = review.feedback;
+            reviewFeedback = review.editorialFeedback;
             continue;
           }
           final polishedDraftForRetry = await _refineDraftIfNeeded(
@@ -383,7 +394,7 @@ class ScenePipelineOrchestrator {
       brief: brief,
       editorialDraft: draft,
       resolvedBeats: resolvedBeats,
-      reviewFeedback: review.feedback,
+      reviewFeedback: review.editorialFeedback,
       refinementGuidance:
           review.refinementGuidance ?? review.synthesizeGuidance(),
     );
@@ -394,6 +405,32 @@ class ScenePipelineOrchestrator {
       text: polishResult.text,
       beatCount: draft.beatCount,
       attempt: draft.attempt,
+    );
+  }
+
+  Future<void> _persistRoleplaySession({
+    required String projectId,
+    required SceneBrief brief,
+    required SceneRoleplaySession? session,
+  }) async {
+    if (session == null || session.isEmpty) {
+      return;
+    }
+    await _roleplaySessionStore?.saveSession(
+      projectId: projectId,
+      session: session,
+    );
+    final acceptedDeltas = session.acceptedMemoryDeltas
+        .where((delta) => delta.accepted)
+        .toList(growable: false);
+    if (acceptedDeltas.isEmpty) {
+      return;
+    }
+    await _characterMemoryStore?.saveAcceptedDeltas(
+      projectId: projectId,
+      chapterId: brief.chapterId,
+      sceneId: brief.sceneId,
+      deltas: acceptedDeltas,
     );
   }
 }

@@ -19,6 +19,7 @@ class AppEventLog {
        sessionId =
            sessionId ?? _generateId('session', (nowProvider ?? DateTime.now)());
 
+  @visibleForTesting
   static AppEventLogStorage? debugStorageOverride;
 
   final AppEventLogNowProvider _nowProvider;

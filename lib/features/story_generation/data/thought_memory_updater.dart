@@ -10,15 +10,13 @@ import '../domain/story_pipeline_interfaces.dart';
 
 /// Optional LLM caller for thought refinement.
 /// Returns the raw response text, or null on failure.
-typedef LlmThoughtCaller = Future<String?> Function(
-  String systemPrompt,
-  String userPrompt,
-);
+typedef LlmThoughtCaller =
+    Future<String?> Function(String systemPrompt, String userPrompt);
 
 const String _llmSystemPrompt =
     'You are a thought extraction engine for a novel writing system. '
     'Given scene context, extract reusable thought atoms as a JSON array.\n'
-    'Each object must have exactly these fields:\n'
+    'Use objects with exactly these fields:\n'
     '- thoughtType: one of "persona", "plotCausality", "state", '
     '"foreshadowing", "style"\n'
     '- content: concise observation under 100 characters\n'
@@ -26,7 +24,7 @@ const String _llmSystemPrompt =
     '- sourceIds: array of source id strings\n'
     '- rootSourceIds: array of root source id strings\n'
     '- tags: array of relevant tag strings\n'
-    'Return only the JSON array. No markdown, no explanation.';
+    'Return a plain JSON array.';
 
 /// Extracts Thought-Retriever-style thought atoms after scene acceptance.
 class ThoughtMemoryUpdater implements ThoughtMemoryService {
@@ -112,26 +110,28 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     // Persona thought from cast participation
     for (final member in sceneOutput.resolvedCast) {
       final content = '${member.name} participates in ${brief.sceneTitle}';
-      candidates.add(ThoughtAtom(
-        id: '${projectId}_tp_${ts}_$seq',
-        projectId: projectId,
-        scopeId: scopeId,
-        thoughtType: ThoughtType.persona,
-        content: content,
-        confidence: 0.75,
-        abstractionLevel: 1.0,
-        sourceRefs: [
-          MemorySourceRef(
-            sourceId: brief.sceneId,
-            sourceType: MemorySourceKind.sceneSummary,
-          ),
-        ],
-        rootSourceIds: [brief.sceneId],
-        tags: ['char-${member.characterId}', 'persona'],
-        priority: 2,
-        tokenCostEstimate: (content.length / 3.5).ceil(),
-        createdAtMs: ts + seq,
-      ));
+      candidates.add(
+        ThoughtAtom(
+          id: '${projectId}_tp_${ts}_$seq',
+          projectId: projectId,
+          scopeId: scopeId,
+          thoughtType: ThoughtType.persona,
+          content: content,
+          confidence: 0.75,
+          abstractionLevel: 1.0,
+          sourceRefs: [
+            MemorySourceRef(
+              sourceId: brief.sceneId,
+              sourceType: MemorySourceKind.sceneSummary,
+            ),
+          ],
+          rootSourceIds: [brief.sceneId],
+          tags: ['char-${member.characterId}', 'persona'],
+          priority: 2,
+          tokenCostEstimate: (content.length / 3.5).ceil(),
+          createdAtMs: ts + seq,
+        ),
+      );
       seq++;
     }
 
@@ -139,26 +139,28 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     if (sceneOutput.director.text.isNotEmpty) {
       final content =
           'Director intent: ${_truncate(sceneOutput.director.text, 120)}';
-      candidates.add(ThoughtAtom(
-        id: '${projectId}_tc_${ts}_$seq',
-        projectId: projectId,
-        scopeId: scopeId,
-        thoughtType: ThoughtType.plotCausality,
-        content: content,
-        confidence: 0.80,
-        abstractionLevel: 2.0,
-        sourceRefs: [
-          MemorySourceRef(
-            sourceId: brief.sceneId,
-            sourceType: MemorySourceKind.sceneSummary,
-          ),
-        ],
-        rootSourceIds: [brief.sceneId],
-        tags: ['plot', 'causality', 'ch-${brief.chapterId}'],
-        priority: 3,
-        tokenCostEstimate: (content.length / 3.5).ceil(),
-        createdAtMs: ts + seq,
-      ));
+      candidates.add(
+        ThoughtAtom(
+          id: '${projectId}_tc_${ts}_$seq',
+          projectId: projectId,
+          scopeId: scopeId,
+          thoughtType: ThoughtType.plotCausality,
+          content: content,
+          confidence: 0.80,
+          abstractionLevel: 2.0,
+          sourceRefs: [
+            MemorySourceRef(
+              sourceId: brief.sceneId,
+              sourceType: MemorySourceKind.sceneSummary,
+            ),
+          ],
+          rootSourceIds: [brief.sceneId],
+          tags: ['plot', 'causality', 'ch-${brief.chapterId}'],
+          priority: 3,
+          tokenCostEstimate: (content.length / 3.5).ceil(),
+          createdAtMs: ts + seq,
+        ),
+      );
       seq++;
     }
 
@@ -166,26 +168,28 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     if (sceneOutput.review.decision.name != 'pass') {
       final content =
           'Review result: ${sceneOutput.review.decision.name} for ${brief.sceneTitle}';
-      candidates.add(ThoughtAtom(
-        id: '${projectId}_ts_${ts}_$seq',
-        projectId: projectId,
-        scopeId: scopeId,
-        thoughtType: ThoughtType.state,
-        content: content,
-        confidence: 0.85,
-        abstractionLevel: 1.5,
-        sourceRefs: [
-          MemorySourceRef(
-            sourceId: brief.sceneId,
-            sourceType: MemorySourceKind.reviewFinding,
-          ),
-        ],
-        rootSourceIds: [brief.sceneId],
-        tags: ['state', 'review', 'ch-${brief.chapterId}'],
-        priority: 4,
-        tokenCostEstimate: (content.length / 3.5).ceil(),
-        createdAtMs: ts + seq,
-      ));
+      candidates.add(
+        ThoughtAtom(
+          id: '${projectId}_ts_${ts}_$seq',
+          projectId: projectId,
+          scopeId: scopeId,
+          thoughtType: ThoughtType.state,
+          content: content,
+          confidence: 0.85,
+          abstractionLevel: 1.5,
+          sourceRefs: [
+            MemorySourceRef(
+              sourceId: brief.sceneId,
+              sourceType: MemorySourceKind.reviewFinding,
+            ),
+          ],
+          rootSourceIds: [brief.sceneId],
+          tags: ['state', 'review', 'ch-${brief.chapterId}'],
+          priority: 4,
+          tokenCostEstimate: (content.length / 3.5).ceil(),
+          createdAtMs: ts + seq,
+        ),
+      );
       seq++;
     }
 
@@ -194,26 +198,28 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
         sceneOutput.prose.text.isNotEmpty) {
       final content =
           'Accepted scene prose (${brief.sceneTitle}): ${_truncate(sceneOutput.prose.text, 100)}';
-      candidates.add(ThoughtAtom(
-        id: '${projectId}_tf_${ts}_$seq',
-        projectId: projectId,
-        scopeId: scopeId,
-        thoughtType: ThoughtType.foreshadowing,
-        content: content,
-        confidence: 0.75,
-        abstractionLevel: 1.5,
-        sourceRefs: [
-          MemorySourceRef(
-            sourceId: brief.sceneId,
-            sourceType: MemorySourceKind.sceneSummary,
-          ),
-        ],
-        rootSourceIds: [brief.sceneId],
-        tags: ['foreshadowing', 'ch-${brief.chapterId}'],
-        priority: 2,
-        tokenCostEstimate: (content.length / 3.5).ceil(),
-        createdAtMs: ts + seq,
-      ));
+      candidates.add(
+        ThoughtAtom(
+          id: '${projectId}_tf_${ts}_$seq',
+          projectId: projectId,
+          scopeId: scopeId,
+          thoughtType: ThoughtType.foreshadowing,
+          content: content,
+          confidence: 0.75,
+          abstractionLevel: 1.5,
+          sourceRefs: [
+            MemorySourceRef(
+              sourceId: brief.sceneId,
+              sourceType: MemorySourceKind.sceneSummary,
+            ),
+          ],
+          rootSourceIds: [brief.sceneId],
+          tags: ['foreshadowing', 'ch-${brief.chapterId}'],
+          priority: 2,
+          tokenCostEstimate: (content.length / 3.5).ceil(),
+          createdAtMs: ts + seq,
+        ),
+      );
       seq++;
     }
 
@@ -243,10 +249,10 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     }
 
     if (accepted.isNotEmpty) {
-      await storage.saveThoughts(
-        projectId,
-        [...(await storage.loadThoughts(projectId)), ...accepted],
-      );
+      await storage.saveThoughts(projectId, [
+        ...(await storage.loadThoughts(projectId)),
+        ...accepted,
+      ]);
     }
 
     return ThoughtUpdateResult(accepted: accepted, rejected: rejected);
@@ -275,8 +281,8 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
       parts.add('Prose: ${_truncate(output.prose.text, 200)}');
     }
     parts.add('Review: ${output.review.decision.name}');
-    if (output.review.feedback.isNotEmpty) {
-      parts.add('Feedback: ${_truncate(output.review.feedback, 150)}');
+    if (output.review.editorialFeedback.isNotEmpty) {
+      parts.add('Feedback: ${_truncate(output.review.editorialFeedback, 150)}');
     }
     return parts.join('\n');
   }
@@ -322,27 +328,29 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
       final rootSourceIds = _parseStringList(item['rootSourceIds']);
       final tags = _parseStringList(item['tags']);
 
-      atoms.add(ThoughtAtom(
-        id: '${projectId}_tl_${ts}_$i',
-        projectId: projectId,
-        scopeId: scopeId,
-        thoughtType: thoughtType,
-        content: content,
-        confidence: confidence.clamp(0.0, 1.0),
-        abstractionLevel: 2.0,
-        sourceRefs: [
-          for (final sid in sourceIds)
-            MemorySourceRef(
-              sourceId: sid,
-              sourceType: MemorySourceKind.sceneSummary,
-            ),
-        ],
-        rootSourceIds: rootSourceIds.isNotEmpty ? rootSourceIds : sourceIds,
-        tags: tags,
-        priority: 3,
-        tokenCostEstimate: (content.length / 3.5).ceil(),
-        createdAtMs: ts + i,
-      ));
+      atoms.add(
+        ThoughtAtom(
+          id: '${projectId}_tl_${ts}_$i',
+          projectId: projectId,
+          scopeId: scopeId,
+          thoughtType: thoughtType,
+          content: content,
+          confidence: confidence.clamp(0.0, 1.0),
+          abstractionLevel: 2.0,
+          sourceRefs: [
+            for (final sid in sourceIds)
+              MemorySourceRef(
+                sourceId: sid,
+                sourceType: MemorySourceKind.sceneSummary,
+              ),
+          ],
+          rootSourceIds: rootSourceIds.isNotEmpty ? rootSourceIds : sourceIds,
+          tags: tags,
+          priority: 3,
+          tokenCostEstimate: (content.length / 3.5).ceil(),
+          createdAtMs: ts + i,
+        ),
+      );
     }
 
     return atoms;
@@ -360,8 +368,7 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     if (raw is! List) return const [];
     return [
       for (final item in raw)
-        if (item != null && item.toString().trim().isNotEmpty)
-          item.toString(),
+        if (item != null && item.toString().trim().isNotEmpty) item.toString(),
     ];
   }
 

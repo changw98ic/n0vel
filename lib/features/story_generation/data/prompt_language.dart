@@ -3,10 +3,7 @@
 /// Controls both the system prompts sent to the LLM and the format labels
 /// used to parse structured LLM output (e.g. plan lines, review decisions,
 /// beat tags).
-enum PromptLanguage {
-  zh,
-  en,
-}
+enum PromptLanguage { zh, en }
 
 /// Language-dependent strings used by the story-generation pipeline.
 ///
@@ -275,7 +272,11 @@ class PromptLocale {
 
   /// Format a relationship entry for the prompt.
   String formatRelationship(
-    String charA, String charB, String label, int tension, int trust,
+    String charA,
+    String charB,
+    String label,
+    int tension,
+    int trust,
   ) {
     return '$charA↔$charB=$label($tensionLabel$tension/$trustLabel$trust)';
   }
@@ -286,12 +287,12 @@ class PromptLocale {
 
   /// All five beat tags as a set for validation.
   Set<String> get beatTags => {
-        beatFact,
-        beatDialogue,
-        beatAction,
-        beatInternal,
-        beatNarration,
-      };
+    beatFact,
+    beatDialogue,
+    beatAction,
+    beatInternal,
+    beatNarration,
+  };
 
   /// Chinese locale — the original prompt language.
   static const zh = PromptLocale(
@@ -299,10 +300,10 @@ class PromptLocale {
     colon: '：',
     sysSceneProse:
         'You are a scene prose generator for a Chinese novel. '
-        'Return only the finished scene prose in plain text.',
+        'Return the finished scene prose in plain text.',
     sysSceneDirectorPolish:
         'You are a scene plan polisher for a Chinese novel. '
-        'Output exactly 4 short lines and nothing else:\n'
+        'Use this 4-line plan shape:\n'
         '目标：...\n'
         '冲突：...\n'
         '推进：...\n'
@@ -312,36 +313,36 @@ class PromptLocale {
         'Keep the structure and stay brief.',
     sysSceneEditorial:
         'You are a scene editor for a Chinese novel. '
-        'You receive resolved scene beats and must stitch them into '
-        'coherent prose. Rules:\n'
-        '1. Preserve every beat\'s factual content exactly.\n'
-        '2. Add connective tissue and sensory detail only where no beat exists.\n'
-        '3. Never contradict, embellish, or omit beat facts.\n'
-        '4. Maintain consistent character voice and scene atmosphere.\n'
-        '5. Output only the finished prose in plain text.',
+        'You receive roleplay prose fragments plus resolved scene beats and '
+        'polish them into coherent prose. Guidance:\n'
+        '1. Use the roleplay draft as the primary prose base when present.\n'
+        '2. Preserve every beat\'s factual content exactly.\n'
+        '3. Add connective tissue and sensory detail around the fragments.\n'
+        '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
+        '5. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for a Chinese novel. '
-        'Output exactly 2 lines:\n'
+        'Use this 2-line review shape:\n'
         '决定：PASS or 决定：REWRITE_PROSE or 决定：REPLAN_SCENE\n'
         '原因：...\n'
-        'Only flag blocking issues. Keep the second line brief.',
+        'Focus on blocking issues. Keep the second line brief.',
     sysDynamicRoleAgent:
         'You are a dynamic role agent for a Chinese novel scene. '
-        'Output exactly 3 short lines and nothing else:\n'
+        'Use this 3-line role brief:\n'
         '立场：...\n'
         '动作：...\n'
         '禁忌：...\n'
-        'Keep every line concrete and brief. No prose.',
+        'Keep every line concrete and brief.',
     sysDynamicRoleAgentWithTools:
         'You are a dynamic role agent for a Chinese novel scene. '
-        'Output 3 required lines plus optional retrieval lines:\n'
+        'Use 3 core lines plus optional retrieval lines:\n'
         '立场：...\n'
         '动作：...\n'
         '禁忌：...\n'
         '检索：tool_name|query|purpose (optional, repeat for multiple)\n'
-        'Allowed tools: character_profile, relationship, world_setting, '
+        'Retrieval tool options: character_profile, relationship, world_setting, '
         'past_event\n'
-        'Keep every line concrete and brief. No prose.',
+        'Keep every line concrete and brief.',
     sysSceneBeatResolve:
         'You are a scene beat resolver for a Chinese novel. '
         'Output one beat per line, each starting with a type tag:\n'
@@ -350,14 +351,14 @@ class PromptLocale {
         'Example: [对白] @char01 你怎么来了\n'
         'Example: [动作] @char02 转身走向窗边\n'
         'Example: [事实] @narrator 此时已是深夜\n'
-        'Output ONLY beat lines. No other text.',
+        'Use beat lines for the response.',
     sysThoughtExtraction:
         'You are a story analysis assistant. Given scene prose, beat contents, '
         'and review reasons, extract thought atoms as a JSON array. Each object '
-        'must have: thoughtType (persona|plotCausality|stateChange|foreshadowing|'
+        'with fields: thoughtType (persona|plotCausality|stateChange|foreshadowing|'
         'style|worldConsistency), content (string), confidence (0.0-1.0), '
         'sourceIds (string array), rootSourceIds (string array), '
-        'tags (string array). Return ONLY the JSON array.',
+        'tags (string array). Return the JSON array.',
     targetLabel: '目标',
     conflictLabel: '冲突',
     progressionLabel: '推进',
@@ -400,7 +401,7 @@ class PromptLocale {
     editorialFeedbackLabel: '编辑反馈',
     proseLabel: '正文',
     reviewLabel: '评审',
-    rulesOnlyBlocking: '规则：只找阻塞问题，不改写正文',
+    rulesOnlyBlocking: '规则：聚焦阻塞问题，正文改写交给后续步骤',
     knownFactsLabel: '已知事实',
     toneFieldLabel: '基调',
     pacingFieldLabel: '节奏',
@@ -451,10 +452,10 @@ class PromptLocale {
     colon: ': ',
     sysSceneProse:
         'You are a scene prose generator for an English novel. '
-        'Return only the finished scene prose in plain text.',
+        'Return the finished scene prose in plain text.',
     sysSceneDirectorPolish:
         'You are a scene plan polisher for an English novel. '
-        'Output exactly 4 short lines and nothing else:\n'
+        'Use this 4-line plan shape:\n'
         'Target: ...\n'
         'Conflict: ...\n'
         'Progression: ...\n'
@@ -464,36 +465,36 @@ class PromptLocale {
         'Keep the structure and stay brief.',
     sysSceneEditorial:
         'You are a scene editor for an English novel. '
-        'You receive resolved scene beats and must stitch them into '
-        'coherent prose. Rules:\n'
-        '1. Preserve every beat\'s factual content exactly.\n'
-        '2. Add connective tissue and sensory detail only where no beat exists.\n'
-        '3. Never contradict, embellish, or omit beat facts.\n'
-        '4. Maintain consistent character voice and scene atmosphere.\n'
-        '5. Output only the finished prose in plain text.',
+        'You receive roleplay prose fragments plus resolved scene beats and '
+        'polish them into coherent prose. Guidance:\n'
+        '1. Use the roleplay draft as the primary prose base when present.\n'
+        '2. Preserve every beat\'s factual content exactly.\n'
+        '3. Add connective tissue and sensory detail around the fragments.\n'
+        '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
+        '5. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for an English novel. '
-        'Output exactly 2 lines:\n'
+        'Use this 2-line review shape:\n'
         'Decision: PASS or Decision: REWRITE_PROSE or Decision: REPLAN_SCENE\n'
         'Reason: ...\n'
-        'Only flag blocking issues. Keep the second line brief.',
+        'Focus on blocking issues. Keep the second line brief.',
     sysDynamicRoleAgent:
         'You are a dynamic role agent for an English novel scene. '
-        'Output exactly 3 short lines and nothing else:\n'
+        'Use this 3-line role brief:\n'
         'Stance: ...\n'
         'Action: ...\n'
         'Taboo: ...\n'
-        'Keep every line concrete and brief. No prose.',
+        'Keep every line concrete and brief.',
     sysDynamicRoleAgentWithTools:
         'You are a dynamic role agent for an English novel scene. '
-        'Output 3 required lines plus optional retrieval lines:\n'
+        'Use 3 core lines plus optional retrieval lines:\n'
         'Stance: ...\n'
         'Action: ...\n'
         'Taboo: ...\n'
         'Retrieval: tool_name|query|purpose (optional, repeat for multiple)\n'
-        'Allowed tools: character_profile, relationship, world_setting, '
+        'Retrieval tool options: character_profile, relationship, world_setting, '
         'past_event\n'
-        'Keep every line concrete and brief. No prose.',
+        'Keep every line concrete and brief.',
     sysSceneBeatResolve:
         'You are a scene beat resolver for an English novel. '
         'Output one beat per line, each starting with a type tag:\n'
@@ -502,14 +503,14 @@ class PromptLocale {
         'Example: [Dialogue] @char01 What are you doing here?\n'
         'Example: [Action] @char02 turns and walks to the window\n'
         'Example: [Fact] @narrator It was already late at night\n'
-        'Output ONLY beat lines. No other text.',
+        'Use beat lines for the response.',
     sysThoughtExtraction:
         'You are a story analysis assistant. Given scene prose, beat contents, '
         'and review reasons, extract thought atoms as a JSON array. Each object '
-        'must have: thoughtType (persona|plotCausality|stateChange|foreshadowing|'
+        'with fields: thoughtType (persona|plotCausality|stateChange|foreshadowing|'
         'style|worldConsistency), content (string), confidence (0.0-1.0), '
         'sourceIds (string array), rootSourceIds (string array), '
-        'tags (string array). Return ONLY the JSON array.',
+        'tags (string array). Return the JSON array.',
     targetLabel: 'Target',
     conflictLabel: 'Conflict',
     progressionLabel: 'Progression',
@@ -536,12 +537,17 @@ class PromptLocale {
     toneComplex: 'Complex',
     toneNeutral: 'Neutral',
     tensionKeywords: [
-      'force', 'block', 'conflict', 'confront', 'threat', 'danger',
-      'urgent', 'chase', 'escape',
+      'force',
+      'block',
+      'conflict',
+      'confront',
+      'threat',
+      'danger',
+      'urgent',
+      'chase',
+      'escape',
     ],
-    calmKeywords: [
-      'memory', 'narration', 'calm', 'daily', 'chat', 'peaceful',
-    ],
+    calmKeywords: ['memory', 'narration', 'calm', 'daily', 'chat', 'peaceful'],
     taskLabel: 'Task',
     sceneLabel: 'Scene',
     sceneShortLabel: 'Scene',
@@ -557,7 +563,8 @@ class PromptLocale {
     editorialFeedbackLabel: 'Editorial feedback',
     proseLabel: 'Prose',
     reviewLabel: 'Review',
-    rulesOnlyBlocking: 'Rules: Only flag blocking issues, do not rewrite prose',
+    rulesOnlyBlocking:
+        'Rules: focus on blocking issues; prose rewriting happens in later steps',
     knownFactsLabel: 'Known facts',
     toneFieldLabel: 'Tone',
     pacingFieldLabel: 'Pacing',
@@ -572,7 +579,8 @@ class PromptLocale {
     constraintDefaultText: 'Follow current worldview and character settings',
     constraintWorldNodesText: 'Follow rules related to {nodes}',
     conflictDefaultText: 'Drive toward scene goal',
-    conflictSingleCharText: '{name}({role}) faces internal and external pressure',
+    conflictSingleCharText:
+        '{name}({role}) faces internal and external pressure',
     namesConjunction: 'and',
     conflictMultiCharText: '{names} exert mutual pressure toward the goal',
     progressionDualTemplate: '{first} presses → {second} reacts → {core}',

@@ -11,6 +11,7 @@ import 'scene_director_orchestrator.dart';
 import 'scene_prose_generator.dart';
 import 'scene_quality_scorer.dart';
 import 'scene_review_coordinator.dart';
+import 'story_generation_formatter_trace.dart';
 import 'roleplay_session_store.dart';
 import 'character_memory_store.dart';
 import 'story_context_cache.dart';
@@ -53,7 +54,13 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
   );
 
   registry.registerFactory<SceneReviewService>(
-    (r) => SceneReviewCoordinator(settingsStore: r.resolve()),
+    (r) => SceneReviewCoordinator(
+      settingsStore: r.resolve(),
+      formatterTraceSink:
+          registry.isRegistered<StoryGenerationFormatterTraceSink>()
+          ? r.resolve()
+          : null,
+    ),
   );
 
   registry.registerFactory<SceneContextAssemblerService>(

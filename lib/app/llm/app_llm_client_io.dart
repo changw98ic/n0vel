@@ -7,12 +7,25 @@ import 'package:dio/dio.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
 import 'app_llm_provider_adapters.dart';
+import 'app_llm_response_decoding.dart';
 
 AppLlmClient createAppLlmClient() => _IoAppLlmClient();
 
 class _IoAppLlmClient implements AppLlmClient {
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    final streamed = await _chatOnce(request, stream: true);
+    if (streamed.succeeded ||
+        streamed.failureKind != AppLlmFailureKind.invalidResponse) {
+      return streamed;
+    }
+    return _chatOnce(request, stream: false);
+  }
+
+  Future<AppLlmChatResult> _chatOnce(
+    AppLlmChatRequest request, {
+    required bool stream,
+  }) async {
     final adapter = AppLlmProviderAdapters.of(request.provider);
     final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
     if (endpoint == null) {
@@ -44,6 +57,8 @@ class _IoAppLlmClient implements AppLlmClient {
         data: adapter.buildBody(
           model: request.model,
           messages: request.messages,
+          stream: stream,
+          maxTokens: request.maxTokens,
         ),
       );
       final statusCode = response.statusCode ?? 0;
@@ -89,7 +104,9 @@ class _IoAppLlmClient implements AppLlmClient {
       );
       stopwatch.stop();
 
-      final decoded = _decodeStreamedResponse(body) ?? _decodeResponse(body);
+      final decoded =
+          decodeOpenAiChatStreamBody(body) ??
+          decodeOpenAiChatResponseBody(body);
       final outputText = decoded?.text ?? adapter.decodeOutputText(body);
       if (outputText == null || outputText.trim().isEmpty) {
         return AppLlmChatResult.failure(
@@ -146,137 +163,6 @@ class _IoAppLlmClient implements AppLlmClient {
         .toList()
         .timeout(Duration(milliseconds: timeoutMs));
     return utf8.decode(bytes, allowMalformed: true);
-  }
-
-  _DecodedResponse? _decodeResponse(String body) {
-    final decoded = jsonDecode(body);
-    if (decoded is! Map) {
-      return null;
-    }
-
-    String? text;
-    final choices = decoded['choices'];
-    if (choices is List && choices.isNotEmpty) {
-      final firstChoice = choices.first;
-      if (firstChoice is Map) {
-        final message = firstChoice['message'];
-        if (message is Map) {
-          final content = message['content'];
-          final normalized = _normalizeContent(content);
-          if (normalized != null && normalized.isNotEmpty) {
-            text = normalized;
-          }
-        }
-      }
-    }
-
-    final response = decoded['response'];
-    if (response is String && response.trim().isNotEmpty) {
-      text = response;
-    }
-
-    final usage = decoded['usage'];
-    int? promptTokens;
-    int? completionTokens;
-    int? totalTokens;
-    if (usage is Map) {
-      promptTokens = _toInt(usage['prompt_tokens']);
-      completionTokens = _toInt(usage['completion_tokens']);
-      totalTokens = _toInt(usage['total_tokens']);
-    }
-
-    if (text == null || text.trim().isEmpty) {
-      return null;
-    }
-
-    return _DecodedResponse(
-      text: text.trim(),
-      promptTokens: promptTokens,
-      completionTokens: completionTokens,
-      totalTokens: totalTokens,
-    );
-  }
-
-  String? _normalizeContent(Object? content) {
-    if (content is String) {
-      return content;
-    }
-    if (content is List) {
-      final buffer = StringBuffer();
-      for (final item in content) {
-        if (item is Map && item['type']?.toString() == 'text') {
-          final text = item['text']?.toString() ?? '';
-          if (text.isNotEmpty) {
-            if (buffer.isNotEmpty) {
-              buffer.write('\n');
-            }
-            buffer.write(text);
-          }
-        }
-      }
-      final normalized = buffer.toString().trim();
-      return normalized.isEmpty ? null : normalized;
-    }
-    return null;
-  }
-
-  _DecodedResponse? _decodeStreamedResponse(String body) {
-    final buffer = StringBuffer();
-    int? promptTokens;
-    int? completionTokens;
-    int? totalTokens;
-    for (final rawLine in const LineSplitter().convert(body)) {
-      final line = rawLine.trim();
-      if (!line.startsWith('data:')) {
-        continue;
-      }
-      final payload = line.substring(5).trim();
-      if (payload.isEmpty || payload == '[DONE]') {
-        continue;
-      }
-
-      try {
-        final decoded = jsonDecode(payload);
-        if (decoded is! Map) {
-          continue;
-        }
-        final choices = decoded['choices'];
-        if (choices is List && choices.isNotEmpty) {
-          final firstChoice = choices.first;
-          if (firstChoice is Map) {
-            final delta = firstChoice['delta'];
-            if (delta is Map) {
-              final content = _normalizeContent(delta['content']);
-              if (content != null && content.isNotEmpty) {
-                buffer.write(content);
-              }
-            }
-          }
-        }
-
-        final usage = decoded['usage'];
-        if (usage is Map) {
-          promptTokens = _toInt(usage['prompt_tokens']);
-          completionTokens = _toInt(usage['completion_tokens']);
-          totalTokens = _toInt(usage['total_tokens']);
-        }
-      } on FormatException {
-        continue;
-      }
-    }
-
-    final normalized = buffer.toString().trim();
-    if (normalized.isEmpty) {
-      return null;
-    }
-
-    final filtered = stripThinkingChain(normalized);
-    return _DecodedResponse(
-      text: filtered.isNotEmpty ? filtered : normalized,
-      promptTokens: promptTokens,
-      completionTokens: completionTokens,
-      totalTokens: totalTokens,
-    );
   }
 
   Uri? _resolveEndpoint(String baseUrl, String endpointPath) {
@@ -351,6 +237,7 @@ class _IoAppLlmClient implements AppLlmClient {
         data: adapter.buildBody(
           model: request.model,
           messages: request.messages,
+          maxTokens: request.maxTokens,
         ),
       );
 
@@ -448,8 +335,8 @@ class _IoAppLlmClient implements AppLlmClient {
             if (firstChoice is! Map) return <String>[];
             final delta = firstChoice['delta'];
             if (delta is! Map) return <String>[];
-            final content = delta['content'];
-            if (content is String && content.isNotEmpty) {
+            final content = normalizeLlmContent(delta['content']);
+            if (content != null && content.isNotEmpty) {
               return <String>[content];
             }
           } on FormatException {
@@ -528,33 +415,6 @@ class _IoAppLlmClient implements AppLlmClient {
   String _normalizeDioErrorDetail(DioException error) {
     return error.message ?? error.toString();
   }
-}
-
-class _DecodedResponse {
-  const _DecodedResponse({
-    required this.text,
-    this.promptTokens,
-    this.completionTokens,
-    this.totalTokens,
-  });
-
-  final String text;
-  final int? promptTokens;
-  final int? completionTokens;
-  final int? totalTokens;
-}
-
-int? _toInt(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double) {
-    return value.toInt();
-  }
-  if (value is String) {
-    return int.tryParse(value);
-  }
-  return null;
 }
 
 class _MappedFailure {

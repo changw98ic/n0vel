@@ -2873,6 +2873,7 @@ class _ControlledStoryRunOrchestrator extends ChapterGenerationOrchestrator {
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
     void Function(String message)? onStatus,
+    void Function()? onSpeculationReady,
   }) async {
     onStatus?.call('fake orchestrator running');
     started.complete();

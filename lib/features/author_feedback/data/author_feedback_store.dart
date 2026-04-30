@@ -29,6 +29,7 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     unawaited(_readyFuture);
   }
 
+  @visibleForTesting
   static AuthorFeedbackStorage? debugStorageOverride;
 
   final AuthorFeedbackStorage _storage;

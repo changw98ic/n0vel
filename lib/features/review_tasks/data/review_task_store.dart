@@ -24,6 +24,7 @@ class ReviewTaskStore extends AppProjectScopedStore {
     }
   }
 
+  @visibleForTesting
   static ReviewTaskStorage? debugStorageOverride;
 
   final ReviewTaskStorage _storage;

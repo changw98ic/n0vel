@@ -15,21 +15,29 @@ void main() {
       addTearDown(db.dispose);
 
       final log = <String>[];
-      final manager = DatabaseSchemaManager(migrations: [
-        SchemaMigration(
-            version: 3, description: 'v3', migrate: (_) => log.add('v3')),
-        SchemaMigration(
-            version: 1, description: 'v1', migrate: (_) => log.add('v1')),
-        SchemaMigration(
-            version: 2, description: 'v2', migrate: (_) => log.add('v2')),
-      ]);
+      final manager = DatabaseSchemaManager(
+        migrations: [
+          SchemaMigration(
+            version: 3,
+            description: 'v3',
+            migrate: (_) => log.add('v3'),
+          ),
+          SchemaMigration(
+            version: 1,
+            description: 'v1',
+            migrate: (_) => log.add('v1'),
+          ),
+          SchemaMigration(
+            version: 2,
+            description: 'v2',
+            migrate: (_) => log.add('v2'),
+          ),
+        ],
+      );
       manager.ensureSchema(db);
 
       expect(log, ['v1', 'v2', 'v3']);
-      expect(
-        db.select('PRAGMA user_version').first['user_version'],
-        3,
-      );
+      expect(db.select('PRAGMA user_version').first['user_version'], 3);
     });
 
     test('is idempotent — second call is a no-op', () {
@@ -37,13 +45,15 @@ void main() {
       addTearDown(db.dispose);
 
       var callCount = 0;
-      final manager = DatabaseSchemaManager(migrations: [
-        SchemaMigration(
-          version: 1,
-          description: 'once',
-          migrate: (_) => callCount++,
-        ),
-      ]);
+      final manager = DatabaseSchemaManager(
+        migrations: [
+          SchemaMigration(
+            version: 1,
+            description: 'once',
+            migrate: (_) => callCount++,
+          ),
+        ],
+      );
 
       manager.ensureSchema(db);
       manager.ensureSchema(db);
@@ -60,14 +70,25 @@ void main() {
       db.execute('PRAGMA user_version = 1');
 
       final log = <String>[];
-      final manager = DatabaseSchemaManager(migrations: [
-        SchemaMigration(
-            version: 1, description: 'v1', migrate: (_) => log.add('v1')),
-        SchemaMigration(
-            version: 2, description: 'v2', migrate: (_) => log.add('v2')),
-        SchemaMigration(
-            version: 3, description: 'v3', migrate: (_) => log.add('v3')),
-      ]);
+      final manager = DatabaseSchemaManager(
+        migrations: [
+          SchemaMigration(
+            version: 1,
+            description: 'v1',
+            migrate: (_) => log.add('v1'),
+          ),
+          SchemaMigration(
+            version: 2,
+            description: 'v2',
+            migrate: (_) => log.add('v2'),
+          ),
+          SchemaMigration(
+            version: 3,
+            description: 'v3',
+            migrate: (_) => log.add('v3'),
+          ),
+        ],
+      );
       manager.ensureSchema(db);
 
       expect(log, ['v2', 'v3']);
@@ -78,19 +99,21 @@ void main() {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      final manager = DatabaseSchemaManager(migrations: [
-        SchemaMigration(
-          version: 1,
-          description: 'create table',
-          migrate: (db) =>
-              db.execute('CREATE TABLE foo (id INTEGER PRIMARY KEY)'),
-        ),
-        SchemaMigration(
-          version: 2,
-          description: 'failing',
-          migrate: (_) => throw Exception('boom'),
-        ),
-      ]);
+      final manager = DatabaseSchemaManager(
+        migrations: [
+          SchemaMigration(
+            version: 1,
+            description: 'create table',
+            migrate: (db) =>
+                db.execute('CREATE TABLE foo (id INTEGER PRIMARY KEY)'),
+          ),
+          SchemaMigration(
+            version: 2,
+            description: 'failing',
+            migrate: (_) => throw Exception('boom'),
+          ),
+        ],
+      );
 
       expect(() => manager.ensureSchema(db), throwsException);
       expect(db.select('PRAGMA user_version').first['user_version'], 0);
@@ -120,53 +143,64 @@ void main() {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      DatabaseSchemaManager(migrations: authoringSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
 
-      final tables = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
-      ).map((r) => r['name'] as String).toList();
+      final tables = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+          )
+          .map((r) => r['name'] as String)
+          .toList();
 
-      expect(tables, containsAll([
-        'workspace_projects',
-        'workspace_characters',
-        'workspace_scenes',
-        'workspace_world_nodes',
-        'workspace_audit_issues',
-        'workspace_preferences',
-        'workspace_project_preferences',
-        'version_entries',
-        'draft_documents',
-        'ai_history_entries',
-        'scene_context_snapshots',
-        'story_outline_snapshots',
-        'story_generation_state',
-        'story_memory_sources',
-        'story_memory_chunks',
-        'story_thought_atoms',
-      ]));
       expect(
-        db.select('PRAGMA user_version').first['user_version'],
-        1,
+        tables,
+        containsAll([
+          'workspace_projects',
+          'workspace_characters',
+          'workspace_scenes',
+          'workspace_world_nodes',
+          'workspace_audit_issues',
+          'workspace_preferences',
+          'workspace_project_preferences',
+          'version_entries',
+          'draft_documents',
+          'ai_history_entries',
+          'scene_context_snapshots',
+          'story_outline_snapshots',
+          'story_generation_state',
+          'story_memory_sources',
+          'story_memory_chunks',
+          'story_thought_atoms',
+        ]),
       );
+      expect(db.select('PRAGMA user_version').first['user_version'], 2);
     });
 
     test('creates story memory indexes', () {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      DatabaseSchemaManager(migrations: authoringSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
 
-      final indexes = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
-      ).map((r) => r['name'] as String).toList();
+      final indexes = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
+          )
+          .map((r) => r['name'] as String)
+          .toList();
 
-      expect(indexes, containsAll([
-        'idx_memory_sources_project',
-        'idx_memory_chunks_project',
-        'idx_thought_atoms_project',
-      ]));
+      expect(
+        indexes,
+        containsAll([
+          'idx_memory_sources_project',
+          'idx_memory_chunks_project',
+          'idx_thought_atoms_project',
+        ]),
+      );
     });
 
     test('migrates legacy workspace_projects without id/scene_id columns', () {
@@ -191,8 +225,9 @@ void main() {
         VALUES ('workspace-default', 0, 'Test', 'Fantasy', 'A test', '场景 1')
       ''');
 
-      DatabaseSchemaManager(migrations: authoringSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
 
       final rows = db.select(
         'SELECT id, scene_id, last_opened_at_ms FROM workspace_projects',
@@ -221,12 +256,11 @@ void main() {
         VALUES (0, 'v1', 'content', 1000)
       ''');
 
-      DatabaseSchemaManager(migrations: authoringSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
 
-      final rows = db.select(
-        'SELECT project_id, label FROM version_entries',
-      );
+      final rows = db.select('SELECT project_id, label FROM version_entries');
       expect(rows, hasLength(1));
       expect(rows.first['project_id'], 'project-yuechao');
       expect(rows.first['label'], 'v1');
@@ -247,8 +281,9 @@ void main() {
         VALUES ('hello', 1000)
       ''');
 
-      DatabaseSchemaManager(migrations: authoringSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
 
       final rows = db.select(
         'SELECT project_id, text_body FROM draft_documents',
@@ -288,23 +323,31 @@ void main() {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      DatabaseSchemaManager(migrations: telemetrySchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: telemetrySchemaMigrations,
+      ).ensureSchema(db);
 
-      final tables = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'table'",
-      ).map((r) => r['name'] as String).toList();
+      final tables = db
+          .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+          .map((r) => r['name'] as String)
+          .toList();
       expect(tables, contains('app_event_log_entries'));
 
-      final indexes = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
-      ).map((r) => r['name'] as String).toList();
-      expect(indexes, containsAll([
-        'idx_app_event_log_entries_timestamp',
-        'idx_app_event_log_entries_category_action_time',
-        'idx_app_event_log_entries_correlation',
-        'idx_app_event_log_entries_project_scene_time',
-      ]));
+      final indexes = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
+          )
+          .map((r) => r['name'] as String)
+          .toList();
+      expect(
+        indexes,
+        containsAll([
+          'idx_app_event_log_entries_timestamp',
+          'idx_app_event_log_entries_category_action_time',
+          'idx_app_event_log_entries_correlation',
+          'idx_app_event_log_entries_project_scene_time',
+        ]),
+      );
 
       expect(db.select('PRAGMA user_version').first['user_version'], 1);
     });
@@ -317,18 +360,25 @@ void main() {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      DatabaseSchemaManager(migrations: simulationSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: simulationSchemaMigrations,
+      ).ensureSchema(db);
 
-      final tables = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
-      ).map((r) => r['name'] as String).toList();
+      final tables = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+          )
+          .map((r) => r['name'] as String)
+          .toList();
 
-      expect(tables, containsAll([
-        'simulation_runs',
-        'simulation_participant_prompts',
-        'simulation_chat_messages',
-      ]));
+      expect(
+        tables,
+        containsAll([
+          'simulation_runs',
+          'simulation_participant_prompts',
+          'simulation_chat_messages',
+        ]),
+      );
       expect(db.select('PRAGMA user_version').first['user_version'], 1);
     });
 
@@ -347,8 +397,9 @@ void main() {
         INSERT INTO simulation_state (id, payload_json) VALUES (1, '{"template":"dialogue","promptOverrides":{"char1":"prompt"},"extraMessages":[]}')
       ''');
 
-      DatabaseSchemaManager(migrations: simulationSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: simulationSchemaMigrations,
+      ).ensureSchema(db);
 
       // Legacy table should be gone.
       final tables = db.select(
@@ -361,9 +412,7 @@ void main() {
       expect(runs, hasLength(1));
       expect(runs.first['template_name'], 'dialogue');
 
-      final prompts = db.select(
-        'SELECT * FROM simulation_participant_prompts',
-      );
+      final prompts = db.select('SELECT * FROM simulation_participant_prompts');
       expect(prompts, hasLength(1));
       expect(prompts.first['participant_key'], 'char1');
     });
@@ -383,18 +432,25 @@ void main() {
       ''');
 
       // Should not throw.
-      DatabaseSchemaManager(migrations: simulationSchemaMigrations)
-          .ensureSchema(db);
+      DatabaseSchemaManager(
+        migrations: simulationSchemaMigrations,
+      ).ensureSchema(db);
 
       // Legacy table should be gone, tables created.
-      final tables = db.select(
-        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
-      ).map((r) => r['name'] as String).toList();
-      expect(tables, containsAll([
-        'simulation_runs',
-        'simulation_participant_prompts',
-        'simulation_chat_messages',
-      ]));
+      final tables = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+          )
+          .map((r) => r['name'] as String)
+          .toList();
+      expect(
+        tables,
+        containsAll([
+          'simulation_runs',
+          'simulation_participant_prompts',
+          'simulation_chat_messages',
+        ]),
+      );
     });
   });
 }

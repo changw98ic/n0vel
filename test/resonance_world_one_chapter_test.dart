@@ -34,9 +34,16 @@ import 'package:novel_writer/features/import_export/data/project_transfer_servic
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
+import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
+import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
+import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
+
+import 'test_support/jsonl_trace_sinks.dart';
 
 const int _maxTransportRetriesPerScene = 6;
+const int _maxChapterSimulationTransportRetries = 3;
 const int _maxConcurrentSceneRuns = 2;
 
 void main() {
@@ -155,6 +162,12 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
   final runtimeDirectory = Directory('${outputRoot.path}/runtime');
   final sourceDirectory = Directory('${outputRoot.path}/source');
   final sourcePaths = _ValidationSourcePaths.fromDirectory(sourceDirectory);
+  final llmTraceSink = FileAppLlmCallTraceSink(
+    File('${runtimeDirectory.path}/llm-call-trace.jsonl'),
+  );
+  final formatterTraceSink = FileStoryGenerationFormatterTraceSink(
+    File('${runtimeDirectory.path}/formatter-output.jsonl'),
+  );
   final statusReporter = _LiveStatusReporter(
     runtimeDirectory: runtimeDirectory,
   );
@@ -174,6 +187,7 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
   final settingsStore = AppSettingsStore(
     storage: InMemoryAppSettingsStorage(),
     eventLog: eventLog,
+    llmTraceSink: llmTraceSink,
   );
   final recorder = ArtifactRecorder(rootDirectory: outputRoot);
 
@@ -209,6 +223,8 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
     workspaceStore: workspaceStore,
     eventLog: eventLog,
   );
+  final roleplayDb = sqlite.sqlite3.open(sourcePaths.authoringDbPath);
+  final roleplaySessionStore = RoleplaySessionStoreIO(db: roleplayDb);
 
   final targetWorkspaceStore = AppWorkspaceStore(
     storage: InMemoryAppWorkspaceStorage(),
@@ -235,6 +251,7 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
   );
 
   var sourceStoresDisposed = false;
+  var roleplayDbDisposed = false;
   _RecoveredValidationStores? recoveredSourceStores;
 
   try {
@@ -243,7 +260,8 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
       detail:
           'Saving settings and testing connection for kimi-k2.6 '
           '(timeout ${resolvedSettings.timeoutMs}ms, '
-          'max concurrent ${resolvedSettings.maxConcurrentRequests}).',
+          'max concurrent ${resolvedSettings.maxConcurrentRequests}, '
+          'max tokens ${resolvedSettings.maxTokens}).',
     );
     final configuredModel = await _configureRealSettings(
       settingsStore: settingsStore,
@@ -342,9 +360,16 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
         ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
           maxProseRetries: 2,
+          reviewCoordinator: SceneReviewCoordinator(
+            settingsStore: settingsStore,
+            formatterTraceSink: formatterTraceSink,
+          ),
+          qualityScorer: SceneQualityScorer(settingsStore: settingsStore),
+          roleplaySessionStore: roleplaySessionStore,
         );
     final chapterSummaries = <_ValidationChapterSummary>[];
     final chapterStates = <StoryChapterGenerationState>[];
+    final qualityOutputs = <SceneRuntimeOutput>[];
     final bookBuffer = StringBuffer();
 
     for (final chapter in _validationChapters) {
@@ -380,6 +405,9 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
         chapter: chapter,
         chapterSimulationInput: simulationSession.proseInput,
       );
+      qualityOutputs.addAll([
+        for (final execution in sceneExecutions) execution.output,
+      ]);
       for (final execution in sceneExecutions) {
         await recorder.recordReport(
           relativePath: 'reviews/${chapter.id}-${execution.scene.id}.md',
@@ -508,6 +536,8 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
     outlineStore.dispose();
     generationStore.dispose();
     simulationStore.dispose();
+    roleplayDb.dispose();
+    roleplayDbDisposed = true;
     sourceStoresDisposed = true;
 
     recoveredSourceStores = await _openAndVerifyRecoveredSourceStores(
@@ -600,6 +630,14 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
       content: runReportMarkdown,
     );
     await recorder.recordReport(
+      relativePath: 'reports/quality-report.md',
+      content: SceneQualityReporter.toMarkdown(qualityOutputs),
+    );
+    await recorder.recordReport(
+      relativePath: 'reports/quality-report.json',
+      content: SceneQualityReporter.toJson(qualityOutputs),
+    );
+    await recorder.recordReport(
       relativePath: 'reports/run-report.md',
       content: runReportMarkdown,
     );
@@ -638,6 +676,9 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
       outlineStore.dispose();
       generationStore.dispose();
       simulationStore.dispose();
+    }
+    if (!roleplayDbDisposed) {
+      roleplayDb.dispose();
     }
     recoveredSourceStores?.dispose();
     targetWorkspaceStore.dispose();
@@ -736,6 +777,7 @@ class _ResolvedRealSettings {
     required this.apiKey,
     required this.candidateModels,
     required this.maxConcurrentRequests,
+    required this.maxTokens,
     required this.timeoutMs,
     required this.configSource,
   });
@@ -745,6 +787,7 @@ class _ResolvedRealSettings {
   final String apiKey;
   final List<String> candidateModels;
   final int maxConcurrentRequests;
+  final int maxTokens;
   final int timeoutMs;
   final String configSource;
 }
@@ -921,6 +964,8 @@ class _LiveStatusReporter {
 
   final Directory runtimeDirectory;
   final DateTime _startedAt;
+  Future<void> _roleplayTraceWrite = Future<void>.value();
+  bool _roleplayTraceInitialized = false;
 
   Future<void> update({required String phase, required String detail}) async {
     final now = DateTime.now();
@@ -948,6 +993,34 @@ class _LiveStatusReporter {
       ].join('\n'),
     );
     stdout.writeln('[live-status] $phase :: $detail');
+  }
+
+  Future<void> appendRoleplayTrace(String message) {
+    final write = _roleplayTraceWrite.then(
+      (_) => _appendRoleplayTraceNow(message),
+    );
+    _roleplayTraceWrite = write.catchError((_) {});
+    return write;
+  }
+
+  Future<void> _appendRoleplayTraceNow(String message) async {
+    final now = DateTime.now();
+    final elapsed = now.difference(_startedAt);
+    final file = File('${runtimeDirectory.path}/roleplay-trace.md');
+    await file.parent.create(recursive: true);
+    if (!_roleplayTraceInitialized) {
+      await file.writeAsString('# Roleplay Trace\n\n');
+      _roleplayTraceInitialized = true;
+    }
+    await file.writeAsString(
+      [
+        '## ${now.toIso8601String()} (+${elapsed.inSeconds}s)',
+        '',
+        message,
+        '',
+      ].join('\n'),
+      mode: FileMode.append,
+    );
   }
 }
 
@@ -1348,6 +1421,7 @@ Future<_ConfiguredModel> _configureRealSettings({
       apiKey: resolvedSettings.apiKey,
       timeoutMs: resolvedSettings.timeoutMs,
       maxConcurrentRequests: resolvedSettings.maxConcurrentRequests,
+      maxTokens: resolvedSettings.maxTokens,
     );
     if (!settingsStore.canRunConnectionTest) {
       lastFailure =
@@ -1361,6 +1435,7 @@ Future<_ConfiguredModel> _configureRealSettings({
       apiKey: resolvedSettings.apiKey,
       timeoutMs: resolvedSettings.timeoutMs,
       maxConcurrentRequests: resolvedSettings.maxConcurrentRequests,
+      maxTokens: resolvedSettings.maxTokens,
     );
     if (settingsStore.connectionTestState.status ==
         AppSettingsConnectionTestStatus.success) {
@@ -1403,27 +1478,55 @@ Future<_ChapterSimulationSession> _runChapterSimulation({
   required _ValidationChapter chapter,
   AppEventLog? eventLog,
 }) async {
-  final result = await simulationStore.runRealAgentSession(
-    settingsStore: settingsStore,
-    sceneContext: _chapterSimulationContext(chapter),
-    authorGoal:
-        'Phase 5 validation: each chapter must use this real multi-agent '
-        'discussion as input before prose generation.',
-    rounds: 1,
-    eventLog: eventLog,
-  );
-  if (!result.succeeded) {
-    fail(
-      'Phase 5 real multi-agent simulation failed for ${chapter.id}: '
-      '${result.failureDetail}',
+  for (
+    var attempt = 0;
+    attempt <= _maxChapterSimulationTransportRetries;
+    attempt += 1
+  ) {
+    final result = await simulationStore.runRealAgentSession(
+      settingsStore: settingsStore,
+      sceneContext: _chapterSimulationContext(chapter),
+      authorGoal:
+          'Phase 5 validation: each chapter must use this real multi-agent '
+          'discussion as input before prose generation.',
+      rounds: 1,
+      eventLog: eventLog,
     );
+    if (result.succeeded) {
+      return _ChapterSimulationSession(
+        chapterId: chapter.id,
+        chapterTitle: chapter.title,
+        messages: result.messages,
+      );
+    }
+
+    final detail = result.failureDetail ?? '';
+    if (attempt >= _maxChapterSimulationTransportRetries ||
+        !_isRetryableRealValidationTransportFailure(detail)) {
+      fail(
+        'Phase 5 real multi-agent simulation failed for ${chapter.id}: '
+        '${result.failureDetail}',
+      );
+    }
+
+    await Future<void>.delayed(Duration(seconds: attempt + 1));
   }
 
-  return _ChapterSimulationSession(
-    chapterId: chapter.id,
-    chapterTitle: chapter.title,
-    messages: result.messages,
-  );
+  throw StateError('unreachable chapter simulation retry state');
+}
+
+bool _isRetryableRealValidationTransportFailure(String detail) {
+  final normalized = detail.toLowerCase();
+  return normalized.contains('connection closed before full header') ||
+      normalized.contains('connection reset by peer') ||
+      normalized.contains('connection terminated') ||
+      normalized.contains('broken pipe') ||
+      normalized.contains('temporarily unavailable') ||
+      normalized.contains('server overloaded') ||
+      normalized.contains('please retry shortly') ||
+      normalized.contains('too many requests') ||
+      normalized.contains('rate limit') ||
+      normalized.contains('timed out');
 }
 
 String _chapterSimulationContext(_ValidationChapter chapter) {
@@ -1464,11 +1567,11 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
   required _ValidationChapter chapter,
   required _ValidationScene scene,
   required String chapterSimulationInput,
-  void Function()? onReviewStarted,
+  void Function()? onSpeculationReady,
 }) async {
   final restartNotes = <String>[];
   var transportRetries = 0;
-  var reviewStarted = false;
+  var speculationReleased = false;
   for (var restart = 0; restart < 3; restart += 1) {
     await statusReporter.update(
       phase: 'scene-start',
@@ -1510,9 +1613,12 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
           },
         ),
         onStatus: (message) {
-          if (!reviewStarted && _isSceneReviewStage(message)) {
-            reviewStarted = true;
-            onReviewStarted?.call();
+          if (!speculationReleased && _isSceneSpeculationStage(message)) {
+            speculationReleased = true;
+            onSpeculationReady?.call();
+          }
+          if (_isRoleplayTraceStage(message)) {
+            unawaited(statusReporter.appendRoleplayTrace(message));
           }
           unawaited(
             statusReporter.update(phase: 'scene-pass', detail: message),
@@ -1575,12 +1681,20 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
   );
 }
 
-bool _isSceneReviewStage(String message) {
-  return message.contains('scene judge review') ||
+bool _isSceneSpeculationStage(String message) {
+  return message.contains('editorial attempt') ||
+      message.contains('scene combined review') ||
+      message.contains('scene judge review') ||
       message.contains('scene consistency review') ||
       message.contains('scene reader-flow review') ||
       message.contains('scene lexicon review') ||
       message.contains('local review');
+}
+
+bool _isRoleplayTraceStage(String message) {
+  return message.contains('roleplay-log') ||
+      message.contains('roleplay round') ||
+      message.contains(' · role ');
 }
 
 Future<List<_SceneExecutionResult>> _runChapterScenesWithEscalation({
@@ -1598,17 +1712,19 @@ Future<List<_SceneExecutionResult>> _runChapterScenesWithEscalation({
   final scheduler =
       ScenePipelineScheduler<_ValidationScene, _SceneExecutionResult>(
         maxConcurrentScenes: maxConcurrentScenes,
+        canCommitResult: (result) =>
+            result.output.review.decision == SceneReviewDecision.pass,
       );
   return scheduler.run(
     scenes: scenes,
-    runScene: (scene, {required onReviewStarted}) {
+    runScene: (scene, {required onSpeculationReady}) {
       return _runSceneWithEscalation(
         orchestrator: orchestratorFactory(),
         statusReporter: statusReporter,
         chapter: chapter,
         scene: scene,
         chapterSimulationInput: chapterSimulationInput,
-        onReviewStarted: onReviewStarted,
+        onSpeculationReady: onSpeculationReady,
       );
     },
   );
@@ -1691,6 +1807,22 @@ String _sceneReviewMarkdown({
     ..writeln()
     ..writeln(execution.output.prose.text)
     ..writeln()
+    ..writeln('## Quality')
+    ..writeln();
+  final score = execution.output.qualityScore;
+  if (score == null) {
+    buffer.writeln('未记录质量评分。');
+  } else {
+    buffer
+      ..writeln('- 综合：${score.overall}')
+      ..writeln('- 文笔：${score.prose}')
+      ..writeln('- 连贯：${score.coherence}')
+      ..writeln('- 角色：${score.character}')
+      ..writeln('- 完整：${score.completeness}')
+      ..writeln('- 总结：${score.summary}');
+  }
+  buffer
+    ..writeln()
     ..writeln('## Judge Review')
     ..writeln()
     ..writeln(execution.output.review.judge.rawText)
@@ -1740,6 +1872,7 @@ String _runReportMarkdown({
     ..writeln(
       '- Max concurrent requests: ${resolvedSettings.maxConcurrentRequests}',
     )
+    ..writeln('- Max tokens: ${resolvedSettings.maxTokens}')
     ..writeln('- API key preview: ${_apiKeyPreview(resolvedSettings.apiKey)}')
     ..writeln('- Export state: `${exportResult.state.name}`')
     ..writeln('- Export package path: `${exportResult.packagePath}`')
@@ -1921,6 +2054,7 @@ Future<void> _writeSanitizedSettingsSnapshot({
       'baseUrl': resolvedSettings.baseUrl,
       'resolvedModel': configuredModel.model,
       'candidateModels': resolvedSettings.candidateModels,
+      'maxTokens': resolvedSettings.maxTokens,
       'timeoutMs': resolvedSettings.timeoutMs,
       'maxConcurrentRequests': resolvedSettings.maxConcurrentRequests,
       'apiKeyPreview': _apiKeyPreview(resolvedSettings.apiKey),
@@ -2017,6 +2151,10 @@ _ResolvedRealSettings _resolveRealSettings({
       environment: environment,
       localConfig: localConfig,
     ),
+    maxTokens: _resolvedMaxTokens(
+      environment: environment,
+      localConfig: localConfig,
+    ),
     timeoutMs: _resolvedTimeoutMs(
       environment: environment,
       localConfig: localConfig,
@@ -2054,6 +2192,19 @@ int _resolvedMaxConcurrentRequests({
       ) ??
       1;
   return requested < 1 ? 1 : requested;
+}
+
+int _resolvedMaxTokens({
+  required Map<String, String> environment,
+  required Map<String, String> localConfig,
+}) {
+  final requested =
+      int.tryParse(_firstNonEmpty(environment, ['REAL_AI_MAX_TOKENS'])) ??
+      int.tryParse(
+        _firstNonEmpty(localConfig, ['REAL_AI_MAX_TOKENS', 'maxTokens']),
+      ) ??
+      1024;
+  return requested < 1 ? 1024 : requested;
 }
 
 String _firstNonEmpty(Map<String, String> values, List<String> keys) {

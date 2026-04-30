@@ -7,7 +7,7 @@ import '../domain/story_pipeline_interfaces.dart';
 
 class SceneQualityScorer implements SceneQualityScorerService {
   SceneQualityScorer({required AppSettingsStore settingsStore})
-      : _settingsStore = settingsStore;
+    : _settingsStore = settingsStore;
 
   final AppSettingsStore _settingsStore;
 
@@ -23,8 +23,9 @@ class SceneQualityScorer implements SceneQualityScorerService {
       messages: [
         AppLlmChatMessage(
           role: 'system',
-          content: 'You are a quality scorer for Chinese novel scenes. '
-              'Output exactly 6 lines:\n'
+          content:
+              'You are a quality scorer for Chinese novel scenes. '
+              'Use this 6-line scorecard:\n'
               '文笔：<0-100>\n'
               '连贯：<0-100>\n'
               '角色：<0-100>\n'
@@ -40,10 +41,16 @@ class SceneQualityScorer implements SceneQualityScorerService {
             '摘要：${_compact(brief.sceneSummary, maxChars: 80)}',
             '导演：${_compact(director.text, maxChars: 120)}',
             '正文：${prose.text}',
-            '评审：${_compact(review.feedback, maxChars: 120)}',
+            '评审：${_compact(review.editorialFeedback, maxChars: 120)}',
           ].join('\n'),
         ),
       ],
+      traceName: 'scene_quality_scoring',
+      traceMetadata: {
+        'chapterId': brief.chapterId,
+        'sceneId': brief.sceneId,
+        'sceneTitle': brief.sceneTitle,
+      },
     );
     if (!result.succeeded) {
       throw StateError(result.detail ?? 'Scene quality scoring failed.');

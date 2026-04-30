@@ -1,5 +1,9 @@
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
+
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
+import '../llm/app_llm_request_pool.dart';
+import '../state/app_authoring_storage_io_support.dart';
 import '../state/app_ai_history_store.dart';
 import '../state/app_draft_store.dart';
 import '../state/app_scene_context_store.dart';
@@ -13,6 +17,10 @@ import '../state/story_outline_store.dart';
 import 'service_registry.dart';
 import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
+import '../../features/story_generation/data/character_memory_store.dart';
+import '../../features/story_generation/data/character_memory_store_io.dart';
+import '../../features/story_generation/data/roleplay_session_store.dart';
+import '../../features/story_generation/data/roleplay_session_store_io.dart';
 
 /// Register all application-level services into [registry].
 ///
@@ -23,6 +31,21 @@ void registerAppServices(ServiceRegistry registry) {
   // --- Infrastructure (no app-level deps) ---
 
   registry.registerFactory<AppEventLog>((_) => AppEventLog());
+  registry.registerFactory<AppLlmClient>(
+    (_) => AppSettingsStore.createSettingsLlmClient(),
+  );
+  registry.registerFactory<AppLlmRequestPool>(
+    (_) => AppLlmRequestPool(maxConcurrent: 3),
+  );
+  registry.registerFactory<sqlite3.Database>(
+    (_) => openAuthoringDatabase(resolveAuthoringDbPath()),
+  );
+  registry.registerFactory<RoleplaySessionStore>(
+    (r) => RoleplaySessionStoreIO(db: r.resolve<sqlite3.Database>()),
+  );
+  registry.registerFactory<CharacterMemoryStore>(
+    (r) => CharacterMemoryStoreIO(db: r.resolve<sqlite3.Database>()),
+  );
 
   // --- Core store (no app-level deps) ---
 
@@ -65,8 +88,8 @@ void registerAppServices(ServiceRegistry registry) {
 
   registry.registerFactory<AppSettingsStore>(
     (r) => AppSettingsStore(
-      llmClient:
-          AppSettingsStore.debugLlmClientOverride ?? createCachedAppLlmClient(),
+      llmClient: r.resolve<AppLlmClient>(),
+      requestPool: r.resolve<AppLlmRequestPool>(),
       eventLog: r.resolve<AppEventLog>(),
     ),
   );
@@ -79,6 +102,8 @@ void registerAppServices(ServiceRegistry registry) {
       sceneContextStore: r.resolve<AppSceneContextStore>(),
       outlineStore: r.resolve<StoryOutlineStore>(),
       authorFeedbackStore: r.resolve<AuthorFeedbackStore>(),
+      roleplaySessionStore: r.resolve<RoleplaySessionStore>(),
+      characterMemoryStore: r.resolve<CharacterMemoryStore>(),
     ),
   );
 

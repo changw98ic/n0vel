@@ -135,6 +135,7 @@ class RolePlayTurnOutput {
     required this.taboo,
     required List<RetrievalIntent> retrievalIntents,
     this.disclosure = '',
+    this.proseFragment = '',
     this.presentation,
     Map<String, Object?> metadata = const {},
   }) : retrievalIntents = _immutableList(retrievalIntents),
@@ -147,6 +148,7 @@ class RolePlayTurnOutput {
   final String taboo;
   final List<RetrievalIntent> retrievalIntents;
   final String disclosure;
+  final String proseFragment;
   final PresentationState? presentation;
   final Map<String, Object?> metadata;
 
@@ -163,6 +165,7 @@ class RolePlayTurnOutput {
     String action = '';
     String taboo = '';
     String disclosure = '';
+    String proseFragment = '';
     final retrievalIntents = <RetrievalIntent>[];
     final l = StoryPromptTemplates.locale;
     final stancePrefix = '${l.stanceLabel}${l.colon}';
@@ -170,6 +173,7 @@ class RolePlayTurnOutput {
     final tabooPrefix = '${l.tabooLabel}${l.colon}';
     final retrievalPrefix = '${l.retrievalLabel}${l.colon}';
     const disclosurePrefix = '披露：';
+    const proseFragmentPrefix = '正文片段：';
     const processPrefix = '过程：';
     const statePrefix = '局面：';
     for (final line in lines) {
@@ -181,6 +185,8 @@ class RolePlayTurnOutput {
         taboo = line.substring(tabooPrefix.length).trim();
       } else if (line.startsWith(disclosurePrefix)) {
         disclosure = line.substring(disclosurePrefix.length).trim();
+      } else if (line.startsWith(proseFragmentPrefix)) {
+        proseFragment = line.substring(proseFragmentPrefix.length).trim();
       } else if (line.startsWith(processPrefix)) {
         final process = line.substring(processPrefix.length).trim();
         disclosure = _appendDisclosure(disclosure, process);
@@ -205,6 +211,7 @@ class RolePlayTurnOutput {
       taboo: taboo,
       retrievalIntents: retrievalIntents,
       disclosure: disclosure,
+      proseFragment: proseFragment,
     );
   }
 

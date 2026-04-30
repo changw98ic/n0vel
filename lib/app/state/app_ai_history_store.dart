@@ -47,6 +47,7 @@ class AppAiHistoryStore extends AppProjectScopedStore {
     onRestore();
   }
 
+  @visibleForTesting
   static AppAiHistoryStorage? debugStorageOverride;
 
   final AppAiHistoryStorage _storage;

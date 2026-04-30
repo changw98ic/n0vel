@@ -373,6 +373,7 @@ class AppWorkspaceStore extends ChangeNotifier
     _restore();
   }
 
+  @visibleForTesting
   static AppWorkspaceStorage? debugStorageOverride;
 
   @override

@@ -6,8 +6,9 @@ import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../../features/story_generation/data/prompt_language.dart';
-import '../../features/story_generation/data/story_prompt_templates.dart';
 import 'app_settings_storage.dart';
+
+const Duration _llmPoolTransientFailureCooldown = Duration(seconds: 3);
 
 enum AppThemePreference { light, dark, system }
 
@@ -97,6 +98,7 @@ class AppSettingsSnapshot {
     AppLlmTimeoutConfig? timeout,
     int timeoutMs = 30000,
     required this.maxConcurrentRequests,
+    required this.maxTokens,
     required this.hasApiKey,
     required this.themePreference,
     this.promptLanguage = PromptLanguage.zh,
@@ -110,6 +112,7 @@ class AppSettingsSnapshot {
   final AppLlmTimeoutConfig? _timeout;
   final int _timeoutMs;
   final int maxConcurrentRequests;
+  final int maxTokens;
   final bool hasApiKey;
   final AppThemePreference themePreference;
   final PromptLanguage promptLanguage;
@@ -126,6 +129,7 @@ class AppSettingsSnapshot {
     String? apiKey,
     AppLlmTimeoutConfig? timeout,
     int? maxConcurrentRequests,
+    int? maxTokens,
     bool? hasApiKey,
     AppThemePreference? themePreference,
     PromptLanguage? promptLanguage,
@@ -138,6 +142,7 @@ class AppSettingsSnapshot {
       timeout: timeout ?? this.timeout,
       maxConcurrentRequests:
           maxConcurrentRequests ?? this.maxConcurrentRequests,
+      maxTokens: maxTokens ?? this.maxTokens,
       hasApiKey: hasApiKey ?? this.hasApiKey,
       themePreference: themePreference ?? this.themePreference,
       promptLanguage: promptLanguage ?? this.promptLanguage,
@@ -158,6 +163,7 @@ class AppSettingsSnapshot {
       'apiKey': apiKey,
       ...timeout.toJson(),
       'maxConcurrentRequests': maxConcurrentRequests,
+      'maxTokens': maxTokens,
       'themePreference': themePreference.name,
       'promptLanguage': promptLanguage.name,
     };
@@ -186,6 +192,7 @@ class AppSettingsSnapshot {
       apiKey: apiKey,
       timeout: AppLlmTimeoutConfig.fromJson(json),
       maxConcurrentRequests: (json['maxConcurrentRequests'] as int?) ?? 1,
+      maxTokens: (json['maxTokens'] as int?) ?? 1024,
       hasApiKey: apiKey.isNotEmpty,
       themePreference: themePreference,
       promptLanguage: promptLanguage,
@@ -197,12 +204,16 @@ class AppSettingsStore extends ChangeNotifier {
   AppSettingsStore({
     AppSettingsStorage? storage,
     AppLlmClient? llmClient,
+    AppLlmRequestPool? requestPool,
     AppEventLog? eventLog,
+    AppLlmCallTraceSink? llmTraceSink,
   }) : _storage =
            storage ?? debugStorageOverride ?? createDefaultAppSettingsStorage(),
        _llmClient =
            llmClient ?? debugLlmClientOverride ?? createDefaultAppLlmClient(),
+       _requestPool = requestPool ?? AppLlmRequestPool(maxConcurrent: 3),
        _eventLog = eventLog ?? debugEventLogOverride ?? AppEventLog(),
+       _llmTraceSink = llmTraceSink,
        _snapshot = const AppSettingsSnapshot(
          providerName: 'OpenAI 兼容服务',
          baseUrl: 'https://api.example.com/v1',
@@ -210,19 +221,29 @@ class AppSettingsStore extends ChangeNotifier {
          apiKey: '',
          timeout: AppLlmTimeoutConfig.defaults,
          maxConcurrentRequests: 1,
+         maxTokens: 1024,
          hasApiKey: false,
          themePreference: AppThemePreference.light,
        ) {
     _restore();
   }
 
+  @visibleForTesting
   static AppSettingsStorage? debugStorageOverride;
+  @visibleForTesting
   static AppLlmClient? debugLlmClientOverride;
+  @visibleForTesting
   static AppEventLog? debugEventLogOverride;
+
+  static AppLlmClient createSettingsLlmClient() {
+    return debugLlmClientOverride ?? createCachedAppLlmClient();
+  }
 
   final AppSettingsStorage _storage;
   final AppLlmClient _llmClient;
+  final AppLlmRequestPool _requestPool;
   final AppEventLog _eventLog;
+  final AppLlmCallTraceSink? _llmTraceSink;
   AppSettingsSnapshot _snapshot;
   AppSettingsFeedback _feedback = const AppSettingsFeedback();
   AppSettingsConnectionTestState _connectionTestState =
@@ -302,6 +323,7 @@ class AppSettingsStore extends ChangeNotifier {
     AppLlmTimeoutConfig? timeout,
     int? timeoutMs,
     int? maxConcurrentRequests,
+    int? maxTokens,
     bool notify = true,
   }) async {
     final normalizedModel = _normalizeRequestedModel(model);
@@ -316,9 +338,10 @@ class AppSettingsStore extends ChangeNotifier {
       timeout: resolvedTimeout,
       maxConcurrentRequests:
           maxConcurrentRequests ?? _snapshot.maxConcurrentRequests,
+      maxTokens: maxTokens ?? _snapshot.maxTokens,
       hasApiKey: apiKey.isNotEmpty,
     );
-    globalLlmRequestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
+    _requestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
     final persistResult = await _persist();
     if (notify) {
       notifyListeners();
@@ -334,6 +357,7 @@ class AppSettingsStore extends ChangeNotifier {
     AppLlmTimeoutConfig? timeout,
     int? timeoutMs,
     int? maxConcurrentRequests,
+    int? maxTokens,
   }) async {
     final normalizedModel = _normalizeRequestedModel(model);
     final resolvedTimeout =
@@ -396,6 +420,7 @@ class AppSettingsStore extends ChangeNotifier {
       timeout: resolvedTimeout,
       maxConcurrentRequests:
           maxConcurrentRequests ?? _snapshot.maxConcurrentRequests,
+      maxTokens: maxTokens ?? _snapshot.maxTokens,
       notify: false,
     );
     _feedback = _feedbackForSaveResult(persistResult);
@@ -428,6 +453,7 @@ class AppSettingsStore extends ChangeNotifier {
     AppLlmTimeoutConfig? timeout,
     int? timeoutMs,
     int? maxConcurrentRequests,
+    int? maxTokens,
   }) async {
     final normalizedModel = _normalizeRequestedModel(model);
     final resolvedTimeout =
@@ -506,8 +532,9 @@ class AppSettingsStore extends ChangeNotifier {
         apiKey: apiKey.trim(),
         model: normalizedModel,
         timeout: resolvedTimeout,
+        maxTokens: maxTokens ?? _snapshot.maxTokens,
         messages: const [
-          AppLlmChatMessage(role: 'user', content: '连接测试：请只回复 pong'),
+          AppLlmChatMessage(role: 'user', content: '连接测试：请回复 pong'),
         ],
       ),
     );
@@ -549,33 +576,137 @@ class AppSettingsStore extends ChangeNotifier {
 
   Future<AppLlmChatResult> requestAiCompletion({
     required List<AppLlmChatMessage> messages,
+    int? maxTokens,
+    String? traceName,
+    Map<String, Object?> traceMetadata = const {},
   }) {
-    return globalLlmRequestPool.run(
-      () => _llmClient.chat(
-        AppLlmChatRequest(
-          baseUrl: _snapshot.baseUrl.trim(),
-          apiKey: _snapshot.apiKey.trim(),
-          model: _normalizeRequestedModel(_snapshot.model),
-          timeout: _snapshot.timeout,
-          messages: messages,
-        ),
-      ),
+    return _requestPool.run(() async {
+      final request = AppLlmChatRequest(
+        baseUrl: _snapshot.baseUrl.trim(),
+        apiKey: _snapshot.apiKey.trim(),
+        model: _normalizeRequestedModel(_snapshot.model),
+        timeout: _snapshot.timeout,
+        maxTokens: maxTokens ?? _snapshot.maxTokens,
+        messages: messages,
+      );
+      final result = await _llmClient.chat(request);
+      await _recordLlmCallTrace(
+        request: request,
+        result: result,
+        traceName: traceName ?? _inferLlmTraceName(messages),
+        traceMetadata: traceMetadata,
+      );
+      if (_shouldCoolDownLlmRequestPool(result)) {
+        _requestPool.coolDownFor(_llmPoolTransientFailureCooldown);
+      }
+      return result;
+    });
+  }
+
+  Future<void> _recordLlmCallTrace({
+    required AppLlmChatRequest request,
+    required AppLlmChatResult result,
+    required String traceName,
+    required Map<String, Object?> traceMetadata,
+  }) async {
+    final entry = AppLlmCallTraceEntry.fromRequestResult(
+      request: request,
+      result: result,
+      traceName: traceName,
+      metadata: traceMetadata,
+    );
+
+    try {
+      await _llmTraceSink?.record(entry);
+    } on Object {
+      // LLM tracing should never block generation.
+    }
+
+    final metadata = entry.toJson();
+    await _eventLog.logBestEffort(
+      level: result.succeeded ? AppEventLogLevel.info : AppEventLogLevel.warn,
+      category: AppEventLogCategory.ai,
+      action: 'llm.chat',
+      status: result.succeeded
+          ? AppEventLogStatus.succeeded
+          : AppEventLogStatus.failed,
+      message: result.succeeded
+          ? '${request.model}: ${entry.completionChars} chars in '
+                '${entry.latencyMs ?? 0}ms'
+          : '${request.model}: ${result.failureKind?.name ?? "unknown"}',
+      errorCode: result.failureKind?.name,
+      errorDetail: result.detail,
+      metadata: metadata,
     );
   }
 
-  void setThemePreference(AppThemePreference themePreference) {
-    _hasLocalMutations = true;
-    _snapshot = _snapshot.copyWith(themePreference: themePreference);
-    unawaited(_persist());
-    notifyListeners();
+  String _inferLlmTraceName(List<AppLlmChatMessage> messages) {
+    final taskPattern = RegExp(r'^(任务|任务类型)[:：]\s*(.+)$');
+    for (final message in messages.reversed) {
+      for (final rawLine in message.content.split('\n')) {
+        final match = taskPattern.firstMatch(rawLine.trim());
+        final value = match?.group(2)?.trim();
+        if (value != null && value.isNotEmpty) {
+          return value;
+        }
+      }
+    }
+    return 'ai_completion';
   }
 
-  void setPromptLanguage(PromptLanguage language) {
+  bool _shouldCoolDownLlmRequestPool(AppLlmChatResult result) {
+    if (result.succeeded) {
+      return false;
+    }
+    if (result.statusCode == 429) {
+      return true;
+    }
+
+    switch (result.failureKind) {
+      case AppLlmFailureKind.rateLimited:
+        return true;
+      case AppLlmFailureKind.server:
+      case AppLlmFailureKind.invalidResponse:
+        return _hasTransientPressureDetail(result.detail);
+      case AppLlmFailureKind.unauthorized:
+      case AppLlmFailureKind.timeout:
+      case AppLlmFailureKind.modelNotFound:
+      case AppLlmFailureKind.network:
+      case AppLlmFailureKind.unsupportedPlatform:
+      case null:
+        return false;
+    }
+  }
+
+  bool _hasTransientPressureDetail(String? detail) {
+    final normalized = (detail ?? '').toLowerCase();
+    return normalized.contains('server overloaded') ||
+        normalized.contains('overloaded') ||
+        normalized.contains('please retry shortly') ||
+        normalized.contains('too many requests') ||
+        normalized.contains('rate limit') ||
+        normalized.contains('rate-limit') ||
+        normalized.contains('temporarily unavailable') ||
+        normalized.contains('resource exhausted') ||
+        normalized.contains('capacity');
+  }
+
+  Future<AppSettingsSaveResult> setThemePreference(
+    AppThemePreference themePreference,
+  ) async {
+    _hasLocalMutations = true;
+    _snapshot = _snapshot.copyWith(themePreference: themePreference);
+    notifyListeners();
+    return _persist();
+  }
+
+  Future<AppSettingsSaveResult> setPromptLanguage(
+    PromptLanguage language,
+  ) async {
     _hasLocalMutations = true;
     _snapshot = _snapshot.copyWith(promptLanguage: language);
-    StoryPromptTemplates.language = language;
-    unawaited(_persist());
     notifyListeners();
+    return _persist();
   }
 
   Future<void> _restore() async {
@@ -585,8 +716,7 @@ class AppSettingsStore extends ChangeNotifier {
     }
 
     _snapshot = AppSettingsSnapshot.fromJson(restored);
-    globalLlmRequestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
-    StoryPromptTemplates.language = _snapshot.promptLanguage;
+    _requestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
     if (_storage.lastLoadIssue != AppSettingsPersistenceIssue.none) {
       _activePersistenceIssue = _storage.lastLoadIssue;
       _feedback = _feedbackForLoadIssue(

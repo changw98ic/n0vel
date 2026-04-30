@@ -134,6 +134,7 @@ class AppLlmChatRequest {
     required this.model,
     AppLlmTimeoutConfig? timeout,
     int timeoutMs = 30000,
+    this.maxTokens = 1024,
     required this.messages,
     this.provider = AppLlmProvider.openaiCompatible,
     this.onPartialText,
@@ -146,6 +147,7 @@ class AppLlmChatRequest {
   final AppLlmTimeoutConfig? _timeout;
   final int _timeoutMs;
   final List<AppLlmChatMessage> messages;
+  final int maxTokens;
   final AppLlmProvider provider;
   final void Function(String chunk)? onPartialText;
 

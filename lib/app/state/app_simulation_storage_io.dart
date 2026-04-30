@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'app_simulation_storage.dart';
+import 'sql_identifier.dart';
 
 class SqliteAppSimulationStorage implements AppSimulationStorage {
   SqliteAppSimulationStorage({String? dbPath})
@@ -80,16 +81,16 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
         },
         'extraMessages': [
           for (final row in messageRows)
-          {
-            'sender': row['sender'] as String,
-            'title': row['title'] as String,
-            'body': row['body'] as String,
-            'tone': row['tone'] as String,
-            'alignEnd': (row['align_end'] as int) == 1,
+            {
+              'sender': row['sender'] as String,
+              'title': row['title'] as String,
+              'body': row['body'] as String,
+              'tone': row['tone'] as String,
+              'alignEnd': (row['align_end'] as int) == 1,
               'kind': row['message_kind'] as String,
-          },
-      ],
-    };
+            },
+        ],
+      };
     } finally {
       database.dispose();
     }
@@ -197,14 +198,18 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
     required String columnName,
     required String definition,
   }) {
+    final safeTableName = checkedSqlIdentifier(tableName);
+    checkedSqlIdentifier(columnName);
     final columns = database
-        .select('PRAGMA table_info($tableName)')
+        .select('PRAGMA table_info(${quotedSqlIdentifier(safeTableName)})')
         .map((row) => row['name'] as String)
         .toSet();
     if (columns.contains(columnName)) {
       return;
     }
-    database.execute('ALTER TABLE $tableName ADD COLUMN $definition');
+    database.execute(
+      'ALTER TABLE ${quotedSqlIdentifier(safeTableName)} ADD COLUMN $definition',
+    );
   }
 
   void _migrateLegacyState(Database database) {

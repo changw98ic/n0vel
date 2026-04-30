@@ -37,6 +37,7 @@ class ProjectImportExportPage extends StatefulWidget {
   static const executeImportButtonKey = ValueKey<String>(
     'project-import-export-execute-import',
   );
+  @visibleForTesting
   static ProjectTransferService? debugServiceOverride;
 
   final ProjectImportExportUiState uiState;
@@ -57,7 +58,10 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
     super.initState();
     _service =
         ProjectImportExportPage.debugServiceOverride ??
-        ProjectTransferService();
+        ProjectTransferService(
+          roleplayStateExport: exportRoleplayStateForProject,
+          roleplayStateImport: importRoleplayStateForProject,
+        );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshManifestSummary();
     });
@@ -202,7 +206,8 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
               runSpacing: 8,
               children: [
                 FilledButton(
-                  onPressed: () => AppNavigator.push(context, AppRoutes.workbench),
+                  onPressed: () =>
+                      AppNavigator.push(context, AppRoutes.workbench),
                   child: const Text('打开项目'),
                 ),
                 OutlinedButton(

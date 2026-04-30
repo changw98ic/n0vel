@@ -1,0 +1,12 @@
+{
+  "task_id": "task-001",
+  "role": "developer",
+  "status": "pending",
+  "instruction_file": ".agent-work/handoff/developer-task-001.md",
+  "expected_result_file": ".agent-work/inbox/developer-result-001.md",
+  "developer_agent_id": null,
+  "tester_agent_id": null,
+  "repair_attempts": 0,
+  "max_repair_attempts": 3,
+  "depends_on": []
+}

@@ -52,6 +52,7 @@ app.*.map.json
 # Auto-team runtime
 .auto-team/
 .omc/
+.agent-work/
 
 # Local workflow artifacts
 .claude/

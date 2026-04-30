@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../../app/logging/app_event_log.dart';
+import '../../../app/state/app_authoring_storage_io_support.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
@@ -11,6 +12,9 @@ import '../../../app/state/app_workspace_store.dart';
 import '../../../app/state/storage_validation.dart';
 import '../../../app/state/story_generation_store.dart';
 import '../../../app/state/story_outline_store.dart';
+import '../../story_generation/data/character_memory_store_io.dart';
+import '../../story_generation/data/roleplay_audit_report.dart';
+import '../../story_generation/data/roleplay_session_store_io.dart';
 
 class ProjectPackageManifest {
   const ProjectPackageManifest({
@@ -92,6 +96,8 @@ class ProjectTransferService {
     AppEventLog? eventLog,
     this.storyMemoryExport,
     this.storyMemoryImport,
+    this.roleplayStateExport,
+    this.roleplayStateImport,
   }) : _exportsDirectory = exportsDirectory ?? _defaultExportsDirectory(),
        _importsDirectory = importsDirectory ?? _defaultImportsDirectory(),
        _zipExecutable = zipExecutable,
@@ -117,6 +123,14 @@ class ProjectTransferService {
   /// Optional callback to import story memory data for a project.
   final Future<void> Function(String projectId, Map<String, Object?> data)?
   storyMemoryImport;
+
+  /// Optional callback to export roleplay sessions and character memories.
+  final Future<Map<String, Object?>?> Function(String projectId)?
+  roleplayStateExport;
+
+  /// Optional callback to import roleplay sessions and character memories.
+  final Future<void> Function(String projectId, Map<String, Object?> data)?
+  roleplayStateImport;
 
   String get exportPackagePath => '${_exportsDirectory.path}/$packageFilename';
   String get importPackagePath => '${_importsDirectory.path}/$packageFilename';
@@ -222,6 +236,32 @@ class ProjectTransferService {
             File(
               '${stagingDirectory.path}/story_memory.json',
             ).writeAsString(jsonEncode(memoryData)),
+          );
+        }
+      }
+      final roleplayExporter =
+          roleplayStateExport ?? exportRoleplayStateForProject;
+      final roleplayStateData = await roleplayExporter(currentProject.id);
+      if (roleplayStateData != null) {
+        exportFutures.add(
+          File(
+            '${stagingDirectory.path}/roleplay_state.json',
+          ).writeAsString(jsonEncode(roleplayStateData)),
+        );
+        final auditReports = roleplayStateData['auditReports'];
+        if (auditReports is List && auditReports.isNotEmpty) {
+          exportFutures.add(
+            File(
+              '${stagingDirectory.path}/roleplay_audit.json',
+            ).writeAsString(jsonEncode({'reports': auditReports})),
+          );
+        }
+        final auditMarkdown = roleplayStateData['auditMarkdown'];
+        if (auditMarkdown is String && auditMarkdown.trim().isNotEmpty) {
+          exportFutures.add(
+            File(
+              '${stagingDirectory.path}/roleplay_audit.md',
+            ).writeAsString(auditMarkdown),
           );
         }
       }
@@ -662,6 +702,15 @@ class ProjectTransferService {
           _decodeObjectMap(jsonDecode(await memoryFile.readAsString())),
         );
       }
+      final roleplayStateFile = File('${extraction.path}/roleplay_state.json');
+      final roleplayImporter =
+          roleplayStateImport ?? importRoleplayStateForProject;
+      if (manifest != null && await roleplayStateFile.exists()) {
+        await roleplayImporter(
+          manifest.projectId,
+          _decodeObjectMap(jsonDecode(await roleplayStateFile.readAsString())),
+        );
+      }
 
       await _logTransferEvent(
         action: overwriteExisting
@@ -800,6 +849,63 @@ class ProjectTransferService {
       errorDetail: errorDetail,
       metadata: metadata,
     );
+  }
+}
+
+Future<Map<String, Object?>?> exportRoleplayStateForProject(
+  String projectId,
+) async {
+  final database = openAuthoringDatabase(resolveAuthoringDbPath());
+  try {
+    final roleplayData = await RoleplaySessionStoreIO(
+      db: database,
+    ).exportProjectJson(projectId);
+    final roleplayStore = RoleplaySessionStoreIO(db: database);
+    final sessions = await roleplayStore.loadProjectSessions(
+      projectId: projectId,
+    );
+    final auditReports = const RoleplayAuditReportBuilder().buildAll(sessions);
+    final memoryData = await CharacterMemoryStoreIO(
+      db: database,
+    ).exportProjectJson(projectId);
+    if (roleplayData == null && memoryData == null && auditReports.isEmpty) {
+      return null;
+    }
+    return {
+      if (roleplayData != null) 'roleplaySessions': roleplayData,
+      if (memoryData != null) 'characterMemories': memoryData,
+      if (auditReports.isNotEmpty)
+        'auditReports': [for (final report in auditReports) report.toJson()],
+      if (auditReports.isNotEmpty)
+        'auditMarkdown': auditReports
+            .map((report) => report.toMarkdown())
+            .join('\n\n'),
+    };
+  } finally {
+    database.dispose();
+  }
+}
+
+Future<void> importRoleplayStateForProject(
+  String projectId,
+  Map<String, Object?> data,
+) async {
+  final database = openAuthoringDatabase(resolveAuthoringDbPath());
+  try {
+    final roleplayRaw = data['roleplaySessions'];
+    if (roleplayRaw is Map) {
+      await RoleplaySessionStoreIO(
+        db: database,
+      ).importProjectJson(projectId, Map<String, Object?>.from(roleplayRaw));
+    }
+    final memoryRaw = data['characterMemories'];
+    if (memoryRaw is Map) {
+      await CharacterMemoryStoreIO(
+        db: database,
+      ).importProjectJson(projectId, Map<String, Object?>.from(memoryRaw));
+    }
+  } finally {
+    database.dispose();
   }
 }
 

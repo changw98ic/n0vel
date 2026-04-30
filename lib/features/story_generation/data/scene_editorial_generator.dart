@@ -35,12 +35,20 @@ class SceneEditorialGenerator {
         taskCard: taskCard,
         resolvedBeats: resolvedBeats,
         attempt: attempt,
+        roleplaySession: roleplaySession,
       );
     }
 
     final l = StoryPromptTemplates.locale;
+    final hardLimit = taskCard.brief.targetLength < 1
+        ? 800
+        : taskCard.brief.targetLength * 2;
+    final roleplayDraft = roleplaySession?.toRoleplayDraftPromptText(
+      maxChars: hardLimit * 2,
+    );
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      initialMaxTokens: storyGenerationEditorialMaxTokens,
       messages: [
         AppLlmChatMessage(
           role: 'system',
@@ -52,14 +60,20 @@ class SceneEditorialGenerator {
             '${l.taskLabel}${l.colon}scene_editorial',
             '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
             '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
+            '长度边界${l.colon}接近目标长度，硬上限为$hardLimit ${l.charactersUnit}',
             '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+            if (roleplayDraft != null && roleplayDraft.isNotEmpty) ...[
+              '角色扮演正文草稿：',
+              roleplayDraft,
+              '润色边界：以角色扮演正文草稿为正文底稿，保留角色动作、对白、顺序和已裁定事实；补顺段落衔接、语气和节奏。',
+            ],
             _formatBeats(resolvedBeats),
             if (capsules.isNotEmpty)
               '${l.contextLabel}${l.colon}${PromptStringUtils.mapJoin(capsules, (c) => c.summary, separator: l.listSeparator)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
               '角色扮演公开过程：${roleplaySession.toCommittedPromptText(maxChars: 2200)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
-              '硬约束：正文只能扩写角色扮演过程中的可见事件与已提交事实；不得引入未裁决事实；不得泄漏非POV角色内心。',
+              '正文依据：围绕角色扮演过程中的可见事件、正文片段与已提交事实润色；角色内心用于POV当下判断。',
             '${l.currentAttemptLabel}${l.colon}$attempt',
             if (reviewFeedback != null)
               '${l.editorialFeedbackLabel}${l.colon}${reviewFeedback.trim()}',
@@ -102,7 +116,16 @@ class SceneEditorialGenerator {
     required SceneTaskCard taskCard,
     required List<SceneBeat> resolvedBeats,
     required int attempt,
+    SceneRoleplaySession? roleplaySession,
   }) {
+    final roleplayDraft = roleplaySession?.roleplayDraft.trim();
+    if (roleplayDraft != null && roleplayDraft.isNotEmpty) {
+      return SceneEditorialDraft(
+        text: roleplayDraft,
+        beatCount: resolvedBeats.length,
+        attempt: attempt,
+      );
+    }
     final parts = <String>[];
     final summary = taskCard.brief.sceneSummary.trim();
     if (summary.isNotEmpty) {

@@ -6,12 +6,33 @@ import '../domain/scene_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'scene_roleplay_session_models.dart';
+import 'story_generation_formatter_trace.dart';
 
 class SceneReviewCoordinator implements SceneReviewService {
-  SceneReviewCoordinator({required AppSettingsStore settingsStore})
-    : _settingsStore = settingsStore;
+  SceneReviewCoordinator({
+    required AppSettingsStore settingsStore,
+    StoryGenerationFormatterTraceSink? formatterTraceSink,
+  }) : _settingsStore = settingsStore,
+       _formatterTraceSink = formatterTraceSink;
 
   final AppSettingsStore _settingsStore;
+  final StoryGenerationFormatterTraceSink? _formatterTraceSink;
+
+  static const List<SceneReviewCategory> _baseCombinedCategories = [
+    SceneReviewCategory.prose,
+    SceneReviewCategory.scenePlan,
+    SceneReviewCategory.chapterPlan,
+    SceneReviewCategory.continuity,
+    SceneReviewCategory.characterState,
+    SceneReviewCategory.worldState,
+  ];
+
+  static const List<SceneReviewCategory> _consistencyCategories = [
+    SceneReviewCategory.chapterPlan,
+    SceneReviewCategory.continuity,
+    SceneReviewCategory.characterState,
+    SceneReviewCategory.worldState,
+  ];
 
   @override
   Future<SceneReviewResult> review({
@@ -29,100 +50,54 @@ class SceneReviewCoordinator implements SceneReviewService {
       return _localReviewResult(brief: brief, prose: prose, onStatus: onStatus);
     }
 
-    final judgeFuture = _runReviewPass(
-      passName: 'scene judge review',
-      taskType: 'scene_judge_review',
-      passLabel: 'judge',
-      categories: const [
-        SceneReviewCategory.prose,
-        SceneReviewCategory.scenePlan,
-      ],
+    final combinedCategories = [
+      ..._baseCombinedCategories,
+      if (roleplaySession != null && !roleplaySession.isEmpty)
+        SceneReviewCategory.roleplayFidelity,
+    ];
+    final combined = await _runReviewPass(
+      passName:
+          'scene combined review (scene judge review / scene consistency review / scene roleplay fidelity review)',
+      taskType: 'scene_combined_review',
+      passLabel: 'combined',
+      categories: combinedCategories,
       brief: brief,
       director: director,
       roleOutputs: roleOutputs,
       prose: prose,
-      onStatus: onStatus,
-    );
-    final consistencyFuture = _runReviewPass(
-      passName: 'scene consistency review',
-      taskType: 'scene_consistency_review',
-      passLabel: 'consistency',
-      categories: const [
-        SceneReviewCategory.chapterPlan,
-        SceneReviewCategory.continuity,
-        SceneReviewCategory.characterState,
-        SceneReviewCategory.worldState,
-      ],
-      brief: brief,
-      director: director,
-      roleOutputs: roleOutputs,
-      prose: prose,
+      roleplaySession: roleplaySession,
       retrievalPack: retrievalPack,
       onStatus: onStatus,
     );
-    final Future<SceneReviewPassResult?> readerFlowFuture =
-        enableReaderFlowReview
-        ? _runReviewPass(
-            passName: 'scene reader-flow review',
-            taskType: 'scene_reader_flow_review',
-            passLabel: 'reader_flow',
+    final consistency = _coveredReviewPass(
+      source: combined,
+      categories: _consistencyCategories,
+      passReason: '合并审查已覆盖一致性检查。',
+    );
+    final readerFlow = enableReaderFlowReview
+        ? _coveredReviewPass(
+            source: combined,
             categories: const [SceneReviewCategory.prose],
-            brief: brief,
-            director: director,
-            roleOutputs: roleOutputs,
-            prose: prose,
-            onStatus: onStatus,
+            passReason: '合并审查已覆盖读者流畅度检查。',
           )
-        : Future<SceneReviewPassResult?>.value(null);
-    final Future<SceneReviewPassResult?> lexiconFuture = enableLexiconReview
-        ? _runReviewPass(
-            passName: 'scene lexicon review',
-            taskType: 'scene_lexicon_review',
-            passLabel: 'lexicon',
+        : null;
+    final lexicon = enableLexiconReview
+        ? _coveredReviewPass(
+            source: combined,
             categories: const [SceneReviewCategory.prose],
-            brief: brief,
-            director: director,
-            roleOutputs: roleOutputs,
-            prose: prose,
-            onStatus: onStatus,
+            passReason: '合并审查已覆盖词汇检查。',
           )
-        : Future<SceneReviewPassResult?>.value(null);
-    final Future<SceneReviewPassResult?> roleplayFidelityFuture =
-        roleplaySession != null && !roleplaySession.isEmpty
-        ? _runReviewPass(
-            passName: 'scene roleplay fidelity review',
-            taskType: 'scene_roleplay_fidelity_review',
-            passLabel: 'roleplay_fidelity',
-            categories: const [SceneReviewCategory.roleplayFidelity],
-            brief: brief,
-            director: director,
-            roleOutputs: roleOutputs,
-            prose: prose,
-            roleplaySession: roleplaySession,
-            onStatus: onStatus,
-          )
-        : Future<SceneReviewPassResult?>.value(null);
-
-    final results = await Future.wait<SceneReviewPassResult?>([
-      judgeFuture,
-      consistencyFuture,
-      readerFlowFuture,
-      lexiconFuture,
-      roleplayFidelityFuture,
-    ]);
-
+        : null;
     final reviewResult = SceneReviewResult(
-      judge: results[0]!,
-      consistency: results[1]!,
-      readerFlow: results[2],
-      lexicon: results[3],
-      roleplayFidelity: results[4],
+      judge: combined,
+      consistency: consistency,
+      readerFlow: readerFlow,
+      lexicon: lexicon,
       decision: _deriveDecision(
-        judge: results[0]!,
-        consistency: results[1]!,
-        readerFlow: results[2],
-        lexicon: results[3],
-        roleplayFidelity: results[4],
+        judge: combined,
+        consistency: consistency,
+        readerFlow: readerFlow,
+        lexicon: lexicon,
       ),
     );
     return SceneReviewResult(
@@ -130,7 +105,6 @@ class SceneReviewCoordinator implements SceneReviewService {
       consistency: reviewResult.consistency,
       readerFlow: reviewResult.readerFlow,
       lexicon: reviewResult.lexicon,
-      roleplayFidelity: reviewResult.roleplayFidelity,
       decision: reviewResult.decision,
       refinementGuidance: reviewResult.synthesizeGuidance(),
     );
@@ -183,6 +157,20 @@ class SceneReviewCoordinator implements SceneReviewService {
     );
   }
 
+  SceneReviewPassResult _coveredReviewPass({
+    required SceneReviewPassResult source,
+    required List<SceneReviewCategory> categories,
+    required String passReason,
+  }) {
+    final reason = source.status == SceneReviewStatus.pass ? passReason : '';
+    return SceneReviewPassResult(
+      status: source.status,
+      reason: reason,
+      rawText: reason.isEmpty ? source.rawText : '决定：PASS\n原因：$reason',
+      categories: categories,
+    );
+  }
+
   Future<SceneReviewPassResult> _runReviewPass({
     required String passName,
     required String taskType,
@@ -205,14 +193,12 @@ class SceneReviewCoordinator implements SceneReviewService {
           role: 'system',
           content:
               'You are a $passName for a Chinese novel. '
-              'Output exactly 2 lines. The first line MUST be exactly one of:\n'
+              'Use a 2-line review format. Choose the first line from:\n'
               '决定：PASS\n'
               '决定：REWRITE_PROSE\n'
               '决定：REPLAN_SCENE\n'
-              'If uncertain, choose 决定：REWRITE_PROSE. Never output X, FAIL, '
-              'MAYBE, or explanatory text before the decision.\n'
-              'The second line MUST start with 原因：. Only flag blocking issues. '
-              'Keep the second line brief.',
+              'For uncertainty, choose 决定：REWRITE_PROSE.\n'
+              'Use 原因： for the second line and keep it brief. Focus on blocking issues.',
         ),
         AppLlmChatMessage(
           role: 'user',
@@ -220,27 +206,39 @@ class SceneReviewCoordinator implements SceneReviewService {
             '任务：$taskType',
             '评审：$passLabel',
             '评审类别：${_categoryList(categories)}',
-            '规则：只找阻塞问题，不改写正文',
+            '规则：聚焦阻塞问题，正文改写交给后续步骤',
             '场：${_compact(brief.sceneTitle, maxChars: 40)}',
             '导演：${_compact(director.text, maxChars: 120)}',
             '角色输入：${_roleSummary(roleOutputs)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
               '角色扮演过程：${roleplaySession.toPromptText()}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
-              '忠实性规则：正文必须忠于角色扮演过程中的可见动作、对白、裁决事实和局面推进；若正文跳过关键互动、违背裁决事实、让角色越权知道隐藏信息，判为REWRITE_PROSE或REPLAN_SCENE。',
+              '忠实性指引：正文围绕角色扮演过程中的可见动作、对白、裁决事实和局面推进展开；关键互动、裁决事实、角色可见信息共同决定评审结果。',
             '正文：${prose.text}',
             if (evidenceSection.isNotEmpty) evidenceSection,
           ].join('\n'),
         ),
       ],
+      traceName: taskType,
+      traceMetadata: {
+        'chapterId': brief.chapterId,
+        'sceneId': brief.sceneId,
+        'sceneTitle': brief.sceneTitle,
+        'passLabel': passLabel,
+        'reviewCategories': _categoryList(categories),
+      },
     );
     if (!result.succeeded) {
       throw StateError(result.detail ?? 'Scene $passLabel review failed.');
     }
 
-    var rawText = result.text!.trim();
+    final originalRawText = result.text!.trim();
+    var rawText = originalRawText;
     var parsed = _parseReviewOutput(rawText, passLabel: passLabel);
+    var repairAttempted = false;
+    String? repairedRawText;
     if (parsed.usedFallback) {
+      repairAttempted = true;
       onStatus?.call(
         '场景 ${brief.chapterId}/${brief.sceneId} · $passName format retry',
       );
@@ -250,8 +248,11 @@ class SceneReviewCoordinator implements SceneReviewService {
         rawText: rawText,
       );
       if (repaired != null && !repaired.parsed.usedFallback) {
+        repairedRawText = repaired.rawText;
         rawText = repaired.rawText;
         parsed = repaired.parsed;
+      } else if (repaired != null) {
+        repairedRawText = repaired.rawText;
       }
     }
     if (parsed.usedFallback) {
@@ -259,12 +260,56 @@ class SceneReviewCoordinator implements SceneReviewService {
         '场景 ${brief.chapterId}/${brief.sceneId} · $passName format fallback',
       );
     }
+    await _recordFormatterTrace(
+      brief: brief,
+      passName: passName,
+      passLabel: passLabel,
+      rawText: originalRawText,
+      repairedText: repairedRawText,
+      finalText: rawText,
+      repairAttempted: repairAttempted,
+      usedFallback: parsed.usedFallback,
+    );
     return SceneReviewPassResult(
       status: parsed.status,
       reason: parsed.reason,
       rawText: rawText,
       categories: categories,
     );
+  }
+
+  Future<void> _recordFormatterTrace({
+    required SceneBrief brief,
+    required String passName,
+    required String passLabel,
+    required String rawText,
+    required String? repairedText,
+    required String finalText,
+    required bool repairAttempted,
+    required bool usedFallback,
+  }) async {
+    final sink = _formatterTraceSink;
+    if (sink == null) return;
+    try {
+      await sink.record(
+        StoryGenerationFormatterTraceEntry(
+          timestampMs: DateTime.now().millisecondsSinceEpoch,
+          chapterId: brief.chapterId,
+          sceneId: brief.sceneId,
+          sceneTitle: brief.sceneTitle,
+          formatter: 'scene_review',
+          passName: passName,
+          passLabel: passLabel,
+          rawText: rawText,
+          repairedText: repairedText,
+          finalText: finalText,
+          repairAttempted: repairAttempted,
+          usedFallback: usedFallback,
+        ),
+      );
+    } on Object {
+      // Formatter tracing should never block review completion.
+    }
   }
 
   Future<_RepairedReviewOutput?> _repairReviewFormat({
@@ -279,14 +324,13 @@ class SceneReviewCoordinator implements SceneReviewService {
           role: 'system',
           content:
               'You are a $passName format repair pass. '
-              'Normalize malformed review output into exactly 2 lines. '
-              'The first line MUST be exactly one of:\n'
+              'Normalize malformed review output into a 2-line format. '
+              'Choose the first line from:\n'
               '决定：PASS\n'
               '决定：REWRITE_PROSE\n'
               '决定：REPLAN_SCENE\n'
-              'If the original decision is missing, invalid, ambiguous, or X, '
-              'choose 决定：REWRITE_PROSE.\n'
-              'The second line MUST start with 原因： and briefly preserve the '
+              'For missing or ambiguous decisions, choose 决定：REWRITE_PROSE.\n'
+              'Use 原因： for the second line and briefly preserve the '
               'original reason.',
         ),
         AppLlmChatMessage(
@@ -295,6 +339,8 @@ class SceneReviewCoordinator implements SceneReviewService {
         ),
       ],
       maxTransientRetries: 1,
+      traceName: 'scene_review_format_repair',
+      traceMetadata: {'passLabel': passLabel, 'passName': passName},
     );
     if (!result.succeeded || result.text == null) {
       return null;
@@ -397,54 +443,51 @@ class SceneReviewCoordinator implements SceneReviewService {
       return _malformedReviewFallback(rawText, passLabel: passLabel);
     }
 
-    for (final line in lines) {
-      final status = _statusFromDecisionLine(line);
-      if (status == null) continue;
-      return _ParsedReviewOutput(status: status, reason: _parseReason(rawText));
+    if (lines.length != 2) {
+      return _malformedReviewFallback(rawText, passLabel: passLabel);
+    }
+
+    final status = _statusFromDecisionLine(lines.first);
+    final reason = _reasonFromReasonLine(lines.last);
+    if (status != null && reason != null) {
+      return _ParsedReviewOutput(status: status, reason: reason);
     }
 
     return _malformedReviewFallback(rawText, passLabel: passLabel);
   }
 
   SceneReviewStatus? _statusFromDecisionLine(String line) {
-    final normalizedLine = line
-        .replaceFirst(RegExp(r'^[\s\-\*\d.、)）]+'), '')
-        .replaceFirst('：', ':')
-        .trim();
+    final normalizedLine = line.replaceFirst('：', ':').trim();
     final colonIndex = normalizedLine.indexOf(':');
     if (colonIndex < 0) return null;
 
     final label = normalizedLine.substring(0, colonIndex).trim().toLowerCase();
-    if (label != '决定' && label != 'decision') return null;
+    if (label != '决定') return null;
 
     final value = normalizedLine
         .substring(colonIndex + 1)
         .trim()
         .toUpperCase()
-        .replaceAll(RegExp(r'[`*。；;，,.!！?？]'), '')
         .replaceAll(RegExp(r'\s+'), '_');
 
-    if (value == 'PASS' || value == 'OK' || value == '通过' || value == '合格') {
+    if (value == 'PASS') {
       return SceneReviewStatus.pass;
     }
-    if (value == 'REWRITE_PROSE' ||
-        value == 'REWRITE' ||
-        value == 'REFINE' ||
-        value == '修改正文' ||
-        value == '重写正文' ||
-        value == '需重写' ||
-        value == '不通过') {
+    if (value == 'REWRITE_PROSE') {
       return SceneReviewStatus.rewriteProse;
     }
-    if (value == 'REPLAN_SCENE' ||
-        value == 'REPLAN' ||
-        value == '重新规划' ||
-        value == '重规划' ||
-        value == '结构重做') {
+    if (value == 'REPLAN_SCENE') {
       return SceneReviewStatus.replanScene;
     }
 
     return null;
+  }
+
+  String? _reasonFromReasonLine(String line) {
+    final normalizedLine = line.replaceFirst('：', ':').trim();
+    const label = '原因:';
+    if (!normalizedLine.startsWith(label)) return null;
+    return normalizedLine.substring(label.length).trim();
   }
 
   _ParsedReviewOutput _malformedReviewFallback(

@@ -125,7 +125,8 @@ void main() {
     });
 
     test('parses multiple parameters', () {
-      const text = 'RETRIEVE:relationship_history:charA=liuxi,charB=yueren,depth=2';
+      const text =
+          'RETRIEVE:relationship_history:charA=liuxi,charB=yueren,depth=2';
       final parser = ToolIntentParser();
       final intent = parser.tryParse(text, 'char-liuxi');
 
@@ -232,11 +233,7 @@ void main() {
 
     test('public facts are visible to all characters', () {
       final facts = [
-        KnowledgeFact(
-          factId: 'fact-weather',
-          content: '暴雨如注',
-          isPublic: true,
-        ),
+        KnowledgeFact(factId: 'fact-weather', content: '暴雨如注', isPublic: true),
       ];
       final visible = filter.visibleFacts(facts, 'char-liuxi', []);
       expect(visible, hasLength(1));
@@ -291,11 +288,10 @@ void main() {
         DisclosurePolicy(factId: 'secret', knownBy: {'char-liuxi'}),
       ];
 
-      final partitioned = filter.partitionFacts(
-        facts,
-        ['char-liuxi', 'char-yueren'],
-        policies,
-      );
+      final partitioned = filter.partitionFacts(facts, [
+        'char-liuxi',
+        'char-yueren',
+      ], policies);
 
       expect(partitioned['char-liuxi'], hasLength(2));
       expect(partitioned['char-yueren'], hasLength(1));
@@ -353,32 +349,34 @@ void main() {
       expect(delta.rejectedBeats, isEmpty);
     });
 
-    test('accepts first and rejects later conflicting beats on same target',
-        () {
-      final beats = [
-        SceneBeat(
-          characterId: 'char-liuxi',
-          action: '抓住货单',
-          targetId: 'item-manifest',
-        ),
-        SceneBeat(
-          characterId: 'char-yueren',
-          action: '抢走货单',
-          targetId: 'item-manifest',
-        ),
-      ];
-      final delta = resolver.resolve(beats);
+    test(
+      'accepts first and rejects later conflicting beats on same target',
+      () {
+        final beats = [
+          SceneBeat(
+            characterId: 'char-liuxi',
+            action: '抓住货单',
+            targetId: 'item-manifest',
+          ),
+          SceneBeat(
+            characterId: 'char-yueren',
+            action: '抢走货单',
+            targetId: 'item-manifest',
+          ),
+        ];
+        final delta = resolver.resolve(beats);
 
-      expect(delta.resolvedBeats, hasLength(2));
-      expect(delta.acceptedBeats, hasLength(1));
-      expect(delta.rejectedBeats, hasLength(1));
-      expect(delta.acceptedBeats.first.beat.characterId, 'char-liuxi');
-      expect(delta.rejectedBeats.first.beat.characterId, 'char-yueren');
-      expect(
-        delta.rejectedBeats.first.reason,
-        contains('conflicts with earlier action'),
-      );
-    });
+        expect(delta.resolvedBeats, hasLength(2));
+        expect(delta.acceptedBeats, hasLength(1));
+        expect(delta.rejectedBeats, hasLength(1));
+        expect(delta.acceptedBeats.first.beat.characterId, 'char-liuxi');
+        expect(delta.rejectedBeats.first.beat.characterId, 'char-yueren');
+        expect(
+          delta.rejectedBeats.first.reason,
+          contains('conflicts with earlier action'),
+        );
+      },
+    );
 
     test('beats without targetId never conflict', () {
       final beats = [
@@ -391,16 +389,8 @@ void main() {
 
     test('different targets do not conflict', () {
       final beats = [
-        SceneBeat(
-          characterId: 'a',
-          action: '抓住货单',
-          targetId: 'item-manifest',
-        ),
-        SceneBeat(
-          characterId: 'b',
-          action: '打开门锁',
-          targetId: 'item-door',
-        ),
+        SceneBeat(characterId: 'a', action: '抓住货单', targetId: 'item-manifest'),
+        SceneBeat(characterId: 'b', action: '打开门锁', targetId: 'item-door'),
       ];
       final delta = resolver.resolve(beats);
       expect(delta.acceptedBeats, hasLength(2));
@@ -521,8 +511,7 @@ void main() {
   // Acceptance 3: Capsule-only prompt reinjection
   // ---------------------------------------------------------------
   group('RoleAgentController integration', () {
-    test('injects capsule summary not raw payload on retrieval loop',
-        () async {
+    test('injects capsule summary not raw payload on retrieval loop', () async {
       var callCount = 0;
       const rawPayload = '岳人背景：卧底探员，执行秘密任务三年。';
 
@@ -593,9 +582,7 @@ void main() {
               text: 'RETRIEVE:scene_context',
             );
           }
-          return const AppLlmChatResult.success(
-            text: '立场：决断\n动作：行动\n禁忌：犹豫',
-          );
+          return const AppLlmChatResult.success(text: '立场：决断\n动作：行动\n禁忌：犹豫');
         },
       );
       final settingsStore = AppSettingsStore(
@@ -626,7 +613,9 @@ void main() {
       expect(userPrompt, contains('补充信息'));
       // Verify the injected content is truncated (ends with ...)
       // and is shorter than the raw 300-char payload
-      final capsuleMatch = RegExp(r'\[scene_context\] (.+)').firstMatch(userPrompt);
+      final capsuleMatch = RegExp(
+        r'\[scene_context\] (.+)',
+      ).firstMatch(userPrompt);
       expect(capsuleMatch, isNotNull);
       final capsuleSummary = capsuleMatch!.group(1)!;
       expect(capsuleSummary.length, lessThanOrEqualTo(200));
@@ -713,10 +702,7 @@ void main() {
     });
 
     test('isNovelFact returns false for text not in prose', () {
-      final draft = EditorialDraft(
-        text: '柳溪站在码头上。',
-        acceptedBeats: [],
-      );
+      final draft = EditorialDraft(text: '柳溪站在码头上。', acceptedBeats: []);
       expect(draft.isNovelFact('不存在的文本'), isFalse);
     });
 
@@ -742,10 +728,7 @@ void main() {
     });
 
     test('draft with empty beats and no context has no allowed facts', () {
-      final draft = EditorialDraft(
-        text: 'some prose',
-        acceptedBeats: [],
-      );
+      final draft = EditorialDraft(text: 'some prose', acceptedBeats: []);
       expect(draft.allowedFacts, isEmpty);
     });
   });
@@ -754,9 +737,7 @@ void main() {
     test('enforces fact discipline constraint in system message', () async {
       final fakeClient = FakeAppLlmClient(
         responder: (request) async {
-          return const AppLlmChatResult.success(
-            text: '柳溪抓住货单，暴雨中看清了上面的字迹。',
-          );
+          return const AppLlmChatResult.success(text: '柳溪抓住货单，暴雨中看清了上面的字迹。');
         },
       );
       final settingsStore = AppSettingsStore(
@@ -784,13 +765,10 @@ void main() {
         ],
       );
 
-      final draft = await editor.draft(
-        brief: _testBrief(),
-        delta: delta,
-      );
+      final draft = await editor.draft(brief: _testBrief(), delta: delta);
 
       final systemPrompt = fakeClient.requests.first.messages.first.content;
-      expect(systemPrompt, contains('Do NOT introduce'));
+      expect(systemPrompt, contains('Ground the prose in the accepted beats'));
       expect(systemPrompt, contains('accepted beats'));
       expect(systemPrompt, contains('allowed narration context'));
 

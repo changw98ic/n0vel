@@ -41,6 +41,7 @@ class AppDraftStore extends AppProjectScopedStore {
     onRestore();
   }
 
+  @visibleForTesting
   static AppDraftStorage? debugStorageOverride;
 
   final AppDraftStorage _storage;

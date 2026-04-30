@@ -120,6 +120,21 @@ class SceneReviewResult {
     ].join('\n');
   }
 
+  String get editorialFeedback {
+    return [
+      if (judge.reason.trim().isNotEmpty) 'Judge: ${judge.reason.trim()}',
+      if (consistency.reason.trim().isNotEmpty)
+        'Consistency: ${consistency.reason.trim()}',
+      if (readerFlow != null && readerFlow!.reason.trim().isNotEmpty)
+        'ReaderFlow: ${readerFlow!.reason.trim()}',
+      if (lexicon != null && lexicon!.reason.trim().isNotEmpty)
+        'Lexicon: ${lexicon!.reason.trim()}',
+      if (roleplayFidelity != null &&
+          roleplayFidelity!.status != SceneReviewStatus.pass)
+        'RoleplayFidelity: $_roleplayFidelityEditorialGuidance',
+    ].join('\n');
+  }
+
   RefinementGuidance synthesizeGuidance() {
     final plotIssues = <String>[];
     final consistencyFixes = <String>[];
@@ -147,7 +162,7 @@ class SceneReviewResult {
     if (roleplayFidelity != null &&
         roleplayFidelity!.status != SceneReviewStatus.pass &&
         roleplayFidelity!.reason.trim().isNotEmpty) {
-      consistencyFixes.add(roleplayFidelity!.reason.trim());
+      consistencyFixes.add(_roleplayFidelityEditorialGuidance);
     }
     if (judge.status == SceneReviewStatus.pass &&
         judge.reason.trim().isNotEmpty) {
@@ -188,7 +203,7 @@ class SceneReviewResult {
         lexicon!.reason.trim(),
       if (roleplayFidelity != null &&
           roleplayFidelity!.status != SceneReviewStatus.pass)
-        roleplayFidelity!.reason.trim(),
+        _roleplayFidelityEditorialGuidance,
     ].where((s) => s.isNotEmpty).toList(growable: false);
   }
 
@@ -203,9 +218,12 @@ class SceneReviewResult {
         lexicon!.reason.trim(),
       if (roleplayFidelity != null &&
           roleplayFidelity!.status == SceneReviewStatus.pass)
-        roleplayFidelity!.reason.trim(),
+        '正文已通过角色扮演公开事实一致性审查。',
     ].where((s) => s.isNotEmpty).toList(growable: false);
   }
+
+  static const String _roleplayFidelityEditorialGuidance =
+      '正文以角色扮演公开事件、已提交事实与最终公开局面为锚点；角色私有内心转化为POV当下判断。';
 }
 
 class SceneRuntimeOutput {

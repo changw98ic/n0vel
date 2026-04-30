@@ -13,6 +13,7 @@ class CharacterVisibleContextBuilder {
     required SceneDirectorOutput director,
     required String publicSceneState,
     required List<SceneRoleplayTurn> transcript,
+    List<SceneRoleplayCommittedFact> committedFacts = const [],
     List<CharacterMemoryDelta> memoryDeltas = const [],
     SceneTaskCard? taskCard,
   }) {
@@ -30,6 +31,7 @@ class CharacterVisibleContextBuilder {
       knownFacts: _knownFacts(
         brief: brief,
         member: member,
+        committedFacts: committedFacts,
         memoryDeltas: memoryDeltas,
       ),
       beliefs: _beliefs(taskCard: taskCard, member: member),
@@ -56,12 +58,15 @@ class CharacterVisibleContextBuilder {
   List<CharacterKnownFact> _knownFacts({
     required SceneBrief brief,
     required ResolvedSceneCastMember member,
+    required List<SceneRoleplayCommittedFact> committedFacts,
     required List<CharacterMemoryDelta> memoryDeltas,
   }) {
     final facts = <CharacterKnownFact>[];
+    final seenFactContent = <String>{};
     void addVisible(Object? raw, VisibilityAcl acl, {String source = ''}) {
       final value = _stringValue(raw);
       if (value == null || !acl.canSee(member.characterId)) return;
+      if (!seenFactContent.add(value)) return;
       facts.add(CharacterKnownFact(content: value, acl: acl, source: source));
     }
 
@@ -69,10 +74,19 @@ class CharacterVisibleContextBuilder {
       addVisible(raw, VisibilityAcl.public(), source: 'publicKnownFacts');
     }
 
+    for (final fact in committedFacts) {
+      addVisible(
+        fact.content,
+        VisibilityAcl.public(),
+        source: 'committedFact:${fact.sequenceId}',
+      );
+    }
+
     for (final delta in memoryDeltas) {
       if (!delta.accepted || !delta.acl.canSee(member.characterId)) {
         continue;
       }
+      if (!seenFactContent.add(delta.content)) continue;
       facts.add(
         CharacterKnownFact(
           content: delta.content,

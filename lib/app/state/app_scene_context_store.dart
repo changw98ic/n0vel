@@ -43,6 +43,7 @@ class AppSceneContextStore extends AppProjectScopedStore {
     onRestore();
   }
 
+  @visibleForTesting
   static AppSceneContextStorage? debugStorageOverride;
 
   final AppSceneContextStorage _storage;

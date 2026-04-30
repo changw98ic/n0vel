@@ -3,13 +3,19 @@ import 'dart:async';
 typedef ScenePipelineSceneRunner<TScene, TResult> =
     Future<TResult> Function(
       TScene scene, {
-      required void Function() onReviewStarted,
+      required void Function() onSpeculationReady,
     });
 
+typedef ScenePipelineResultGate<TResult> = bool Function(TResult result);
+
 class ScenePipelineScheduler<TScene, TResult> {
-  const ScenePipelineScheduler({this.maxConcurrentScenes = 2});
+  const ScenePipelineScheduler({
+    this.maxConcurrentScenes = 2,
+    this.canCommitResult,
+  });
 
   final int maxConcurrentScenes;
+  final ScenePipelineResultGate<TResult>? canCommitResult;
 
   Future<List<TResult>> run({
     required List<TScene> scenes,
@@ -28,10 +34,30 @@ class ScenePipelineScheduler<TScene, TResult> {
     var startAllowedThrough = 0;
     var activeScenes = 0;
     var completedScenes = 0;
+    var committedThrough = -1;
+    int? blockedAtIndex;
+    final releaseRequests = <int>{};
+    late void Function() maybeStartNextScene;
 
-    List<TResult> orderedResults() {
+    bool resultCanCommit(TResult result) {
+      return canCommitResult?.call(result) ?? true;
+    }
+
+    bool hasResultsThrough(int index) {
+      for (var i = 0; i <= index; i += 1) {
+        if (!results.containsKey(i)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    List<TResult> orderedResults({int? throughIndex}) {
+      final endExclusive = throughIndex == null
+          ? scenes.length
+          : (throughIndex + 1).clamp(0, scenes.length).toInt();
       return [
-        for (var index = 0; index < scenes.length; index += 1)
+        for (var index = 0; index < endExclusive; index += 1)
           if (results.containsKey(index))
             results[index] as TResult
           else
@@ -39,12 +65,56 @@ class ScenePipelineScheduler<TScene, TResult> {
       ];
     }
 
-    void maybeStartNextScene() {
+    void maybeCompleteBlockedPrefix() {
+      final blockedIndex = blockedAtIndex;
+      if (blockedIndex == null || completion.isCompleted) {
+        return;
+      }
+      if (hasResultsThrough(blockedIndex)) {
+        completion.complete(orderedResults(throughIndex: blockedIndex));
+      }
+    }
+
+    void advanceCommittedThrough() {
+      while (true) {
+        final nextIndex = committedThrough + 1;
+        final result = results[nextIndex];
+        if (result == null || !resultCanCommit(result)) {
+          return;
+        }
+        committedThrough = nextIndex;
+      }
+    }
+
+    bool canApplyReleaseRequest(int sceneIndex) {
+      return blockedAtIndex == null || sceneIndex < blockedAtIndex!;
+    }
+
+    void applyReleaseRequests() {
+      var advanced = false;
+      while (releaseRequests.contains(startAllowedThrough) &&
+          canApplyReleaseRequest(startAllowedThrough)) {
+        releaseRequests.remove(startAllowedThrough);
+        startAllowedThrough += 1;
+        advanced = true;
+      }
+      if (advanced && !completion.isCompleted) {
+        maybeStartNextScene();
+      }
+    }
+
+    void requestReleaseNextScene(int sceneIndex) {
+      releaseRequests.add(sceneIndex);
+      applyReleaseRequests();
+    }
+
+    maybeStartNextScene = () {
       if (completion.isCompleted) {
         return;
       }
       while (nextSceneIndex < scenes.length &&
           nextSceneIndex <= startAllowedThrough &&
+          (blockedAtIndex == null || nextSceneIndex <= blockedAtIndex!) &&
           activeScenes < sceneConcurrencyLimit) {
         final sceneIndex = nextSceneIndex;
         nextSceneIndex += 1;
@@ -56,19 +126,23 @@ class ScenePipelineScheduler<TScene, TResult> {
             return;
           }
           releasedNextScene = true;
-          if (startAllowedThrough < sceneIndex + 1) {
-            startAllowedThrough = sceneIndex + 1;
-          }
-          maybeStartNextScene();
+          requestReleaseNextScene(sceneIndex);
         }
 
         unawaited(() async {
           try {
-            results[sceneIndex] = await runScene(
+            final result = await runScene(
               scenes[sceneIndex],
-              onReviewStarted: releaseNextScene,
+              onSpeculationReady: releaseNextScene,
             );
-            releaseNextScene();
+            results[sceneIndex] = result;
+            if (resultCanCommit(result)) {
+              advanceCommittedThrough();
+              requestReleaseNextScene(sceneIndex);
+            } else if (blockedAtIndex == null || sceneIndex < blockedAtIndex!) {
+              blockedAtIndex = sceneIndex;
+            }
+            maybeCompleteBlockedPrefix();
           } catch (error, stackTrace) {
             if (!completion.isCompleted) {
               completion.completeError(error, stackTrace);
@@ -81,12 +155,17 @@ class ScenePipelineScheduler<TScene, TResult> {
               maybeStartNextScene();
             }
             if (completedScenes == scenes.length && !completion.isCompleted) {
-              completion.complete(orderedResults());
+              final blockedIndex = blockedAtIndex;
+              completion.complete(
+                blockedIndex == null
+                    ? orderedResults()
+                    : orderedResults(throughIndex: blockedIndex),
+              );
             }
           }
         }());
       }
-    }
+    };
 
     maybeStartNextScene();
     return completion.future;

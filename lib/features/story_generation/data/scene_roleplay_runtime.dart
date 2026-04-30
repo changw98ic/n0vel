@@ -19,22 +19,28 @@ class SceneRoleplayRuntimeResult {
 }
 
 class SceneRoleplayRuntime {
+  static const int _defaultVisibleTranscriptWindow = 1000;
+
   SceneRoleplayRuntime({
     required AppSettingsStore settingsStore,
-    this.defaultMaxRounds = 3,
+    this.defaultMaxRounds = 1,
     CharacterVisibleContextBuilder? visibleContextBuilder,
     RoleSkillRegistry? roleSkillRegistry,
     SceneArbiterSkill? arbiterSkill,
+    SceneRoleplaySpeakerScheduler? speakerScheduler,
   }) : _visibleContextBuilder =
            visibleContextBuilder ?? const CharacterVisibleContextBuilder(),
        _roleSkillRegistry =
            roleSkillRegistry ?? RoleSkillRegistry(settingsStore: settingsStore),
        _arbiterSkill =
-           arbiterSkill ?? BasicSceneArbiterSkill(settingsStore: settingsStore);
+           arbiterSkill ?? BasicSceneArbiterSkill(settingsStore: settingsStore),
+       _speakerScheduler =
+           speakerScheduler ?? const SceneRoleplaySpeakerScheduler();
 
   final CharacterVisibleContextBuilder _visibleContextBuilder;
   final RoleSkillRegistry _roleSkillRegistry;
   final SceneArbiterSkill _arbiterSkill;
+  final SceneRoleplaySpeakerScheduler _speakerScheduler;
   final int defaultMaxRounds;
 
   Future<List<DynamicRoleAgentOutput>> run({
@@ -80,6 +86,18 @@ class SceneRoleplayRuntime {
     }
 
     final maxRounds = _roundCount(brief: brief, taskCard: taskCard);
+    final visibleTranscriptWindow =
+        _metadataInt(
+          taskCard?.metadata['roleplayVisibleEventWindow'] ??
+              brief.metadata['roleplayVisibleEventWindow'],
+        ) ??
+        _defaultVisibleTranscriptWindow;
+    final parallelRoleplayTurns =
+        _metadataBool(
+          taskCard?.metadata['parallelRoleplayTurns'] ??
+              brief.metadata['parallelRoleplayTurns'],
+        ) ??
+        true;
     var sceneState = _initialSceneState(brief: brief, director: director);
     final transcript = <SceneRoleplayTurn>[];
     final rounds = <SceneRoleplayRound>[];
@@ -92,27 +110,45 @@ class SceneRoleplayRuntime {
       onStatus?.call(
         '场景 ${brief.chapterId}/${brief.sceneId} · roleplay round $round',
       );
-      final roundTurns = <SceneRoleplayTurn>[];
-
-      for (final member in cast) {
-        onStatus?.call(
-          '场景 ${brief.chapterId}/${brief.sceneId} · role ${member.name}',
-        );
-        final turn = await _runCharacterTurn(
+      final speakerPlan = _speakerScheduler.planRound(
+        brief: brief,
+        taskCard: taskCard,
+        cast: cast,
+        round: round,
+        transcript: transcript,
+      );
+      onStatus?.call(
+        _roleplaySpeakerScheduleLogLine(
           brief: brief,
-          director: director,
-          member: member,
-          taskCard: taskCard,
           round: round,
-          sceneState: sceneState,
-          transcript: transcript,
-          memoryDeltas:
-              memoryDeltasByCharacter[member.characterId] ??
-              const <CharacterMemoryDelta>[],
-        );
+          plan: speakerPlan,
+          parallelTurns: parallelRoleplayTurns,
+        ),
+      );
+
+      final roundTurns = await _runRoundTurns(
+        brief: brief,
+        director: director,
+        cast: cast,
+        taskCard: taskCard,
+        round: round,
+        sceneState: sceneState,
+        transcript: transcript,
+        committedFacts: committedFacts,
+        memoryDeltasByCharacter: memoryDeltasByCharacter,
+        visibleTranscriptWindow: visibleTranscriptWindow,
+        speakerPlan: speakerPlan,
+        parallelTurns: parallelRoleplayTurns,
+        onStatus: onStatus,
+      );
+
+      for (final turn in roundTurns) {
         transcript.add(turn);
-        roundTurns.add(turn);
-        turnsByCharacter[member.characterId]!.add(turn);
+        turnsByCharacter[turn.characterId]!.add(turn);
+      }
+
+      if (roundTurns.isEmpty) {
+        break;
       }
 
       final arbitration = await _arbitrateRound(
@@ -120,7 +156,10 @@ class SceneRoleplayRuntime {
         round: round,
         sceneState: sceneState,
         roundTurns: roundTurns,
-        transcript: transcript,
+        transcript: _trimTranscript(
+          transcript: transcript,
+          maxTurns: visibleTranscriptWindow,
+        ),
       );
       sceneState = arbitration.nextPublicState;
       committedFacts.addAll(
@@ -128,6 +167,14 @@ class SceneRoleplayRuntime {
           arbitration,
           round: round,
           existingFacts: committedFacts,
+        ),
+      );
+      onStatus?.call(
+        _roleplayArbitrationLogLine(
+          brief: brief,
+          round: round,
+          arbitration: arbitration,
+          committedFactCount: committedFacts.length,
         ),
       );
       rounds.add(
@@ -140,7 +187,27 @@ class SceneRoleplayRuntime {
       if (round >= 2 && arbitration.shouldStop) {
         break;
       }
+      if (round < maxRounds &&
+          !_hasPublicProgress(
+            roundTurns: roundTurns,
+            arbitrationFact: arbitration.fact,
+          )) {
+        onStatus?.call(
+          '场景 ${brief.chapterId}/${brief.sceneId} · round $round '
+          '未产生新公开内容，提前结束',
+        );
+        break;
+      }
     }
+
+    onStatus?.call(
+      _roleplayCompleteLogLine(
+        brief: brief,
+        rounds: rounds,
+        committedFactCount: committedFacts.length,
+        finalPublicState: sceneState,
+      ),
+    );
 
     return SceneRoleplayRuntimeResult(
       outputs: [
@@ -164,13 +231,103 @@ class SceneRoleplayRuntime {
     );
   }
 
+  String _roleplayTurnLogLine({
+    required SceneBrief brief,
+    required int round,
+    required int turnOrder,
+    required SceneRoleplayTurn turn,
+  }) {
+    final parts = <String>[
+      '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log turn',
+      'R$round#$turnOrder',
+      turn.name,
+      if (turn.skillId.isNotEmpty) 'skill=${turn.skillId}@${turn.skillVersion}',
+      '意图=${_compactLogValue(turn.intent)}',
+      '公开动作=${_compactLogValue(turn.visibleAction)}',
+      '对白=${_compactLogValue(turn.dialogue)}',
+      '内心=${_compactLogValue(turn.innerState)}',
+      if (turn.proseFragment.trim().isNotEmpty)
+        '正文片段=${_compactLogValue(turn.proseFragment)}',
+      if (turn.proposedMemoryDeltas.isNotEmpty)
+        '记忆提案=${turn.proposedMemoryDeltas.length}',
+    ];
+    return parts.join(' | ');
+  }
+
+  String _roleplaySpeakerScheduleLogLine({
+    required SceneBrief brief,
+    required int round,
+    required SceneRoleplaySpeakerPlan plan,
+    required bool parallelTurns,
+  }) {
+    final order = plan.speakers.map((speaker) => speaker.name).join('>');
+    final parts = <String>[
+      '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log actor-schedule',
+      'R$round',
+      'strategy=${plan.strategy}',
+      'mode=${parallelTurns ? 'parallel' : 'sequential'}',
+      'actors=${order.isEmpty ? '-' : order}',
+    ];
+    return parts.join(' | ');
+  }
+
+  String _roleplayArbitrationLogLine({
+    required SceneBrief brief,
+    required int round,
+    required SceneRoleplayArbitration arbitration,
+    required int committedFactCount,
+  }) {
+    final parts = <String>[
+      '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log arbitration',
+      'R$round',
+      if (arbitration.skillId.isNotEmpty)
+        'skill=${arbitration.skillId}@${arbitration.skillVersion}',
+      '事实=${_compactLogValue(arbitration.fact)}',
+      '局面=${_compactLogValue(arbitration.nextPublicState)}',
+      '压力=${_compactLogValue(arbitration.pressure)}',
+      'stop=${arbitration.shouldStop}',
+      'acceptedMemory=${arbitration.acceptedMemoryDeltas.length}',
+      'rejectedMemory=${arbitration.rejectedMemoryDeltas.length}',
+      'committedFacts=$committedFactCount',
+    ];
+    return parts.join(' | ');
+  }
+
+  String _roleplayCompleteLogLine({
+    required SceneBrief brief,
+    required List<SceneRoleplayRound> rounds,
+    required int committedFactCount,
+    required String finalPublicState,
+  }) {
+    final turnCount = rounds.fold<int>(
+      0,
+      (total, round) => total + round.turns.length,
+    );
+    return [
+      '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log complete',
+      'rounds=${rounds.length}',
+      'turns=$turnCount',
+      'committedFacts=$committedFactCount',
+      '最终局面=${_compactLogValue(finalPublicState, maxChars: 160)}',
+    ].join(' | ');
+  }
+
+  String _compactLogValue(String value, {int maxChars = 96}) {
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) return '-';
+    if (normalized.length <= maxChars) return normalized;
+    return '${normalized.substring(0, maxChars - 3)}...';
+  }
+
   Future<SceneRoleplayTurn> _runCharacterTurn({
     required SceneBrief brief,
     required SceneDirectorOutput director,
     required ResolvedSceneCastMember member,
+    required List<ResolvedSceneCastMember> cast,
     required int round,
     required String sceneState,
     required List<SceneRoleplayTurn> transcript,
+    required List<SceneRoleplayCommittedFact> committedFacts,
     required List<CharacterMemoryDelta> memoryDeltas,
     SceneTaskCard? taskCard,
   }) async {
@@ -180,6 +337,7 @@ class SceneRoleplayRuntime {
       director: director,
       publicSceneState: sceneState,
       transcript: transcript,
+      committedFacts: committedFacts,
       memoryDeltas: memoryDeltas,
       taskCard: taskCard,
     );
@@ -187,7 +345,245 @@ class SceneRoleplayRuntime {
       member: member,
       metadata: brief.metadata,
     );
-    return skill.runTurn(context: visibleContext, round: round);
+    final turn = await skill.runTurn(context: visibleContext, round: round);
+    return _applySpeakerBoundary(turn: turn, speaker: member, cast: cast);
+  }
+
+  Future<List<SceneRoleplayTurn>> _runRoundTurns({
+    required SceneBrief brief,
+    required SceneDirectorOutput director,
+    required List<ResolvedSceneCastMember> cast,
+    required int round,
+    required String sceneState,
+    required List<SceneRoleplayTurn> transcript,
+    required List<SceneRoleplayCommittedFact> committedFacts,
+    required Map<String, List<CharacterMemoryDelta>> memoryDeltasByCharacter,
+    required int visibleTranscriptWindow,
+    required SceneRoleplaySpeakerPlan speakerPlan,
+    required bool parallelTurns,
+    SceneTaskCard? taskCard,
+    void Function(String message)? onStatus,
+  }) async {
+    if (parallelTurns) {
+      final visibleTranscript = List<SceneRoleplayTurn>.unmodifiable(
+        _trimTranscript(
+          transcript: transcript,
+          maxTurns: visibleTranscriptWindow,
+        ),
+      );
+      final factSnapshot = List<SceneRoleplayCommittedFact>.unmodifiable(
+        committedFacts,
+      );
+      final futures = <Future<SceneRoleplayTurn>>[];
+      for (final member in speakerPlan.speakers) {
+        onStatus?.call(
+          '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log actor-start | ${member.name}',
+        );
+        futures.add(
+          _runCharacterTurn(
+            brief: brief,
+            director: director,
+            member: member,
+            cast: cast,
+            taskCard: taskCard,
+            round: round,
+            sceneState: sceneState,
+            transcript: visibleTranscript,
+            committedFacts: factSnapshot,
+            memoryDeltas:
+                memoryDeltasByCharacter[member.characterId] ??
+                const <CharacterMemoryDelta>[],
+          ),
+        );
+      }
+      final turns = await Future.wait(futures);
+      for (var turnOrder = 0; turnOrder < turns.length; turnOrder += 1) {
+        onStatus?.call(
+          _roleplayTurnLogLine(
+            brief: brief,
+            round: round,
+            turnOrder: turnOrder + 1,
+            turn: turns[turnOrder],
+          ),
+        );
+      }
+      return turns;
+    }
+
+    final localTranscript = List<SceneRoleplayTurn>.of(transcript);
+    final turns = <SceneRoleplayTurn>[];
+    for (
+      var turnOrder = 0;
+      turnOrder < speakerPlan.speakers.length;
+      turnOrder += 1
+    ) {
+      final member = speakerPlan.speakers[turnOrder];
+      onStatus?.call(
+        '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log actor-start | ${member.name}',
+      );
+      final turn = await _runCharacterTurn(
+        brief: brief,
+        director: director,
+        member: member,
+        cast: cast,
+        taskCard: taskCard,
+        round: round,
+        sceneState: sceneState,
+        transcript: _trimTranscript(
+          transcript: localTranscript,
+          maxTurns: visibleTranscriptWindow,
+        ),
+        committedFacts: committedFacts,
+        memoryDeltas:
+            memoryDeltasByCharacter[member.characterId] ??
+            const <CharacterMemoryDelta>[],
+      );
+      onStatus?.call(
+        _roleplayTurnLogLine(
+          brief: brief,
+          round: round,
+          turnOrder: turnOrder + 1,
+          turn: turn,
+        ),
+      );
+      localTranscript.add(turn);
+      turns.add(turn);
+    }
+    return turns;
+  }
+
+  SceneRoleplayTurn _applySpeakerBoundary({
+    required SceneRoleplayTurn turn,
+    required ResolvedSceneCastMember speaker,
+    required List<ResolvedSceneCastMember> cast,
+  }) {
+    final otherNames = [
+      for (final member in cast)
+        if (member.characterId != speaker.characterId) member.name,
+    ];
+    final intent = _speakerBoundedField(
+      turn.intent,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final visibleAction = _speakerBoundedField(
+      turn.visibleAction,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final dialogue = _speakerBoundedField(
+      turn.dialogue,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final innerState = _speakerBoundedField(
+      turn.innerState,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final taboo = _speakerBoundedField(
+      turn.taboo,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final proseFragment = _speakerBoundedField(
+      turn.proseFragment,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    final proposedMemoryDeltas = _speakerBoundedMemoryDeltas(
+      turn.proposedMemoryDeltas,
+      speakerName: speaker.name,
+      otherNames: otherNames,
+    );
+    if (intent == turn.intent &&
+        visibleAction == turn.visibleAction &&
+        dialogue == turn.dialogue &&
+        innerState == turn.innerState &&
+        taboo == turn.taboo &&
+        proseFragment == turn.proseFragment &&
+        identical(proposedMemoryDeltas, turn.proposedMemoryDeltas)) {
+      return turn;
+    }
+    return SceneRoleplayTurn(
+      round: turn.round,
+      characterId: turn.characterId,
+      name: turn.name,
+      intent: intent,
+      visibleAction: visibleAction,
+      dialogue: dialogue,
+      innerState: innerState,
+      taboo: taboo,
+      rawText: turn.rawText,
+      proseFragment: proseFragment,
+      skillId: turn.skillId,
+      skillVersion: turn.skillVersion,
+      proposedMemoryDeltas: proposedMemoryDeltas,
+    );
+  }
+
+  List<CharacterMemoryDelta> _speakerBoundedMemoryDeltas(
+    List<CharacterMemoryDelta> deltas, {
+    required String speakerName,
+    required List<String> otherNames,
+  }) {
+    var changed = false;
+    final bounded = <CharacterMemoryDelta>[];
+    for (final delta in deltas) {
+      final content = _speakerBoundedField(
+        delta.content,
+        speakerName: speakerName,
+        otherNames: otherNames,
+      );
+      if (content != delta.content) changed = true;
+      if (content.isEmpty) {
+        changed = true;
+        continue;
+      }
+      bounded.add(
+        CharacterMemoryDelta(
+          deltaId: delta.deltaId,
+          characterId: delta.characterId,
+          kind: delta.kind,
+          content: content,
+          acl: delta.acl,
+          sourceRound: delta.sourceRound,
+          sourceTurnId: delta.sourceTurnId,
+          confidence: delta.confidence,
+          accepted: delta.accepted,
+          rejectionReason: delta.rejectionReason,
+        ),
+      );
+    }
+    return changed ? List<CharacterMemoryDelta>.unmodifiable(bounded) : deltas;
+  }
+
+  String _speakerBoundedField(
+    String value, {
+    required String speakerName,
+    required List<String> otherNames,
+  }) {
+    var result = value.trim();
+    if (result.isEmpty) return '';
+    result = result.replaceFirst(
+      RegExp('^\\s*${RegExp.escape(speakerName)}\\s*[:：]\\s*'),
+      '',
+    );
+    var earliestOtherPrefix = -1;
+    for (final name in otherNames) {
+      if (name.trim().isEmpty) continue;
+      final match = RegExp(
+        '(^|\\n)\\s*${RegExp.escape(name)}\\s*[:：]',
+      ).firstMatch(result);
+      if (match == null) continue;
+      if (earliestOtherPrefix < 0 || match.start < earliestOtherPrefix) {
+        earliestOtherPrefix = match.start;
+      }
+    }
+    if (earliestOtherPrefix >= 0) {
+      result = result.substring(0, earliestOtherPrefix).trimRight();
+    }
+    return result.trim();
   }
 
   Future<SceneRoleplayArbitration> _arbitrateRound({
@@ -270,91 +666,12 @@ class SceneRoleplayRuntime {
         '立场：$stance',
         '动作：$action',
         '禁忌：$taboo',
+        if (turns.map((t) => t.proseFragment).any((v) => v.trim().isNotEmpty))
+          '正文片段：${turns.map((t) => t.proseFragment.trim()).where((v) => v.isNotEmpty).join('\n\n')}',
         if (process.isNotEmpty) '过程：$process',
         '局面：${_compact(sceneState, maxChars: 120)}',
       ].join('\n'),
     );
-  }
-
-  SceneRoleplayTurn _parseTurn({
-    required String raw,
-    required int round,
-    required ResolvedSceneCastMember member,
-  }) {
-    final values = <String, String>{};
-    for (final line in raw.split('\n')) {
-      final trimmed = line.trim();
-      final colon = trimmed.indexOf('：');
-      if (colon <= 0) continue;
-      values[trimmed.substring(0, colon)] = trimmed.substring(colon + 1).trim();
-    }
-    return SceneRoleplayTurn(
-      round: round,
-      characterId: member.characterId,
-      name: member.name,
-      intent: values['意图'] ?? '',
-      visibleAction: values['可见动作'] ?? '',
-      dialogue: values['对白'] ?? '',
-      innerState: values['内心'] ?? '',
-      taboo: values['禁忌'] ?? '',
-      rawText: raw,
-    );
-  }
-
-  SceneRoleplayArbitration _parseArbitration({
-    required String raw,
-    required String previousState,
-    required List<SceneRoleplayTurn> roundTurns,
-  }) {
-    String fact = '';
-    String state = '';
-    String pressure = '';
-    var shouldStop = false;
-
-    for (final line in raw.split('\n')) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('事实：')) {
-        fact = trimmed.substring('事实：'.length).trim();
-      } else if (trimmed.startsWith('状态：')) {
-        state = trimmed.substring('状态：'.length).trim();
-      } else if (trimmed.startsWith('压力：')) {
-        pressure = trimmed.substring('压力：'.length).trim();
-      } else if (trimmed.startsWith('收束：')) {
-        final value = trimmed.substring('收束：'.length).trim();
-        shouldStop = value.startsWith('是') || value.toLowerCase() == 'true';
-      }
-    }
-
-    final nextState = [
-      if (previousState.isNotEmpty) previousState,
-      if (fact.isNotEmpty) '事实：$fact',
-      if (state.isNotEmpty) '状态：$state',
-      if (pressure.isNotEmpty) '压力：$pressure',
-    ].join(' / ');
-
-    final resolvedState = nextState.isEmpty
-        ? _fallbackState(sceneState: previousState, turns: roundTurns)
-        : _compact(nextState, maxChars: 700);
-    return SceneRoleplayArbitration(
-      fact: fact,
-      state: state,
-      pressure: pressure,
-      nextPublicState: resolvedState,
-      shouldStop: shouldStop,
-      rawText: raw,
-    );
-  }
-
-  String _fallbackState({
-    required String sceneState,
-    required List<SceneRoleplayTurn> turns,
-  }) {
-    final actions = turns
-        .map(_visibleAction)
-        .where((v) => v.isNotEmpty)
-        .join('；');
-    if (actions.isEmpty) return sceneState;
-    return _compact('$sceneState / 本轮推进：$actions', maxChars: 700);
   }
 
   String _initialSceneState({
@@ -371,47 +688,67 @@ class SceneRoleplayRuntime {
     return '场景：${brief.sceneTitle}';
   }
 
-  String _characterBriefing({
-    required SceneBrief brief,
-    required SceneDirectorOutput director,
-    required ResolvedSceneCastMember member,
-  }) {
-    final explicitPrivate = _privateBriefing(brief, member.characterId);
-    if (explicitPrivate != null && explicitPrivate.isNotEmpty) {
-      return _compact(explicitPrivate, maxChars: 240);
-    }
-    final note = director.plan?.noteFor(member.characterId);
-    final parts = <String>[
-      if (member.role.trim().isNotEmpty) '身份=${member.role.trim()}',
-      if (note != null && note.motivation.trim().isNotEmpty)
-        '动机=${note.motivation.trim()}',
-      if (note != null && note.emotionalArc.trim().isNotEmpty)
-        '情绪=${note.emotionalArc.trim()}',
-      if (note != null && note.keyAction.trim().isNotEmpty)
-        '当前冲动=${note.keyAction.trim()}',
-      if (partsForContributions(member).isNotEmpty)
-        '参与=${partsForContributions(member)}',
-    ];
-    if (parts.isNotEmpty) {
-      return parts.join('；');
-    }
-    return member.role.trim().isEmpty ? member.name : member.role.trim();
-  }
-
-  String? _privateBriefing(SceneBrief brief, String characterId) {
-    final raw =
-        brief.metadata['privateRoleBriefings'] ??
-        brief.metadata['characterPrivateBriefings'];
-    if (raw is Map) {
-      return _metadataString(raw[characterId]);
-    }
-    return null;
-  }
-
   String? _metadataString(Object? raw) {
     if (raw is String) {
       final trimmed = raw.trim();
       return trimmed.isEmpty ? null : trimmed;
+    }
+    return null;
+  }
+
+  List<SceneRoleplayTurn> _trimTranscript({
+    required List<SceneRoleplayTurn> transcript,
+    required int maxTurns,
+  }) {
+    if (maxTurns <= 0 || transcript.length <= maxTurns) {
+      return transcript;
+    }
+    return transcript.sublist(transcript.length - maxTurns);
+  }
+
+  bool _hasPublicProgress({
+    required List<SceneRoleplayTurn> roundTurns,
+    required String arbitrationFact,
+  }) {
+    if (arbitrationFact.trim().isNotEmpty) {
+      return true;
+    }
+    return roundTurns.any(
+      (turn) =>
+          turn.visibleAction.trim().isNotEmpty ||
+          turn.dialogue.trim().isNotEmpty,
+    );
+  }
+
+  int? _metadataInt(Object? raw) {
+    return switch (raw) {
+      int value => value,
+      num value => value.toInt(),
+      String value => int.tryParse(value.trim()),
+      _ => null,
+    };
+  }
+
+  bool? _metadataBool(Object? raw) {
+    if (raw is bool) {
+      return raw;
+    }
+    if (raw is int) {
+      return raw != 0;
+    }
+    if (raw is String) {
+      final normalized = raw.trim().toLowerCase();
+      return switch (normalized) {
+        '1' => true,
+        'true' => true,
+        'yes' => true,
+        'on' => true,
+        '0' => false,
+        'false' => false,
+        'no' => false,
+        'off' => false,
+        _ => null,
+      };
     }
     return null;
   }
@@ -429,72 +766,7 @@ class SceneRoleplayRuntime {
       String value => int.tryParse(value.trim()),
       _ => null,
     };
-    return (parsed ?? defaultMaxRounds).clamp(2, 5).toInt();
-  }
-
-  List<String> _directorNoteLines({
-    required SceneDirectorOutput director,
-    required ResolvedSceneCastMember member,
-  }) {
-    final note = director.plan?.noteFor(member.characterId);
-    return [
-      if (note != null && note.motivation.trim().isNotEmpty)
-        '角色动机：${note.motivation.trim()}',
-      if (note != null && note.emotionalArc.trim().isNotEmpty)
-        '情绪弧线：${note.emotionalArc.trim()}',
-      if (note != null && note.keyAction.trim().isNotEmpty)
-        '关键动作：${note.keyAction.trim()}',
-    ];
-  }
-
-  List<String> _cognitionLines({
-    required SceneTaskCard? taskCard,
-    required ResolvedSceneCastMember member,
-  }) {
-    if (taskCard == null) return const <String>[];
-    final beliefs = taskCard.beliefsFor(member.characterId);
-    final relationships = taskCard.relationshipsFor(member.characterId);
-    final socialPosition = taskCard.socialPositionFor(member.characterId);
-    return [
-      if (beliefs.isNotEmpty)
-        '信念：${beliefs.map((belief) {
-          final target = _memberName(taskCard, belief.targetId);
-          return '$target/${belief.aspect}=${belief.value}';
-        }).join('；')}',
-      if (relationships.isNotEmpty)
-        '关系：${relationships.map((relationship) {
-          final a = _memberName(taskCard, relationship.characterA);
-          final b = _memberName(taskCard, relationship.characterB);
-          return '$a↔$b：${relationship.label}（张力${relationship.tension}/信任${relationship.trust}）';
-        }).join('；')}',
-      if (socialPosition != null)
-        '社会地位：${socialPosition.role}/${socialPosition.formalRank}/影响力${socialPosition.actualInfluence}',
-    ];
-  }
-
-  String _memberName(SceneTaskCard taskCard, String characterId) {
-    for (final member in taskCard.cast) {
-      if (member.characterId == characterId) return member.name;
-    }
-    return characterId;
-  }
-
-  String _publicTranscriptSection(List<SceneRoleplayTurn> transcript) {
-    final recent = transcript.length <= 8
-        ? transcript
-        : transcript.sublist(transcript.length - 8);
-    return '已发生：${recent.map(_publicTurnLine).join('；')}';
-  }
-
-  String _publicTurnLine(SceneRoleplayTurn turn) {
-    final parts = <String>[
-      'R${turn.round}',
-      turn.name,
-      if (turn.visibleAction.trim().isNotEmpty)
-        '动作=${turn.visibleAction.trim()}',
-      if (turn.dialogue.trim().isNotEmpty) '对白=${turn.dialogue.trim()}',
-    ];
-    return parts.join('/');
+    return (parsed ?? defaultMaxRounds).clamp(1, 5).toInt();
   }
 
   String _visibleAction(SceneRoleplayTurn turn) {
@@ -539,5 +811,150 @@ class SceneRoleplayRuntime {
       hash = (hash * 0x01000193) & 0xffffffff;
     }
     return hash.toRadixString(16).padLeft(8, '0');
+  }
+}
+
+class SceneRoleplaySpeakerPlan {
+  SceneRoleplaySpeakerPlan({
+    required this.strategy,
+    required List<ResolvedSceneCastMember> speakers,
+  }) : speakers = List.unmodifiable(speakers);
+
+  final String strategy;
+  final List<ResolvedSceneCastMember> speakers;
+}
+
+class SceneRoleplaySpeakerScheduler {
+  const SceneRoleplaySpeakerScheduler();
+
+  SceneRoleplaySpeakerPlan planRound({
+    required SceneBrief brief,
+    required SceneTaskCard? taskCard,
+    required List<ResolvedSceneCastMember> cast,
+    required int round,
+    required List<SceneRoleplayTurn> transcript,
+  }) {
+    final metadata = _mergedMetadata(brief: brief, taskCard: taskCard);
+    final strategy =
+        (_metadataString(metadata['roleplaySpeakerStrategy']) ??
+                _metadataString(metadata['groupReplyStrategy']) ??
+                'list')
+            .toLowerCase()
+            .replaceAll(RegExp(r'[\s_-]+'), '');
+    final muted = _stringSet(
+      metadata['roleplayMutedCharacterIds'] ??
+          metadata['mutedRoleIds'] ??
+          metadata['disabledRoleIds'],
+    );
+    final maxSpeakers = _metadataInt(metadata['roleplayMaxSpeakersPerRound']);
+    final enabled = [
+      for (final member in cast)
+        if (!muted.contains(member.characterId) && !muted.contains(member.name))
+          member,
+    ];
+    final explicitlyOrdered = _applyExplicitOrder(
+      enabled,
+      metadata['roleplaySpeakerOrder'] ?? metadata['speakerOrder'],
+    );
+    final scheduled = switch (strategy) {
+      'pooled' => _pooledOrder(explicitlyOrdered, transcript),
+      'single' => explicitlyOrdered.take(1).toList(),
+      'manual' => explicitlyOrdered.take(1).toList(),
+      'naturalorder' => explicitlyOrdered,
+      'listorder' => explicitlyOrdered,
+      _ => explicitlyOrdered,
+    };
+    final limited = maxSpeakers == null || maxSpeakers <= 0
+        ? scheduled
+        : scheduled.take(maxSpeakers).toList();
+    return SceneRoleplaySpeakerPlan(strategy: strategy, speakers: limited);
+  }
+
+  Map<String, Object?> _mergedMetadata({
+    required SceneBrief brief,
+    required SceneTaskCard? taskCard,
+  }) {
+    return <String, Object?>{
+      ...brief.metadata,
+      if (taskCard != null) ...taskCard.metadata,
+    };
+  }
+
+  List<ResolvedSceneCastMember> _applyExplicitOrder(
+    List<ResolvedSceneCastMember> cast,
+    Object? rawOrder,
+  ) {
+    final order = _stringList(rawOrder);
+    if (order.isEmpty) return cast;
+    final remaining = [...cast];
+    final ordered = <ResolvedSceneCastMember>[];
+    for (final key in order) {
+      final index = remaining.indexWhere(
+        (member) => member.characterId == key || member.name == key,
+      );
+      if (index < 0) continue;
+      ordered.add(remaining.removeAt(index));
+    }
+    ordered.addAll(remaining);
+    return ordered;
+  }
+
+  List<ResolvedSceneCastMember> _pooledOrder(
+    List<ResolvedSceneCastMember> cast,
+    List<SceneRoleplayTurn> transcript,
+  ) {
+    if (cast.isEmpty) return const <ResolvedSceneCastMember>[];
+    final turnCounts = <String, int>{
+      for (final member in cast) member.characterId: 0,
+    };
+    for (final turn in transcript) {
+      if (turnCounts.containsKey(turn.characterId)) {
+        turnCounts[turn.characterId] = turnCounts[turn.characterId]! + 1;
+      }
+    }
+    final leastTurns = turnCounts.values.fold<int?>(
+      null,
+      (least, value) => least == null || value < least ? value : least,
+    );
+    return [
+      for (final member in cast)
+        if (turnCounts[member.characterId] == leastTurns) member,
+    ].take(1).toList();
+  }
+
+  String? _metadataString(Object? raw) {
+    if (raw is String) {
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    return null;
+  }
+
+  int? _metadataInt(Object? raw) {
+    return switch (raw) {
+      int value => value,
+      num value => value.toInt(),
+      String value => int.tryParse(value.trim()),
+      _ => null,
+    };
+  }
+
+  Set<String> _stringSet(Object? raw) => _stringList(raw).toSet();
+
+  List<String> _stringList(Object? raw) {
+    if (raw is String) {
+      return raw
+          .split(RegExp(r'[,，\n]'))
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+    }
+    if (raw is List) {
+      return [
+        for (final value in raw)
+          if (value is String && value.trim().isNotEmpty) value.trim(),
+      ];
+    }
+    return const <String>[];
   }
 }

@@ -20,6 +20,27 @@ class SceneRoleplaySession {
 
   bool get isEmpty => rounds.isEmpty;
 
+  bool get hasRoleplayDraft => roleplayDraft.trim().isNotEmpty;
+
+  String get roleplayDraft {
+    final fragments = <String>[];
+    for (final round in rounds) {
+      for (final turn in round.turns) {
+        final fragment = turn.proseFragment.trim();
+        if (fragment.isNotEmpty) {
+          fragments.add(fragment);
+        }
+      }
+    }
+    return fragments.join('\n\n');
+  }
+
+  String toRoleplayDraftPromptText({int maxChars = 2400}) {
+    final draft = roleplayDraft.trim();
+    if (draft.isEmpty) return '';
+    return _compact(draft, maxChars: maxChars);
+  }
+
   String toPromptText({int maxChars = 2400}) {
     final lines = <String>[
       '场景：$sceneTitle',
@@ -37,11 +58,12 @@ class SceneRoleplaySession {
     final lines = <String>[
       '场景：$sceneTitle',
       for (final round in rounds) ...round.toPublicPromptLines(),
+      if (hasRoleplayDraft) '角色正文草稿：${toRoleplayDraftPromptText()}',
       if (committedFacts.isNotEmpty) '已提交事实：',
       for (final fact in committedFacts) '- ${fact.toPromptLine()}',
-      if (acceptedMemoryDeltas.isNotEmpty) '已接受公开记忆：',
-      for (final delta in acceptedMemoryDeltas)
-        if (delta.characterId.isEmpty) '- ${delta.toPromptLine()}',
+      if (acceptedPublicMemoryDeltas.isNotEmpty) '已接受公开记忆：',
+      for (final delta in acceptedPublicMemoryDeltas)
+        '- ${delta.toPromptLine()}',
       if (finalPublicState.trim().isNotEmpty) '最终公开局面：$finalPublicState',
     ];
     return _compact(lines.join('\n'), maxChars: maxChars);
@@ -57,6 +79,50 @@ class SceneRoleplaySession {
     return [
       for (final round in rounds) ...round.arbitration.acceptedMemoryDeltas,
     ];
+  }
+
+  List<CharacterMemoryDelta> get acceptedPublicMemoryDeltas {
+    return [
+      for (final delta in acceptedMemoryDeltas)
+        if (delta.characterId.isEmpty) delta,
+    ];
+  }
+
+  bool get hasValidCommittedFactChain => validateCommittedFactChain().isEmpty;
+
+  List<String> validateCommittedFactChain() {
+    final errors = <String>[];
+    var expectedSequenceId = 1;
+    var previousHash = 'root';
+    for (final fact in committedFacts) {
+      if (fact.sequenceId != expectedSequenceId) {
+        errors.add(
+          'expected sequence $expectedSequenceId but got ${fact.sequenceId}',
+        );
+      }
+      if (fact.previousHash != previousHash) {
+        errors.add(
+          'fact #${fact.sequenceId} previousHash mismatch: expected '
+          '$previousHash but got ${fact.previousHash}',
+        );
+      }
+      final expectedHash = SceneRoleplayCommittedFact.computeContentHash(
+        sequenceId: fact.sequenceId,
+        round: fact.round,
+        source: fact.source,
+        previousHash: fact.previousHash,
+        content: fact.content,
+      );
+      if (fact.contentHash != expectedHash) {
+        errors.add(
+          'fact #${fact.sequenceId} contentHash mismatch: expected '
+          '$expectedHash but got ${fact.contentHash}',
+        );
+      }
+      previousHash = fact.contentHash;
+      expectedSequenceId += 1;
+    }
+    return errors;
   }
 }
 
@@ -79,6 +145,27 @@ class SceneRoleplayCommittedFact {
 
   String toPromptLine() {
     return '#$sequenceId/R$round/$source/$contentHash：$content';
+  }
+
+  static String computeContentHash({
+    required int sequenceId,
+    required int round,
+    required String source,
+    required String previousHash,
+    required String content,
+  }) {
+    return _stableHash(
+      [sequenceId, round, source, previousHash, content].join('|'),
+    );
+  }
+
+  static String _stableHash(String input) {
+    var hash = 0x811c9dc5;
+    for (final unit in input.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
   }
 }
 
@@ -122,6 +209,7 @@ class SceneRoleplayTurn {
     required this.innerState,
     required this.taboo,
     required this.rawText,
+    this.proseFragment = '',
     this.skillId = '',
     this.skillVersion = '',
     this.proposedMemoryDeltas = const [],
@@ -136,12 +224,15 @@ class SceneRoleplayTurn {
   final String innerState;
   final String taboo;
   final String rawText;
+  final String proseFragment;
   final String skillId;
   final String skillVersion;
   final List<CharacterMemoryDelta> proposedMemoryDeltas;
 
   bool get hasPublicEvent =>
-      visibleAction.trim().isNotEmpty || dialogue.trim().isNotEmpty;
+      visibleAction.trim().isNotEmpty ||
+      dialogue.trim().isNotEmpty ||
+      proseFragment.trim().isNotEmpty;
 
   String toTranscriptLine() {
     final parts = <String>[
@@ -152,6 +243,7 @@ class SceneRoleplayTurn {
       if (visibleAction.isNotEmpty) '动作=$visibleAction',
       if (dialogue.isNotEmpty) '对白=$dialogue',
       if (innerState.isNotEmpty) '内心=$innerState',
+      if (proseFragment.isNotEmpty) '正文片段=$proseFragment',
     ];
     return parts.join('/');
   }
@@ -162,6 +254,7 @@ class SceneRoleplayTurn {
       name,
       if (visibleAction.isNotEmpty) '动作=$visibleAction',
       if (dialogue.isNotEmpty) '对白=$dialogue',
+      if (proseFragment.isNotEmpty) '正文片段=$proseFragment',
     ];
     return parts.join('/');
   }

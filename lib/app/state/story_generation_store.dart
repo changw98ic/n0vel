@@ -24,6 +24,7 @@ class StoryGenerationStore extends ChangeNotifier {
     unawaited(_readyFuture);
   }
 
+  @visibleForTesting
   static StoryGenerationStorage? debugStorageOverride;
 
   final StoryGenerationStorage _storage;

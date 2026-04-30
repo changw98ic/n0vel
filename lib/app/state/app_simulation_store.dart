@@ -35,8 +35,8 @@ extension SimulationParticipantCopy on SimulationParticipant {
     SimulationParticipant.director => '先拆任务，再调节冲突节奏。',
     SimulationParticipant.liuXi => '先抬出异常，再决定追问力度。',
     SimulationParticipant.yueRen => '把回避和试探放在同一轮里。',
-    SimulationParticipant.fuXingzhou => '门口压力不能消失，只能转移。',
-    SimulationParticipant.stateMachine => '只校验前提，不替角色发言。',
+    SimulationParticipant.fuXingzhou => '门口压力保持存在，并转移到新的阻力上。',
+    SimulationParticipant.stateMachine => '校验前提，保持角色发言归属清楚。',
   };
 
   String get statusSummary => switch (this) {
@@ -235,6 +235,7 @@ class AppSimulationStore extends AppProjectScopedStore {
   _SimulationRunMode _runMode = _SimulationRunMode.template;
   String? _activeRunCorrelationId;
 
+  @visibleForTesting
   static AppSimulationStorage? debugStorageOverride;
 
   AppSimulationSnapshot get snapshot => _snapshot;
@@ -529,17 +530,19 @@ class AppSimulationStore extends AppProjectScopedStore {
         _template = _SimulationTemplate.runningStepTwo;
 
         final results = await Future.wait(
-          _realAgents.map((agent) => _requestAgentWithRetry(
-            settingsStore: settingsStore,
-            messages: _messagesForRealAgent(
-              agent: agent,
-              round: round,
-              rounds: rounds,
-              sceneContext: normalizedContext,
-              authorGoal: authorGoal.trim(),
-              priorOutputs: priorOutputs,
+          _realAgents.map(
+            (agent) => _requestAgentWithRetry(
+              settingsStore: settingsStore,
+              messages: _messagesForRealAgent(
+                agent: agent,
+                round: round,
+                rounds: rounds,
+                sceneContext: normalizedContext,
+                authorGoal: authorGoal.trim(),
+                priorOutputs: priorOutputs,
+              ),
             ),
-          )),
+          ),
         );
 
         for (var i = 0; i < _realAgents.length; i++) {
@@ -1222,7 +1225,7 @@ class AppSimulationStore extends AppProjectScopedStore {
           '你是小说场景模拟中的真实多 Agent 角色：${agent.label}。',
           '你的目标：${agent.goal}。',
           '你的固定 prompt：${agent.prompt}',
-          '只输出本回合可被正文生成引用的中文内容，不要声称自己是模板或示例。',
+          '输出本回合可被正文生成引用的中文内容，保持角色现场判断口吻。',
         ].join('\n'),
       ),
       AppLlmChatMessage(

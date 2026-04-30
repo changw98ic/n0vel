@@ -44,6 +44,7 @@ class AppVersionStore extends AppProjectScopedStore {
     onRestore();
   }
 
+  @visibleForTesting
   static AppVersionStorage? debugStorageOverride;
 
   final AppVersionStorage _storage;

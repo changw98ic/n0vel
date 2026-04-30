@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'app_http_client.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
+import 'app_llm_response_decoding.dart';
 import 'token_usage.dart';
 
 class LlmGateway implements AppLlmClient {
@@ -222,8 +223,8 @@ class LlmGateway implements AppLlmClient {
       if (firstChoice is Map) {
         final delta = firstChoice['delta'];
         if (delta is Map) {
-          final content = delta['content'];
-          if (content is String && content.isNotEmpty) {
+          final content = normalizeLlmContent(delta['content']);
+          if (content != null && content.isNotEmpty) {
             textBuffer.write(content);
             onPartialText?.call(content);
           }
@@ -248,50 +249,11 @@ class LlmGateway implements AppLlmClient {
   }
 
   String? _decodeNonStreamedText(String body) {
-    Object? decoded;
     try {
-      decoded = jsonDecode(body);
+      return decodeOpenAiChatResponseBody(body)?.text;
     } on FormatException {
       return null;
     }
-    if (decoded is! Map) return null;
-
-    final choices = decoded['choices'];
-    if (choices is List && choices.isNotEmpty) {
-      final firstChoice = choices.first;
-      if (firstChoice is Map) {
-        final message = firstChoice['message'];
-        if (message is Map) {
-          return _normalizeContent(message['content']);
-        }
-      }
-    }
-
-    final response = decoded['response'];
-    if (response is String && response.trim().isNotEmpty) {
-      return response;
-    }
-
-    return null;
-  }
-
-  String? _normalizeContent(Object? content) {
-    if (content is String) return content;
-    if (content is List) {
-      final buffer = StringBuffer();
-      for (final item in content) {
-        if (item is Map && item['type']?.toString() == 'text') {
-          final text = item['text']?.toString() ?? '';
-          if (text.isNotEmpty) {
-            if (buffer.isNotEmpty) buffer.write('\n');
-            buffer.write(text);
-          }
-        }
-      }
-      final normalized = buffer.toString().trim();
-      return normalized.isEmpty ? null : normalized;
-    }
-    return null;
   }
 
   String? _normalizeDetail(String body) {

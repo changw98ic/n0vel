@@ -15,28 +15,43 @@ import 'test_support/fake_app_llm_client.dart';
 // ---------------------------------------------------------------------------
 
 SceneBrief _brief() => SceneBrief(
-      chapterId: 'chapter-01',
-      chapterTitle: '第一章',
-      sceneId: 'scene-01',
-      sceneTitle: '仓库门外',
-      sceneSummary: '柳溪拦住岳刃逼问货单。',
-      targetBeat: '拿到账单去向。',
-      worldNodeIds: const ['old-harbor'],
-      cast: [
-        SceneCastCandidate(
-          characterId: 'char-liuxi',
-          name: '柳溪',
-          role: '调查记者',
-          participation: const SceneCastParticipation(action: '挡住退路'),
-        ),
-        SceneCastCandidate(
-          characterId: 'char-yueren',
-          name: '岳刃',
-          role: '走私联络人',
-          participation: const SceneCastParticipation(dialogue: '不该来。'),
-        ),
-      ],
+  chapterId: 'chapter-01',
+  chapterTitle: '第一章',
+  sceneId: 'scene-01',
+  sceneTitle: '仓库门外',
+  sceneSummary: '柳溪拦住岳刃逼问货单。',
+  targetBeat: '拿到账单去向。',
+  worldNodeIds: const ['old-harbor'],
+  cast: [
+    SceneCastCandidate(
+      characterId: 'char-liuxi',
+      name: '柳溪',
+      role: '调查记者',
+      participation: const SceneCastParticipation(action: '挡住退路'),
+    ),
+    SceneCastCandidate(
+      characterId: 'char-yueren',
+      name: '岳刃',
+      role: '走私联络人',
+      participation: const SceneCastParticipation(dialogue: '不该来。'),
+    ),
+  ],
+);
+
+AppLlmChatResult? _defaultRoleplayResponse(AppLlmChatRequest request) {
+  final userPrompt = request.messages.last.content;
+  if (userPrompt.contains('任务：scene_roleplay_turn')) {
+    return const AppLlmChatResult.success(
+      text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
     );
+  }
+  if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+    return const AppLlmChatResult.success(
+      text: '事实：柳溪逼近并说话\n状态：对峙推进\n压力：升级\n收束：是',
+    );
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // LLM responder that handles all pipeline stages with configurable review
@@ -52,15 +67,17 @@ FakeAppLlmResponder _buildResponder({
   var editorialCall = 0;
   return (request) {
     final systemPrompt = request.messages.first.content;
+    final roleplayResponse = _defaultRoleplayResponse(request);
+    if (roleplayResponse != null) return roleplayResponse;
 
     if (systemPrompt.contains('scene plan polisher')) {
       return const AppLlmChatResult.success(
         text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
       );
     }
-    if (systemPrompt.contains('dynamic role agent')) {
+    if (request.messages.last.content.contains('任务：scene_roleplay_turn')) {
       return const AppLlmChatResult.success(
-        text: '立场：压迫\n动作：逼近\n禁忌：拖延',
+        text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
       );
     }
     if (systemPrompt.contains('scene beat resolver')) {
@@ -87,14 +104,10 @@ FakeAppLlmResponder _buildResponder({
           );
         }
       }
-      return const AppLlmChatResult.success(
-        text: '决定：PASS\n原因：通过。',
-      );
+      return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
     }
     if (systemPrompt.contains('scene consistency review')) {
-      return const AppLlmChatResult.success(
-        text: '决定：PASS\n原因：一致。',
-      );
+      return const AppLlmChatResult.success(text: '决定：PASS\n原因：一致。');
     }
 
     throw StateError('Unexpected prompt: $systemPrompt');
@@ -159,10 +172,7 @@ void main() {
       expect(result.proseAttempts, 1);
       expect(result.softFailureCount, 1);
       // review is the REWRITE_PROSE result (no second chance to pass)
-      expect(
-        result.review.decision,
-        SceneReviewDecision.rewriteProse,
-      );
+      expect(result.review.decision, SceneReviewDecision.rewriteProse);
       expect(result.editorialDraft.text, '第1版正文');
     });
   });
@@ -224,10 +234,7 @@ void main() {
       // Only 1 retry allowed → 2 total attempts → still REWRITE_PROSE
       expect(result.proseAttempts, 2);
       expect(result.softFailureCount, 2);
-      expect(
-        result.review.decision,
-        SceneReviewDecision.rewriteProse,
-      );
+      expect(result.review.decision, SceneReviewDecision.rewriteProse);
       expect(result.editorialDraft.text, '第2版正文');
     });
   });
@@ -236,121 +243,129 @@ void main() {
   // RC-5: Multiple retries with feedback propagation
   // ===========================================================================
   group('RC-5: Multi-round retry with feedback', () {
-    test('review feedback from round N appears in editorial prompt for round N+1',
-        () async {
-      final capturedPrompts = <String>[];
+    test(
+      'review feedback from round N appears in editorial prompt for round N+1',
+      () async {
+        final capturedPrompts = <String>[];
 
-      final fakeClient = FakeAppLlmClient(
-        responder: (request) {
-          final systemPrompt = request.messages.first.content;
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final roleplayResponse = _defaultRoleplayResponse(request);
+            if (roleplayResponse != null) return roleplayResponse;
 
-          if (systemPrompt.contains('scene plan polisher')) {
-            return const AppLlmChatResult.success(
-              text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
-            );
-          }
-          if (systemPrompt.contains('dynamic role agent')) {
-            return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
-            );
-          }
-          if (systemPrompt.contains('scene beat resolver')) {
-            return const AppLlmChatResult.success(
-              text: '[叙述] @narrator 场景开始\n[对白] @char-liuxi 说话',
-            );
-          }
-          if (systemPrompt.contains('scene editor')) {
-            capturedPrompts.add(request.messages.last.content);
-            return const AppLlmChatResult.success(text: '正文');
-          }
-          if (systemPrompt.contains('scene judge review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：REWRITE_PROSE\n原因：缺少动作描写。',
-            );
-          }
-          if (systemPrompt.contains('scene consistency review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：PASS\n原因：一致。',
-            );
-          }
-
-          throw StateError('Unexpected: $systemPrompt');
-        },
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
-
-      final orchestrator = ScenePipelineOrchestrator(
-        settingsStore: settingsStore,
-        maxProseRetries: 2,
-      );
-      await orchestrator.runScene(_brief());
-
-      // First editorial prompt has no feedback
-      expect(capturedPrompts[0], isNot(contains('编辑反馈')));
-      // Second editorial prompt contains feedback from first round
-      expect(capturedPrompts[1], contains('编辑反馈'));
-      expect(capturedPrompts[1], contains('缺少动作描写'));
-      // Third editorial prompt contains feedback from second round (same reason)
-      expect(capturedPrompts[2], contains('编辑反馈'));
-    });
-
-    test('attempt number increments in editorial prompt across rounds',
-        () async {
-      final capturedAttempts = <int>[];
-
-      final fakeClient = FakeAppLlmClient(
-        responder: (request) {
-          final systemPrompt = request.messages.first.content;
-
-          if (systemPrompt.contains('scene plan polisher')) {
-            return const AppLlmChatResult.success(
-              text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
-            );
-          }
-          if (systemPrompt.contains('dynamic role agent')) {
-            return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
-            );
-          }
-          if (systemPrompt.contains('scene beat resolver')) {
-            return const AppLlmChatResult.success(
-              text: '[叙述] @narrator 场景\n[对白] @char-liuxi 说话',
-            );
-          }
-          if (systemPrompt.contains('scene editor')) {
-            final userPrompt = request.messages.last.content;
-            final match = RegExp(r'当前尝试：(\d+)').firstMatch(userPrompt);
-            if (match != null) {
-              capturedAttempts.add(int.parse(match.group(1)!));
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
             }
-            return const AppLlmChatResult.success(text: '正文');
-          }
-          if (systemPrompt.contains('review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：PASS\n原因：通过。',
-            );
-          }
+            if (request.messages.last.content.contains(
+              '任务：scene_roleplay_turn',
+            )) {
+              return const AppLlmChatResult.success(
+                text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[叙述] @narrator 场景开始\n[对白] @char-liuxi 说话',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              capturedPrompts.add(request.messages.last.content);
+              return const AppLlmChatResult.success(text: '正文');
+            }
+            if (systemPrompt.contains('scene judge review')) {
+              return const AppLlmChatResult.success(
+                text: '决定：REWRITE_PROSE\n原因：缺少动作描写。',
+              );
+            }
+            if (systemPrompt.contains('scene consistency review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：一致。');
+            }
 
-          throw StateError('Unexpected: $systemPrompt');
-        },
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
+            throw StateError('Unexpected: $systemPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = ScenePipelineOrchestrator(
-        settingsStore: settingsStore,
-      );
-      await orchestrator.runScene(_brief());
+        final orchestrator = ScenePipelineOrchestrator(
+          settingsStore: settingsStore,
+          maxProseRetries: 2,
+        );
+        await orchestrator.runScene(_brief());
 
-      expect(capturedAttempts, [1]);
-    });
+        // First editorial prompt has no feedback
+        expect(capturedPrompts[0], isNot(contains('编辑反馈')));
+        // Second editorial prompt contains feedback from first round
+        expect(capturedPrompts[1], contains('编辑反馈'));
+        expect(capturedPrompts[1], contains('缺少动作描写'));
+        // Third editorial prompt contains feedback from second round (same reason)
+        expect(capturedPrompts[2], contains('编辑反馈'));
+      },
+    );
+
+    test(
+      'attempt number increments in editorial prompt across rounds',
+      () async {
+        final capturedAttempts = <int>[];
+
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final roleplayResponse = _defaultRoleplayResponse(request);
+            if (roleplayResponse != null) return roleplayResponse;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            if (request.messages.last.content.contains(
+              '任务：scene_roleplay_turn',
+            )) {
+              return const AppLlmChatResult.success(
+                text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[叙述] @narrator 场景\n[对白] @char-liuxi 说话',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              final userPrompt = request.messages.last.content;
+              final match = RegExp(r'当前尝试：(\d+)').firstMatch(userPrompt);
+              if (match != null) {
+                capturedAttempts.add(int.parse(match.group(1)!));
+              }
+              return const AppLlmChatResult.success(text: '正文');
+            }
+            if (systemPrompt.contains('review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
+            }
+
+            throw StateError('Unexpected: $systemPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ScenePipelineOrchestrator(
+          settingsStore: settingsStore,
+        );
+        await orchestrator.runScene(_brief());
+
+        expect(capturedAttempts, [1]);
+      },
+    );
   });
 
   // ===========================================================================
@@ -363,15 +378,19 @@ void main() {
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
           final systemPrompt = request.messages.first.content;
+          final roleplayResponse = _defaultRoleplayResponse(request);
+          if (roleplayResponse != null) return roleplayResponse;
 
           if (systemPrompt.contains('scene plan polisher')) {
             return const AppLlmChatResult.success(
               text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
             );
           }
-          if (systemPrompt.contains('dynamic role agent')) {
+          if (request.messages.last.content.contains(
+            '任务：scene_roleplay_turn',
+          )) {
             return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
+              text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
             );
           }
           if (systemPrompt.contains('scene beat resolver')) {
@@ -417,58 +436,63 @@ void main() {
   // RC-7: Status callback receives round-by-round messages
   // ===========================================================================
   group('RC-7: Status callback per round', () {
-    test('onStatus receives editorial attempt messages for each round', () async {
-      final statusMessages = <String>[];
+    test(
+      'onStatus receives editorial attempt messages for each round',
+      () async {
+        final statusMessages = <String>[];
 
-      final fakeClient = FakeAppLlmClient(
-        responder: (request) {
-          final systemPrompt = request.messages.first.content;
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final roleplayResponse = _defaultRoleplayResponse(request);
+            if (roleplayResponse != null) return roleplayResponse;
 
-          if (systemPrompt.contains('scene plan polisher')) {
-            return const AppLlmChatResult.success(
-              text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
-            );
-          }
-          if (systemPrompt.contains('dynamic role agent')) {
-            return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
-            );
-          }
-          if (systemPrompt.contains('scene beat resolver')) {
-            return const AppLlmChatResult.success(
-              text: '[叙述] @narrator 场景\n[对白] @char-liuxi 说话',
-            );
-          }
-          if (systemPrompt.contains('scene editor')) {
-            return const AppLlmChatResult.success(text: '正文');
-          }
-          if (systemPrompt.contains('review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：PASS\n原因：通过。',
-            );
-          }
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            if (request.messages.last.content.contains(
+              '任务：scene_roleplay_turn',
+            )) {
+              return const AppLlmChatResult.success(
+                text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[叙述] @narrator 场景\n[对白] @char-liuxi 说话',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(text: '正文');
+            }
+            if (systemPrompt.contains('review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
+            }
 
-          throw StateError('Unexpected: $systemPrompt');
-        },
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
+            throw StateError('Unexpected: $systemPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = ScenePipelineOrchestrator(
-        settingsStore: settingsStore,
-        onStatus: statusMessages.add,
-      );
-      await orchestrator.runScene(_brief());
+        final orchestrator = ScenePipelineOrchestrator(
+          settingsStore: settingsStore,
+          onStatus: statusMessages.add,
+        );
+        await orchestrator.runScene(_brief());
 
-      // Should have editorial attempt 1 message
-      expect(
-        statusMessages.any((m) => m.contains('editorial attempt 1')),
-        isTrue,
-      );
-    });
+        // Should have editorial attempt 1 message
+        expect(
+          statusMessages.any((m) => m.contains('editorial attempt 1')),
+          isTrue,
+        );
+      },
+    );
 
     test('onStatus receives attempt messages for each retry round', () async {
       final statusMessages = <String>[];
@@ -477,15 +501,19 @@ void main() {
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
           final systemPrompt = request.messages.first.content;
+          final roleplayResponse = _defaultRoleplayResponse(request);
+          if (roleplayResponse != null) return roleplayResponse;
 
           if (systemPrompt.contains('scene plan polisher')) {
             return const AppLlmChatResult.success(
               text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
             );
           }
-          if (systemPrompt.contains('dynamic role agent')) {
+          if (request.messages.last.content.contains(
+            '任务：scene_roleplay_turn',
+          )) {
             return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
+              text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
             );
           }
           if (systemPrompt.contains('scene beat resolver')) {
@@ -505,9 +533,7 @@ void main() {
             );
           }
           if (systemPrompt.contains('scene consistency review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：PASS\n原因：一致。',
-            );
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：一致。');
           }
 
           throw StateError('Unexpected: $systemPrompt');
@@ -544,26 +570,28 @@ void main() {
   });
 
   // ===========================================================================
-  // RC-8: Consistency review triggers rewriteProse
+  // RC-8: Combined review triggers rewriteProse
   // ===========================================================================
-  group('RC-8: Consistency review rewrite', () {
-    test(
-        'consistency REWRITE_PROSE triggers retry even when judge passes',
-        () async {
+  group('RC-8: Combined review rewrite', () {
+    test('combined review REWRITE_PROSE triggers retry', () async {
       var editorialCall = 0;
 
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
           final systemPrompt = request.messages.first.content;
+          final roleplayResponse = _defaultRoleplayResponse(request);
+          if (roleplayResponse != null) return roleplayResponse;
 
           if (systemPrompt.contains('scene plan polisher')) {
             return const AppLlmChatResult.success(
               text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
             );
           }
-          if (systemPrompt.contains('dynamic role agent')) {
+          if (request.messages.last.content.contains(
+            '任务：scene_roleplay_turn',
+          )) {
             return const AppLlmChatResult.success(
-              text: '立场：压迫\n动作：逼近\n禁忌：拖延',
+              text: '意图：压迫\n可见动作：逼近\n对白：说话\n内心：先稳住节奏',
             );
           }
           if (systemPrompt.contains('scene beat resolver')) {
@@ -575,12 +603,9 @@ void main() {
             editorialCall += 1;
             return AppLlmChatResult.success(text: '第$editorialCall版');
           }
-          if (systemPrompt.contains('scene judge review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：PASS\n原因：通过。',
-            );
-          }
-          if (systemPrompt.contains('scene consistency review')) {
+          if (request.messages.last.content.contains(
+            '任务：scene_combined_review',
+          )) {
             return AppLlmChatResult.success(
               text: editorialCall == 1
                   ? '决定：REWRITE_PROSE\n原因：时间线矛盾。'
@@ -603,7 +628,7 @@ void main() {
       );
       final result = await orchestrator.runScene(_brief());
 
-      // Consistency failure triggered the retry
+      // Combined review failure triggered the retry.
       expect(result.proseAttempts, 2);
       expect(result.softFailureCount, 1);
       expect(result.review.decision, SceneReviewDecision.pass);
@@ -615,29 +640,32 @@ void main() {
   // RC-9: Editorial draft tracks correct attempt number
   // ===========================================================================
   group('RC-9: Draft attempt tracking', () {
-    test('editorial draft attempt field matches pipeline proseAttempts', () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: _buildResponder(
-          reviewDecisions: ['REWRITE_PROSE', 'REWRITE_PROSE', 'PASS'],
-        ),
-      );
-      final settingsStore = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(settingsStore.dispose);
+    test(
+      'editorial draft attempt field matches pipeline proseAttempts',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: _buildResponder(
+            reviewDecisions: ['REWRITE_PROSE', 'REWRITE_PROSE', 'PASS'],
+          ),
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
 
-      final orchestrator = ScenePipelineOrchestrator(
-        settingsStore: settingsStore,
-        maxProseRetries: 3,
-      );
-      final result = await orchestrator.runScene(_brief());
+        final orchestrator = ScenePipelineOrchestrator(
+          settingsStore: settingsStore,
+          maxProseRetries: 3,
+        );
+        final result = await orchestrator.runScene(_brief());
 
-      // After 2 rewrites, 3rd attempt passes
-      expect(result.proseAttempts, 3);
-      expect(result.editorialDraft.attempt, 3);
-      expect(result.softFailureCount, 2);
-    });
+        // After 2 rewrites, 3rd attempt passes
+        expect(result.proseAttempts, 3);
+        expect(result.editorialDraft.attempt, 3);
+        expect(result.softFailureCount, 2);
+      },
+    );
   });
 
   // ===========================================================================
@@ -677,31 +705,34 @@ void main() {
 
     // ---- VR-1: Valid viewer context returns filtered results ----
 
-    test('VR-1: retrieval with valid viewer context returns filtered results',
-        () async {
-      await storage.saveChunks('proj-1', [
-        makeChunk(id: 'c1', scopeId: 'char-liuxi', content: '柳溪的内心独白'),
-        makeChunk(
+    test(
+      'VR-1: retrieval with valid viewer context returns filtered results',
+      () async {
+        await storage.saveChunks('proj-1', [
+          makeChunk(id: 'c1', scopeId: 'char-liuxi', content: '柳溪的内心独白'),
+          makeChunk(
             id: 'c2',
             scopeId: 'char-yueren',
             content: '岳刃的公开行为',
-            visibility: MemoryVisibility.publicObservable),
-      ]);
+            visibility: MemoryVisibility.publicObservable,
+          ),
+        ]);
 
-      final context = ViewerContext(
-        viewerId: 'proj-1',
-        characterId: 'char-liuxi',
-      );
+        final context = ViewerContext(
+          viewerId: 'proj-1',
+          characterId: 'char-liuxi',
+        );
 
-      final results = await retriever.retrieveForViewer(
-        context: context,
-        query: '独白',
-      );
+        final results = await retriever.retrieveForViewer(
+          context: context,
+          query: '独白',
+        );
 
-      // char-liuxi sees own chunks + public chunks from other characters
-      expect(results, isNotEmpty);
-      expect(results.any((c) => c.id == 'c1'), isTrue);
-    });
+        // char-liuxi sees own chunks + public chunks from other characters
+        expect(results, isNotEmpty);
+        expect(results.any((c) => c.id == 'c1'), isTrue);
+      },
+    );
 
     // ---- VR-2: Invalid viewer context (empty IDs) returns empty ----
 
@@ -730,10 +761,7 @@ void main() {
         makeChunk(id: 'c1', scopeId: 'char-liuxi', content: 'some content'),
       ]);
 
-      final invalidContext = ViewerContext(
-        viewerId: '',
-        characterId: '',
-      );
+      final invalidContext = ViewerContext(viewerId: '', characterId: '');
 
       final results = await retriever.retrieveForViewer(
         context: invalidContext,
@@ -745,8 +773,7 @@ void main() {
 
     // ---- VR-4: Character A cannot see Character B's selfState atoms ----
 
-    test('VR-4: Character A cannot see Character B selfState atoms',
-        () async {
+    test('VR-4: Character A cannot see Character B selfState atoms', () async {
       await storage.saveChunks('proj-1', [
         makeChunk(
           id: 'self-b',
@@ -760,11 +787,7 @@ void main() {
           content: '柳溪的内心秘密',
           tags: ['selfState'],
         ),
-        makeChunk(
-          id: 'public-b',
-          scopeId: 'char-yueren',
-          content: '岳刃的公开行为',
-        ),
+        makeChunk(id: 'public-b', scopeId: 'char-yueren', content: '岳刃的公开行为'),
       ]);
 
       final context = ViewerContext(
@@ -788,47 +811,49 @@ void main() {
 
     // ---- VR-5: Viewer can see perceived/reported atoms about others ----
 
-    test('VR-5: Viewer can see perceived/reported atoms about other characters',
-        () async {
-      await storage.saveChunks('proj-1', [
-        makeChunk(
-          id: 'perceived',
-          scopeId: 'char-yueren',
-          content: '岳刃被观察到在码头徘徊',
-          tags: ['perceivedEvent'],
-        ),
-        makeChunk(
-          id: 'reported',
-          scopeId: 'char-yueren',
-          content: '据报岳刃已离开仓库',
-          tags: ['reported'],
-        ),
-        makeChunk(
-          id: 'self-b',
-          scopeId: 'char-yueren',
-          content: '岳刃的真实想法',
-          tags: ['selfState'],
-        ),
-      ]);
+    test(
+      'VR-5: Viewer can see perceived/reported atoms about other characters',
+      () async {
+        await storage.saveChunks('proj-1', [
+          makeChunk(
+            id: 'perceived',
+            scopeId: 'char-yueren',
+            content: '岳刃被观察到在码头徘徊',
+            tags: ['perceivedEvent'],
+          ),
+          makeChunk(
+            id: 'reported',
+            scopeId: 'char-yueren',
+            content: '据报岳刃已离开仓库',
+            tags: ['reported'],
+          ),
+          makeChunk(
+            id: 'self-b',
+            scopeId: 'char-yueren',
+            content: '岳刃的真实想法',
+            tags: ['selfState'],
+          ),
+        ]);
 
-      final context = ViewerContext(
-        viewerId: 'proj-1',
-        characterId: 'char-liuxi',
-      );
+        final context = ViewerContext(
+          viewerId: 'proj-1',
+          characterId: 'char-liuxi',
+        );
 
-      final results = await retriever.retrieveForViewer(
-        context: context,
-        query: '岳刃',
-      );
+        final results = await retriever.retrieveForViewer(
+          context: context,
+          query: '岳刃',
+        );
 
-      final ids = results.map((c) => c.id).toList();
+        final ids = results.map((c) => c.id).toList();
 
-      // liuxi can see perceived and reported atoms about yueren
-      expect(ids, contains('perceived'));
-      expect(ids, contains('reported'));
-      // but NOT yueren's selfState
-      expect(ids, isNot(contains('self-b')));
-    });
+        // liuxi can see perceived and reported atoms about yueren
+        expect(ids, contains('perceived'));
+        expect(ids, contains('reported'));
+        // but NOT yueren's selfState
+        expect(ids, isNot(contains('self-b')));
+      },
+    );
 
     // ---- VR-6: Viewer can see own selfState atoms ----
 
@@ -867,75 +892,75 @@ void main() {
 
     // ---- VR-7: Private tag restricts visibility to owning character ----
 
-    test('VR-7: Character A cannot see Character B private-tagged atoms',
-        () async {
-      await storage.saveChunks('proj-1', [
-        makeChunk(
-          id: 'priv-b',
-          scopeId: 'char-yueren',
-          content: '岳刃的私密情报',
-          tags: ['private'],
-        ),
-      ]);
+    test(
+      'VR-7: Character A cannot see Character B private-tagged atoms',
+      () async {
+        await storage.saveChunks('proj-1', [
+          makeChunk(
+            id: 'priv-b',
+            scopeId: 'char-yueren',
+            content: '岳刃的私密情报',
+            tags: ['private'],
+          ),
+        ]);
 
-      final context = ViewerContext(
-        viewerId: 'proj-1',
-        characterId: 'char-liuxi',
-      );
+        final context = ViewerContext(
+          viewerId: 'proj-1',
+          characterId: 'char-liuxi',
+        );
 
-      final results = await retriever.retrieveForViewer(
-        context: context,
-        query: '私密',
-      );
+        final results = await retriever.retrieveForViewer(
+          context: context,
+          query: '私密',
+        );
 
-      expect(results.every((c) => c.id != 'priv-b'), isTrue);
-    });
+        expect(results.every((c) => c.id != 'priv-b'), isTrue);
+      },
+    );
 
     // ---- VR-8: Agent-private visibility restricts to owner ----
 
-    test('VR-8: Agent-private visibility is only visible to scope owner',
-        () async {
-      await storage.saveChunks('proj-1', [
-        makeChunk(
-          id: 'agent-priv-b',
-          scopeId: 'char-yueren',
-          content: 'agent内部状态',
-          visibility: MemoryVisibility.agentPrivate,
-        ),
-        makeChunk(
-          id: 'agent-priv-a',
-          scopeId: 'char-liuxi',
-          content: 'liuxi agent内部状态',
-          visibility: MemoryVisibility.agentPrivate,
-        ),
-      ]);
+    test(
+      'VR-8: Agent-private visibility is only visible to scope owner',
+      () async {
+        await storage.saveChunks('proj-1', [
+          makeChunk(
+            id: 'agent-priv-b',
+            scopeId: 'char-yueren',
+            content: 'agent内部状态',
+            visibility: MemoryVisibility.agentPrivate,
+          ),
+          makeChunk(
+            id: 'agent-priv-a',
+            scopeId: 'char-liuxi',
+            content: 'liuxi agent内部状态',
+            visibility: MemoryVisibility.agentPrivate,
+          ),
+        ]);
 
-      final context = ViewerContext(
-        viewerId: 'proj-1',
-        characterId: 'char-liuxi',
-      );
+        final context = ViewerContext(
+          viewerId: 'proj-1',
+          characterId: 'char-liuxi',
+        );
 
-      final results = await retriever.retrieveForViewer(
-        context: context,
-        query: 'agent',
-      );
+        final results = await retriever.retrieveForViewer(
+          context: context,
+          query: 'agent',
+        );
 
-      final ids = results.map((c) => c.id).toList();
+        final ids = results.map((c) => c.id).toList();
 
-      expect(ids, contains('agent-priv-a'));
-      expect(ids, isNot(contains('agent-priv-b')));
-    });
+        expect(ids, contains('agent-priv-a'));
+        expect(ids, isNot(contains('agent-priv-b')));
+      },
+    );
 
     // ---- VR-9: maxResults limits output ----
 
     test('VR-9: maxResults limits the number of returned chunks', () async {
       final chunks = List.generate(
         15,
-        (i) => makeChunk(
-          id: 'c$i',
-          scopeId: 'char-liuxi',
-          content: 'chunk $i',
-        ),
+        (i) => makeChunk(id: 'c$i', scopeId: 'char-liuxi', content: 'chunk $i'),
       );
       await storage.saveChunks('proj-1', chunks);
 
@@ -966,7 +991,9 @@ class _InMemoryStoryMemoryStorage implements StoryMemoryStorage {
 
   @override
   Future<void> saveSources(
-      String projectId, List<StoryMemorySource> sources) async {
+    String projectId,
+    List<StoryMemorySource> sources,
+  ) async {
     _sources[projectId] = List.of(sources);
   }
 
@@ -977,7 +1004,9 @@ class _InMemoryStoryMemoryStorage implements StoryMemoryStorage {
 
   @override
   Future<void> saveChunks(
-      String projectId, List<StoryMemoryChunk> chunks) async {
+    String projectId,
+    List<StoryMemoryChunk> chunks,
+  ) async {
     _chunks[projectId] = List.of(chunks);
   }
 
@@ -988,7 +1017,9 @@ class _InMemoryStoryMemoryStorage implements StoryMemoryStorage {
 
   @override
   Future<void> saveThoughts(
-      String projectId, List<ThoughtAtom> thoughts) async {
+    String projectId,
+    List<ThoughtAtom> thoughts,
+  ) async {
     _thoughts[projectId] = List.of(thoughts);
   }
 

@@ -5,9 +5,11 @@
 /// orchestration logic.  To tweak any prompt, edit the relevant
 /// [PromptLocale] in `prompt_language.dart` — no other code needs to change.
 ///
-/// To switch languages at runtime:
+/// To switch languages for a generation run:
 /// ```dart
-/// StoryPromptTemplates.language = PromptLanguage.en;
+/// StoryPromptTemplates.runWithLanguage(PromptLanguage.en, () async {
+///   // build prompts here
+/// });
 /// ```
 ///
 /// Format labels (目标/Target, 决定/Decision, etc.) are also exposed here so
@@ -16,7 +18,11 @@
 /// Naming convention: `sys<Domain><Purpose>`.
 library;
 
+import 'dart:async';
+
 import 'prompt_language.dart';
+
+const Object _promptLanguageZoneKey = Object();
 
 class StoryPromptTemplates {
   StoryPromptTemplates._();
@@ -26,7 +32,18 @@ class StoryPromptTemplates {
   // ---------------------------------------------------------------------------
 
   /// Current prompt language. Defaults to [PromptLanguage.zh].
-  static PromptLanguage language = PromptLanguage.zh;
+  static PromptLanguage _language = PromptLanguage.zh;
+
+  static PromptLanguage get language =>
+      Zone.current[_promptLanguageZoneKey] as PromptLanguage? ?? _language;
+
+  static set language(PromptLanguage value) {
+    _language = value;
+  }
+
+  static R runWithLanguage<R>(PromptLanguage language, R Function() body) {
+    return runZoned(body, zoneValues: {_promptLanguageZoneKey: language});
+  }
 
   /// The active [PromptLocale] for the current [language].
   static PromptLocale get locale => PromptLocale.forLanguage(language);

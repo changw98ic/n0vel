@@ -115,6 +115,7 @@ void main() {
         apiKey: '',
         timeoutMs: 0,
         maxConcurrentRequests: 0,
+        maxTokens: 0,
         hasApiKey: false,
         themePreference: AppThemePreference.light,
       );
@@ -129,6 +130,7 @@ void main() {
         apiKey: '',
         timeoutMs: 0,
         maxConcurrentRequests: 0,
+        maxTokens: 0,
         hasApiKey: false,
         themePreference: AppThemePreference.dark,
       );
@@ -143,6 +145,7 @@ void main() {
         apiKey: '',
         timeoutMs: 0,
         maxConcurrentRequests: 0,
+        maxTokens: 0,
         hasApiKey: false,
         themePreference: AppThemePreference.system,
       );
@@ -169,6 +172,7 @@ void main() {
         apiKey: '',
         timeoutMs: 0,
         maxConcurrentRequests: 0,
+        maxTokens: 0,
         hasApiKey: false,
         themePreference: AppThemePreference.system,
       );

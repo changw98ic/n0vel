@@ -34,8 +34,12 @@ import 'package:novel_writer/features/import_export/data/project_transfer_servic
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
+import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
+import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
+import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
 import 'test_support/fake_app_llm_client.dart';
+import 'test_support/jsonl_trace_sinks.dart';
 
 const int _maxTransportRetriesPerScene = 6;
 const int _maxConcurrentSceneRuns = 2;
@@ -469,6 +473,12 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
   final runtimeDirectory = Directory('${outputRoot.path}/runtime');
   final sourceDirectory = Directory('${outputRoot.path}/source');
   final sourcePaths = _ValidationSourcePaths.fromDirectory(sourceDirectory);
+  final llmTraceSink = FileAppLlmCallTraceSink(
+    File('${runtimeDirectory.path}/llm-call-trace.jsonl'),
+  );
+  final formatterTraceSink = FileStoryGenerationFormatterTraceSink(
+    File('${runtimeDirectory.path}/formatter-output.jsonl'),
+  );
   final statusReporter = _LiveStatusReporter(
     runtimeDirectory: runtimeDirectory,
   );
@@ -488,6 +498,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
   final settingsStore = AppSettingsStore(
     storage: InMemoryAppSettingsStorage(),
     eventLog: eventLog,
+    llmTraceSink: llmTraceSink,
   );
   final recorder = ArtifactRecorder(rootDirectory: outputRoot);
 
@@ -658,9 +669,15 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
         ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
           maxProseRetries: 2,
+          reviewCoordinator: SceneReviewCoordinator(
+            settingsStore: settingsStore,
+            formatterTraceSink: formatterTraceSink,
+          ),
+          qualityScorer: SceneQualityScorer(settingsStore: settingsStore),
         );
     final chapterSummaries = <_ValidationChapterSummary>[];
     final chapterStates = <StoryChapterGenerationState>[];
+    final qualityOutputs = <SceneRuntimeOutput>[];
     final bookBuffer = StringBuffer();
 
     for (final chapter in _validationChapters) {
@@ -696,6 +713,9 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
         chapter: chapter,
         chapterSimulationInput: simulationSession.proseInput,
       );
+      qualityOutputs.addAll([
+        for (final execution in sceneExecutions) execution.output,
+      ]);
       for (final execution in sceneExecutions) {
         await recorder.recordReport(
           relativePath: 'reviews/${chapter.id}-${execution.scene.id}.md',
@@ -914,6 +934,14 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
     await recorder.recordReport(
       relativePath: 'run-report.md',
       content: runReportMarkdown,
+    );
+    await recorder.recordReport(
+      relativePath: 'reports/quality-report.md',
+      content: SceneQualityReporter.toMarkdown(qualityOutputs),
+    );
+    await recorder.recordReport(
+      relativePath: 'reports/quality-report.json',
+      content: SceneQualityReporter.toJson(qualityOutputs),
     );
     await recorder.recordReport(
       relativePath: 'reports/run-report.md',
@@ -1399,11 +1427,11 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
   required _ValidationChapter chapter,
   required _ValidationScene scene,
   required String chapterSimulationInput,
-  void Function()? onReviewStarted,
+  void Function()? onSpeculationReady,
 }) async {
   final restartNotes = <String>[];
   var transportRetries = 0;
-  var reviewStarted = false;
+  var speculationReleased = false;
   for (var restart = 0; restart < 3; restart += 1) {
     await statusReporter.update(
       phase: 'scene-start',
@@ -1445,9 +1473,9 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
           },
         ),
         onStatus: (message) {
-          if (!reviewStarted && _isSceneReviewStage(message)) {
-            reviewStarted = true;
-            onReviewStarted?.call();
+          if (!speculationReleased && _isSceneSpeculationStage(message)) {
+            speculationReleased = true;
+            onSpeculationReady?.call();
           }
           unawaited(
             statusReporter.update(phase: 'scene-pass', detail: message),
@@ -1510,8 +1538,10 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
   );
 }
 
-bool _isSceneReviewStage(String message) {
-  return message.contains('scene judge review') ||
+bool _isSceneSpeculationStage(String message) {
+  return message.contains('editorial attempt') ||
+      message.contains('scene combined review') ||
+      message.contains('scene judge review') ||
       message.contains('scene consistency review') ||
       message.contains('scene reader-flow review') ||
       message.contains('scene lexicon review') ||
@@ -1533,17 +1563,19 @@ Future<List<_SceneExecutionResult>> _runChapterScenesWithEscalation({
   final scheduler =
       ScenePipelineScheduler<_ValidationScene, _SceneExecutionResult>(
         maxConcurrentScenes: maxConcurrentScenes,
+        canCommitResult: (result) =>
+            result.output.review.decision == SceneReviewDecision.pass,
       );
   return scheduler.run(
     scenes: scenes,
-    runScene: (scene, {required onReviewStarted}) {
+    runScene: (scene, {required onSpeculationReady}) {
       return _runSceneWithEscalation(
         orchestrator: orchestratorFactory(),
         statusReporter: statusReporter,
         chapter: chapter,
         scene: scene,
         chapterSimulationInput: chapterSimulationInput,
-        onReviewStarted: onReviewStarted,
+        onSpeculationReady: onSpeculationReady,
       );
     },
   );
@@ -1972,6 +2004,22 @@ String _sceneReviewMarkdown({
     ..writeln('## Prose')
     ..writeln()
     ..writeln(execution.output.prose.text)
+    ..writeln()
+    ..writeln('## Quality')
+    ..writeln();
+  final score = execution.output.qualityScore;
+  if (score == null) {
+    buffer.writeln('未记录质量评分。');
+  } else {
+    buffer
+      ..writeln('- 综合：${score.overall}')
+      ..writeln('- 文笔：${score.prose}')
+      ..writeln('- 连贯：${score.coherence}')
+      ..writeln('- 角色：${score.character}')
+      ..writeln('- 完整：${score.completeness}')
+      ..writeln('- 总结：${score.summary}');
+  }
+  buffer
     ..writeln()
     ..writeln('## Judge Review')
     ..writeln()

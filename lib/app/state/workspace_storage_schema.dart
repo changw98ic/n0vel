@@ -1,9 +1,10 @@
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
+import 'sql_identifier.dart';
+
 class WorkspaceSchema {
   static void ensureSchema(sqlite3.Database database) {
-    database.execute(
-      '''
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_projects (
         scope_key TEXT NOT NULL,
         position_no INTEGER NOT NULL,
@@ -16,10 +17,8 @@ class WorkspaceSchema {
         last_opened_at_ms INTEGER NOT NULL,
         PRIMARY KEY (scope_key, position_no)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_characters (
         scope_key TEXT NOT NULL,
         project_id TEXT NOT NULL,
@@ -31,10 +30,8 @@ class WorkspaceSchema {
         summary TEXT NOT NULL,
         PRIMARY KEY (scope_key, project_id, position_no)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_scenes (
         scope_key TEXT NOT NULL,
         project_id TEXT NOT NULL,
@@ -45,10 +42,8 @@ class WorkspaceSchema {
         summary TEXT NOT NULL,
         PRIMARY KEY (scope_key, project_id, position_no)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_world_nodes (
         scope_key TEXT NOT NULL,
         project_id TEXT NOT NULL,
@@ -60,10 +55,8 @@ class WorkspaceSchema {
         summary TEXT NOT NULL,
         PRIMARY KEY (scope_key, project_id, position_no)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_audit_issues (
         scope_key TEXT NOT NULL,
         project_id TEXT NOT NULL,
@@ -73,20 +66,16 @@ class WorkspaceSchema {
         target TEXT NOT NULL,
         PRIMARY KEY (scope_key, project_id, position_no)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_preferences (
         scope_key TEXT NOT NULL,
         preference_key TEXT NOT NULL,
         preference_value TEXT NOT NULL,
         PRIMARY KEY (scope_key, preference_key)
       )
-      ''',
-    );
-    database.execute(
-      '''
+      ''');
+    database.execute('''
       CREATE TABLE IF NOT EXISTS workspace_project_preferences (
         scope_key TEXT NOT NULL,
         project_id TEXT NOT NULL,
@@ -94,8 +83,7 @@ class WorkspaceSchema {
         preference_value TEXT NOT NULL,
         PRIMARY KEY (scope_key, project_id, preference_key)
       )
-      ''',
-    );
+      ''');
     _ensureIndexes(database);
   }
 
@@ -151,8 +139,7 @@ class WorkspaceSchema {
     );
 
     database.execute('DROP TABLE workspace_projects');
-    database.execute(
-      '''
+    database.execute('''
       CREATE TABLE workspace_projects (
         scope_key TEXT NOT NULL,
         position_no INTEGER NOT NULL,
@@ -165,8 +152,7 @@ class WorkspaceSchema {
         last_opened_at_ms INTEGER NOT NULL,
         PRIMARY KEY (scope_key, position_no)
       )
-      ''',
-    );
+      ''');
 
     final now = DateTime.now();
     for (final row in legacyProjects) {
@@ -342,15 +328,18 @@ class WorkspaceSchema {
     required List<Object?> Function(sqlite3.Row row, String projectId)
     valuesBuilder,
   }) {
+    final safeTableName = checkedSqlIdentifier(tableName);
     final rows = database.select(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-      [tableName],
+      [safeTableName],
     );
     if (rows.isEmpty) {
       return;
     }
 
-    final columns = database.select('PRAGMA table_info($tableName)');
+    final columns = database.select(
+      'PRAGMA table_info(${quotedSqlIdentifier(safeTableName)})',
+    );
     final columnNames = columns.map((row) => row['name'] as String).toSet();
     if (columnNames.contains('project_id')) {
       return;
@@ -365,7 +354,7 @@ class WorkspaceSchema {
         .map((row) => row['id'] as String)
         .toList(growable: false);
 
-    database.execute('DROP TABLE $tableName');
+    database.execute('DROP TABLE ${quotedSqlIdentifier(safeTableName)}');
     database.execute(createSql);
 
     for (final projectId in projectIds) {
@@ -399,10 +388,9 @@ class WorkspaceSchema {
     }
 
     final projectIds = database
-        .select(
-          'SELECT id FROM workspace_projects WHERE scope_key = ?',
-          [scopeKey],
-        )
+        .select('SELECT id FROM workspace_projects WHERE scope_key = ?', [
+          scopeKey,
+        ])
         .map((row) => row['id'] as String)
         .toList(growable: false);
 

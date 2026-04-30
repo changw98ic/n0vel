@@ -15,10 +15,12 @@ import 'scene_review_coordinator.dart';
 import 'scene_polish_pass.dart';
 import 'roleplay_session_store.dart';
 import 'character_memory_store.dart';
+import 'scene_roleplay_session_models.dart';
 import 'scene_runtime_models.dart'
     show ResolvedBeat, SceneState, SceneStateDelta, SceneStateDeltaKind;
 import 'scene_state_resolver.dart';
 import 'story_context_cache.dart';
+import 'story_prompt_templates.dart';
 import '../domain/scene_models.dart';
 import '../domain/memory_models.dart';
 import 'story_memory_storage.dart';
@@ -46,7 +48,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     RagOrchestrator? ragOrchestrator,
     StoryContextCache? contextCache,
     ChapterContextBridgeService? chapterContextBridge,
-  }) : _castResolver = castResolver ?? SceneCastResolver(),
+  }) : _settingsStore = settingsStore,
+       _castResolver = castResolver ?? SceneCastResolver(),
        _directorOrchestrator =
            directorOrchestrator ??
            SceneDirectorOrchestrator(settingsStore: settingsStore),
@@ -80,6 +83,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
 
   final int maxProseRetries;
   final void Function(String message)? onStatus;
+  final AppSettingsStore _settingsStore;
   final SceneCastResolverService _castResolver;
   final SceneDirectorService _directorOrchestrator;
   final DynamicRoleAgentService _dynamicRoleAgentRunner;
@@ -114,6 +118,24 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
     void Function(String message)? onStatus,
+    void Function()? onSpeculationReady,
+  }) async {
+    return StoryPromptTemplates.runWithLanguage(
+      _settingsStore.snapshot.promptLanguage,
+      () => _runScene(
+        brief,
+        materials: materials,
+        onStatus: onStatus,
+        onSpeculationReady: onSpeculationReady,
+      ),
+    );
+  }
+
+  Future<SceneRuntimeOutput> _runScene(
+    SceneBrief brief, {
+    ProjectMaterialSnapshot? materials,
+    void Function(String message)? onStatus,
+    void Function()? onSpeculationReady,
   }) async {
     final statusCallback = onStatus ?? this.onStatus;
     _directorMemory = _directorMemory.withActiveRoundState(
@@ -239,9 +261,14 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       onStatus: statusCallback,
     );
     final roleplaySession = _dynamicRoleAgentRunner is DynamicRoleAgentRunner
-        ? (_dynamicRoleAgentRunner as DynamicRoleAgentRunner)
-              .lastRoleplaySession
+        ? _dynamicRoleAgentRunner.lastRoleplaySession
         : null;
+    await _persistRoleplaySession(
+      projectId: brief.projectId ?? brief.chapterId,
+      brief: brief,
+      session: roleplaySession,
+    );
+    onSpeculationReady?.call();
     final roleTurns = [
       for (final output in roleOutputs)
         pipeline.RolePlayTurnOutput.fromDynamicAgentOutput(output),
@@ -285,15 +312,29 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         text: editorialDraft.text,
         attempt: editorialDraft.attempt,
       );
-      final review = await _reviewCoordinator.review(
-        brief: brief,
-        director: director,
-        roleOutputs: roleOutputs,
-        prose: prose,
-        roleplaySession: roleplaySession,
-        retrievalPack: retrievalPack,
-        onStatus: statusCallback,
-      );
+      final lengthReview = _reviewOverlongProse(brief: brief, prose: prose);
+      if (lengthReview != null) {
+        softFailureCount += 1;
+        if (softFailureCount <= maxProseRetries) {
+          statusCallback?.call(
+            '场景 ${brief.chapterId}/${brief.sceneId} · editorial length retry',
+          );
+          attempt += 1;
+          reviewFeedback = lengthReview.editorialFeedback;
+          continue;
+        }
+      }
+      final review =
+          lengthReview ??
+          await _reviewCoordinator.review(
+            brief: brief,
+            director: director,
+            roleOutputs: roleOutputs,
+            prose: prose,
+            roleplaySession: roleplaySession,
+            retrievalPack: retrievalPack,
+            onStatus: statusCallback,
+          );
 
       _directorMemory = _directorMemory
           .incorporate(
@@ -315,7 +356,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           );
 
       var outputProse = prose;
-      if (review.decision == SceneReviewDecision.rewriteProse &&
+      if (lengthReview == null &&
+          review.decision == SceneReviewDecision.rewriteProse &&
           softFailureCount + 1 > maxProseRetries) {
         final refinedDraft = await _refineDraftIfNeeded(
           brief: brief,
@@ -329,11 +371,15 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         );
       }
 
-      if (review.decision == SceneReviewDecision.rewriteProse) {
+      if (lengthReview == null &&
+          review.decision == SceneReviewDecision.rewriteProse) {
         softFailureCount += 1;
         if (softFailureCount <= maxProseRetries) {
+          statusCallback?.call(
+            '场景 ${brief.chapterId}/${brief.sceneId} · review issue -> editorial retry',
+          );
           attempt += 1;
-          reviewFeedback = review.feedback;
+          reviewFeedback = review.editorialFeedback;
           continue;
         }
       }
@@ -411,20 +457,65 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         );
       }
 
-      await _persistRoleplayArtifacts(
-        projectId: brief.projectId ?? brief.chapterId,
-        output: output,
-      );
-
       return output;
     }
   }
 
-  Future<void> _persistRoleplayArtifacts({
+  SceneReviewResult? _reviewOverlongProse({
+    required SceneBrief brief,
+    required SceneProseDraft prose,
+  }) {
+    final hardLimit = _sceneProseHardLimit(brief.targetLength);
+    final actualLength = prose.text.trim().length;
+    if (actualLength <= hardLimit) {
+      return null;
+    }
+
+    final reason =
+        '正文长度$actualLength字超过场景硬上限$hardLimit字（目标${brief.targetLength}字），'
+        '需要压缩到目标附近，聚焦既有情节。';
+    final judge = SceneReviewPassResult(
+      status: SceneReviewStatus.rewriteProse,
+      reason: reason,
+      rawText: '决定：REWRITE_PROSE\n原因：$reason',
+      categories: const [SceneReviewCategory.prose],
+    );
+    final consistency = SceneReviewPassResult(
+      status: SceneReviewStatus.pass,
+      reason: '',
+      rawText: '决定：PASS\n原因：长度检查前未进入一致性审查。',
+      categories: const [
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+        SceneReviewCategory.characterState,
+        SceneReviewCategory.worldState,
+      ],
+    );
+    final review = SceneReviewResult(
+      judge: judge,
+      consistency: consistency,
+      decision: SceneReviewDecision.rewriteProse,
+    );
+    return SceneReviewResult(
+      judge: review.judge,
+      consistency: review.consistency,
+      decision: review.decision,
+      refinementGuidance: review.synthesizeGuidance(),
+    );
+  }
+
+  int _sceneProseHardLimit(int targetLength) {
+    final normalizedTarget = targetLength < 1 ? 400 : targetLength;
+    final doubled = normalizedTarget * 2;
+    final floor = normalizedTarget + 400;
+    return doubled > floor ? doubled : floor;
+  }
+
+  Future<void> _persistRoleplaySession({
     required String projectId,
-    required SceneRuntimeOutput output,
+    required SceneBrief brief,
+    required SceneRoleplaySession? session,
   }) async {
-    final session = output.roleplaySession;
     if (session == null || session.isEmpty) {
       return;
     }
@@ -440,8 +531,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     }
     await _characterMemoryStore?.saveAcceptedDeltas(
       projectId: projectId,
-      chapterId: output.brief.chapterId,
-      sceneId: output.brief.sceneId,
+      chapterId: brief.chapterId,
+      sceneId: brief.sceneId,
       deltas: acceptedDeltas,
     );
   }
@@ -471,7 +562,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       brief: brief,
       editorialDraft: draft,
       resolvedBeats: resolvedBeats,
-      reviewFeedback: review.feedback,
+      reviewFeedback: review.editorialFeedback,
       refinementGuidance:
           review.refinementGuidance ?? review.synthesizeGuidance(),
     );

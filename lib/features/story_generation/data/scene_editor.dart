@@ -13,7 +13,7 @@ import 'story_generation_pass_retry.dart';
 /// fact-audit checks.
 class SceneEditor {
   SceneEditor({required AppSettingsStore settingsStore})
-      : _settingsStore = settingsStore;
+    : _settingsStore = settingsStore;
 
   final AppSettingsStore _settingsStore;
 
@@ -25,17 +25,16 @@ class SceneEditor {
     final acceptedBeats = delta.acceptedBeats;
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      initialMaxTokens: storyGenerationEditorialMaxTokens,
       messages: [
         const AppLlmChatMessage(
           role: 'system',
           content:
               'You are a scene editor for a Chinese novel. '
               'Draft scene prose from the accepted beats below. '
-              'CRITICAL RULE: Do NOT introduce any new facts, events, '
-              'or character knowledge that are not present in the accepted '
-              'beats or the allowed narration context. '
-              'Only narrate what the beats describe. '
-              'Return only the finished prose.',
+              'Ground the prose in the accepted beats and allowed narration '
+              'context. Keep facts, events, and character knowledge aligned '
+              'with those materials. Return the finished prose.',
         ),
         AppLlmChatMessage(
           role: 'user',

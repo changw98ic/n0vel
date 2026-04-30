@@ -208,6 +208,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
     AppSceneContextStore? sceneContextStore,
     StoryOutlineStore? outlineStore,
     AuthorFeedbackStore? authorFeedbackStore,
+    RoleplaySessionStore? roleplaySessionStore,
+    CharacterMemoryStore? characterMemoryStore,
     StoryGenerationRunStorage? storage,
     SceneContextAssembler? sceneContextAssembler,
     ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)?
@@ -215,20 +217,19 @@ class StoryGenerationRunStore extends ChangeNotifier {
   }) : _settingsStore = settingsStore,
        _workspaceStore = workspaceStore,
        _generationStore = generationStore,
-       _sceneContextStore = sceneContextStore,
-       _outlineStore = outlineStore,
        _authorFeedbackStore = authorFeedbackStore,
        _storage =
            storage ??
            debugStorageOverride ??
            createDefaultStoryGenerationRunStorage(),
-       _sceneContextAssembler =
-           sceneContextAssembler ?? SceneContextAssembler(),
        _orchestratorFactory =
            orchestratorFactory ??
            debugOrchestratorFactoryOverride ??
-           ((settingsStore) =>
-               ChapterGenerationOrchestrator(settingsStore: settingsStore)) {
+           ((settingsStore) => ChapterGenerationOrchestrator(
+             settingsStore: settingsStore,
+             roleplaySessionStore: roleplaySessionStore,
+             characterMemoryStore: characterMemoryStore,
+           )) {
     _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
     _workspaceStore.addListener(_handleWorkspaceChanged);
@@ -236,22 +237,17 @@ class StoryGenerationRunStore extends ChangeNotifier {
     unawaited(_readyFuture);
   }
 
+  @visibleForTesting
   static StoryGenerationRunStorage? debugStorageOverride;
+  @visibleForTesting
   static ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)?
   debugOrchestratorFactoryOverride;
 
   final AppSettingsStore _settingsStore;
   final AppWorkspaceStore _workspaceStore;
-  // ignore: unused_field
   final StoryGenerationStore _generationStore;
-  // ignore: unused_field
-  final AppSceneContextStore? _sceneContextStore;
-  // ignore: unused_field
-  final StoryOutlineStore? _outlineStore;
   final AuthorFeedbackStore? _authorFeedbackStore;
   final StoryGenerationRunStorage _storage;
-  // ignore: unused_field
-  final SceneContextAssembler _sceneContextAssembler;
   final ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
   final Map<String, StoryGenerationRunSnapshot> _snapshotsBySceneScope =
@@ -858,7 +854,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
     ];
     return {
       'structuredRoleplayPipeline': true,
-      'maxStructuredRounds': 2,
+      'roleplayRounds': 1,
+      'reviewMode': 'blocking',
       if (revisionNotes.isNotEmpty)
         'authorRevisionRequests': List<String>.unmodifiable(revisionNotes),
       if (localOnly) 'localDirectorOnly': true,

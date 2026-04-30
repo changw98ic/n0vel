@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../logging/app_event_log.dart';
@@ -106,7 +108,19 @@ class GatewayInterceptor extends Interceptor {
           return TokenUsage.fromJson(usage.cast<String, Object?>());
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      unawaited(
+        _eventLog.logBestEffort(
+          level: AppEventLogLevel.warn,
+          category: AppEventLogCategory.ai,
+          action: 'gateway.token_usage.parse_failed',
+          status: AppEventLogStatus.failed,
+          message:
+              'Failed to parse token usage metadata from gateway response.',
+          errorDetail: error.toString(),
+        ),
+      );
+    }
     return null;
   }
 }
