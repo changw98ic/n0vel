@@ -43,6 +43,9 @@ python3 scripts/test_filter_xcodebuild_test_output.py
 echo "== clean release artifacts for xcodebuild test =="
 rm -rf build/macos/Build/Products/Release
 
+echo "== generate macOS Flutter project config =="
+flutter build macos --debug --config-only --no-pub
+
 echo "== xcodebuild test (platform=macOS,arch=$arch_name) =="
 xcode_log="$(mktemp)"
 set +e
