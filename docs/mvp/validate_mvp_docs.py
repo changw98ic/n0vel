@@ -9,7 +9,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parents[1]
 PRD_DIR = ROOT / "prd"
+LOCAL_WORKSPACE_PREFIX = "/Users/chengwen/dev/novel-wirter/"
 
 
 def read(path: Path) -> str:
@@ -30,6 +32,22 @@ def extract_markdown_links(text: str) -> list[str]:
 
 def extract_markdown_link_pairs(text: str) -> list[tuple[str, str]]:
     return re.findall(r"\[([^\]]+)\]\(([^)]+)\)", text)
+
+
+def resolve_markdown_link(link: str, source_dir: Path) -> Path | None:
+    target = link.split("#", 1)[0]
+    if not target or re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target):
+        return None
+    if target.startswith(LOCAL_WORKSPACE_PREFIX):
+        return REPO_ROOT / target[len(LOCAL_WORKSPACE_PREFIX) :]
+    path = Path(target)
+    if path.is_absolute():
+        return path
+    return source_dir / path
+
+
+def is_doc_path_ref(value: str) -> bool:
+    return Path(value).suffix in {".md", ".json", ".py"}
 
 
 def parse_frame_state_coverage_sections(text: str) -> dict[str, list[str]]:
@@ -170,14 +188,15 @@ def main() -> int:
         "legacy-frame-audit.md": legacy,
     }.items():
         for link in extract_markdown_links(content):
-            if link.startswith("/Users/chengwen/dev/novel-wirter/"):
-                if not Path(link).exists():
-                    errors.append(f"{source_name} contains broken markdown link: {link}")
+            resolved = resolve_markdown_link(link, ROOT)
+            if resolved is not None and not resolved.exists():
+                errors.append(f"{source_name} contains broken markdown link: {link}")
 
     readme_local_links = {
-        Path(link).name
+        resolved.name
         for link in extract_markdown_links(readme)
-        if link.startswith("/Users/chengwen/dev/novel-wirter/docs/mvp/")
+        if (resolved := resolve_markdown_link(link, ROOT)) is not None
+        and resolved.parent == ROOT
     }
     expected_readme_targets = {
         p.name
@@ -192,9 +211,10 @@ def main() -> int:
         )
 
     readme_link_pairs = {
-        Path(path).name: label
+        resolved.name: label
         for label, path in extract_markdown_link_pairs(readme)
-        if path.startswith("/Users/chengwen/dev/novel-wirter/docs/mvp/")
+        if (resolved := resolve_markdown_link(path, ROOT)) is not None
+        and resolved.parent == ROOT
     }
     for asset in manifest.get("assets", []):
         path = asset.get("path")
@@ -493,7 +513,11 @@ def main() -> int:
     for track in trace_json.get("interaction_tracks", {}).values():
         trace_json_doc_refs.update(track.get("prds", []))
 
-    missing_trace_json_docs = sorted(d for d in trace_json_doc_refs if d not in known_doc_paths)
+    missing_trace_json_docs = sorted(
+        d
+        for d in trace_json_doc_refs
+        if is_doc_path_ref(d) and d not in known_doc_paths
+    )
     if missing_trace_json_docs:
         errors.append(
             "traceability-matrix.json contains related docs that do not exist: "
