@@ -61,6 +61,107 @@ class AppSettingsConnectionTestState {
   final String? message;
 }
 
+class AppLlmProviderProfile {
+  const AppLlmProviderProfile({
+    required this.id,
+    required this.providerName,
+    required this.baseUrl,
+    required this.model,
+    required this.apiKey,
+  });
+
+  final String id;
+  final String providerName;
+  final String baseUrl;
+  final String model;
+  final String apiKey;
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'providerName': providerName,
+      'baseUrl': baseUrl,
+      'model': model,
+      'apiKey': apiKey,
+    };
+  }
+
+  static AppLlmProviderProfile? fromJson(Object? raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final json = raw.map(
+      (key, value) => MapEntry(key.toString(), value as Object?),
+    );
+    final id = (json['id'] as String?)?.trim() ?? '';
+    final providerName = (json['providerName'] as String?)?.trim() ?? '';
+    final baseUrl = (json['baseUrl'] as String?)?.trim() ?? '';
+    final model = (json['model'] as String?)?.trim() ?? '';
+    final apiKey = (json['apiKey'] as String?) ?? '';
+    if (id.isEmpty ||
+        providerName.isEmpty ||
+        baseUrl.isEmpty ||
+        model.isEmpty) {
+      return null;
+    }
+    return AppLlmProviderProfile(
+      id: id,
+      providerName: providerName,
+      baseUrl: baseUrl,
+      model: model,
+      apiKey: apiKey,
+    );
+  }
+}
+
+class AppLlmRequestProviderRoute {
+  const AppLlmRequestProviderRoute({
+    required this.traceNamePattern,
+    required this.providerProfileId,
+  });
+
+  final String traceNamePattern;
+  final String providerProfileId;
+
+  bool matches(String traceName) {
+    final pattern = traceNamePattern.trim();
+    if (pattern.isEmpty) {
+      return false;
+    }
+    if (pattern.endsWith('*')) {
+      return traceName.startsWith(pattern.substring(0, pattern.length - 1));
+    }
+    return traceName == pattern;
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'traceNamePattern': traceNamePattern,
+      'providerProfileId': providerProfileId,
+    };
+  }
+
+  static AppLlmRequestProviderRoute? fromJson(Object? raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final json = raw.map(
+      (key, value) => MapEntry(key.toString(), value as Object?),
+    );
+    final traceNamePattern =
+        (json['traceNamePattern'] as String?)?.trim() ?? '';
+    final providerProfileId =
+        (json['providerProfileId'] as String?)?.trim() ?? '';
+    if (traceNamePattern.isEmpty || providerProfileId.isEmpty) {
+      return null;
+    }
+    return AppLlmRequestProviderRoute(
+      traceNamePattern: traceNamePattern,
+      providerProfileId: providerProfileId,
+    );
+  }
+}
+
 class AppSettingsDiagnostic {
   const AppSettingsDiagnostic({
     required this.issueCode,
@@ -101,6 +202,8 @@ class AppSettingsSnapshot {
     required this.maxTokens,
     required this.hasApiKey,
     required this.themePreference,
+    this.providerProfiles = const [],
+    this.requestProviderRoutes = const [],
     this.promptLanguage = PromptLanguage.zh,
   }) : _timeout = timeout,
        _timeoutMs = timeoutMs;
@@ -115,6 +218,8 @@ class AppSettingsSnapshot {
   final int maxTokens;
   final bool hasApiKey;
   final AppThemePreference themePreference;
+  final List<AppLlmProviderProfile> providerProfiles;
+  final List<AppLlmRequestProviderRoute> requestProviderRoutes;
   final PromptLanguage promptLanguage;
 
   AppLlmTimeoutConfig get timeout =>
@@ -132,6 +237,8 @@ class AppSettingsSnapshot {
     int? maxTokens,
     bool? hasApiKey,
     AppThemePreference? themePreference,
+    List<AppLlmProviderProfile>? providerProfiles,
+    List<AppLlmRequestProviderRoute>? requestProviderRoutes,
     PromptLanguage? promptLanguage,
   }) {
     return AppSettingsSnapshot(
@@ -145,6 +252,9 @@ class AppSettingsSnapshot {
       maxTokens: maxTokens ?? this.maxTokens,
       hasApiKey: hasApiKey ?? this.hasApiKey,
       themePreference: themePreference ?? this.themePreference,
+      providerProfiles: providerProfiles ?? this.providerProfiles,
+      requestProviderRoutes:
+          requestProviderRoutes ?? this.requestProviderRoutes,
       promptLanguage: promptLanguage ?? this.promptLanguage,
     );
   }
@@ -165,6 +275,12 @@ class AppSettingsSnapshot {
       'maxConcurrentRequests': maxConcurrentRequests,
       'maxTokens': maxTokens,
       'themePreference': themePreference.name,
+      'providerProfiles': [
+        for (final profile in providerProfiles) profile.toJson(),
+      ],
+      'requestProviderRoutes': [
+        for (final route in requestProviderRoutes) route.toJson(),
+      ],
       'promptLanguage': promptLanguage.name,
     };
   }
@@ -184,6 +300,12 @@ class AppSettingsSnapshot {
       'en' => PromptLanguage.en,
       _ => PromptLanguage.zh,
     };
+    final providerProfiles = _providerProfilesFromJson(
+      json['providerProfiles'],
+    );
+    final requestProviderRoutes = _requestProviderRoutesFromJson(
+      json['requestProviderRoutes'],
+    );
 
     return AppSettingsSnapshot(
       providerName: (json['providerName'] as String?) ?? 'OpenAI 兼容服务',
@@ -192,9 +314,13 @@ class AppSettingsSnapshot {
       apiKey: apiKey,
       timeout: AppLlmTimeoutConfig.fromJson(json),
       maxConcurrentRequests: (json['maxConcurrentRequests'] as int?) ?? 1,
-      maxTokens: (json['maxTokens'] as int?) ?? 1024,
+      maxTokens: AppLlmChatRequest.normalizeMaxTokens(
+        (json['maxTokens'] as int?) ?? AppLlmChatRequest.unlimitedMaxTokens,
+      ),
       hasApiKey: apiKey.isNotEmpty,
       themePreference: themePreference,
+      providerProfiles: providerProfiles,
+      requestProviderRoutes: requestProviderRoutes,
       promptLanguage: promptLanguage,
     );
   }
@@ -221,7 +347,7 @@ class AppSettingsStore extends ChangeNotifier {
          apiKey: '',
          timeout: AppLlmTimeoutConfig.defaults,
          maxConcurrentRequests: 1,
-         maxTokens: 1024,
+         maxTokens: AppLlmChatRequest.unlimitedMaxTokens,
          hasApiKey: false,
          themePreference: AppThemePreference.light,
        ) {
@@ -242,6 +368,7 @@ class AppSettingsStore extends ChangeNotifier {
   final AppSettingsStorage _storage;
   final AppLlmClient _llmClient;
   final AppLlmRequestPool _requestPool;
+  final Map<String, AppLlmRequestPool> _profileRequestPools = {};
   final AppEventLog _eventLog;
   final AppLlmCallTraceSink? _llmTraceSink;
   AppSettingsSnapshot _snapshot;
@@ -280,6 +407,22 @@ class AppSettingsStore extends ChangeNotifier {
       'gpt-5.4',
       'gpt-5.4-mini',
       'kimi-k2.6',
+      'mimo-v2.5-pro',
+      'mimo-v2.5',
+      'mimo-v2-pro',
+      'mimo-v2-omni',
+      'mimo-v2-flash',
+      'glm-5.1',
+      'glm-5',
+      'glm-5-turbo',
+      'glm-4.7',
+      'glm-4.7-flash',
+      'glm-4.6',
+      'glm-4.5',
+      'glm-4.5-air',
+      'glm-4.5-flash',
+      'glm-4-plus',
+      'glm-4-flash-250414',
     };
     final normalized = _normalizeRequestedModel(model).toLowerCase();
     return supportedModels.contains(normalized) ||
@@ -324,6 +467,8 @@ class AppSettingsStore extends ChangeNotifier {
     int? timeoutMs,
     int? maxConcurrentRequests,
     int? maxTokens,
+    List<AppLlmProviderProfile>? providerProfiles,
+    List<AppLlmRequestProviderRoute>? requestProviderRoutes,
     bool notify = true,
   }) async {
     final normalizedModel = _normalizeRequestedModel(model);
@@ -338,10 +483,14 @@ class AppSettingsStore extends ChangeNotifier {
       timeout: resolvedTimeout,
       maxConcurrentRequests:
           maxConcurrentRequests ?? _snapshot.maxConcurrentRequests,
-      maxTokens: maxTokens ?? _snapshot.maxTokens,
+      maxTokens: AppLlmChatRequest.normalizeMaxTokens(
+        maxTokens ?? _snapshot.maxTokens,
+      ),
       hasApiKey: apiKey.isNotEmpty,
+      providerProfiles: providerProfiles,
+      requestProviderRoutes: requestProviderRoutes,
     );
-    _requestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
+    _syncRequestPoolLimits();
     final persistResult = await _persist();
     if (notify) {
       notifyListeners();
@@ -420,7 +569,9 @@ class AppSettingsStore extends ChangeNotifier {
       timeout: resolvedTimeout,
       maxConcurrentRequests:
           maxConcurrentRequests ?? _snapshot.maxConcurrentRequests,
-      maxTokens: maxTokens ?? _snapshot.maxTokens,
+      maxTokens: AppLlmChatRequest.normalizeMaxTokens(
+        maxTokens ?? _snapshot.maxTokens,
+      ),
       notify: false,
     );
     _feedback = _feedbackForSaveResult(persistResult);
@@ -532,7 +683,10 @@ class AppSettingsStore extends ChangeNotifier {
         apiKey: apiKey.trim(),
         model: normalizedModel,
         timeout: resolvedTimeout,
-        maxTokens: maxTokens ?? _snapshot.maxTokens,
+        maxTokens: AppLlmChatRequest.normalizeMaxTokens(
+          maxTokens ?? _snapshot.maxTokens,
+        ),
+        provider: _providerForSettings(_snapshot.providerName, baseUrl),
         messages: const [
           AppLlmChatMessage(role: 'user', content: '连接测试：请回复 pong'),
         ],
@@ -580,24 +734,37 @@ class AppSettingsStore extends ChangeNotifier {
     String? traceName,
     Map<String, Object?> traceMetadata = const {},
   }) {
-    return _requestPool.run(() async {
+    final resolvedTraceName = traceName ?? _inferLlmTraceName(messages);
+    final routedSettings = _settingsForRequestTrace(resolvedTraceName);
+    final requestPool = _requestPoolFor(routedSettings);
+    return requestPool.run(() async {
       final request = AppLlmChatRequest(
-        baseUrl: _snapshot.baseUrl.trim(),
-        apiKey: _snapshot.apiKey.trim(),
-        model: _normalizeRequestedModel(_snapshot.model),
+        baseUrl: routedSettings.baseUrl.trim(),
+        apiKey: routedSettings.apiKey.trim(),
+        model: _normalizeRequestedModel(routedSettings.model),
         timeout: _snapshot.timeout,
-        maxTokens: maxTokens ?? _snapshot.maxTokens,
+        maxTokens: AppLlmChatRequest.normalizeMaxTokens(
+          maxTokens ?? _snapshot.maxTokens,
+        ),
+        provider: _providerForSettings(
+          routedSettings.providerName,
+          routedSettings.baseUrl,
+        ),
         messages: messages,
       );
       final result = await _llmClient.chat(request);
       await _recordLlmCallTrace(
         request: request,
         result: result,
-        traceName: traceName ?? _inferLlmTraceName(messages),
-        traceMetadata: traceMetadata,
+        traceName: resolvedTraceName,
+        traceMetadata: {
+          ...traceMetadata,
+          if (routedSettings.providerProfileId != null)
+            'providerProfileId': routedSettings.providerProfileId,
+        },
       );
       if (_shouldCoolDownLlmRequestPool(result)) {
-        _requestPool.coolDownFor(_llmPoolTransientFailureCooldown);
+        requestPool.coolDownFor(_llmPoolTransientFailureCooldown);
       }
       return result;
     });
@@ -691,6 +858,32 @@ class AppSettingsStore extends ChangeNotifier {
         normalized.contains('capacity');
   }
 
+  AppLlmRequestPool _requestPoolFor(_ResolvedRequestSettings settings) {
+    final profileId = settings.providerProfileId;
+    if (profileId == null || profileId.isEmpty) {
+      return _requestPool;
+    }
+
+    return _profileRequestPools.putIfAbsent(
+      profileId,
+      () => AppLlmRequestPool(maxConcurrent: _snapshot.maxConcurrentRequests),
+    );
+  }
+
+  void _syncRequestPoolLimits() {
+    final limit = _snapshot.maxConcurrentRequests;
+    _requestPool.maxConcurrent = limit;
+    final activeProfileIds = {
+      for (final profile in _snapshot.providerProfiles) profile.id,
+    };
+    _profileRequestPools.removeWhere(
+      (profileId, _) => !activeProfileIds.contains(profileId),
+    );
+    for (final pool in _profileRequestPools.values) {
+      pool.maxConcurrent = limit;
+    }
+  }
+
   Future<AppSettingsSaveResult> setThemePreference(
     AppThemePreference themePreference,
   ) async {
@@ -716,7 +909,7 @@ class AppSettingsStore extends ChangeNotifier {
     }
 
     _snapshot = AppSettingsSnapshot.fromJson(restored);
-    _requestPool.maxConcurrent = _snapshot.maxConcurrentRequests;
+    _syncRequestPoolLimits();
     if (_storage.lastLoadIssue != AppSettingsPersistenceIssue.none) {
       _activePersistenceIssue = _storage.lastLoadIssue;
       _feedback = _feedbackForLoadIssue(
@@ -1149,7 +1342,8 @@ class AppSettingsStore extends ChangeNotifier {
     if (!isSupportedModel(model) && !allowsEmptyApiKey) {
       return const AppSettingsFeedback(
         title: '模型不受支持',
-        message: '请改用受支持模型：gpt-4.1-mini、gpt-5.4、gpt-5.4-mini 或 kimi-k2.6。',
+        message:
+            '请改用受支持模型：gpt-4.1-mini、gpt-5.4-mini、kimi-k2.6、mimo-v2.5-pro 或 glm-5.1。',
         tone: AppSettingsFeedbackTone.error,
       );
     }
@@ -1279,9 +1473,107 @@ class AppSettingsStore extends ChangeNotifier {
     final normalized = trimmed.toLowerCase();
     return switch (normalized) {
       'kimi-2.6' => 'kimi-k2.6',
+      'mimo-v25-pro' => 'mimo-v2.5-pro',
+      'mimo-v25' => 'mimo-v2.5',
       _ => trimmed,
     };
   }
+
+  _ResolvedRequestSettings _settingsForRequestTrace(String traceName) {
+    for (final route in _snapshot.requestProviderRoutes) {
+      if (!route.matches(traceName)) {
+        continue;
+      }
+      final profile = _profileById(route.providerProfileId);
+      if (profile == null || !_isUsableProfile(profile)) {
+        continue;
+      }
+      return _ResolvedRequestSettings(
+        providerName: profile.providerName,
+        baseUrl: profile.baseUrl,
+        model: profile.model,
+        apiKey: profile.apiKey,
+        providerProfileId: profile.id,
+      );
+    }
+    return _ResolvedRequestSettings(
+      providerName: _snapshot.providerName,
+      baseUrl: _snapshot.baseUrl,
+      model: _snapshot.model,
+      apiKey: _snapshot.apiKey,
+    );
+  }
+
+  AppLlmProviderProfile? _profileById(String id) {
+    for (final profile in _snapshot.providerProfiles) {
+      if (profile.id == id) {
+        return profile;
+      }
+    }
+    return null;
+  }
+
+  bool _isUsableProfile(AppLlmProviderProfile profile) {
+    final hasBaseUrl = profile.baseUrl.trim().isNotEmpty;
+    final hasModel = profile.model.trim().isNotEmpty;
+    final hasApiKey =
+        profile.apiKey.trim().isNotEmpty ||
+        _isLocalCompatibleEndpoint(profile.baseUrl);
+    return hasBaseUrl && hasModel && hasApiKey;
+  }
+
+  AppLlmProvider _providerForSettings(String providerName, String baseUrl) {
+    final parsedProvider = providerName.toAppLlmProvider();
+    if (parsedProvider != AppLlmProvider.openaiCompatible) {
+      return parsedProvider;
+    }
+    final host = Uri.tryParse(baseUrl.trim())?.host.toLowerCase() ?? '';
+    if (host.contains('xiaomimimo.com')) {
+      return AppLlmProvider.mimo;
+    }
+    if (host.contains('bigmodel.cn') || host.contains('zhipuai.cn')) {
+      return AppLlmProvider.zhipu;
+    }
+    return parsedProvider;
+  }
+}
+
+class _ResolvedRequestSettings {
+  const _ResolvedRequestSettings({
+    required this.providerName,
+    required this.baseUrl,
+    required this.model,
+    required this.apiKey,
+    this.providerProfileId,
+  });
+
+  final String providerName;
+  final String baseUrl;
+  final String model;
+  final String apiKey;
+  final String? providerProfileId;
+}
+
+List<AppLlmProviderProfile> _providerProfilesFromJson(Object? raw) {
+  if (raw is! List) {
+    return const [];
+  }
+  return [
+    for (final item in raw)
+      if (AppLlmProviderProfile.fromJson(item) != null)
+        AppLlmProviderProfile.fromJson(item)!,
+  ];
+}
+
+List<AppLlmRequestProviderRoute> _requestProviderRoutesFromJson(Object? raw) {
+  if (raw is! List) {
+    return const [];
+  }
+  return [
+    for (final item in raw)
+      if (AppLlmRequestProviderRoute.fromJson(item) != null)
+        AppLlmRequestProviderRoute.fromJson(item)!,
+  ];
 }
 
 class AppSettingsScope extends InheritedNotifier<AppSettingsStore> {

@@ -58,7 +58,7 @@ class _IoAppLlmClient implements AppLlmClient {
           model: request.model,
           messages: request.messages,
           stream: stream,
-          maxTokens: request.maxTokens,
+          maxTokens: request.effectiveMaxTokens,
         ),
       );
       final statusCode = response.statusCode ?? 0;
@@ -237,7 +237,7 @@ class _IoAppLlmClient implements AppLlmClient {
         data: adapter.buildBody(
           model: request.model,
           messages: request.messages,
-          maxTokens: request.maxTokens,
+          maxTokens: request.effectiveMaxTokens,
         ),
       );
 

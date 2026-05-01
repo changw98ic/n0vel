@@ -12,7 +12,7 @@ abstract class AppLlmProviderAdapter {
     required String model,
     required List<AppLlmChatMessage> messages,
     bool stream = true,
-    int maxTokens = 1024,
+    int maxTokens = AppLlmChatRequest.unlimitedMaxTokens,
   });
 
   String? decodeOutputText(String body);
@@ -36,14 +36,17 @@ class OpenAiCompatibleAdapter implements AppLlmProviderAdapter {
     required String model,
     required List<AppLlmChatMessage> messages,
     bool stream = true,
-    int maxTokens = 1024,
+    int maxTokens = AppLlmChatRequest.unlimitedMaxTokens,
   }) {
-    return <String, Object?>{
+    final body = <String, Object?>{
       'model': model,
       'messages': [for (final message in messages) message.toJson()],
-      'max_tokens': maxTokens,
       'stream': stream,
     };
+    if (!AppLlmChatRequest.shouldOmitMaxTokens(maxTokens)) {
+      body['max_tokens'] = AppLlmChatRequest.normalizeMaxTokens(maxTokens);
+    }
+    return body;
   }
 
   @override
@@ -60,6 +63,39 @@ class OpenAiCompatibleAdapter implements AppLlmProviderAdapter {
 class KimiAdapter extends OpenAiCompatibleAdapter {}
 
 class OllamaAdapter extends OpenAiCompatibleAdapter {}
+
+class MimoAdapter extends OpenAiCompatibleAdapter {
+  @override
+  Map<String, Object?> buildHeaders(String apiKey) {
+    final trimmed = apiKey.trim();
+    return {
+      'Content-Type': 'application/json',
+      if (trimmed.isNotEmpty) 'api-key': trimmed,
+    };
+  }
+
+  @override
+  Map<String, Object?> buildBody({
+    required String model,
+    required List<AppLlmChatMessage> messages,
+    bool stream = true,
+    int maxTokens = AppLlmChatRequest.unlimitedMaxTokens,
+  }) {
+    final body = <String, Object?>{
+      'model': model,
+      'messages': [for (final message in messages) message.toJson()],
+      'stream': stream,
+    };
+    if (!AppLlmChatRequest.shouldOmitMaxTokens(maxTokens)) {
+      body['max_completion_tokens'] = AppLlmChatRequest.normalizeMaxTokens(
+        maxTokens,
+      );
+    }
+    return body;
+  }
+}
+
+class ZhipuAdapter extends OpenAiCompatibleAdapter {}
 
 class AnthropicAdapter implements AppLlmProviderAdapter {
   @override
@@ -80,7 +116,7 @@ class AnthropicAdapter implements AppLlmProviderAdapter {
     required String model,
     required List<AppLlmChatMessage> messages,
     bool stream = true,
-    int maxTokens = 1024,
+    int maxTokens = AppLlmChatRequest.unlimitedMaxTokens,
   }) {
     final filteredMessages = <Map<String, Object?>>[];
     String? systemContent;
@@ -94,9 +130,11 @@ class AnthropicAdapter implements AppLlmProviderAdapter {
     final body = <String, Object?>{
       'model': model,
       'messages': filteredMessages,
-      'max_tokens': maxTokens,
       'stream': stream,
     };
+    if (!AppLlmChatRequest.shouldOmitMaxTokens(maxTokens)) {
+      body['max_tokens'] = AppLlmChatRequest.normalizeMaxTokens(maxTokens);
+    }
     if (systemContent != null && systemContent.isNotEmpty) {
       body['system'] = systemContent;
     }
@@ -146,6 +184,8 @@ abstract final class AppLlmProviderAdapters {
   static AppLlmProviderAdapter of(AppLlmProvider provider) {
     return switch (provider) {
       AppLlmProvider.anthropic => AnthropicAdapter(),
+      AppLlmProvider.mimo => MimoAdapter(),
+      AppLlmProvider.zhipu => ZhipuAdapter(),
       AppLlmProvider.kimi => KimiAdapter(),
       AppLlmProvider.ollama => OllamaAdapter(),
       AppLlmProvider.openaiCompatible => OpenAiCompatibleAdapter(),

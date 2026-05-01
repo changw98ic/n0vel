@@ -5,36 +5,60 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/state/local_settings_file.dart';
 import 'package:novel_writer/app/state/app_settings_storage_io.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
 void main() {
-  test('real AI smoke requires explicit OLLAMA credentials only', () {
-    expect(
-      _resolveBaseUrl({
-        'OPENAI_BASE_URL': 'https://should-not-be-used.example/v1',
-      }, const {}),
-      'https://ollama.com/v1',
-    );
-    expect(
-      _resolveBaseUrl({
-        'OLLAMA_BASE_URL': 'https://custom.ollama.example/v1',
-        'OPENAI_BASE_URL': 'https://should-not-be-used.example/v1',
-      }, const {}),
-      'https://custom.ollama.example/v1',
-    );
-    expect(
-      _resolveApiKey({'OPENAI_API_KEY': 'sk-should-not-be-used'}, const {}),
-      '',
-    );
-    expect(
-      _resolveApiKey({
-        'OLLAMA_API_KEY': 'ollama-key',
-        'OPENAI_API_KEY': 'sk-should-not-be-used',
-      }, const {}),
-      'ollama-key',
-    );
-  });
+  test(
+    'real AI smoke requires explicit supported provider credentials only',
+    () {
+      expect(
+        _resolveBaseUrl({
+          'OPENAI_BASE_URL': 'https://should-not-be-used.example/v1',
+        }, const {}),
+        'https://ollama.com/v1',
+      );
+      expect(
+        _resolveBaseUrl({
+          'ZHIPU_BASE_URL': 'https://open.bigmodel.cn/api/paas/v4',
+          'MIMO_BASE_URL': 'https://token-plan-cn.xiaomimimo.com/v1',
+          'OLLAMA_BASE_URL': 'https://custom.ollama.example/v1',
+          'OPENAI_BASE_URL': 'https://should-not-be-used.example/v1',
+        }, const {}),
+        'https://open.bigmodel.cn/api/paas/v4',
+      );
+      expect(
+        _resolveBaseUrl({
+          'MIMO_BASE_URL': 'https://token-plan-cn.xiaomimimo.com/v1',
+          'OLLAMA_BASE_URL': 'https://custom.ollama.example/v1',
+          'OPENAI_BASE_URL': 'https://should-not-be-used.example/v1',
+        }, const {}),
+        'https://token-plan-cn.xiaomimimo.com/v1',
+      );
+      expect(
+        _resolveApiKey({'OPENAI_API_KEY': 'sk-should-not-be-used'}, const {}),
+        '',
+      );
+      expect(
+        _resolveApiKey({
+          'ZHIPU_API_KEY': 'zhipu-key',
+          'MIMO_API_KEY': 'mimo-key',
+          'OLLAMA_API_KEY': 'ollama-key',
+          'OPENAI_API_KEY': 'sk-should-not-be-used',
+        }, const {}),
+        'zhipu-key',
+      );
+      expect(
+        _resolveApiKey({
+          'MIMO_API_KEY': 'mimo-key',
+          'OLLAMA_API_KEY': 'ollama-key',
+          'OPENAI_API_KEY': 'sk-should-not-be-used',
+        }, const {}),
+        'mimo-key',
+      );
+    },
+  );
 
   test('real AI smoke loads local setting.json key-value config', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -53,7 +77,7 @@ OLLAMA_BASE_URL=https://ollama.com/v1
 REAL_AI_MODEL=kimi-k2.6
 ''');
 
-    final localConfig = _loadLocalSmokeConfig(file: file);
+    final localConfig = await _loadLocalSmokeConfig(file: file);
     expect(_resolveApiKey(const {}, localConfig), 'ollama-local-key');
     expect(_resolveBaseUrl(const {}, localConfig), 'https://ollama.com/v1');
     expect(_candidateModels(const {}, localConfig), ['kimi-k2.6']);
@@ -79,20 +103,29 @@ REAL_AI_MODEL=kimi-k2.6
       }),
     );
 
-    final localConfig = _loadLocalSmokeConfig(file: file);
+    final localConfig = await _loadLocalSmokeConfig(file: file);
     expect(_resolveApiKey(const {}, localConfig), 'ollama-json-key');
     expect(_resolveBaseUrl(const {}, localConfig), 'https://ollama.com/v1');
     expect(_candidateModels(const {}, localConfig), ['kimi-k2.6']);
   });
 
   test('real AI smoke validation', () async {
+    if (Platform.environment['RUN_REAL_AI_SMOKE'] != '1') {
+      markTestSkipped(
+        'Set RUN_REAL_AI_SMOKE=1 to run the real provider smoke.',
+      );
+      return;
+    }
+
     final environment = Platform.environment;
-    final localConfig = _loadLocalSmokeConfig();
+    final localConfig = await _loadLocalSmokeConfig();
     final baseUrl = _resolveBaseUrl(environment, localConfig);
     final apiKey = _resolveApiKey(environment, localConfig);
 
     if (baseUrl.isEmpty || apiKey.isEmpty) {
-      fail('Missing OLLAMA_API_KEY in setting.json or the environment.');
+      fail(
+        'Missing ZHIPU_API_KEY, MIMO_API_KEY, or OLLAMA_API_KEY in setting.json or the environment.',
+      );
     }
 
     final candidateModels = _candidateModels(environment, localConfig);
@@ -123,7 +156,7 @@ REAL_AI_MODEL=kimi-k2.6
 
     for (final model in candidateModels) {
       await settingsStore.saveWithFeedback(
-        providerName: 'Ollama Cloud',
+        providerName: _providerNameForBaseUrl(baseUrl),
         baseUrl: baseUrl,
         model: model,
         apiKey: apiKey,
@@ -207,57 +240,28 @@ REAL_AI_MODEL=kimi-k2.6
   });
 }
 
-Map<String, String> _loadLocalSmokeConfig({File? file}) {
-  final configFile = file ?? File('setting.json');
-  if (!configFile.existsSync()) {
-    return const {};
-  }
-
-  final raw = configFile.readAsStringSync();
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) {
-    return const {};
-  }
-
-  try {
-    final decoded = jsonDecode(trimmed);
-    if (decoded is Map) {
-      return decoded.map(
-        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
-      );
-    }
-  } on FormatException {
-    // Fall through to line-based parsing for local developer config files.
-  }
-
-  final config = <String, String>{};
-  for (final line in const LineSplitter().convert(raw)) {
-    final trimmedLine = line.trim();
-    if (trimmedLine.isEmpty || trimmedLine.startsWith('#')) {
-      continue;
-    }
-    final separatorIndex = trimmedLine.indexOf('=');
-    if (separatorIndex <= 0) {
-      continue;
-    }
-    final key = trimmedLine.substring(0, separatorIndex).trim();
-    final value = trimmedLine.substring(separatorIndex + 1).trim();
-    if (key.isNotEmpty) {
-      config[key] = value;
-    }
-  }
-  return config;
+Future<Map<String, String>> _loadLocalSmokeConfig({File? file}) {
+  return loadLocalSettingsFile(file: file);
 }
 
 String _resolveBaseUrl(
   Map<String, String> environment,
   Map<String, String> localConfig,
 ) {
-  final explicit = (environment['OLLAMA_BASE_URL'] ?? '').trim();
+  final explicit = _firstNonEmpty(environment, [
+    'ZHIPU_BASE_URL',
+    'MIMO_BASE_URL',
+    'OLLAMA_BASE_URL',
+  ]);
   if (explicit.isNotEmpty) {
     return explicit;
   }
-  final local = _firstNonEmpty(localConfig, ['OLLAMA_BASE_URL', 'baseUrl']);
+  final local = _firstNonEmpty(localConfig, [
+    'ZHIPU_BASE_URL',
+    'MIMO_BASE_URL',
+    'OLLAMA_BASE_URL',
+    'baseUrl',
+  ]);
   if (local.isNotEmpty) {
     return local;
   }
@@ -268,11 +272,20 @@ String _resolveApiKey(
   Map<String, String> environment,
   Map<String, String> localConfig,
 ) {
-  final explicit = (environment['OLLAMA_API_KEY'] ?? '').trim();
+  final explicit = _firstNonEmpty(environment, [
+    'ZHIPU_API_KEY',
+    'MIMO_API_KEY',
+    'OLLAMA_API_KEY',
+  ]);
   if (explicit.isNotEmpty) {
     return explicit;
   }
-  return _firstNonEmpty(localConfig, ['OLLAMA_API_KEY', 'apiKey']);
+  return _firstNonEmpty(localConfig, [
+    'ZHIPU_API_KEY',
+    'MIMO_API_KEY',
+    'OLLAMA_API_KEY',
+    'apiKey',
+  ]);
 }
 
 List<String> _candidateModels(
@@ -282,8 +295,22 @@ List<String> _candidateModels(
   final candidateModels = <String>[
     if ((environment['REAL_AI_MODEL'] ?? '').trim().isNotEmpty)
       environment['REAL_AI_MODEL']!.trim(),
-    if (_firstNonEmpty(localConfig, ['REAL_AI_MODEL', 'model']).isNotEmpty)
-      _firstNonEmpty(localConfig, ['REAL_AI_MODEL', 'model']),
+    if ((environment['ZHIPU_MODEL'] ?? '').trim().isNotEmpty)
+      environment['ZHIPU_MODEL']!.trim(),
+    if ((environment['MIMO_MODEL'] ?? '').trim().isNotEmpty)
+      environment['MIMO_MODEL']!.trim(),
+    if (_firstNonEmpty(localConfig, [
+      'ZHIPU_MODEL',
+      'MIMO_MODEL',
+      'REAL_AI_MODEL',
+      'model',
+    ]).isNotEmpty)
+      _firstNonEmpty(localConfig, [
+        'ZHIPU_MODEL',
+        'MIMO_MODEL',
+        'REAL_AI_MODEL',
+        'model',
+      ]),
     'kimi-k2.6',
   ];
   final unique = <String>[];
@@ -293,6 +320,17 @@ List<String> _candidateModels(
     }
   }
   return unique;
+}
+
+String _providerNameForBaseUrl(String baseUrl) {
+  final host = Uri.tryParse(baseUrl.trim())?.host.toLowerCase() ?? '';
+  if (host.contains('bigmodel.cn') || host.contains('zhipuai.cn')) {
+    return '智谱 GLM';
+  }
+  if (host.contains('xiaomimimo.com')) {
+    return 'Xiaomi MiMo';
+  }
+  return 'Ollama Cloud';
 }
 
 String _firstNonEmpty(Map<String, String> values, List<String> keys) {

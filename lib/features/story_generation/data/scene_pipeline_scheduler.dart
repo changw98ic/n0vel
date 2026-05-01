@@ -31,8 +31,9 @@ class ScenePipelineScheduler<TScene, TResult> {
     final results = <int, TResult>{};
     final completion = Completer<List<TResult>>();
     var nextSceneIndex = 0;
-    var startAllowedThrough = 0;
-    var activeScenes = 0;
+    var startAllowedThrough = sceneConcurrencyLimit - 1;
+    var nextReleaseIndexToAdvance = 0;
+    var activeStartSlots = 0;
     var completedScenes = 0;
     var committedThrough = -1;
     int? blockedAtIndex;
@@ -92,9 +93,10 @@ class ScenePipelineScheduler<TScene, TResult> {
 
     void applyReleaseRequests() {
       var advanced = false;
-      while (releaseRequests.contains(startAllowedThrough) &&
-          canApplyReleaseRequest(startAllowedThrough)) {
-        releaseRequests.remove(startAllowedThrough);
+      while (releaseRequests.contains(nextReleaseIndexToAdvance) &&
+          canApplyReleaseRequest(nextReleaseIndexToAdvance)) {
+        releaseRequests.remove(nextReleaseIndexToAdvance);
+        nextReleaseIndexToAdvance += 1;
         startAllowedThrough += 1;
         advanced = true;
       }
@@ -115,10 +117,10 @@ class ScenePipelineScheduler<TScene, TResult> {
       while (nextSceneIndex < scenes.length &&
           nextSceneIndex <= startAllowedThrough &&
           (blockedAtIndex == null || nextSceneIndex <= blockedAtIndex!) &&
-          activeScenes < sceneConcurrencyLimit) {
+          activeStartSlots < sceneConcurrencyLimit) {
         final sceneIndex = nextSceneIndex;
         nextSceneIndex += 1;
-        activeScenes += 1;
+        activeStartSlots += 1;
         var releasedNextScene = false;
 
         void releaseNextScene() {
@@ -126,6 +128,7 @@ class ScenePipelineScheduler<TScene, TResult> {
             return;
           }
           releasedNextScene = true;
+          activeStartSlots -= 1;
           requestReleaseNextScene(sceneIndex);
         }
 
@@ -138,7 +141,7 @@ class ScenePipelineScheduler<TScene, TResult> {
             results[sceneIndex] = result;
             if (resultCanCommit(result)) {
               advanceCommittedThrough();
-              requestReleaseNextScene(sceneIndex);
+              releaseNextScene();
             } else if (blockedAtIndex == null || sceneIndex < blockedAtIndex!) {
               blockedAtIndex = sceneIndex;
             }
@@ -149,7 +152,10 @@ class ScenePipelineScheduler<TScene, TResult> {
             }
             return;
           } finally {
-            activeScenes -= 1;
+            if (!releasedNextScene) {
+              releasedNextScene = true;
+              activeStartSlots -= 1;
+            }
             completedScenes += 1;
             if (!completion.isCompleted) {
               maybeStartNextScene();

@@ -943,7 +943,7 @@ void main() {
         );
 
         expect(beats.any((b) => b.kind == SceneBeatKind.action), isTrue);
-        expect(fakeClient.requests.map((r) => r.maxTokens), [1024, 4096]);
+        expect(fakeClient.requests.map((r) => r.maxTokens), [0]);
       },
     );
 

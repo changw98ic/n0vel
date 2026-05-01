@@ -6,7 +6,8 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/request_rate_limiter.dart';
 
 const int _defaultMaxTransientRetries = 3;
-const int storyGenerationDefaultMaxTokens = 1024;
+const int storyGenerationDefaultMaxTokens =
+    AppLlmChatRequest.unlimitedMaxTokens;
 const int storyGenerationEditorialMaxTokens = 4096;
 const int storyGenerationMaxEscalatedTokens = 65536;
 const Duration _baseRetryDelay = Duration(milliseconds: 500);
@@ -102,8 +103,11 @@ String _inferStoryGenerationTraceName(List<AppLlmChatMessage> messages) {
 }
 
 int _normalizeTokenLimit(int value) {
-  if (value < 1) {
-    return storyGenerationDefaultMaxTokens;
+  if (value <= AppLlmChatRequest.unlimitedMaxTokens) {
+    return AppLlmChatRequest.unlimitedMaxTokens;
+  }
+  if (value < storyGenerationEditorialMaxTokens) {
+    return storyGenerationEditorialMaxTokens;
   }
   return value > storyGenerationMaxEscalatedTokens
       ? storyGenerationMaxEscalatedTokens
@@ -111,6 +115,9 @@ int _normalizeTokenLimit(int value) {
 }
 
 int _nextTokenLimit(int current, {required int ceiling}) {
+  if (current <= AppLlmChatRequest.unlimitedMaxTokens) {
+    return AppLlmChatRequest.unlimitedMaxTokens;
+  }
   if (current < storyGenerationEditorialMaxTokens) {
     return storyGenerationEditorialMaxTokens.clamp(1, ceiling);
   }
@@ -122,6 +129,9 @@ bool _shouldRetryWithMoreTokens({
   required AppLlmChatResult result,
   required int maxTokens,
 }) {
+  if (maxTokens <= AppLlmChatRequest.unlimitedMaxTokens) {
+    return false;
+  }
   if (result.succeeded) {
     final text = result.text ?? '';
     return _looksEmptyOrTruncated(

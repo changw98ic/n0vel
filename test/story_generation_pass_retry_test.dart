@@ -151,7 +151,7 @@ void main() {
       expect(result.succeeded, isTrue);
       expect(result.text, 'good result');
       expect(fakeLlm.callCount, 1);
-      expect(fakeLlm.maxTokensSeen, [storyGenerationDefaultMaxTokens]);
+      expect(fakeLlm.maxTokensSeen, [AppLlmChatRequest.unlimitedMaxTokens]);
     });
 
     test(
@@ -166,11 +166,12 @@ void main() {
         final result = await requestStoryGenerationPassWithRetry(
           settingsStore: settingsStore,
           messages: const [AppLlmChatMessage(role: 'user', content: 'test')],
+          initialMaxTokens: storyGenerationEditorialMaxTokens,
           shouldRetryOutput: (text) => text.contains('malformed'),
         );
 
         expect(result.text, 'usable result');
-        expect(fakeLlm.maxTokensSeen, [1024, 4096, 4096]);
+        expect(fakeLlm.maxTokensSeen, [4096, 8192, 8192]);
       },
     );
 
@@ -189,7 +190,7 @@ void main() {
       );
 
       expect(result.text, 'still malformed 3');
-      expect(fakeLlm.maxTokensSeen, [1024, 1024, 1024]);
+      expect(fakeLlm.maxTokensSeen, [0, 0, 0]);
     });
 
     test('starts editorial retries at 4096 and can escalate to 8192', () async {

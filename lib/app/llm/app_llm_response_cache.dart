@@ -8,6 +8,8 @@ int _requestFingerprint(AppLlmChatRequest request) {
     request.baseUrl,
     request.apiKey,
     request.model,
+    request.provider,
+    request.effectiveMaxTokens,
     Object.hashAll(request.messages.map((m) => Object.hash(m.role, m.content))),
   );
 }

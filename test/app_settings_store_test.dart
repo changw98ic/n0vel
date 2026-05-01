@@ -54,6 +54,208 @@ void main() {
     expect(store.canSaveConfiguration, isTrue);
   });
 
+  test('Xiaomi MiMo models are accepted as supported cloud models', () async {
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: _CapturingLlmClient(),
+    );
+    addTearDown(store.dispose);
+
+    expect(store.isSupportedModel('mimo-v2.5-pro'), isTrue);
+    expect(store.isSupportedModel('mimo-v2.5'), isTrue);
+    expect(store.isSupportedModel('mimo-v2-pro'), isTrue);
+  });
+
+  test('Zhipu GLM models are accepted as supported cloud models', () async {
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: _CapturingLlmClient(),
+    );
+    addTearDown(store.dispose);
+
+    expect(store.isSupportedModel('glm-5.1'), isTrue);
+    expect(store.isSupportedModel('glm-5'), isTrue);
+    expect(store.isSupportedModel('glm-4.7'), isTrue);
+    expect(store.isSupportedModel('glm-4.6'), isTrue);
+  });
+
+  test('provider routing config round-trips through settings json', () {
+    final snapshot = AppSettingsSnapshot.fromJson({
+      'providerName': '智谱 GLM',
+      'baseUrl': 'https://open.bigmodel.cn/api/paas/v4',
+      'model': 'glm-5.1',
+      'apiKey': 'zhipu-key',
+      'providerProfiles': [
+        {
+          'id': 'ollama-kimi',
+          'providerName': 'Ollama Cloud',
+          'baseUrl': 'https://ollama.com/v1',
+          'model': 'kimi-k2.6',
+          'apiKey': 'ollama-key',
+        },
+      ],
+      'requestProviderRoutes': [
+        {
+          'traceNamePattern': 'scene_review_*',
+          'providerProfileId': 'ollama-kimi',
+        },
+      ],
+    });
+
+    expect(snapshot.providerProfiles.single.id, 'ollama-kimi');
+    expect(
+      snapshot.requestProviderRoutes.single.traceNamePattern,
+      'scene_review_*',
+    );
+
+    final encoded = snapshot.toJson();
+    final profiles = encoded['providerProfiles'] as List<Object?>;
+    final routes = encoded['requestProviderRoutes'] as List<Object?>;
+    expect((profiles.single as Map)['model'], 'kimi-k2.6');
+    expect((routes.single as Map)['providerProfileId'], 'ollama-kimi');
+  });
+
+  test('bigmodel base URL selects Zhipu provider for requests', () async {
+    final llmClient = _CapturingLlmClient();
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: llmClient,
+    );
+    addTearDown(store.dispose);
+
+    await store.save(
+      providerName: 'OpenAI 兼容服务',
+      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      model: 'glm-5.1',
+      apiKey: 'zhipu-key',
+      timeoutMs: 30000,
+    );
+    await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'hi')],
+    );
+
+    expect(llmClient.lastRequest, isNotNull);
+    expect(llmClient.lastRequest!.provider, AppLlmProvider.zhipu);
+  });
+
+  test('routes request traces to configured provider profiles', () async {
+    final llmClient = _CapturingLlmClient();
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: llmClient,
+    );
+    addTearDown(store.dispose);
+
+    await store.save(
+      providerName: '智谱 GLM',
+      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      model: 'glm-5.1',
+      apiKey: 'zhipu-key',
+      providerProfiles: const [
+        AppLlmProviderProfile(
+          id: 'ollama-kimi',
+          providerName: 'Ollama Cloud',
+          baseUrl: 'https://ollama.com/v1',
+          model: 'kimi-k2.6',
+          apiKey: 'ollama-key',
+        ),
+        AppLlmProviderProfile(
+          id: 'mimo',
+          providerName: 'Xiaomi MiMo',
+          baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+          model: 'mimo-v2.5-pro',
+          apiKey: 'mimo-key',
+        ),
+      ],
+      requestProviderRoutes: const [
+        AppLlmRequestProviderRoute(
+          traceNamePattern: 'scene_review_*',
+          providerProfileId: 'ollama-kimi',
+        ),
+        AppLlmRequestProviderRoute(
+          traceNamePattern: 'scene_quality_scoring',
+          providerProfileId: 'mimo',
+        ),
+      ],
+    );
+
+    await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
+      traceName: 'scene_review_plot',
+    );
+    expect(llmClient.requests.last.provider, AppLlmProvider.ollama);
+    expect(llmClient.requests.last.baseUrl, 'https://ollama.com/v1');
+    expect(llmClient.requests.last.model, 'kimi-k2.6');
+    expect(llmClient.requests.last.apiKey, 'ollama-key');
+
+    await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'score')],
+      traceName: 'scene_quality_scoring',
+    );
+    expect(llmClient.requests.last.provider, AppLlmProvider.mimo);
+    expect(
+      llmClient.requests.last.baseUrl,
+      'https://token-plan-cn.xiaomimimo.com/v1',
+    );
+    expect(llmClient.requests.last.model, 'mimo-v2.5-pro');
+    expect(llmClient.requests.last.apiKey, 'mimo-key');
+
+    await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'draft')],
+      traceName: 'scene_prose_generation',
+    );
+    expect(llmClient.requests.last.provider, AppLlmProvider.zhipu);
+    expect(
+      llmClient.requests.last.baseUrl,
+      'https://open.bigmodel.cn/api/paas/v4',
+    );
+    expect(llmClient.requests.last.model, 'glm-5.1');
+    expect(llmClient.requests.last.apiKey, 'zhipu-key');
+  });
+
+  test(
+    'falls back to default provider when a routed profile is incomplete',
+    () async {
+      final llmClient = _CapturingLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: '智谱 GLM',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-5.1',
+        apiKey: 'zhipu-key',
+        providerProfiles: const [
+          AppLlmProviderProfile(
+            id: 'ollama-kimi',
+            providerName: 'Ollama Cloud',
+            baseUrl: 'https://ollama.com/v1',
+            model: 'kimi-k2.6',
+            apiKey: '',
+          ),
+        ],
+        requestProviderRoutes: const [
+          AppLlmRequestProviderRoute(
+            traceNamePattern: 'scene_review_*',
+            providerProfileId: 'ollama-kimi',
+          ),
+        ],
+      );
+
+      await store.requestAiCompletion(
+        messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
+        traceName: 'scene_review_plot',
+      );
+
+      expect(llmClient.lastRequest, isNotNull);
+      expect(llmClient.lastRequest!.provider, AppLlmProvider.zhipu);
+      expect(llmClient.lastRequest!.model, 'glm-5.1');
+    },
+  );
+
   test(
     'connection test sends no auth token for local CCR-compatible endpoint',
     () async {
@@ -147,7 +349,7 @@ void main() {
       expect(trace.promptTokens, 11);
       expect(trace.completionTokens, 3);
       expect(trace.totalTokens, 14);
-      expect(trace.maxTokens, 2048);
+      expect(trace.maxTokens, 4096);
       expect(trace.metadata['sceneId'], 'scene-01');
       expect(trace.estimatedPromptTokens, greaterThan(0));
       expect(trace.estimatedCompletionTokens, greaterThan(0));
@@ -159,10 +361,33 @@ void main() {
       expect(llmEvents.single.metadata['promptTokens'], 11);
       expect(llmEvents.single.metadata['completionTokens'], 3);
       expect(llmEvents.single.metadata['totalTokens'], 14);
-      expect(llmEvents.single.metadata['maxTokens'], 2048);
+      expect(llmEvents.single.metadata['maxTokens'], 4096);
       expect(llmEvents.single.metadata['traceName'], 'scene_quality_scoring');
     },
   );
+
+  test('requestAiCompletion omits max token limit by default', () async {
+    final llmClient = _CapturingLlmClient();
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: llmClient,
+    );
+    addTearDown(store.dispose);
+
+    final result = await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'hello')],
+    );
+
+    expect(result.succeeded, isTrue);
+    expect(
+      llmClient.lastRequest?.maxTokens,
+      AppLlmChatRequest.unlimitedMaxTokens,
+    );
+    expect(
+      llmClient.lastRequest?.effectiveMaxTokens,
+      AppLlmChatRequest.unlimitedMaxTokens,
+    );
+  });
 
   test('theme and prompt-language setters await persistence', () async {
     final storage = _ControllableSettingsStorage();
@@ -216,6 +441,81 @@ void main() {
       expect(requestPool.runCount, 1);
     },
   );
+
+  test(
+    'limits concurrent requests independently per routed provider',
+    () async {
+      final llmClient = _BlockingByModelLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: '智谱 GLM',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-5.1',
+        apiKey: 'zhipu-key',
+        maxConcurrentRequests: 3,
+        providerProfiles: const [
+          AppLlmProviderProfile(
+            id: 'ollama-kimi',
+            providerName: 'Ollama Cloud',
+            baseUrl: 'https://ollama.com/v1',
+            model: 'kimi-k2.6',
+            apiKey: 'ollama-key',
+          ),
+          AppLlmProviderProfile(
+            id: 'mimo',
+            providerName: 'Xiaomi MiMo',
+            baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+            model: 'mimo-v2.5-pro',
+            apiKey: 'mimo-key',
+          ),
+        ],
+        requestProviderRoutes: const [
+          AppLlmRequestProviderRoute(
+            traceNamePattern: 'scene_review_*',
+            providerProfileId: 'ollama-kimi',
+          ),
+          AppLlmRequestProviderRoute(
+            traceNamePattern: 'scene_quality_scoring',
+            providerProfileId: 'mimo',
+          ),
+        ],
+      );
+
+      final futures = <Future<AppLlmChatResult>>[
+        for (var index = 0; index < 3; index += 1)
+          store.requestAiCompletion(
+            messages: [
+              AppLlmChatMessage(role: 'user', content: 'review $index'),
+            ],
+            traceName: 'scene_review_$index',
+          ),
+        store.requestAiCompletion(
+          messages: const [AppLlmChatMessage(role: 'user', content: 'score')],
+          traceName: 'scene_quality_scoring',
+        ),
+        store.requestAiCompletion(
+          messages: const [AppLlmChatMessage(role: 'user', content: 'draft')],
+          traceName: 'scene_prose_generation',
+        ),
+      ];
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      try {
+        expect(llmClient.activeForModel('kimi-k2.6'), 3);
+        expect(llmClient.activeForModel('mimo-v2.5-pro'), 1);
+        expect(llmClient.activeForModel('glm-5.1'), 1);
+      } finally {
+        llmClient.completeAll();
+        await Future.wait(futures);
+      }
+    },
+  );
 }
 
 class _CapturingLlmClient implements AppLlmClient {
@@ -225,16 +525,19 @@ class _CapturingLlmClient implements AppLlmClient {
 
   final AppLlmChatResult result;
   AppLlmChatRequest? lastRequest;
+  final requests = <AppLlmChatRequest>[];
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     lastRequest = request;
+    requests.add(request);
     return result;
   }
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) {
     lastRequest = request;
+    requests.add(request);
     return Stream<String>.value('pong');
   }
 }
@@ -304,5 +607,46 @@ class _RecordingRequestPool extends AppLlmRequestPool {
   Future<T> run<T>(Future<T> Function() operation) {
     runCount += 1;
     return super.run(operation);
+  }
+}
+
+class _BlockingByModelLlmClient implements AppLlmClient {
+  final _activeByModel = <String, int>{};
+  final _pending = <Completer<AppLlmChatResult>>[];
+  bool _completeImmediately = false;
+
+  int activeForModel(String model) => _activeByModel[model] ?? 0;
+
+  void completeAll() {
+    _completeImmediately = true;
+    for (final completer in List<Completer<AppLlmChatResult>>.from(_pending)) {
+      if (!completer.isCompleted) {
+        completer.complete(const AppLlmChatResult.success(text: 'done'));
+      }
+    }
+  }
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    _activeByModel.update(
+      request.model,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    try {
+      if (_completeImmediately) {
+        return const AppLlmChatResult.success(text: 'done');
+      }
+      final completer = Completer<AppLlmChatResult>();
+      _pending.add(completer);
+      return await completer.future;
+    } finally {
+      _activeByModel.update(request.model, (count) => count - 1);
+    }
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) {
+    throw UnimplementedError('chatStream');
   }
 }

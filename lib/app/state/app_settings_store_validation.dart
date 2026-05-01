@@ -60,7 +60,8 @@ AppSettingsFeedback? validateInputs({
   if (!isSupportedModel(model) && !allowsEmptyApiKey) {
     return const AppSettingsFeedback(
       title: '模型不受支持',
-      message: '请改用受支持模型：gpt-4.1-mini、gpt-5.4、gpt-5.4-mini 或 kimi-k2.6。',
+      message:
+          '请改用受支持模型：gpt-4.1-mini、gpt-5.4-mini、kimi-k2.6、mimo-v2.5-pro 或 glm-5.1。',
       tone: AppSettingsFeedbackTone.error,
     );
   }

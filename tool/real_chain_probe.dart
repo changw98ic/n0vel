@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
+import 'package:novel_writer/app/state/local_settings_file.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
@@ -37,14 +38,17 @@ Future<void> main() async {
 
   await status('starting real one-chapter probe');
 
-  final config = _loadLocalConfig(File('setting.json'));
+  final config = await _loadLocalConfig(File('setting.json'));
   final settings = _resolveSettings(Platform.environment, config);
   if (settings.apiKey.isEmpty) {
     await _writeFailureReport(
       outputRoot: outputRoot,
-      reason: 'Missing OLLAMA_API_KEY in setting.json or environment.',
+      reason:
+          'Missing ZHIPU_API_KEY, MIMO_API_KEY, or OLLAMA_API_KEY in setting.json or environment.',
     );
-    stderr.writeln('Missing OLLAMA_API_KEY in setting.json or environment.');
+    stderr.writeln(
+      'Missing ZHIPU_API_KEY, MIMO_API_KEY, or OLLAMA_API_KEY in setting.json or environment.',
+    );
     exitCode = 2;
     return;
   }
@@ -60,7 +64,7 @@ Future<void> main() async {
   );
 
   await settingsStore.saveWithFeedback(
-    providerName: 'Ollama Cloud',
+    providerName: settings.providerName,
     baseUrl: settings.baseUrl,
     model: settings.model,
     apiKey: settings.apiKey,
@@ -71,7 +75,7 @@ Future<void> main() async {
       idleTimeoutMs: 60000,
     ),
     maxConcurrentRequests: settings.maxConcurrentRequests,
-    maxTokens: 1024,
+    maxTokens: settings.maxTokens,
   );
 
   await status('testing provider connection model=${settings.model}');
@@ -85,7 +89,7 @@ Future<void> main() async {
       receiveTimeoutMs: 60000,
       idleTimeoutMs: 30000,
     ),
-    maxTokens: 1024,
+    maxTokens: settings.maxTokens,
   );
   if (settingsStore.connectionTestState.status !=
       AppSettingsConnectionTestStatus.success) {
@@ -571,32 +575,8 @@ Future<void> _writeFailureReport({
   ).writeAsString('# Real Chain Probe Failed\n\n$reason\n');
 }
 
-Map<String, String> _loadLocalConfig(File file) {
-  if (!file.existsSync()) return const {};
-  final raw = file.readAsStringSync();
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) return const {};
-  try {
-    final decoded = jsonDecode(trimmed);
-    if (decoded is Map) {
-      return decoded.map(
-        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
-      );
-    }
-  } on FormatException {
-    // Fall through to key=value parsing.
-  }
-  final values = <String, String>{};
-  for (final line in const LineSplitter().convert(raw)) {
-    final trimmedLine = line.trim();
-    if (trimmedLine.isEmpty || trimmedLine.startsWith('#')) continue;
-    final separator = trimmedLine.indexOf('=');
-    if (separator <= 0) continue;
-    values[trimmedLine.substring(0, separator).trim()] = trimmedLine
-        .substring(separator + 1)
-        .trim();
-  }
-  return values;
+Future<Map<String, String>> _loadLocalConfig(File file) {
+  return loadLocalSettingsFile(file: file);
 }
 
 _ResolvedSettings _resolveSettings(
@@ -604,21 +584,39 @@ _ResolvedSettings _resolveSettings(
   Map<String, String> localConfig,
 ) {
   final baseUrl = _firstNonEmpty([
+    environment['ZHIPU_BASE_URL'],
+    environment['MIMO_BASE_URL'],
     environment['OLLAMA_BASE_URL'],
+    localConfig['ZHIPU_BASE_URL'],
+    localConfig['MIMO_BASE_URL'],
     localConfig['OLLAMA_BASE_URL'],
     localConfig['baseUrl'],
     'https://ollama.com/v1',
   ]);
   final apiKey = _firstNonEmpty([
+    environment['ZHIPU_API_KEY'],
+    environment['MIMO_API_KEY'],
     environment['OLLAMA_API_KEY'],
+    localConfig['ZHIPU_API_KEY'],
+    localConfig['MIMO_API_KEY'],
     localConfig['OLLAMA_API_KEY'],
     localConfig['apiKey'],
   ]);
   final model = _firstNonEmpty([
+    environment['ZHIPU_MODEL'],
+    environment['MIMO_MODEL'],
     environment['REAL_AI_MODEL'],
+    localConfig['ZHIPU_MODEL'],
+    localConfig['MIMO_MODEL'],
     localConfig['REAL_AI_MODEL'],
     localConfig['model'],
     'kimi-k2.6',
+  ]);
+  final providerName = _firstNonEmpty([
+    localConfig['providerName'],
+    _isZhipuBaseUrl(baseUrl) ? '智谱 GLM' : null,
+    baseUrl.contains('xiaomimimo.com') ? 'Xiaomi MiMo' : null,
+    'Ollama Cloud',
   ]);
   final maxConcurrent =
       int.tryParse(
@@ -644,13 +642,30 @@ _ResolvedSettings _resolveSettings(
         ]),
       ) ??
       2;
+  final maxTokens =
+      int.tryParse(
+        _firstNonEmpty([
+          environment['REAL_AI_MAX_TOKENS'],
+          localConfig['REAL_AI_MAX_TOKENS'],
+          localConfig['maxTokens'],
+          '${AppLlmChatRequest.unlimitedMaxTokens}',
+        ]),
+      ) ??
+      AppLlmChatRequest.unlimitedMaxTokens;
   return _ResolvedSettings(
+    providerName: providerName,
     baseUrl: baseUrl,
     apiKey: apiKey,
     model: model,
     maxConcurrentRequests: maxConcurrent.clamp(1, 6),
     maxConcurrentScenes: maxConcurrentScenes.clamp(1, 4),
+    maxTokens: AppLlmChatRequest.normalizeMaxTokens(maxTokens),
   );
+}
+
+bool _isZhipuBaseUrl(String baseUrl) {
+  final host = Uri.tryParse(baseUrl.trim())?.host.toLowerCase() ?? '';
+  return host.contains('bigmodel.cn') || host.contains('zhipuai.cn');
 }
 
 String _firstNonEmpty(List<String?> values) {
@@ -663,18 +678,22 @@ String _firstNonEmpty(List<String?> values) {
 
 class _ResolvedSettings {
   const _ResolvedSettings({
+    required this.providerName,
     required this.baseUrl,
     required this.apiKey,
     required this.model,
     required this.maxConcurrentRequests,
     required this.maxConcurrentScenes,
+    required this.maxTokens,
   });
 
+  final String providerName;
   final String baseUrl;
   final String apiKey;
   final String model;
   final int maxConcurrentRequests;
   final int maxConcurrentScenes;
+  final int maxTokens;
 }
 
 class RawIoLoggingAppLlmClient implements AppLlmClient {
@@ -737,7 +756,7 @@ class RawIoLoggingAppLlmClient implements AppLlmClient {
       'provider': request.provider.name,
       'host': Uri.tryParse(request.baseUrl)?.host ?? request.baseUrl,
       'model': request.model,
-      'maxTokens': request.maxTokens,
+      'maxTokens': request.effectiveMaxTokens,
       'timeoutMs': {
         'connect': request.timeout.connectTimeoutMs,
         'send': request.timeout.sendTimeoutMs,

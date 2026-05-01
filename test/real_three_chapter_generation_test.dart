@@ -15,6 +15,7 @@ import 'package:novel_writer/app/state/app_scene_context_storage_io.dart';
 import 'package:novel_writer/app/state/app_scene_context_store.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
+import 'package:novel_writer/app/state/local_settings_file.dart';
 import 'package:novel_writer/app/state/app_simulation_storage.dart';
 import 'package:novel_writer/app/state/app_simulation_storage_io.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
@@ -455,13 +456,15 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
     fail('setting.json is required for the real validation run.');
   }
 
-  final localConfig = _loadLocalConfig(file: settingFile);
+  final localConfig = await _loadLocalConfig(file: settingFile);
   final resolvedSettings = _resolveRealSettings(
     environment: Platform.environment,
     localConfig: localConfig,
   );
   if (resolvedSettings.apiKey.isEmpty) {
-    fail('Missing OLLAMA_API_KEY in setting.json or the environment.');
+    fail(
+      'Missing ZHIPU_API_KEY, MIMO_API_KEY, or OLLAMA_API_KEY in setting.json or the environment.',
+    );
   }
 
   final outputRoot = Directory(ArtifactRecorder.defaultRootPath);
@@ -1711,67 +1714,81 @@ Future<void> _waitForEventArtifacts({
   }
 }
 
-Map<String, String> _loadLocalConfig({File? file}) {
-  final configFile = file ?? File('setting.json');
-  if (!configFile.existsSync()) {
-    return const {};
-  }
-
-  final raw = configFile.readAsStringSync();
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) {
-    return const {};
-  }
-
-  try {
-    final decoded = jsonDecode(trimmed);
-    if (decoded is Map) {
-      return decoded.map(
-        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
-      );
-    }
-  } on FormatException {
-    // Fall through to local key-value parsing.
-  }
-
-  final config = <String, String>{};
-  for (final line in const LineSplitter().convert(raw)) {
-    final trimmedLine = line.trim();
-    if (trimmedLine.isEmpty || trimmedLine.startsWith('#')) {
-      continue;
-    }
-    final separatorIndex = trimmedLine.indexOf('=');
-    if (separatorIndex <= 0) {
-      continue;
-    }
-    final key = trimmedLine.substring(0, separatorIndex).trim();
-    final value = trimmedLine.substring(separatorIndex + 1).trim();
-    if (key.isNotEmpty) {
-      config[key] = value;
-    }
-  }
-  return config;
+Future<Map<String, String>> _loadLocalConfig({File? file}) {
+  return loadLocalSettingsFile(file: file);
 }
 
 _ResolvedRealSettings _resolveRealSettings({
   required Map<String, String> environment,
   required Map<String, String> localConfig,
 }) {
-  final baseUrl = _firstNonEmpty(environment, ['OLLAMA_BASE_URL']);
+  final baseUrl = _firstNonEmpty(environment, [
+    'ZHIPU_BASE_URL',
+    'MIMO_BASE_URL',
+    'OLLAMA_BASE_URL',
+  ]);
   final resolvedBaseUrl = baseUrl.isNotEmpty
       ? baseUrl
-      : _firstNonEmpty(localConfig, ['OLLAMA_BASE_URL', 'baseUrl']).isNotEmpty
-      ? _firstNonEmpty(localConfig, ['OLLAMA_BASE_URL', 'baseUrl'])
+      : _firstNonEmpty(localConfig, [
+          'ZHIPU_BASE_URL',
+          'MIMO_BASE_URL',
+          'OLLAMA_BASE_URL',
+          'baseUrl',
+        ]).isNotEmpty
+      ? _firstNonEmpty(localConfig, [
+          'ZHIPU_BASE_URL',
+          'MIMO_BASE_URL',
+          'OLLAMA_BASE_URL',
+          'baseUrl',
+        ])
       : 'https://ollama.com/v1';
-  final apiKey = _firstNonEmpty(environment, ['OLLAMA_API_KEY']).isNotEmpty
-      ? _firstNonEmpty(environment, ['OLLAMA_API_KEY'])
-      : _firstNonEmpty(localConfig, ['OLLAMA_API_KEY', 'apiKey']);
+  final apiKey =
+      _firstNonEmpty(environment, [
+        'ZHIPU_API_KEY',
+        'MIMO_API_KEY',
+        'OLLAMA_API_KEY',
+      ]).isNotEmpty
+      ? _firstNonEmpty(environment, [
+          'ZHIPU_API_KEY',
+          'MIMO_API_KEY',
+          'OLLAMA_API_KEY',
+        ])
+      : _firstNonEmpty(localConfig, [
+          'ZHIPU_API_KEY',
+          'MIMO_API_KEY',
+          'OLLAMA_API_KEY',
+          'apiKey',
+        ]);
 
-  const candidateModels = ['kimi-k2.6'];
+  final configuredModel =
+      _firstNonEmpty(environment, [
+        'ZHIPU_MODEL',
+        'MIMO_MODEL',
+        'REAL_AI_MODEL',
+      ]).isNotEmpty
+      ? _firstNonEmpty(environment, [
+          'ZHIPU_MODEL',
+          'MIMO_MODEL',
+          'REAL_AI_MODEL',
+        ])
+      : _firstNonEmpty(localConfig, [
+          'ZHIPU_MODEL',
+          'MIMO_MODEL',
+          'REAL_AI_MODEL',
+          'model',
+        ]);
+  final candidateModels = [
+    if (configuredModel.isNotEmpty) configuredModel,
+    if (configuredModel != 'kimi-k2.6') 'kimi-k2.6',
+  ];
 
   return _ResolvedRealSettings(
     providerName: _firstNonEmpty(localConfig, ['providerName']).isNotEmpty
         ? _firstNonEmpty(localConfig, ['providerName'])
+        : _isZhipuBaseUrl(resolvedBaseUrl)
+        ? '智谱 GLM'
+        : resolvedBaseUrl.contains('xiaomimimo.com')
+        ? 'Xiaomi MiMo'
         : 'Ollama Cloud',
     baseUrl: resolvedBaseUrl,
     apiKey: apiKey,
@@ -1821,6 +1838,11 @@ int _resolvedMaxConcurrentRequests({
       ) ??
       1;
   return requested < 1 ? 1 : requested;
+}
+
+bool _isZhipuBaseUrl(String baseUrl) {
+  final host = Uri.tryParse(baseUrl.trim())?.host.toLowerCase() ?? '';
+  return host.contains('bigmodel.cn') || host.contains('zhipuai.cn');
 }
 
 String _firstNonEmpty(Map<String, String> values, List<String> keys) {

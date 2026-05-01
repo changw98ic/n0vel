@@ -29,6 +29,7 @@ class AppLlmClientGateway implements AppLlmClient {
   String? _lastBaseUrl;
   String? _lastApiKey;
   String? _lastModel;
+  AppLlmProvider _lastProvider = AppLlmProvider.openaiCompatible;
   int _lastTimeoutMs = 30000;
 
   AppLlmConnectionState get connectionState => _connectionState;
@@ -41,6 +42,7 @@ class AppLlmClientGateway implements AppLlmClient {
     _lastBaseUrl = request.baseUrl;
     _lastApiKey = request.apiKey;
     _lastModel = request.model;
+    _lastProvider = request.provider;
     _lastTimeoutMs = request.timeoutMs;
 
     var attempt = 0;
@@ -100,6 +102,7 @@ class AppLlmClientGateway implements AppLlmClient {
         baseUrl: _lastBaseUrl!,
         apiKey: _lastApiKey ?? '',
         model: _lastModel ?? '',
+        provider: _lastProvider,
         timeoutMs: _lastTimeoutMs,
         messages: const [AppLlmChatMessage(role: 'user', content: 'ping')],
       ),

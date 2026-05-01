@@ -61,6 +61,8 @@ String normalizeRequestedModel(String model) {
   final normalized = trimmed.toLowerCase();
   return switch (normalized) {
     'kimi-2.6' => 'kimi-k2.6',
+    'mimo-v25-pro' => 'mimo-v2.5-pro',
+    'mimo-v25' => 'mimo-v2.5',
     _ => trimmed,
   };
 }
