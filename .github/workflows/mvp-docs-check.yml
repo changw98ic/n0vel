@@ -12,6 +12,9 @@ on:
       - "Makefile"
       - ".github/workflows/mvp-docs-check.yml"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   validate-mvp-docs:
     runs-on: ubuntu-latest
