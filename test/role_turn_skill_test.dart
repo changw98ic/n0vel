@@ -207,6 +207,7 @@ void main() {
       expect(prompt, contains('可见动作字段：写第三方能拍到的外部画面'));
       expect(prompt, contains('内心字段：写一句当下判断或决定'));
       expect(prompt, contains('正文片段字段：写小说正文片段'));
+      expect(prompt, contains('同等剧情功能'));
       expect(prompt, contains('我怀疑他在试探'));
     });
   });

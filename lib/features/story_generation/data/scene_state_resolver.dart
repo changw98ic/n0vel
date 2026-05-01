@@ -3,8 +3,10 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/domain/outline_plan_models.dart';
 
 import 'prompt_string_utils.dart';
+import 'scene_stage_narrator.dart';
 import 'story_generation_pass_retry.dart';
 import 'scene_pipeline_models.dart';
+import 'scene_roleplay_session_models.dart';
 import 'story_prompt_templates.dart';
 
 enum SceneTransitionStatus { passed, missed }
@@ -234,6 +236,7 @@ class SceneStateResolver {
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
     required List<ContextCapsule> capsules,
+    SceneRoleplaySession? roleplaySession,
     void Function(String message)? onStatus,
   }) async {
     onStatus?.call(
@@ -242,10 +245,19 @@ class SceneStateResolver {
 
     if (taskCard.metadata['localStructuredRoleplayOnly'] == true ||
         taskCard.brief.metadata['localStructuredRoleplayOnly'] == true) {
-      return _fallbackBeats(taskCard: taskCard, roleTurns: roleTurns);
+      return _fallbackBeats(
+        taskCard: taskCard,
+        roleTurns: roleTurns,
+        capsules: capsules,
+        roleplaySession: roleplaySession,
+      );
     }
 
     final l = StoryPromptTemplates.locale;
+    final hasAuthoritativeRoleplay = _hasAuthoritativeRoleplay(
+      roleTurns,
+      roleplaySession,
+    );
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       maxTransientRetries: 0,
@@ -260,16 +272,34 @@ class SceneStateResolver {
           content: [
             '${l.taskLabel}${l.colon}scene_beat_resolve',
             '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
-            '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
-            '${l.directorLabel}${l.colon}${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+            if (hasAuthoritativeRoleplay) ...[
+              '规划背景（非既定事实，不得直接输出为场景拍）：'
+                  '${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+              if (taskCard.directorPlan.trim().isNotEmpty)
+                '导演规划（非既定事实，不得直接输出为场景拍）：'
+                    '${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+            ] else ...[
+              '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+              '${l.directorLabel}${l.colon}${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+            ],
             if (taskCard.directorPlanParsed != null) ...[
               if (taskCard.directorPlanParsed!.tone.isNotEmpty)
                 '${l.toneFieldLabel}${l.colon}${taskCard.directorPlanParsed!.tone}',
               '${l.pacingFieldLabel}${l.colon}${_pacingLabel(taskCard.directorPlanParsed!.pacing)}',
             ],
             _turnSummary(roleTurns),
-            if (capsules.isNotEmpty)
-              '${l.retrievalContextLabel}${l.colon}${PromptStringUtils.mapJoin(capsules, (c) => c.summary, separator: l.listSeparator)}',
+            if (roleplaySession != null && !roleplaySession.isEmpty)
+              '角色扮演裁决（权威事实源）：'
+                  '${roleplaySession.toCommittedPromptText(maxChars: 2400)}',
+            if (_stageCapsules(capsules).isNotEmpty)
+              '场景旁白/舞台信息（权威场景源）：'
+                  '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+            if (_retrievalCapsules(capsules).isNotEmpty)
+              '${l.retrievalContextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+            if (hasAuthoritativeRoleplay)
+              '约束：只从角色输入、角色扮演裁决和检索上下文抽取场景拍；'
+                  '场景旁白/舞台信息可作为环境、氛围、物理机制与公共证据；'
+                  '规划背景只用于场景边界和语气，不是已发生事件。',
             '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
           ].join('\n'),
         ),
@@ -277,12 +307,28 @@ class SceneStateResolver {
     );
 
     if (!result.succeeded) {
-      return _fallbackBeats(taskCard: taskCard, roleTurns: roleTurns);
+      return _fallbackBeats(
+        taskCard: taskCard,
+        roleTurns: roleTurns,
+        capsules: capsules,
+        roleplaySession: roleplaySession,
+      );
     }
 
-    final beats = _parseBeats(result.text!);
+    final beats = _filterPlanningOnlyBeats(
+      _parseBeats(result.text!),
+      taskCard: taskCard,
+      roleTurns: roleTurns,
+      capsules: capsules,
+      roleplaySession: roleplaySession,
+    );
     if (beats.isEmpty) {
-      return _fallbackBeats(taskCard: taskCard, roleTurns: roleTurns);
+      return _fallbackBeats(
+        taskCard: taskCard,
+        roleTurns: roleTurns,
+        capsules: capsules,
+        roleplaySession: roleplaySession,
+      );
     }
 
     return List<SceneBeat>.unmodifiable(beats);
@@ -353,33 +399,88 @@ class SceneStateResolver {
   List<SceneBeat> _fallbackBeats({
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
+    required List<ContextCapsule> capsules,
+    SceneRoleplaySession? roleplaySession,
   }) {
     final beats = <SceneBeat>[];
     var order = 0;
 
-    // Opening narration beat from scene summary
-    beats.add(
-      SceneBeat(
-        kind: SceneBeatKind.narration,
-        content: taskCard.brief.sceneSummary,
-        sourceCharacterId: 'narrator',
-        order: order++,
-      ),
-    );
-
-    // Director plan as fact beat
-    if (taskCard.directorPlan.trim().isNotEmpty) {
+    if (roleplaySession != null && !roleplaySession.isEmpty) {
+      for (final round in roleplaySession.rounds) {
+        for (final turn in round.turns) {
+          final action = turn.visibleAction.trim();
+          if (action.isNotEmpty) {
+            beats.add(
+              SceneBeat(
+                kind: SceneBeatKind.action,
+                content: action,
+                sourceCharacterId: turn.characterId,
+                order: order++,
+              ),
+            );
+          }
+          final dialogue = turn.dialogue.trim();
+          if (dialogue.isNotEmpty) {
+            beats.add(
+              SceneBeat(
+                kind: SceneBeatKind.dialogue,
+                content: dialogue,
+                sourceCharacterId: turn.characterId,
+                order: order++,
+              ),
+            );
+          }
+        }
+        final fact = round.arbitration.fact.trim();
+        if (fact.isNotEmpty) {
+          beats.add(
+            SceneBeat(
+              kind: SceneBeatKind.fact,
+              content: fact,
+              sourceCharacterId: 'arbiter',
+              order: order++,
+            ),
+          );
+        }
+      }
+    } else if (roleTurns.isEmpty) {
+      // Without roleplay, planning text is the only available fallback context.
       beats.add(
         SceneBeat(
-          kind: SceneBeatKind.fact,
-          content: taskCard.directorPlan,
-          sourceCharacterId: 'director',
+          kind: SceneBeatKind.narration,
+          content: taskCard.brief.sceneSummary,
+          sourceCharacterId: 'narrator',
+          order: order++,
+        ),
+      );
+
+      if (taskCard.directorPlan.trim().isNotEmpty) {
+        beats.add(
+          SceneBeat(
+            kind: SceneBeatKind.fact,
+            content: taskCard.directorPlan,
+            sourceCharacterId: 'director',
+            order: order++,
+          ),
+        );
+      }
+    }
+
+    for (final capsule in _stageCapsules(capsules)) {
+      final content = capsule.summary.trim();
+      if (content.isEmpty) {
+        continue;
+      }
+      beats.add(
+        SceneBeat(
+          kind: SceneBeatKind.narration,
+          content: content,
+          sourceCharacterId: 'narrator',
           order: order++,
         ),
       );
     }
 
-    // Each role turn contributes action + potential dialogue
     for (final turn in roleTurns) {
       if (turn.action.trim().isNotEmpty) {
         beats.add(
@@ -404,6 +505,133 @@ class SceneStateResolver {
     }
 
     return List<SceneBeat>.unmodifiable(beats);
+  }
+
+  bool _hasAuthoritativeRoleplay(
+    List<RolePlayTurnOutput> roleTurns,
+    SceneRoleplaySession? roleplaySession,
+  ) {
+    if (roleplaySession != null && !roleplaySession.isEmpty) {
+      return true;
+    }
+    return roleTurns.any(
+      (turn) =>
+          turn.action.trim().isNotEmpty ||
+          turn.disclosure.trim().isNotEmpty ||
+          turn.proseFragment.trim().isNotEmpty,
+    );
+  }
+
+  List<SceneBeat> _filterPlanningOnlyBeats(
+    List<SceneBeat> beats, {
+    required SceneTaskCard taskCard,
+    required List<RolePlayTurnOutput> roleTurns,
+    required List<ContextCapsule> capsules,
+    SceneRoleplaySession? roleplaySession,
+  }) {
+    if (!_hasAuthoritativeRoleplay(roleTurns, roleplaySession)) {
+      return beats;
+    }
+
+    final planningOnlyTerms = _planningOnlyTerms(
+      taskCard: taskCard,
+      roleTurns: roleTurns,
+      capsules: capsules,
+      roleplaySession: roleplaySession,
+    );
+    if (planningOnlyTerms.isEmpty) {
+      return _reorderBeats([
+        for (final beat in beats)
+          if (beat.sourceCharacterId != 'director') beat,
+      ]);
+    }
+
+    final filtered = <SceneBeat>[];
+    for (final beat in beats) {
+      if (beat.sourceCharacterId == 'director') {
+        continue;
+      }
+      final beatContent = beat.content.toLowerCase();
+      if (planningOnlyTerms.any(beatContent.contains)) {
+        continue;
+      }
+      filtered.add(beat);
+    }
+    return _reorderBeats(filtered);
+  }
+
+  Set<String> _planningOnlyTerms({
+    required SceneTaskCard taskCard,
+    required List<RolePlayTurnOutput> roleTurns,
+    required List<ContextCapsule> capsules,
+    SceneRoleplaySession? roleplaySession,
+  }) {
+    final planningText = [
+      taskCard.brief.sceneSummary,
+      taskCard.directorPlan,
+    ].join('\n');
+    final authoritativeText = [
+      taskCard.brief.sceneTitle,
+      for (final turn in roleTurns) ...[
+        turn.action,
+        turn.disclosure,
+        turn.proseFragment,
+      ],
+      for (final capsule in _stageCapsules(capsules)) capsule.summary,
+      if (roleplaySession != null)
+        roleplaySession.toCommittedPromptText(maxChars: 10000),
+    ].join('\n');
+    return _significantTerms(
+      planningText,
+    ).where((term) => !authoritativeText.contains(term)).toSet();
+  }
+
+  Set<String> _significantTerms(String text) {
+    final terms = <String>{};
+    final normalized = text.replaceAll(RegExp(r'\s+'), '');
+    final cjkRuns = RegExp(r'[\u4e00-\u9fff]{3,}').allMatches(normalized);
+    for (final match in cjkRuns) {
+      final run = match.group(0)!;
+      for (var size in const [3, 4]) {
+        if (run.length < size) continue;
+        for (var i = 0; i <= run.length - size; i += 1) {
+          terms.add(run.substring(i, i + size));
+        }
+      }
+    }
+    final wordRuns = RegExp(r'[A-Za-z0-9_-]{4,}').allMatches(text);
+    for (final match in wordRuns) {
+      terms.add(match.group(0)!.toLowerCase());
+    }
+    return terms;
+  }
+
+  List<SceneBeat> _reorderBeats(List<SceneBeat> beats) {
+    return [
+      for (var i = 0; i < beats.length; i += 1)
+        SceneBeat(
+          kind: beats[i].kind,
+          content: beats[i].content,
+          sourceCharacterId: beats[i].sourceCharacterId,
+          order: i,
+        ),
+    ];
+  }
+
+  List<ContextCapsule> _stageCapsules(List<ContextCapsule> capsules) {
+    return [
+      for (final capsule in capsules)
+        if (capsule.intent.toolName == SceneStageNarrator.capsuleToolName)
+          capsule,
+    ];
+  }
+
+  List<ContextCapsule> _retrievalCapsules(List<ContextCapsule> capsules) {
+    return [
+      for (final capsule in capsules)
+        if (capsule.intent.toolName != SceneStageNarrator.capsuleToolName)
+          capsule,
+    ];
   }
 
   String _turnSummary(List<RolePlayTurnOutput> turns) {

@@ -13,6 +13,7 @@ import 'narrative_arc_tracker.dart';
 import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_review_coordinator.dart';
 import 'scene_polish_pass.dart';
+import 'scene_stage_narrator.dart';
 import 'roleplay_session_store.dart';
 import 'character_memory_store.dart';
 import 'scene_roleplay_session_models.dart';
@@ -30,12 +31,14 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   ChapterGenerationOrchestrator({
     required AppSettingsStore settingsStore,
     this.maxProseRetries = 1,
+    this.maxSceneReplanRetries = 1,
     this.onStatus,
     SceneCastResolverService? castResolver,
     SceneDirectorService? directorOrchestrator,
     DynamicRoleAgentService? dynamicRoleAgentRunner,
     SceneStateResolver? stateResolver,
     SceneEditorialGenerator? editorialGenerator,
+    SceneStageNarrator? stageNarrator,
     SceneReviewService? reviewCoordinator,
     ScenePolishPass? polishPass,
     SceneQualityScorerService? qualityScorer,
@@ -64,6 +67,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
        _editorialGenerator =
            editorialGenerator ??
            SceneEditorialGenerator(settingsStore: settingsStore),
+       _stageNarrator =
+           stageNarrator ?? SceneStageNarrator(settingsStore: settingsStore),
        _reviewCoordinator =
            reviewCoordinator ??
            SceneReviewCoordinator(settingsStore: settingsStore),
@@ -82,6 +87,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
        _retrievalController = const RetrievalController();
 
   final int maxProseRetries;
+  final int maxSceneReplanRetries;
   final void Function(String message)? onStatus;
   final AppSettingsStore _settingsStore;
   final SceneCastResolverService _castResolver;
@@ -89,6 +95,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   final DynamicRoleAgentService _dynamicRoleAgentRunner;
   final SceneStateResolver _stateResolver;
   final SceneEditorialGenerator _editorialGenerator;
+  final SceneStageNarrator _stageNarrator;
   final SceneReviewService _reviewCoordinator;
   final ScenePolishPass _polishPass;
   final SceneQualityScorerService? _qualityScorer;
@@ -141,11 +148,22 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     _directorMemory = _directorMemory.withActiveRoundState(
       DirectorRoundState(
         sceneId: brief.sceneId,
-        maxRounds: maxProseRetries + 1,
+        maxRounds: maxSceneReplanRetries + 1,
       ),
     );
     final narrativeArcBeforeScene = brief.narrativeArc ?? _narrativeArc;
     brief = _briefWithNarrativeArc(brief, narrativeArcBeforeScene);
+    var currentBrief = brief;
+    var sceneReplanCount = 0;
+    var speculationReadySent = false;
+
+    void markSpeculationReady() {
+      if (speculationReadySent) {
+        return;
+      }
+      speculationReadySent = true;
+      onSpeculationReady?.call();
+    }
 
     // Cross-chapter context: enrich materials with previous chapter data
     ProjectMaterialSnapshot effectiveMaterials =
@@ -236,228 +254,291 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       }
     }
 
-    final resolvedCast = _castResolver.resolve(brief);
-    statusCallback?.call('场景 ${brief.chapterId}/${brief.sceneId} · director');
-    final directorContext = _composeDirectorContext(
-      memoryContext: _directorMemory.toPromptText(),
-      ragContext: ragContext?.formattedContext,
-    );
-    final director = await _directorOrchestrator.run(
-      brief: brief,
-      cast: resolvedCast,
-      ragContext: directorContext,
-    );
-    final taskCard = _buildTaskCard(
-      brief: brief,
-      cast: resolvedCast,
-      director: director,
-    );
-    final roleOutputs = await _dynamicRoleAgentRunner.run(
-      brief: brief,
-      cast: resolvedCast,
-      director: director,
-      taskCard: taskCard,
-      ragContext: ragContext?.formattedContext,
-      onStatus: statusCallback,
-    );
-    final roleplaySession = _dynamicRoleAgentRunner is DynamicRoleAgentRunner
-        ? _dynamicRoleAgentRunner.lastRoleplaySession
-        : null;
-    await _persistRoleplaySession(
-      projectId: brief.projectId ?? brief.chapterId,
-      brief: brief,
-      session: roleplaySession,
-    );
-    onSpeculationReady?.call();
-    final roleTurns = [
-      for (final output in roleOutputs)
-        pipeline.RolePlayTurnOutput.fromDynamicAgentOutput(output),
-    ];
-    final capsules = _retrievalController.resolve(
-      taskCard: taskCard,
-      turns: roleTurns,
-    );
-    statusCallback?.call(
-      '场景 ${brief.chapterId}/${brief.sceneId} · resolve beats',
-    );
-    final resolvedBeats = await _stateResolver.resolve(
-      taskCard: taskCard,
-      roleTurns: roleTurns,
-      capsules: capsules,
-      onStatus: statusCallback,
-    );
-    final runtimeBeats = _runtimeBeatsFromResolved(resolvedBeats);
-    final sceneState = _sceneStateFromRuntimeBeats(
-      brief: brief,
-      runtimeBeats: runtimeBeats,
-    );
-
-    var attempt = 1;
-    var softFailureCount = 0;
-    String? reviewFeedback;
-
     while (true) {
+      final resolvedCast = _castResolver.resolve(currentBrief);
       statusCallback?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · editorial attempt $attempt',
+        '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · director',
       );
-      final editorialDraft = await _editorialGenerator.generate(
+      final directorContext = _composeDirectorContext(
+        memoryContext: _directorMemory.toPromptText(),
+        ragContext: ragContext?.formattedContext,
+      );
+      final director = await _directorOrchestrator.run(
+        brief: currentBrief,
+        cast: resolvedCast,
+        ragContext: directorContext,
+      );
+      final taskCard = _buildTaskCard(
+        brief: currentBrief,
+        cast: resolvedCast,
+        director: director,
+      );
+      final roleOutputs = await _dynamicRoleAgentRunner.run(
+        brief: currentBrief,
+        cast: resolvedCast,
+        director: director,
         taskCard: taskCard,
-        resolvedBeats: resolvedBeats,
-        capsules: capsules,
-        attempt: attempt,
-        roleplaySession: roleplaySession,
-        reviewFeedback: reviewFeedback,
+        ragContext: ragContext?.formattedContext,
+        onStatus: statusCallback,
       );
-      final prose = SceneProseDraft(
-        text: editorialDraft.text,
-        attempt: editorialDraft.attempt,
+      final roleplaySession = _dynamicRoleAgentRunner is DynamicRoleAgentRunner
+          ? _dynamicRoleAgentRunner.lastRoleplaySession
+          : null;
+      await _persistRoleplaySession(
+        projectId: currentBrief.projectId ?? currentBrief.chapterId,
+        brief: currentBrief,
+        session: roleplaySession,
       );
-      final lengthReview = _reviewOverlongProse(brief: brief, prose: prose);
-      if (lengthReview != null) {
-        softFailureCount += 1;
-        if (softFailureCount <= maxProseRetries) {
-          statusCallback?.call(
-            '场景 ${brief.chapterId}/${brief.sceneId} · editorial length retry',
-          );
-          attempt += 1;
-          reviewFeedback = lengthReview.editorialFeedback;
-          continue;
-        }
-      }
-      final review =
-          lengthReview ??
-          await _reviewCoordinator.review(
-            brief: brief,
-            director: director,
-            roleOutputs: roleOutputs,
-            prose: prose,
-            roleplaySession: roleplaySession,
-            retrievalPack: retrievalPack,
-            onStatus: statusCallback,
-          );
-
-      _directorMemory = _directorMemory
-          .incorporate(
-            SceneReviewDigest(
-              sceneId: brief.sceneId,
-              decision: review.decision,
-              issues: review.extractIssues(),
-              strengths: review.extractStrengths(),
-              proseAttempts: attempt,
-            ),
-          )
-          .withActiveRoundState(
-            DirectorRoundState(
-              sceneId: brief.sceneId,
-              round: attempt,
-              maxRounds: maxProseRetries + 1,
-              outcome: review.decision.toString(),
-            ),
-          );
-
-      var outputProse = prose;
-      if (lengthReview == null &&
-          review.decision == SceneReviewDecision.rewriteProse &&
-          softFailureCount + 1 > maxProseRetries) {
-        final refinedDraft = await _refineDraftIfNeeded(
-          brief: brief,
-          draft: editorialDraft,
-          resolvedBeats: runtimeBeats,
-          review: review,
-        );
-        outputProse = SceneProseDraft(
-          text: refinedDraft.text,
-          attempt: refinedDraft.attempt,
-        );
-      }
-
-      if (lengthReview == null &&
-          review.decision == SceneReviewDecision.rewriteProse) {
-        softFailureCount += 1;
-        if (softFailureCount <= maxProseRetries) {
-          statusCallback?.call(
-            '场景 ${brief.chapterId}/${brief.sceneId} · review issue -> editorial retry',
-          );
-          attempt += 1;
-          reviewFeedback = review.editorialFeedback;
-          continue;
-        }
-      }
-
-      // Build retrieval trace
-      _lastRetrievalTrace = RetrievalTrace(
-        query: StoryMemoryQuery(
-          projectId: brief.chapterId,
-          queryType: StoryMemoryQueryType.sceneContinuity,
-          text: '${brief.sceneTitle} ${brief.sceneSummary}',
-        ),
-        selectedHitCount: retrievalPack?.hits.length ?? 0,
-        deferredHitCount: retrievalPack?.deferredHitCount ?? 0,
-        thoughtCreationCount: 0,
-        rejectedThoughtCount: 0,
-        indexedChunkCount: cachedAssembly?.memoryChunks.length ?? 0,
-        sourceRefIds: retrievalPack != null
-            ? [for (final h in retrievalPack.hits) ...h.chunk.rootSourceIds]
-            : const [],
+      final roleTurns = [
+        for (final output in roleOutputs)
+          pipeline.RolePlayTurnOutput.fromDynamicAgentOutput(output),
+      ];
+      final capsules = _retrievalController.resolve(
+        taskCard: taskCard,
+        turns: roleTurns,
       );
-
-      // Quality scoring runs in parallel with thought extraction when scene passes
-      SceneQualityScore? qualityScore;
-      if (_qualityScorer != null) {
-        try {
-          qualityScore = await _qualityScorer.score(
-            brief: brief,
-            director: director,
-            prose: outputProse,
-            review: review,
-          );
-        } on Object {
-          // Quality scoring failure must not block the pipeline
-        }
-      }
-
-      final output = SceneRuntimeOutput(
-        brief: brief,
-        resolvedCast: resolvedCast,
+      final stageCapsule = await _stageNarrator.generate(
+        taskCard: taskCard,
         director: director,
         roleOutputs: roleOutputs,
-        resolvedBeats: runtimeBeats,
-        sceneState: sceneState,
+        roleTurns: roleTurns,
+        retrievalCapsules: capsules,
         roleplaySession: roleplaySession,
-        prose: outputProse,
-        review: review,
-        proseAttempts: attempt,
-        softFailureCount: softFailureCount,
-        qualityScore: qualityScore,
+        ragContext: ragContext?.formattedContext,
+        onStatus: statusCallback,
+      );
+      final sceneCapsules = [
+        ...capsules,
+        if (stageCapsule != null) stageCapsule,
+      ];
+      statusCallback?.call(
+        '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · resolve beats',
+      );
+      final resolvedBeats = await _stateResolver.resolve(
+        taskCard: taskCard,
+        roleTurns: roleTurns,
+        capsules: sceneCapsules,
+        roleplaySession: roleplaySession,
+        onStatus: statusCallback,
+      );
+      final runtimeBeats = _runtimeBeatsFromResolved(resolvedBeats);
+      final sceneState = _sceneStateFromRuntimeBeats(
+        brief: currentBrief,
+        runtimeBeats: runtimeBeats,
       );
 
-      // Post-scene: extract thoughts if scene passed and updater available
-      if (review.decision == SceneReviewDecision.pass &&
-          _thoughtUpdater != null) {
-        final thoughtResult = await _thoughtUpdater.extractWithLlm(
-          projectId: brief.chapterId,
-          sceneOutput: output,
+      var attempt = 1;
+      var softFailureCount = 0;
+      String? reviewFeedback;
+
+      while (true) {
+        statusCallback?.call(
+          '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · editorial attempt $attempt',
         );
-        final prev = _lastRetrievalTrace!;
+        final editorialDraft = await _editorialGenerator.generate(
+          taskCard: taskCard,
+          resolvedBeats: resolvedBeats,
+          capsules: sceneCapsules,
+          attempt: attempt,
+          roleplaySession: roleplaySession,
+          reviewFeedback: reviewFeedback,
+        );
+        final prose = SceneProseDraft(
+          text: editorialDraft.text,
+          attempt: editorialDraft.attempt,
+        );
+        final lengthReview = _reviewOverlongProse(
+          brief: currentBrief,
+          prose: prose,
+        );
+        if (lengthReview != null) {
+          softFailureCount += 1;
+          if (softFailureCount <= maxProseRetries) {
+            statusCallback?.call(
+              '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · editorial length retry',
+            );
+            attempt += 1;
+            reviewFeedback = lengthReview.editorialFeedback;
+            continue;
+          }
+        }
+        final review =
+            lengthReview ??
+            await _reviewCoordinator.review(
+              brief: currentBrief,
+              director: director,
+              roleOutputs: roleOutputs,
+              prose: prose,
+              roleplaySession: roleplaySession,
+              retrievalPack: retrievalPack,
+              onStatus: statusCallback,
+            );
+
+        _directorMemory = _directorMemory
+            .incorporate(
+              SceneReviewDigest(
+                sceneId: currentBrief.sceneId,
+                decision: review.decision,
+                issues: review.extractIssues(),
+                strengths: review.extractStrengths(),
+                proseAttempts: attempt,
+              ),
+            )
+            .withActiveRoundState(
+              DirectorRoundState(
+                sceneId: currentBrief.sceneId,
+                round: sceneReplanCount,
+                maxRounds: maxSceneReplanRetries + 1,
+                outcome: review.decision.toString(),
+              ),
+            );
+
+        if (lengthReview == null &&
+            review.decision == SceneReviewDecision.replanScene &&
+            sceneReplanCount < maxSceneReplanRetries) {
+          sceneReplanCount += 1;
+          statusCallback?.call(
+            '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · review issue -> scene replan $sceneReplanCount/$maxSceneReplanRetries',
+          );
+          currentBrief = _briefWithReplanFeedback(
+            brief: currentBrief,
+            review: review,
+            replanRound: sceneReplanCount,
+          );
+          break;
+        }
+
+        var outputProse = prose;
+        if (lengthReview == null &&
+            review.decision == SceneReviewDecision.rewriteProse &&
+            softFailureCount + 1 > maxProseRetries) {
+          final refinedDraft = await _refineDraftIfNeeded(
+            brief: currentBrief,
+            draft: editorialDraft,
+            resolvedBeats: runtimeBeats,
+            review: review,
+          );
+          outputProse = SceneProseDraft(
+            text: refinedDraft.text,
+            attempt: refinedDraft.attempt,
+          );
+        }
+
+        if (lengthReview == null &&
+            review.decision == SceneReviewDecision.rewriteProse) {
+          softFailureCount += 1;
+          if (softFailureCount <= maxProseRetries) {
+            statusCallback?.call(
+              '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · review issue -> editorial retry',
+            );
+            attempt += 1;
+            reviewFeedback = review.editorialFeedback;
+            continue;
+          }
+        }
+
+        if (lengthReview == null &&
+            review.decision == SceneReviewDecision.pass &&
+            _shouldRunFinalPolish(currentBrief)) {
+          statusCallback?.call(
+            '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · reader polish',
+          );
+          final polishResult = await _polishPass.polish(
+            brief: currentBrief,
+            editorialDraft: pipeline.SceneEditorialDraft(
+              text: outputProse.text,
+              beatCount: editorialDraft.beatCount,
+              attempt: outputProse.attempt,
+            ),
+            resolvedBeats: runtimeBeats,
+            reviewFeedback: review.editorialFeedback,
+            refinementGuidance: review.refinementGuidance,
+          );
+          final polishedText = polishResult.text.trim();
+          if (!polishResult.usedLocalFallback && polishedText.isNotEmpty) {
+            outputProse = SceneProseDraft(
+              text: polishedText,
+              attempt: outputProse.attempt,
+            );
+          }
+        }
+
+        // Build retrieval trace
         _lastRetrievalTrace = RetrievalTrace(
-          query: prev.query,
-          selectedHitCount: prev.selectedHitCount,
-          deferredHitCount: prev.deferredHitCount,
-          thoughtCreationCount: thoughtResult.accepted.length,
-          rejectedThoughtCount: thoughtResult.rejected.length,
-          indexedChunkCount: prev.indexedChunkCount,
-          sourceRefIds: prev.sourceRefIds,
+          query: StoryMemoryQuery(
+            projectId: currentBrief.chapterId,
+            queryType: StoryMemoryQueryType.sceneContinuity,
+            text: '${currentBrief.sceneTitle} ${currentBrief.sceneSummary}',
+          ),
+          selectedHitCount: retrievalPack?.hits.length ?? 0,
+          deferredHitCount: retrievalPack?.deferredHitCount ?? 0,
+          thoughtCreationCount: 0,
+          rejectedThoughtCount: 0,
+          indexedChunkCount: cachedAssembly?.memoryChunks.length ?? 0,
+          sourceRefIds: retrievalPack != null
+              ? [for (final h in retrievalPack.hits) ...h.chunk.rootSourceIds]
+              : const [],
         );
-      }
 
-      if (review.decision == SceneReviewDecision.pass) {
-        _narrativeArc = _narrativeArcTracker.update(
-          current: narrativeArcBeforeScene,
-          output: output,
+        // Quality scoring runs in parallel with thought extraction when scene passes
+        SceneQualityScore? qualityScore;
+        if (_qualityScorer != null) {
+          try {
+            qualityScore = await _qualityScorer.score(
+              brief: currentBrief,
+              director: director,
+              prose: outputProse,
+              review: review,
+            );
+          } on Object {
+            // Quality scoring failure must not block the pipeline
+          }
+        }
+
+        final output = SceneRuntimeOutput(
+          brief: currentBrief,
+          resolvedCast: resolvedCast,
+          director: director,
+          roleOutputs: roleOutputs,
+          resolvedBeats: runtimeBeats,
+          sceneState: sceneState,
+          roleplaySession: roleplaySession,
+          prose: outputProse,
+          review: review,
+          proseAttempts: attempt,
+          softFailureCount: softFailureCount,
+          qualityScore: qualityScore,
         );
-      }
 
-      return output;
+        // Post-scene: extract thoughts if scene passed and updater available
+        if (review.decision == SceneReviewDecision.pass &&
+            _thoughtUpdater != null) {
+          final thoughtResult = await _thoughtUpdater.extractWithLlm(
+            projectId: currentBrief.chapterId,
+            sceneOutput: output,
+          );
+          final prev = _lastRetrievalTrace!;
+          _lastRetrievalTrace = RetrievalTrace(
+            query: prev.query,
+            selectedHitCount: prev.selectedHitCount,
+            deferredHitCount: prev.deferredHitCount,
+            thoughtCreationCount: thoughtResult.accepted.length,
+            rejectedThoughtCount: thoughtResult.rejected.length,
+            indexedChunkCount: prev.indexedChunkCount,
+            sourceRefIds: prev.sourceRefIds,
+          );
+        }
+
+        if (review.decision == SceneReviewDecision.pass) {
+          _narrativeArc = _narrativeArcTracker.update(
+            current: narrativeArcBeforeScene,
+            output: output,
+          );
+        }
+
+        markSpeculationReady();
+        return output;
+      }
     }
   }
 
@@ -576,6 +657,25 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     );
   }
 
+  bool _shouldRunFinalPolish(SceneBrief brief) {
+    final value =
+        brief.metadata['enableFinalPolish'] ??
+        brief.metadata['readerPolish'] ??
+        brief.metadata['finalPolish'];
+    if (value is bool) {
+      return value;
+    }
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    return const {
+      'true',
+      '1',
+      'yes',
+      'on',
+      'always',
+      'reader',
+    }.contains(normalized);
+  }
+
   SceneBrief _briefWithNarrativeArc(
     SceneBrief brief,
     NarrativeArcState narrativeArc,
@@ -591,6 +691,38 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         narrativeArc.closedThreads.isNotEmpty ||
         narrativeArc.pendingForeshadowing.isNotEmpty ||
         narrativeArc.thematicArcs.isNotEmpty;
+  }
+
+  SceneBrief _briefWithReplanFeedback({
+    required SceneBrief brief,
+    required SceneReviewResult review,
+    required int replanRound,
+  }) {
+    final feedback = review.editorialFeedback.trim();
+    if (feedback.isEmpty) {
+      return brief;
+    }
+    final existing = _stringListFromMetadata(
+      brief.metadata['authorRevisionRequests'],
+    );
+    return brief.copyWith(
+      metadata: {
+        ...brief.metadata,
+        'authorRevisionRequests': [...existing, '结构重排第$replanRound轮：$feedback'],
+      },
+    );
+  }
+
+  List<String> _stringListFromMetadata(Object? raw) {
+    if (raw is List) {
+      return [
+        for (final item in raw)
+          if (item != null && item.toString().trim().isNotEmpty)
+            item.toString().trim(),
+      ];
+    }
+    final value = raw?.toString().trim() ?? '';
+    return value.isEmpty ? const [] : [value];
   }
 
   pipeline.SceneTaskCard _buildTaskCard({
@@ -777,6 +909,13 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         }
       }
     }
+    for (final delta in _narrativeDeltasFromBrief(brief)) {
+      final key = '${delta.kind.name}:${delta.value}';
+      if (seen.add(key)) {
+        acceptedDeltas.add(delta);
+        acceptedChanges.add(delta.value);
+      }
+    }
     return SceneState(
       sceneId: brief.sceneId,
       beatIndex: runtimeBeats.length,
@@ -784,6 +923,14 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       acceptedStateDeltas: acceptedDeltas,
       lastResolvedBeat: runtimeBeats.isEmpty ? null : runtimeBeats.last,
     );
+  }
+
+  List<SceneStateDelta> _narrativeDeltasFromBrief(SceneBrief brief) {
+    final deltas = <SceneStateDelta>[];
+    for (final value in [brief.targetBeat, brief.sceneSummary]) {
+      deltas.addAll(_stateDeltasFromText(value));
+    }
+    return deltas;
   }
 
   List<SceneStateDelta> _stateDeltasFromText(String value) {

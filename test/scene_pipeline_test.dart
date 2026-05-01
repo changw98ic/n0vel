@@ -894,17 +894,206 @@ void main() {
         capsules: const [],
       );
 
-      // Expect narration beat (from summary), fact beat (from director plan),
-      // action beat (from turn action), dialogue beat (from disclosure)
-      expect(beats.length, greaterThanOrEqualTo(3));
-      expect(beats.first.kind, SceneBeatKind.narration);
-      expect(beats.first.sourceCharacterId, 'narrator');
+      // Once role turns exist, fallback must stay on the roleplay facts and
+      // avoid promoting planning summary/director text to accepted beats.
+      expect(beats, hasLength(2));
+      expect(beats.any((b) => b.sourceCharacterId == 'narrator'), isFalse);
+      expect(beats.any((b) => b.sourceCharacterId == 'director'), isFalse);
       expect(beats.any((b) => b.kind == SceneBeatKind.action), isTrue);
       expect(beats.any((b) => b.kind == SceneBeatKind.dialogue), isTrue);
     });
 
     test(
-      'limits beat resolve escalation before falling back on timeout',
+      'fallback does not promote planning summary when role turns exist',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (_) => const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.network,
+            detail: 'Connection reset',
+          ),
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final resolver = SceneStateResolver(settingsStore: settingsStore);
+        final beats = await resolver.resolve(
+          taskCard: SceneTaskCard(
+            brief: SceneBrief(
+              chapterId: 'chapter-01',
+              chapterTitle: '第一章 无声区的回响',
+              sceneId: 'scene-02',
+              sceneTitle: '地下监听室',
+              sceneSummary: '乔眠用调音叉复原磁带，暴露求救声。',
+            ),
+            cast: [_castMember(characterId: 'char-qiao', name: '乔眠')],
+            directorPlan: '推进：乔眠用调音叉复原磁带。',
+          ),
+          roleTurns: [
+            RolePlayTurnOutput(
+              characterId: 'char-qiao',
+              name: '乔眠',
+              stance: '追问真相',
+              action: '截停扫描键并按住频谱尖峰',
+              taboo: '',
+              retrievalIntents: const [],
+              disclosure: '十五年前的频轨你们不是第一次见',
+            ),
+          ],
+          capsules: const [],
+        );
+
+        final joined = beats.map((beat) => beat.content).join('\n');
+        expect(joined, isNot(contains('调音叉')));
+        expect(
+          beats.any((beat) => beat.sourceCharacterId == 'director'),
+          isFalse,
+        );
+        expect(joined, contains('截停扫描键'));
+        expect(joined, contains('十五年前的频轨'));
+      },
+    );
+
+    test(
+      'filters planner-only beats when authoritative role turns are present',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text:
+                    '[叙述] @narrator 乔眠用调音叉复原磁带，暴露求救声。\n'
+                    '[事实] @director 推进：乔眠用调音叉复原磁带。\n'
+                    '[动作] @char-qiao 截停扫描键并按住频谱尖峰\n'
+                    '[对白] @char-qiao 十五年前的频轨你们不是第一次见',
+              );
+            }
+            throw StateError('Unexpected prompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final resolver = SceneStateResolver(settingsStore: settingsStore);
+        final beats = await resolver.resolve(
+          taskCard: SceneTaskCard(
+            brief: SceneBrief(
+              chapterId: 'chapter-01',
+              chapterTitle: '第一章 无声区的回响',
+              sceneId: 'scene-02',
+              sceneTitle: '地下监听室',
+              sceneSummary: '乔眠用调音叉复原磁带，暴露求救声。',
+            ),
+            cast: [_castMember(characterId: 'char-qiao', name: '乔眠')],
+            directorPlan: '推进：乔眠用调音叉复原磁带。',
+          ),
+          roleTurns: [
+            RolePlayTurnOutput(
+              characterId: 'char-qiao',
+              name: '乔眠',
+              stance: '追问真相',
+              action: '截停扫描键并按住频谱尖峰',
+              taboo: '',
+              retrievalIntents: const [],
+              disclosure: '十五年前的频轨你们不是第一次见',
+            ),
+          ],
+          capsules: const [],
+        );
+
+        final joined = beats.map((beat) => beat.content).join('\n');
+        expect(joined, isNot(contains('调音叉')));
+        expect(
+          beats.map((beat) => beat.sourceCharacterId),
+          isNot(contains('director')),
+        );
+        expect(beats.map((beat) => beat.content), [
+          '截停扫描键并按住频谱尖峰',
+          '十五年前的频轨你们不是第一次见',
+        ]);
+      },
+    );
+
+    test(
+      'keeps stage narration beats even when role turns are authoritative',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+            if (systemPrompt.contains('scene beat resolver')) {
+              expect(userPrompt, contains('场景旁白/舞台信息'));
+              return const AppLlmChatResult.success(
+                text:
+                    '[动作] @char-qiao 乔眠敲响调音叉\n'
+                    '[叙述] @narrator 调音叉的尾音让墙内旧线圈共振\n'
+                    '[事实] @narrator 求救声从墙缝里的残响中浮出',
+              );
+            }
+            throw StateError('Unexpected prompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final resolver = SceneStateResolver(settingsStore: settingsStore);
+        final beats = await resolver.resolve(
+          taskCard: SceneTaskCard(
+            brief: SceneBrief(
+              chapterId: 'chapter-01',
+              chapterTitle: '第一章 无声区的回响',
+              sceneId: 'scene-02',
+              sceneTitle: '地下监听室',
+              sceneSummary: '乔眠用调音叉复原磁带，暴露求救声。',
+            ),
+            cast: [_castMember(characterId: 'char-qiao', name: '乔眠')],
+            directorPlan: '推进：乔眠用调音叉复原磁带。',
+          ),
+          roleTurns: [
+            RolePlayTurnOutput(
+              characterId: 'char-qiao',
+              name: '乔眠',
+              stance: '追问真相',
+              action: '乔眠敲响调音叉',
+              taboo: '',
+              retrievalIntents: const [],
+              disclosure: '',
+            ),
+          ],
+          capsules: const [
+            ContextCapsule(
+              intent: RetrievalIntent(
+                toolName: 'scene_stage_narrator',
+                query: 'scene stage narration',
+                purpose: 'scene-level observable facts and atmosphere',
+              ),
+              summary: '调音叉的尾音让墙内旧线圈共振；求救声从墙缝里的残响中浮出。',
+              tokenBudget: 180,
+            ),
+          ],
+        );
+
+        final joined = beats.map((beat) => beat.content).join('\n');
+        expect(joined, contains('墙内旧线圈共振'));
+        expect(joined, contains('求救声'));
+        expect(
+          beats.where((beat) => beat.sourceCharacterId == 'narrator'),
+          hasLength(2),
+        );
+      },
+    );
+
+    test(
+      'keeps unlimited beat resolve retries before falling back on timeout',
       () async {
         var callCount = 0;
         final fakeClient = FakeAppLlmClient(
@@ -943,7 +1132,7 @@ void main() {
         );
 
         expect(beats.any((b) => b.kind == SceneBeatKind.action), isTrue);
-        expect(fakeClient.requests.map((r) => r.maxTokens), [0]);
+        expect(fakeClient.requests.map((r) => r.maxTokens), [0, 0]);
       },
     );
 
@@ -1140,6 +1329,78 @@ void main() {
       expect(userPrompt, contains('上下文'));
       expect(userPrompt, contains('柳溪与岳刃对峙'));
     });
+
+    test(
+      'includes noninteractive cast boundaries in editorial prompt',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            if (systemPrompt.contains('scene editor')) {
+              final userPrompt = request.messages.last.content;
+              expect(userPrompt, contains('非行动角色边界'));
+              expect(userPrompt, contains('陈默'));
+              expect(userPrompt, contains('不可主动行动、说话或产生即时心理描写'));
+              expect(userPrompt, contains('也不可主动移动、喷吐、伸出、攻击'));
+              return const AppLlmChatResult.success(text: '陆沉扫描尸体，房间里只剩仪器低鸣。');
+            }
+            throw StateError('Unexpected prompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final brief = SceneBrief(
+          chapterId: 'chapter-01',
+          chapterTitle: '第一章 无声的共振层',
+          sceneId: 'scene-02',
+          sceneTitle: '被缝嘴的笑者',
+          sceneSummary: '陆沉扫描陈默的尸体。',
+          cast: [
+            SceneCastCandidate(
+              characterId: 'luchen',
+              name: '陆沉',
+              role: '调音师',
+              participation: const SceneCastParticipation(action: '扫描尸体'),
+            ),
+            SceneCastCandidate(
+              characterId: 'victim-chen',
+              name: '陈默',
+              role: '受害者遗体',
+              participation: const SceneCastParticipation(
+                interaction: '缝合嘴角渗出黑色液体',
+              ),
+              metadata: const {
+                'roleplayMode': 'evidence',
+                'canAct': false,
+                'lifeState': 'corpse',
+              },
+            ),
+          ],
+        );
+        final generator = SceneEditorialGenerator(settingsStore: settingsStore);
+
+        await generator.generate(
+          taskCard: SceneTaskCard(
+            brief: brief,
+            cast: [_castMember(characterId: 'luchen', name: '陆沉', role: '调音师')],
+            directorPlan: '目标：扫描\n冲突：寂静\n推进：发现声纹\n约束：尸体不可行动',
+          ),
+          resolvedBeats: const [
+            SceneBeat(
+              kind: SceneBeatKind.fact,
+              content: '陈默是被缝嘴的尸体',
+              sourceCharacterId: 'narrator',
+            ),
+          ],
+          capsules: const [],
+          attempt: 1,
+        );
+      },
+    );
 
     test(
       'uses roleplay prose draft as the editorial base when present',

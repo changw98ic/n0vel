@@ -65,6 +65,42 @@ void main() {
       );
     });
 
+    test('excludes cast members marked as noninteractive evidence', () {
+      final resolver = SceneCastResolver();
+      final brief = SceneBrief(
+        chapterId: 'chapter-01',
+        chapterTitle: '第一章 无声的共振层',
+        sceneId: 'scene-02',
+        sceneTitle: '被缝嘴的笑者',
+        sceneSummary: '陆沉扫描一具缝嘴尸体中的声波残留。',
+        cast: [
+          SceneCastCandidate(
+            characterId: 'luchen',
+            name: '陆沉',
+            role: '调音师',
+            participation: const SceneCastParticipation(action: '扫描尸体'),
+          ),
+          SceneCastCandidate(
+            characterId: 'victim-chen',
+            name: '陈默',
+            role: '受害者遗体',
+            participation: const SceneCastParticipation(
+              interaction: '缝合嘴角渗出黑色液体，体内残留多个声纹',
+            ),
+            metadata: const {
+              'roleplayMode': 'evidence',
+              'canAct': false,
+              'lifeState': 'corpse',
+            },
+          ),
+        ],
+      );
+
+      final resolved = resolver.resolve(brief);
+
+      expect(resolved.map((member) => member.characterId), ['luchen']);
+    });
+
     test('scene models keep inbound collections isolated and immutable', () {
       final cast = <SceneCastCandidate>[
         SceneCastCandidate(
@@ -336,6 +372,205 @@ void main() {
         );
         expect(judgeRequest.messages.first.content, contains('原因：'));
         expect(judgeRequest.messages.last.content, contains('正文：'));
+      },
+    );
+
+    test(
+      'runs reader polish after passing review when scene metadata enables it',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪死死盯住岳刃\n[事实] @narrator 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(
+                text: '柳溪死死盯着岳刃，仿佛有无形之手攥住雨夜。岳刃露出破绽。',
+              );
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+            }
+            if (userPrompt.contains('任务：language_polish')) {
+              expect(userPrompt, contains('死死盯着岳刃'));
+              return const AppLlmChatResult.success(
+                text: '柳溪盯住岳刃，雨水顺着旧仓库的檐口落下。岳刃偏开视线，破绽就露了出来。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief(metadata: const {'enableFinalPolish': true}),
+        );
+
+        expect(result.prose.text, contains('雨水顺着旧仓库'));
+        expect(result.prose.text, isNot(contains('无形之手')));
+        expect(
+          fakeClient.requests.any(
+            (request) =>
+                request.messages.last.content.contains('任务：language_polish'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'retries reader polish with the previous cliche report before accepting prose',
+      () async {
+        var polishCalls = 0;
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪逼近岳刃\n[事实] @narrator 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(
+                text: '柳溪逼近岳刃，雨夜旧仓库只剩两人的呼吸。岳刃露出破绽。',
+              );
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+            }
+            if (userPrompt.contains('任务：language_polish')) {
+              polishCalls++;
+              if (polishCalls == 1) {
+                return const AppLlmChatResult.success(
+                  text: '柳溪猛地抬头，死死盯住岳刃，仿佛被无形的手按在雨夜。任务，完成了。',
+                );
+              }
+              expect(userPrompt, contains('上一轮残留问题'));
+              expect(userPrompt, contains('猛地'));
+              expect(userPrompt, contains('死死'));
+              return const AppLlmChatResult.success(
+                text: '柳溪抬眼看向岳刃，雨水沿着仓库檐口滴落。岳刃避开她的目光，破绽便露了出来。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief(metadata: const {'enableFinalPolish': true}),
+        );
+
+        expect(polishCalls, 2);
+        expect(result.prose.text, contains('仓库檐口滴落'));
+        expect(result.prose.text, isNot(contains('无形的手')));
+      },
+    );
+
+    test(
+      'uses local cleanup when both reader polish attempts keep hard cliches',
+      () async {
+        var polishCalls = 0;
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪逼近岳刃\n[事实] @narrator 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(
+                text: '柳溪逼近岳刃，雨夜旧仓库只剩两人的呼吸。岳刃露出破绽。',
+              );
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+            }
+            if (userPrompt.contains('任务：language_polish')) {
+              polishCalls++;
+              return const AppLlmChatResult.success(
+                text: '柳溪猛地抬头，死死盯住岳刃，仿佛被无形的手按在雨夜。任务，完成了。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief(metadata: const {'enableFinalPolish': true}),
+        );
+
+        expect(polishCalls, 2);
+        expect(result.prose.text, contains('取证结束'));
+        expect(result.prose.text, isNot(contains('猛地')));
+        expect(result.prose.text, isNot(contains('死死')));
+        expect(result.prose.text, isNot(contains('无形的手')));
+        expect(result.prose.text, isNot(contains('任务，完成了')));
       },
     );
 
@@ -657,6 +892,203 @@ void main() {
         expect(result.review.consistency.status, SceneReviewStatus.replanScene);
         expect(result.prose.attempt, 1);
         expect(result.softFailureCount, 0);
+      },
+    );
+
+    test(
+      'reruns director and roleplay when review requests scene replanning',
+      () async {
+        var directorCalls = 0;
+        var roleCalls = 0;
+        var editorialCalls = 0;
+
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              directorCalls += 1;
+              return AppLlmChatResult.success(
+                text: directorCalls == 1
+                    ? '目标：确认残留频率\n冲突：乔眠急于确认父亲线索\n推进：乔眠只认出父亲笔记里的频段\n约束：保持地下监听室空间'
+                    : '目标：确认残留频率\n冲突：乔眠担心调音叉会吸引无声区但仍要确认真相\n推进：乔眠敲响调音叉，引发旧设备共振并释放求救声\n约束：调音叉必须成为可见动作',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
+              roleCalls += 1;
+              return AppLlmChatResult.success(
+                text: roleCalls == 1
+                    ? '意图：确认父亲线索\n可见动作：乔眠贴近频谱仪屏幕\n对白：这个波段是我爸笔记里的数\n内心：终于对上了'
+                    : '意图：用调音叉确认残波\n可见动作：乔眠敲响调音叉，旧设备随之共振\n对白：听，声音回来了\n内心：风险是真的，但不能再错过',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return AppLlmChatResult.success(
+                text: roleCalls == 1
+                    ? '事实：乔眠认出父亲笔记里的频段\n状态：众人停在频谱仪前\n压力：中\n收束：是'
+                    : '事实：乔眠敲响调音叉，旧设备共振并释放求救声\n状态：求救声成为公共证据\n压力：高\n收束：是',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return AppLlmChatResult.success(
+                text: roleCalls == 1
+                    ? '[动作] @char-liuxi 乔眠贴近频谱仪屏幕\n[事实] @narrator 乔眠认出父亲笔记里的频段'
+                    : '[动作] @char-liuxi 乔眠敲响调音叉\n[事实] @narrator 旧设备共振并释放求救声',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              editorialCalls += 1;
+              return AppLlmChatResult.success(
+                text: editorialCalls == 1
+                    ? '第一稿：乔眠只认出频段。'
+                    : '第二稿：乔眠敲响调音叉，旧设备共振并释放求救声。',
+              );
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return AppLlmChatResult.success(
+                text: editorialCalls == 1
+                    ? '决定：REPLAN_SCENE\n原因：角色只完成线索识别，缺少调音叉共振与求救声这个剧情功能。'
+                    : '决定：PASS\n原因：角色动机与剧情功能同时成立。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+          maxProseRetries: 1,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief(
+            metadata: const {
+              'authorRevisionRequests': ['调音叉共振与求救声是本场必须完成的剧情功能。'],
+            },
+          ),
+        );
+
+        expect(result.review.decision, SceneReviewDecision.pass);
+        expect(result.prose.text, contains('调音叉'));
+        expect(result.prose.text, contains('求救声'));
+        expect(directorCalls, 2);
+        expect(roleCalls, 2);
+        expect(editorialCalls, 2);
+      },
+    );
+
+    test(
+      'injects scene stage narration before beat resolution and editorial',
+      () async {
+        var stageNarrationCalls = 0;
+        var beatResolverSawStageNarration = false;
+        var editorSawStageNarration = false;
+        final requestTasks = <String>[];
+
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+            requestTasks.add(
+              userPrompt
+                  .split('\n')
+                  .firstWhere(
+                    (line) => line.startsWith('任务：'),
+                    orElse: () => '',
+                  ),
+            );
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text:
+                    '目标：复原求救声\n冲突：乔眠担心调音叉会唤醒无声区\n推进：乔眠敲响调音叉并暴露墙内求救声\n约束：地下监听室必须有压迫氛围',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_turn')) {
+              return const AppLlmChatResult.success(
+                text: '意图：确认残波\n可见动作：乔眠敲响调音叉\n对白：别说话，听墙里\n内心：这一下可能会把东西引回来',
+              );
+            }
+            if (userPrompt.contains('任务：scene_roleplay_arbitrate')) {
+              return const AppLlmChatResult.success(
+                text: '事实：乔眠敲响调音叉\n状态：众人安静下来\n压力：升高\n收束：是',
+              );
+            }
+            if (systemPrompt.contains('scene stage narrator')) {
+              stageNarrationCalls += 1;
+              expect(userPrompt, contains('乔眠敲响调音叉'));
+              return const AppLlmChatResult.success(
+                text:
+                    '舞台事实：调音叉的尾音让墙内旧线圈共振\n'
+                    '环境氛围：监听室像被抽空，灯管延迟闪烁\n'
+                    '可见证据：求救声从墙缝里的残响中浮出\n'
+                    '边界：不替角色决定下一步行动',
+              );
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              beatResolverSawStageNarration = userPrompt.contains('场景旁白/舞台信息');
+              expect(userPrompt, contains('墙内旧线圈共振'));
+              return const AppLlmChatResult.success(
+                text:
+                    '[动作] @char-liuxi 乔眠敲响调音叉\n'
+                    '[叙述] @narrator 调音叉的尾音让墙内旧线圈共振\n'
+                    '[事实] @narrator 求救声从墙缝里的残响中浮出',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              editorSawStageNarration = userPrompt.contains('场景旁白/舞台信息');
+              expect(userPrompt, contains('求救声从墙缝里的残响中浮出'));
+              return const AppLlmChatResult.success(
+                text: '乔眠敲响调音叉，墙内旧线圈随尾音共振，求救声从墙缝里的残响中浮出。',
+              );
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return const AppLlmChatResult.success(
+                text: '决定：PASS\n原因：场景信息完整。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+        );
+
+        final result = await orchestrator.runScene(
+          _brief(
+            metadata: const {
+              'authorRevisionRequests': ['地下监听室需要用舞台信息呈现墙内求救声和压迫氛围。'],
+            },
+          ),
+        );
+
+        expect(stageNarrationCalls, 1);
+        expect(beatResolverSawStageNarration, isTrue);
+        expect(editorSawStageNarration, isTrue);
+        expect(result.prose.text, contains('墙缝'));
+        expect(result.prose.text, contains('求救声'));
+        expect(
+          result.resolvedBeats.where((beat) => beat.actorId == 'narrator'),
+          isNotEmpty,
+        );
+        expect(
+          requestTasks.indexOf('任务：scene_stage_narration'),
+          lessThan(requestTasks.indexOf('任务：scene_beat_resolve')),
+        );
       },
     );
 
@@ -1165,7 +1597,7 @@ PipelineArtifact _makeArtifact({
   );
 }
 
-SceneBrief _brief() {
+SceneBrief _brief({Map<String, Object?> metadata = const {}}) {
   return SceneBrief(
     chapterId: 'chapter-01',
     chapterTitle: '第一章 雨夜码头',
@@ -1174,6 +1606,7 @@ SceneBrief _brief() {
     sceneSummary: '柳溪在风雨中拦住岳刃，必须逼出货单去向。',
     targetBeat: '拿到账本去向，并把沈渡拖上同一条船。',
     worldNodeIds: const ['old-harbor', 'customs-yard'],
+    metadata: metadata,
     cast: [
       SceneCastCandidate(
         characterId: 'char-liuxi',
