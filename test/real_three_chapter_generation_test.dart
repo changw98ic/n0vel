@@ -69,6 +69,59 @@ void main() {
     );
   });
 
+  test('static guard: real generation test uses Timeout.none', () {
+    final source = File(
+      '${Directory.current.path}/test/real_three_chapter_generation_test.dart',
+    ).readAsStringSync();
+
+    final testName = "'real three chapter generation leaves visible artifacts'";
+
+    late final String block;
+    var found = false;
+    var searchFrom = 0;
+    while (!found) {
+      final callStart = source.indexOf('test(', searchFrom);
+      expect(callStart, greaterThanOrEqualTo(0),
+          reason: 'Test declaration $testName not found in source.');
+
+      var depth = 0;
+      var callEnd = callStart;
+      for (var i = callStart; i < source.length; i++) {
+        if (source[i] == '(') depth += 1;
+        if (source[i] == ')') {
+          depth -= 1;
+          if (depth == 0) {
+            callEnd = i;
+            break;
+          }
+        }
+      }
+
+      final candidate = source.substring(callStart, callEnd + 1);
+      if (candidate
+          .substring(candidate.indexOf('(') + 1)
+          .trimLeft()
+          .startsWith(testName)) {
+        block = candidate;
+        found = true;
+      } else {
+        searchFrom = callStart + 5;
+      }
+    }
+
+    expect(
+      block,
+      contains('Timeout.none'),
+      reason: 'The real generation test must declare timeout: Timeout.none',
+    );
+    expect(
+      block,
+      isNot(contains('Duration(minutes: 45)')),
+      reason:
+          'The real generation test must not contain Duration(minutes: 45)',
+    );
+  });
+
   test('phase 3 persists a three chapter outline into workspace scenes', () {
     final workspaceStore = AppWorkspaceStore(
       storage: InMemoryAppWorkspaceStorage(),
@@ -368,7 +421,7 @@ void main() {
         isTrue,
       );
     },
-    timeout: const Timeout(Duration(minutes: 45)),
+    timeout: Timeout.none,
   );
 
   test('phase 9 report records final acceptance evidence', () async {

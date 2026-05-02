@@ -140,9 +140,14 @@ class CharacterVisibleContextBuilder {
     final explicit = _privateBriefingFromMetadata(brief, member.characterId);
     if (explicit != null) return _compact(explicit, maxChars: 240);
 
-    final note = director.plan?.noteFor(member.characterId);
+    final plan = director.plan;
+    final note = plan?.noteFor(member.characterId);
     final contribution = member.contributions.map(_contributionLabel).join('/');
     final parts = <String>[
+      if (plan != null && plan.conflict.trim().isNotEmpty)
+        '冲突=${plan.conflict.trim()}',
+      if (plan != null && plan.constraints.trim().isNotEmpty)
+        '约束=${plan.constraints.trim()}',
       if (member.role.trim().isNotEmpty) '身份=${member.role.trim()}',
       if (note != null && note.motivation.trim().isNotEmpty)
         '动机=${note.motivation.trim()}',
