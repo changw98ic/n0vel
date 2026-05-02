@@ -214,6 +214,83 @@ void main() {
   });
 
   test(
+    'requestAiCompletion routes to profile and logs providerProfileId + model in event metadata',
+    () async {
+      final llmClient = _CapturingLlmClient(
+        result: const AppLlmChatResult.success(
+          text: 'review done',
+          latencyMs: 5,
+          promptTokens: 10,
+          completionTokens: 5,
+          totalTokens: 15,
+        ),
+      );
+      final traceSink = _RecordingLlmTraceSink();
+      final eventStorage = _InMemoryEventLogStorage();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+        eventLog: AppEventLog(
+          storage: eventStorage,
+          sessionId: 'metadata-test',
+        ),
+        llmTraceSink: traceSink,
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: '智谱 GLM',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-5.1',
+        apiKey: 'zhipu-key',
+        providerProfiles: const [
+          AppLlmProviderProfile(
+            id: 'ollama-kimi',
+            providerName: 'Ollama Cloud',
+            baseUrl: 'https://ollama.com/v1',
+            model: 'kimi-k2.6',
+            apiKey: 'ollama-key',
+          ),
+        ],
+        requestProviderRoutes: const [
+          AppLlmRequestProviderRoute(
+            traceNamePattern: 'scene_review_*',
+            providerProfileId: 'ollama-kimi',
+          ),
+        ],
+      );
+
+      await store.requestAiCompletion(
+        messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
+        traceName: 'scene_review_plot',
+      );
+
+      expect(llmClient.requests.last.provider, AppLlmProvider.ollama);
+      expect(llmClient.requests.last.model, 'kimi-k2.6');
+      expect(llmClient.requests.last.baseUrl, 'https://ollama.com/v1');
+      expect(llmClient.requests.last.apiKey, 'ollama-key');
+
+      expect(traceSink.entries, hasLength(1));
+      expect(
+        traceSink.entries.single.metadata['providerProfileId'],
+        'ollama-kimi',
+      );
+
+      final llmEvents = eventStorage.entries
+          .where((entry) => entry.action == 'llm.chat')
+          .toList();
+      expect(llmEvents, hasLength(1));
+      expect(llmEvents.single.metadata['model'], 'kimi-k2.6');
+      final nestedMetadata = llmEvents.single.metadata['metadata'];
+      expect(nestedMetadata, isA<Map>());
+      expect(
+        (nestedMetadata as Map)['providerProfileId'],
+        'ollama-kimi',
+      );
+    },
+  );
+
+  test(
     'falls back to default provider when a routed profile is incomplete',
     () async {
       final llmClient = _CapturingLlmClient();
