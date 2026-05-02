@@ -420,6 +420,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
 
     try {
       final orchestrator = _orchestratorFactory(_settingsStore);
+      orchestrator.isRunCancelled =
+          () => !_isCurrentRun(runToken, runSceneScopeId);
       final output = await orchestrator.runScene(
         brief,
         onStatus: (message) {
