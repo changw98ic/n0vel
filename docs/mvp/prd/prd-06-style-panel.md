@@ -51,7 +51,7 @@
 
 依赖接口：
 
-- `StyleEngineAdapter`
+- `AppWorkspaceStore` style normalization
 
 相关规格文档：
 

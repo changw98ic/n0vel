@@ -49,7 +49,8 @@
 
 依赖接口：
 
-- `LlmProviderAdapter`
+- `AppLlmClient`
+- `AppLlmProviderAdapters`
 
 页面状态：
 

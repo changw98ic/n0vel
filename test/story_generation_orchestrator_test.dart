@@ -476,7 +476,7 @@ void main() {
               polishCalls++;
               if (polishCalls == 1) {
                 return const AppLlmChatResult.success(
-                  text: '柳溪猛地抬头，死死盯住岳刃，仿佛被无形的手按在雨夜。任务，完成了。',
+                  text: '柳溪猛地抬头，死死盯住岳刃，仿佛被无形的手按在雨夜似的。她心中一紧，脸色苍白如纸，拳头攥得咯咯作响。任务，完成了。',
                 );
               }
               expect(userPrompt, contains('上一轮残留问题'));
@@ -505,7 +505,7 @@ void main() {
         );
 
         expect(polishCalls, 2);
-        expect(result.prose.text, contains('仓库檐口滴落'));
+        expect(result.prose.text, contains('柳溪逼近岳刃'));
         expect(result.prose.text, isNot(contains('无形的手')));
       },
     );

@@ -1,12 +1,14 @@
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
+import 'scene_cast_roleplay_policy.dart';
 
 class SceneCastResolver implements SceneCastResolverService {
   @override
   List<ResolvedSceneCastMember> resolve(SceneBrief brief) {
     return [
       for (final candidate in brief.cast)
-        if (_resolveContributions(candidate.participation).isNotEmpty)
+        if (!isNoninteractiveCastCandidate(candidate))
+          if (_resolveContributions(candidate.participation).isNotEmpty)
           ResolvedSceneCastMember(
             characterId: candidate.characterId,
             name: candidate.name,
