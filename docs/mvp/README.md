@@ -92,11 +92,13 @@ MVP 还必须满足一条交互原则：
 
 文档中统一使用以下 MVP 接口边界：
 
-- `LlmProviderAdapter`
-- `StyleEngineAdapter`
-- `Scene Orchestrator`
-- `World State Machine`
-- `ProjectExportService`
+- `AppLlmClient`
+- `AppLlmProviderAdapters`
+- `AppWorkspaceStore` style normalization
+- `ChapterGenerationOrchestrator`
+- `SceneRoleplayRuntime`
+- `SceneStateResolver`
+- `ProjectTransferService`
 
 ## 风格配置入口
 

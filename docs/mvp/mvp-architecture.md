@@ -104,42 +104,45 @@ flowchart TB
         ReadingPage["纯净阅读态"]
     end
 
-    subgraph State["Riverpod 状态层"]
-        ProjectState["projectProvider"]
-        SceneState["sceneDraftProvider(sceneId)"]
-        SceneMgmtState["sceneManagementProvider(chapterId)"]
-        RunState["simulationRunProvider(runId)"]
-        LogState["sandboxEventStreamProvider(runId)"]
-        CharacterState["characterProvider(characterId)"]
-        WorldState["worldNodeProvider(nodeId)"]
-        StyleState["styleProfileProvider(projectId)"]
-        SettingsState["providerConfigProvider()"]
-        AuditState["consistencyReportProvider(scopeId)"]
-        VersionState["versionHistoryProvider(chapterId)"]
-        TransferState["projectTransferProvider(projectId)"]
-        ReadingState["readingModeProvider(sceneId)"]
+    subgraph State["App State\nServiceRegistry + ChangeNotifier scopes"]
+        ProjectState["AppWorkspaceStore\nprojects / current scene"]
+        SceneState["AppDraftStore\nproject draft"]
+        SceneMgmtState["AppWorkspaceStore\nscene ops"]
+        RunState["StoryGenerationRunStore\nscene-scope run snapshot"]
+        LogState["AppEventLog\ntelemetry events"]
+        CharacterState["AppWorkspaceStore\ncharacters"]
+        WorldState["AppWorkspaceStore\nworld nodes"]
+        StyleState["AppWorkspaceStore\nproject style state"]
+        SettingsState["AppSettingsStore\nBYOK / provider routes"]
+        AuditState["AppWorkspaceStore\naudit issues"]
+        VersionState["AppVersionStore\nproject versions"]
+        TransferState["ProjectTransferService\nimport/export flow"]
+        ReadingState["ReadingRouteData\nreading session"]
     end
 
     subgraph Storage["本地持久化"]
-        SQLite["Drift + SQLite\n隐藏数据库模式"]
-        Files["本地文件系统\nstyle-profile.json / 导出包"]
-        Secure["本地安全存储\nAPI Key"]
+        AuthoringDb["authoring.db\nsqlite3 direct SQL"]
+        TelemetryDb["telemetry.db + JSONL\nAppEventLogStorage"]
+        SettingsFile["settings.json + .settings.key\nAES-GCM envelope"]
+        Files["本地文件系统\n导出包 / 验证工件"]
     end
 
     subgraph Runtime["MVP 运行时"]
-        Llm["LlmProviderAdapter\nBYOK"]
-        StyleEngine["StyleEngineAdapter"]
-        Orchestrator["Scene Orchestrator"]
-        StateMachine["World State Machine"]
-        Narrator["Narrator"]
-        ExportService["ProjectExportService"]
+        Llm["AppLlmClient\nAppLlmProviderAdapters / BYOK"]
+        StyleEngine["ProjectStyleState\nstyle normalization"]
+        Orchestrator["ChapterGenerationOrchestrator"]
+        StateMachine["SceneRoleplayRuntime\nSceneStateResolver"]
+        Narrator["SceneEditorialGenerator\nScenePolishPass"]
+        Review["SceneReviewCoordinator\nquality gate"]
+        ExportService["ProjectTransferService"]
+        Memory["Story / Character / Roleplay memory stores"]
     end
 
     subgraph Artifact["工程产物"]
-        Draft["SceneDraft"]
-        StyleProfile["StyleProfile"]
-        InteractionLog["InteractionLog"]
-        Snapshot["WorldStateSnapshot"]
+        Draft["AppDraft / scene prose"]
+        StyleProfile["ProjectStyleState\nStyleProfileRecord"]
+        InteractionLog["StoryGenerationRunSnapshot\nstatus + messages"]
+        Snapshot["RoleplaySession\nSceneState"]
         ExportPackage["ProjectExportPackage"]
     end
 
@@ -180,48 +183,51 @@ flowchart TB
     SettingsPage --> SettingsState
     ReadingPage --> ReadingState
 
-    ProjectState --> SQLite
-    SceneState --> SQLite
-    SceneMgmtState --> SQLite
-    RunState --> SQLite
-    LogState --> SQLite
-    CharacterState --> SQLite
-    WorldState --> SQLite
-    StyleState --> SQLite
-    SettingsState --> SQLite
-    SettingsState --> Secure
-    AuditState --> SQLite
-    VersionState --> SQLite
-    TransferState --> SQLite
-    ReadingState --> SQLite
+    ProjectState --> AuthoringDb
+    SceneState --> AuthoringDb
+    SceneMgmtState --> AuthoringDb
+    RunState --> AuthoringDb
+    LogState --> TelemetryDb
+    CharacterState --> AuthoringDb
+    WorldState --> AuthoringDb
+    StyleState --> AuthoringDb
+    SettingsState --> SettingsFile
+    AuditState --> AuthoringDb
+    VersionState --> AuthoringDb
+    TransferState --> AuthoringDb
+    ReadingState --> AuthoringDb
 
     StyleForm --> StyleEngine
     StyleJson --> StyleEngine
     StyleEngine --> StyleProfile
-    StyleProfile --> SQLite
+    StyleProfile --> AuthoringDb
 
     SceneState --> Orchestrator
     CharacterState --> Orchestrator
     WorldState --> Orchestrator
     StyleProfile --> Orchestrator
+    SettingsState --> Llm
     Orchestrator --> Llm
     Llm --> ModelAPI
+    Orchestrator --> Memory
     Orchestrator --> InteractionLog
     Orchestrator --> StateMachine
     StateMachine --> InteractionLog
     StateMachine --> Snapshot
-    InteractionLog --> SQLite
-    Snapshot --> SQLite
+    Orchestrator --> Review
+    Review --> Orchestrator
+    InteractionLog --> AuthoringDb
+    Snapshot --> AuthoringDb
     Orchestrator --> Narrator
     Narrator --> Llm
     Narrator --> Draft
-    Draft --> SQLite
+    Draft --> AuthoringDb
     VersionState --> Draft
     ReadingState --> Draft
 
     TransferState --> ExportService
     Files --> ExportService
-    SQLite --> ExportService
+    AuthoringDb --> ExportService
     ExportService --> ExportPackage
     ExportPackage --> Files
 
@@ -233,17 +239,17 @@ flowchart TB
 阅读说明：
 
 - 这张图强调 MVP 如何在客户端内部运行，所有核心链路都在本地完成。
-- 隐藏数据库模式通过 `Drift + SQLite` 实现，正文、角色、世界观、日志、快照都落在本地库中。
-- BYOK 调用链固定为：设置页把 `api_key` 写入本地安全存储，把非敏感 Provider 配置与通用偏好写入 SQLite；`LlmProviderAdapter` 读取当前配置后调用 OpenAI-compatible API。
-- 风格配置链固定为：作者填写风格问卷或导入 `StyleProfile JSON` -> `StyleEngineAdapter` 校验 / 归一化 -> `StyleProfile` -> SQLite -> 写作工作台组装提示。
-- 工作台本身直接消费 `RunState`，以承接 `Simulation Completed`、`Simulation Failed Summary` 等工作台内摘要反馈；`Sandbox Monitor` 在此基础上提供展开后的观察视图。
-- `Scene Orchestrator` 负责把导演 / 叙述 / 阶段刷新等多 agent 观测事件写入 `InteractionLog`，`World State Machine` 负责写入动作裁决与 `WorldStateSnapshot`。
+- 本地数据库通过 `sqlite3` 直接 SQL 与 schema migration 实现：`authoring.db` 保存 workspace、草稿、版本、生成状态、记忆与 roleplay 工件；`telemetry.db` 与 JSONL 镜像保存事件日志。
+- BYOK 调用链固定为：设置页把 provider、`base_url`、`model`、`api_key`、timeout 等配置写入加密文件型 `AppSettingsStorage`（`settings.json` AES-GCM envelope + `.settings.key`）；`AppSettingsStore` 组装 `AppLlmChatRequest`，再由 `AppLlmClient` 和 `AppLlmProviderAdapters` 调用外部 OpenAI-compatible / Anthropic-compatible 端点。
+- 风格配置链固定为：作者填写风格问卷或导入 `StyleProfile JSON` -> `AppWorkspaceStore` 校验 / 归一化为 `ProjectStyleState` 与 `StyleProfileRecord` -> `authoring.db` -> 写作工作台组装提示。
+- 工作台本身直接消费 `StoryGenerationRunStore`，以承接 `Simulation Completed`、`Simulation Failed Summary` 等工作台内摘要反馈；`Sandbox Monitor` 在此基础上提供展开后的观察视图。
+- `ChapterGenerationOrchestrator` 负责把 director、contract council、roleplay runtime、editorial、review、polish 与 memory 更新串成单场景生成链路；`SceneRoleplayRuntime` 与 `SceneStateResolver` 负责角色回合、公开事实和场景状态解析。
 - `Character Library`、`Worldbuilding`、`Audit Center`、`Project Import Export` 都属于一等 MVP UI surface，只是在实现层复用共享壳层与本地状态，而不是各自引入新的运行时服务。
 - `Sandbox Monitor` 在实现上是挂在工作台上的模态观察面，但在 UI / PRD / 验收层仍属于独立的 canonical surface。
 - `Scene Management`（场景管理）是工作台内资料面板的邻接操作，以对话框形式在工作台内完成新建 / 重命名 / 删除场景，不跳出独立页面。其 canonical frame 为 `PIRts`，状态包括 Create Scene、Rename Scene、Delete Scene Confirm、Edit Chapter Label、Edit Summary。
 - `AI 修改确认`（AI Revision Confirmation）是工作台内弹窗交互，承载整包确认、逐段排除、续写确认三种模式。确认后结果才写入 `SceneDraft` 并生成章节版本。
 - `Chapter Versions` 与 `Reading Mode` 是基于本地 `SceneDraft` 与章节索引构建的工作台邻接视图，不需要单独的云侧运行时。
-- 工程导出链固定为：SQLite + 本地文件 -> `ProjectExportService` -> `ProjectExportPackage`。
+- 工程导出链固定为：`authoring.db` + 本地文件 -> `ProjectTransferService` -> `ProjectExportPackage`。
 - `UI Foundation` 是设计交付基线，不属于运行时页面，因此不出现在工程实现图中。
 - `SyncServiceAdapter`、`AssetRegistryAdapter`、`ReviewModerationAdapter` 只作为未来扩展占位，不进入 MVP 实现。
 

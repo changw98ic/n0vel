@@ -51,7 +51,7 @@
 
 依赖接口：
 
-- `ProjectExportService`
+- `ProjectTransferService`
 
 页面状态：
 

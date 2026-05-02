@@ -22,7 +22,26 @@ Future<void> main(List<String> args) async {
   final client = createAppLlmClient();
 
   final checks = [
-    _SmokeCheck(traceName: 'scene_review_smoke', expectedModel: 'kimi-k2.6'),
+    _SmokeCheck(traceName: 'scene_director_polish', expectedModel: 'kimi-k2.6'),
+    _SmokeCheck(traceName: 'scene_roleplay_turn', expectedModel: 'kimi-k2.6'),
+    _SmokeCheck(
+      traceName: 'scene_roleplay_arbitrate',
+      expectedModel: 'kimi-k2.6',
+    ),
+    _SmokeCheck(
+      traceName: 'scene_beat_resolve',
+      expectedModel: 'mimo-v2.5-pro',
+    ),
+    _SmokeCheck(traceName: 'scene_editorial', expectedModel: 'mimo-v2.5-pro'),
+    _SmokeCheck(traceName: 'language_polish', expectedModel: 'mimo-v2.5-pro'),
+    _SmokeCheck(
+      traceName: 'scene_combined_review',
+      expectedModel: 'mimo-v2.5-pro',
+    ),
+    _SmokeCheck(
+      traceName: 'scene_review_smoke',
+      expectedModel: 'mimo-v2.5-pro',
+    ),
     _SmokeCheck(
       traceName: 'scene_quality_scoring',
       expectedModel: 'mimo-v2.5-pro',

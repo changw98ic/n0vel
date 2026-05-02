@@ -78,10 +78,12 @@
 
 依赖接口：
 
-- `LlmProviderAdapter`
-- `StyleEngineAdapter`
-- `Scene Orchestrator`
-- `World State Machine`
+- `AppLlmClient`
+- `AppLlmProviderAdapters`
+- `AppWorkspaceStore` style normalization
+- `ChapterGenerationOrchestrator`
+- `SceneRoleplayRuntime`
+- `SceneStateResolver`
 
 页面状态：
 

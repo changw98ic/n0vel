@@ -103,7 +103,7 @@
 1. 作者选择“问卷模式”或“JSON 模式”。
 2. 问卷模式下，作者填写体裁、叙事视角、句长倾向、对白密度、描写密度、情绪强度、禁忌表达等字段。
 3. JSON 模式下，作者选择本地 `StyleProfile JSON` 文件。
-4. `StyleEngineAdapter` 对问卷答案或 JSON 数据进行校验与归一化。
+4. `AppWorkspaceStore` 的风格状态逻辑对问卷答案或 JSON 数据进行校验与归一化。
 5. 系统生成 `StyleProfile` 预览。
 6. 作者选择风格强度：轻度、中度或强。
 7. 作者将 `StyleProfile` 绑定到项目或当前场景。
@@ -164,28 +164,28 @@ stateDiagram-v2
 
 核心步骤：
 
-1. 写作工作台读取 `Scene`、`Character`、`WorldNode`、`StyleProfile`、最近 `SceneDraft`。
-2. `Scene Orchestrator` 组装场景上下文与角色输入包。
-3. 系统创建 `SimulationRun`。
-4. 每一回合由 `LlmProviderAdapter` 生成角色的 `thought / speech / action_intent / rationale`。
-5. `World State Machine` 验证动作前提、更新道具与位置状态，并写入 `InteractionLog` 与 `WorldStateSnapshot`。
-6. 达到回合上限、场景目标或作者手动中止时，模拟结束。
-7. `Narrator` 读取日志与快照，调用模型生成新的 `SceneDraft`。
+1. 写作工作台通过 `AppWorkspaceStore`、`AppDraftStore`、`StoryGenerationStore` 读取 `Scene`、`Character`、`WorldNode`、`StyleProfile`、最近 `SceneDraft`。
+2. `StoryGenerationRunStore` 为当前场景创建 scene-scope run snapshot，并组装 `SceneBrief`。
+3. `ChapterGenerationOrchestrator` 组装场景上下文、角色输入包、记忆检索和 RAG 上下文。
+4. `SceneRoleplayRuntime` 通过 `AppLlmClient` / `AppLlmProviderAdapters` 调用外部模型端点，生成角色回合、公开动作、对白、内心和记忆提案。
+5. `SceneStateResolver` 与 `SceneReviewCoordinator` 解析回合事实、审查正文与契约完成度，并把状态摘要写回 `StoryGenerationRunSnapshot`。
+6. 达到回合上限、场景目标、质量门通过或作者手动中止时，模拟结束。
+7. `SceneEditorialGenerator` / `ScenePolishPass` 读取回合、裁定事实与检索胶囊，调用模型生成或润色新的 `SceneDraft`。
 8. 作者选择接受、再生成或局部重写正文。
 9. 系统保存正文版本并更新版本历史。
 
 状态变化：
 
 - 写作工作台状态：`idle -> context_ready -> simulating -> narrating -> reviewing -> completed`
-- `SimulationRun`：`idle -> simulating -> completed`
+- `SimulationRun`（实现为 `StoryGenerationRunSnapshot`）：`idle -> simulating -> completed`
 - `SceneDraft`：新增版本
-- `WorldStateSnapshot`：按回合增加
+- `WorldStateSnapshot`（实现为 `RoleplaySession` / `SceneState` 摘要）：按回合增加
 
 输出结果：
 
-- 一次完整的 `SimulationRun`
-- 一组 `InteractionLog`
-- 一组 `WorldStateSnapshot`
+- 一次完整的 `SimulationRun` / `StoryGenerationRunSnapshot`
+- 一组 `InteractionLog` / run messages / telemetry events
+- 一组 `WorldStateSnapshot` / roleplay session facts
 - 一版新的 `SceneDraft`
 
 失败 / 异常处理：
@@ -209,31 +209,37 @@ stateDiagram-v2
 sequenceDiagram
     actor Author as 作者
     participant Workbench as 写作工作台
-    participant SQLite as Drift/SQLite
-    participant Style as StyleEngineAdapter
-    participant Orchestrator as Scene Orchestrator
-    participant Llm as LlmProviderAdapter
-    participant FSM as World State Machine
-    participant Narrator as Narrator
+    participant Stores as App stores/scopes
+    participant SQLite as sqlite3 authoring.db
+    participant Style as AppWorkspaceStore style state
+    participant RunStore as StoryGenerationRunStore
+    participant Orchestrator as ChapterGenerationOrchestrator
+    participant Llm as AppLlmClient / AppLlmProviderAdapters
+    participant Runtime as SceneRoleplayRuntime / SceneStateResolver
+    participant Editorial as SceneEditorialGenerator / Review
 
     Author->>Workbench: 点击“运行模拟”
-    Workbench->>SQLite: 读取 Scene / Character / WorldNode / SceneDraft / StyleProfile
+    Workbench->>Stores: 读取 Scene / Character / WorldNode / SceneDraft / StyleProfile
+    Stores->>SQLite: 读取 project-scoped records
     Workbench->>Style: 组装风格约束
     Style-->>Workbench: 风格片段
-    Workbench->>Orchestrator: 启动 SimulationRun
-    Orchestrator->>SQLite: 创建 SimulationRun
+    Workbench->>RunStore: 启动 SimulationRun
+    RunStore->>SQLite: 保存 running snapshot
+    RunStore->>Orchestrator: runScene(SceneBrief)
     loop 每回合
-        Orchestrator->>Llm: 生成角色 thought / speech / action_intent
-        Llm-->>Orchestrator: 角色输出
-        Orchestrator->>FSM: 提交 action_intent
-        FSM->>SQLite: 写入 InteractionLog / WorldStateSnapshot
-        FSM-->>Workbench: 回合结果
+        Orchestrator->>Runtime: 运行角色回合 / 解析公开事实
+        Runtime->>Llm: 生成角色输出与裁决
+        Llm-->>Runtime: 模型输出
+        Runtime-->>Orchestrator: RoleplaySession / SceneState
+        Orchestrator->>RunStore: 刷新阶段消息
+        RunStore->>SQLite: 保存 run snapshot
         Author-->>Workbench: 可继续观察、暂停、继续或手动中止
     end
-    Orchestrator->>Narrator: 请求叙述重写
-    Narrator->>Llm: 生成 SceneDraft
-    Llm-->>Narrator: 正文草稿
-    Narrator->>SQLite: 保存 SceneDraft 新版本
+    Orchestrator->>Editorial: 请求叙述重写与审查
+    Editorial->>Llm: 生成 / 审查 / 润色 SceneDraft
+    Llm-->>Editorial: 正文草稿
+    Editorial-->>Orchestrator: SceneRuntimeOutput
+    RunStore->>SQLite: 保存 completed snapshot
     Workbench-->>Author: 接受 / 拒绝 / 再生成 / 局部重写
 ```
 
@@ -256,7 +262,7 @@ sequenceDiagram
 1. 正文编辑器在内容变化后自动保存 `SceneDraft`。
 2. 系统在模拟完成和手动保存时创建版本快照。
 3. 作者在工程导入导出页触发导出。
-4. `ProjectExportService` 从 SQLite 和本地文件系统收集正文、资料、风格、日志和元数据。
+4. `ProjectTransferService` 从 `authoring.db` 和本地文件系统收集正文、资料、风格、日志和元数据。
 5. 系统生成 `ProjectExportPackage`。
 6. 导入时，系统先读取包内 `manifest.json` 校验版本兼容性。
 7. 作者选择“导入为新项目”或“覆盖同 ID 项目”。
@@ -286,7 +292,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A["作者触发导出"] --> B["ProjectExportService 读取 SQLite"]
+    A["作者触发导出"] --> B["ProjectTransferService 读取 authoring.db"]
     B --> C["收集正文 / 资料 / 风格 / 日志"]
     C --> D["生成 ProjectExportPackage"]
     D --> E["写入本地文件"]
@@ -295,7 +301,7 @@ flowchart LR
     G --> H{"manifest 校验通过?"}
     H -- 否 --> I["阻止导入并提示"]
     H -- 是 --> J["选择导入为新项目或覆盖项目"]
-    J --> K["写入 SQLite"]
+    J --> K["写入 authoring.db"]
     K --> L["刷新项目列表"]
 ```
 
@@ -303,7 +309,7 @@ flowchart LR
 
 - 数据首次创建主要发生在：项目初始化、资料建模、风格配置。
 - 数据主要修改发生在：资料建模、场景创作、保存与导出。
-- 数据落盘主要发生在：SQLite 自动保存、模拟回合、叙述重写、工程导出。
+- 数据落盘主要发生在：`sqlite3` 自动保存、模拟回合、叙述重写、工程导出。
 - 模型调用只发生在：场景模拟与叙述重写。
 - 作者介入点主要发生在：资料建模、风格绑定、模拟启动、模拟暂停 / 继续 / 中止、接受或拒绝正文草稿、局部重写。
 

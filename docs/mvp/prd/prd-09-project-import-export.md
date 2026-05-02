@@ -31,7 +31,7 @@
 
 ## 关键交互
 
-- 点击“导出当前项目”：触发 `ProjectExportService`
+- 点击“导出当前项目”：触发 `ProjectTransferService`
 - 点击“选择工程包”：读取本地包文件
 - 导入前展示包版本、项目名、内容摘要
 - 导入时默认选“导入为新项目”
@@ -51,7 +51,7 @@
 
 依赖接口：
 
-- `ProjectExportService`
+- `ProjectTransferService`
 
 页面状态：
 

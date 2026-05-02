@@ -158,9 +158,25 @@ Future<void> _writeRouted(File file) async {
       ],
       'requestProviderRoutes': [
         {
-          'traceNamePattern': 'scene_review_*',
+          'traceNamePattern': 'scene_director_polish',
           'providerProfileId': 'ollama-kimi',
         },
+        {
+          'traceNamePattern': 'scene_roleplay_turn',
+          'providerProfileId': 'ollama-kimi',
+        },
+        {
+          'traceNamePattern': 'scene_roleplay_arbitrate',
+          'providerProfileId': 'ollama-kimi',
+        },
+        {'traceNamePattern': 'scene_beat_resolve', 'providerProfileId': 'mimo'},
+        {'traceNamePattern': 'scene_editorial', 'providerProfileId': 'mimo'},
+        {'traceNamePattern': 'language_polish', 'providerProfileId': 'mimo'},
+        {
+          'traceNamePattern': 'scene_combined_review',
+          'providerProfileId': 'mimo',
+        },
+        {'traceNamePattern': 'scene_review_*', 'providerProfileId': 'mimo'},
         {
           'traceNamePattern': 'scene_quality_scoring',
           'providerProfileId': 'mimo',
@@ -171,7 +187,7 @@ Future<void> _writeRouted(File file) async {
   stdout.writeln('Encrypted routed provider settings written to ${file.path}.');
   if (ollamaKey.isEmpty) {
     stdout.writeln(
-      'OLLAMA_API_KEY is missing; scene_review_* will fall back to the default provider until it is added.',
+      'OLLAMA_API_KEY is missing; short generation routes will fall back to the default provider until it is added.',
     );
   }
 }
