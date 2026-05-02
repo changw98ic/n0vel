@@ -50,8 +50,9 @@
 
 依赖接口：
 
-- `Scene Orchestrator`
-- `World State Machine`
+- `ChapterGenerationOrchestrator`
+- `SceneRoleplayRuntime`
+- `SceneStateResolver`
 
 页面状态：
 

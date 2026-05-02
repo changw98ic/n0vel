@@ -337,7 +337,7 @@ class _ControlledOrchestrator extends ChapterGenerationOrchestrator {
 
 class _PausingStoryMemoryStorage implements StoryMemoryStorage {
   final Completer<void> _saveChunksEntered = Completer<void>();
-  Completer<void> _releaseSaveChunks = Completer<void>();
+  final Completer<void> _releaseSaveChunks = Completer<void>();
   int attemptedSaveChunksCount = 0;
 
   Future<void> get saveChunksEntered => _saveChunksEntered.future;
