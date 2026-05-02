@@ -71,10 +71,11 @@ class CachedProjectStorage implements ProjectStorage {
     await _flushPending();
   }
 
-  /// Cancels pending writes and releases the timer.
-  void dispose() {
+  /// Flushes any pending writes to disk, then releases the timer.
+  Future<void> dispose() async {
     _writeTimer?.cancel();
     _writeTimer = null;
+    await _flushPending();
   }
 
   void _scheduleFlush() {
