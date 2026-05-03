@@ -11,7 +11,7 @@ enum AppLlmFailureKind {
   unsupportedPlatform,
 }
 
-enum AppLlmProvider { openaiCompatible, kimi, ollama, anthropic }
+enum AppLlmProvider { openaiCompatible, kimi, ollama, anthropic, mimo, zhipu }
 
 extension AppLlmProviderParse on String {
   AppLlmProvider toAppLlmProvider() {
@@ -24,6 +24,15 @@ extension AppLlmProviderParse on String {
     }
     if (lower.contains('anthropic') || lower.contains('claude')) {
       return AppLlmProvider.anthropic;
+    }
+    if (lower.contains('mimo') || lower.contains('xiaomi')) {
+      return AppLlmProvider.mimo;
+    }
+    if (lower.contains('zhipu') ||
+        lower.contains('bigmodel') ||
+        lower.contains('glm') ||
+        lower.contains('智谱')) {
+      return AppLlmProvider.zhipu;
     }
     return AppLlmProvider.openaiCompatible;
   }
@@ -134,12 +143,16 @@ class AppLlmChatRequest {
     required this.model,
     AppLlmTimeoutConfig? timeout,
     int timeoutMs = 30000,
-    this.maxTokens = 1024,
+    this.maxTokens = unlimitedMaxTokens,
     required this.messages,
     this.provider = AppLlmProvider.openaiCompatible,
     this.onPartialText,
   }) : _timeout = timeout,
        _timeoutMs = timeoutMs;
+
+  static const int unlimitedMaxTokens = 0;
+  static const int defaultMaxTokens = 4096;
+  static const int maximumMaxTokens = 65536;
 
   final String baseUrl;
   final String apiKey;
@@ -155,6 +168,25 @@ class AppLlmChatRequest {
       _timeout ?? AppLlmTimeoutConfig.uniform(_timeoutMs);
 
   int get timeoutMs => timeout.receiveTimeoutMs;
+
+  int get effectiveMaxTokens => normalizeMaxTokens(maxTokens);
+
+  static bool shouldOmitMaxTokens(int value) {
+    return normalizeMaxTokens(value) == unlimitedMaxTokens;
+  }
+
+  static int normalizeMaxTokens(int value) {
+    if (value <= unlimitedMaxTokens) {
+      return unlimitedMaxTokens;
+    }
+    if (value < defaultMaxTokens) {
+      return defaultMaxTokens;
+    }
+    if (value > maximumMaxTokens) {
+      return maximumMaxTokens;
+    }
+    return value;
+  }
 }
 
 class AppLlmChatResult {

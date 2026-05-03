@@ -37,34 +37,33 @@
 
 ```mermaid
 flowchart TD
-    A["Flutter Client"] --> B["Application State<br/>Riverpod"]
-    B --> C["Local Storage<br/>Drift/SQLite"]
-    B --> D["Realtime AI Gateway<br/>SSE/WebSocket"]
-    D --> E["Orchestrator Service"]
-    E --> F["Director Agent"]
-    E --> G["Character Simulation Runtime"]
-    E --> H["Narrator Agent"]
-    E --> I["Tool Layer / MCP Server"]
-    E --> J["Memory Layer"]
-    G --> K["World State Machine"]
-    G --> L["Interaction Log"]
-    H --> L
-    J --> M["Document Store"]
-    J --> N["Vector Index"]
-    J --> O["Entity Graph"]
-    J --> P["Event Timeline Graph"]
-    I --> C
-    I --> J
+    A["Flutter Client"] --> B["Application Composition<br/>ServiceRegistry + Scopes"]
+    B --> C["ChangeNotifier Stores<br/>project-scoped state"]
+    C --> D["Local Storage<br/>sqlite3 authoring.db"]
+    C --> E["Settings Storage<br/>encrypted settings.json"]
+    C --> F["Telemetry<br/>telemetry.db + JSONL"]
+    C --> G["StoryGenerationRunStore"]
+    G --> H["ChapterGenerationOrchestrator"]
+    H --> I["Director / Contract Council"]
+    H --> J["SceneRoleplayRuntime"]
+    H --> K["SceneStateResolver"]
+    H --> L["SceneEditorialGenerator"]
+    H --> M["SceneReviewCoordinator"]
+    H --> N["Memory Layer<br/>story / character / roleplay"]
+    H --> O["AppLlmClient"]
+    O --> P["AppLlmProviderAdapters"]
+    P --> Q["External LLM Endpoints"]
+    N --> D
 ```
 
 架构拆分为六层：
 
 1. Flutter 客户端层
-2. 本地存储与同步层
-3. AI 接入与流式通信层
-4. 编排与导演层
-5. 角色模拟与世界状态执行层
-6. 结构化记忆与一致性引擎层
+2. 应用状态与依赖注入层
+3. 本地持久化与设置加密层
+4. AI 接入与模型适配层
+5. 场景编排、角色模拟与审稿层
+6. 结构化记忆与可观测性层
 
 ## 4. 客户端架构设计
 
@@ -90,42 +89,36 @@ Flutter 客户端负责以下能力：
 - 右侧：上下文助手与角色认知面板
 - 底部：模拟日志、版本、AI 任务流、审计结果
 
-## 4.2 状态管理选型
+## 4.2 状态管理实现
 
-推荐 `Riverpod 2.x` 作为核心状态管理框架。
+当前实现没有引入 Riverpod。应用使用一个轻量的手写组合根：
 
-原因：
+- `NovelWriterApp` 创建 `ServiceRegistry`，通过 `registerAppServices` 懒加载注册应用服务。
+- UI 通过 `ServiceScope` 获取需要按需解析的服务。
+- 常驻状态使用 `ChangeNotifier` store，并通过 `InheritedWidget` / `InheritedNotifier` scope 下发到页面。
+- 项目相关 store 监听 `AppWorkspaceStore` 的当前项目变化，切换 project scope 后恢复各自的本地快照。
 
-- 不依赖 `BuildContext`
-- 原生支持异步状态和流式数据
-- 适合管理大量独立实体的细粒度缓存
-- 易于把本地数据库、远端流、工具调用状态统一纳入响应式体系
+当前主要状态分层：
 
-建议的 Provider 分层：
-
-- `projectProvider`：当前项目元信息
-- `chapterListProvider`：章节目录与排序
-- `sceneDraftProvider(sceneId)`：场景正文与草稿状态
-- `simulationRunProvider(runId)`：当前模拟任务状态
-- `sandboxEventStreamProvider(runId)`：沙盒交互日志流
-- `characterProvider(characterId)`：角色详情
-- `characterMindProvider(characterId)`：角色记忆、反思和计划摘要
-- `worldNodeProvider(nodeId)`：世界观节点详情
-- `timelineProvider(projectId)`：事件时间线
-- `generationTaskProvider(taskId)`：生成任务进度
-- `directorCueProvider(runId)`：导演投放的情境与干预
-- `worldStateSnapshotProvider(snapshotId)`：世界状态快照
-- `consistencyReportProvider(scopeId)`：一致性审查结果
-- `retrievalPackProvider(sceneId)`：当前场景检索上下文包
+- `AppWorkspaceStore`：项目、场景、角色、世界观、风格、审计问题和当前工作区。
+- `AppDraftStore`：项目草稿正文。
+- `AppVersionStore`：项目版本历史。
+- `AppSceneContextStore`：当前场景上下文快照。
+- `StoryOutlineStore` / `StoryGenerationStore`：大纲和项目级生成状态。
+- `StoryGenerationRunStore`：当前 scene-scope 的运行状态、阶段消息、失败/完成快照。
+- `AppSettingsStore`：BYOK、provider profiles、模型路由、超时和主题。
+- `AppEventLog`：应用事件和 LLM 调用可观测性。
 
 ## 4.3 本地数据层
 
-本地建议使用 `drift + SQLite`，原因如下：
+当前本地持久化使用 `sqlite3` 直接 SQL，而不是 Drift ORM。schema 由本地 migration helper 管理，IO storage 类按 store 边界拆分。
 
-- Flutter 生态成熟
-- 适合本地优先缓存
-- 能承载关系型结构化数据
-- 支持事务、索引、离线编辑和增量同步
+选择这个实现的原因：
+
+- 依赖少，符合当前 `pubspec.yaml` 的最小运行时依赖。
+- 适合本地优先缓存。
+- 能承载关系型结构化数据。
+- 支持事务、索引、离线编辑和跨平台桌面运行。
 
 本地数据库承担：
 
@@ -135,86 +128,75 @@ Flutter 客户端负责以下能力：
 - 最近检索包缓存
 - 草稿与版本快照
 - 本地搜索索引
+- story generation run snapshot
+- story / character / roleplay memory artifacts
 
-## 5. 服务端与 AI 编排层
+设置数据不进入专门的系统 secure store；当前实现为 `settings.json` 加密文件，使用 AES-GCM envelope 和 `.settings.key`，并支持 `NOVEL_WRITER_SETTINGS_AES_KEY` 环境变量覆盖密钥来源。
 
-## 5.1 服务拆分建议
+## 5. AI 接入与本地编排层
 
-推荐后端采用可拆分架构，而非单体聊天接口。
+## 5.1 当前实现边界
 
-核心服务如下：
+当前 MVP 没有强制后端服务层。编排、角色模拟、记忆落盘、审稿和导出都在 Flutter 客户端进程内完成；外部依赖只是在需要生成或审稿时调用用户配置的模型端点。
 
-- `api-gateway`
-  - 对 Flutter 提供统一 API
-  - 处理鉴权、任务路由、限流和会话追踪
-- `orchestrator-service`
-  - 负责任务编排、多 Agent 调度和流程状态机
-- `simulation-service`
-  - 驱动角色轮次、行动提案、对话交互和日志回放
-- `world-runtime-service`
-  - 负责有限状态机校验、状态转移和物理法则执行
-- `narration-service`
-  - 将模拟日志重写为场景正文与章节草稿
-- `memory-service`
-  - 负责文档、向量、图谱与快照查询
-- `extraction-service`
-  - 负责从章节文本抽取实体、关系、事件
-- `consistency-service`
-  - 负责规则校验、冲突发现和修复建议
-- `sync-service`
-  - 负责本地项目与远端状态同步
+当前核心边界如下：
 
-推荐技术：
+- `AppSettingsStore`
+  - 负责 BYOK 配置、provider profile、trace-name 路由、并发池和连接测试。
+- `AppLlmClient`
+  - 提供 `chat` / `chatStream` 契约，IO 端用 `Dio` 调用外部模型端点。
+- `AppLlmProviderAdapters`
+  - 负责 OpenAI-compatible、Anthropic、Kimi、Mimo、Zhipu、Ollama 等请求格式和响应解析差异。
+- `ChapterGenerationOrchestrator`
+  - 负责任务编排、多 agent 调度、场景重规划、审稿和质量门。
+- `SceneRoleplayRuntime`
+  - 驱动角色轮次、发言顺序、公开事实提交和角色记忆提案。
+- `SceneStateResolver`
+  - 将角色回合与检索胶囊解析为可用于正文生成的 scene beats 和 scene state。
+- `SceneEditorialGenerator` / `ScenePolishPass`
+  - 将角色扮演过程、裁定事实和检索上下文重写为场景正文。
+- `StoryMemoryStorage` / `CharacterMemoryStore` / `RoleplaySessionStore`
+  - 负责故事记忆、角色记忆与 roleplay 工件的本地持久化。
 
-- 编排与 AI 服务：Python + FastAPI
-- 数据 API：REST + SSE
-- 实时任务：Celery / Dramatiq / Temporal 三选一
-- 图谱：Neo4j 或 PostgreSQL + 图扩展
-- 向量索引：pgvector 或 Qdrant
+可选演进方向：
 
-如果第一阶段希望降低复杂度，可采用：
+- 如果需要团队协作、远端同步或集中式任务队列，可以再引入 API gateway / sync service。
+- 如果需要跨项目大规模检索，可以再引入向量索引或图数据库。
+- 如果需要长时间后台生成，可以把 `ChapterGenerationOrchestrator` 的契约外移到服务端 worker。
 
-- 一个 `FastAPI` 服务
-- 一个 `PostgreSQL + pgvector`
-- 一个 `Neo4j`
-- 一个后台 worker
+这些扩展目前不属于本地 MVP 的必要运行条件。
 
-## 5.2 流式通信协议
+## 5.2 模型通信与可观测性
 
-AI 写作是强流式场景，客户端与编排层之间建议使用：
+当前模型通信通过 `AppLlmClient` 发起 HTTP chat completion 请求。IO 实现优先尝试流式响应体解析，必要时回退到非流式解析；状态进度通过 `StoryGenerationRunStore` 的阶段消息和 `AppEventLog` 写入本地，而不是依赖客户端与后端之间的 SSE 任务流。
 
-- SSE：适合单向文本流和工具状态流
-- WebSocket：适合需要更复杂双向控制时使用
+一次请求的关键数据包括：
 
-建议第一版优先使用 SSE，统一事件格式：
+- provider / model / base URL / timeout
+- trace name 与 trace metadata
+- prompt / completion token 统计（如果 provider 返回）
+- latency、failure kind、错误详情
+- event log correlation 信息
+
+本地事件形态示例：
 
 ```json
 {
-  "taskId": "task_123",
-  "event": "delta",
-  "type": "text",
+  "eventId": "evt-123",
+  "category": "ai",
+  "action": "llm.chat",
+  "status": "succeeded",
+  "sessionId": "session-1",
+  "correlationId": "corr-1",
   "payload": {
-    "content": "她推开门，闻到雨水和铁锈的味道。"
+    "traceName": "scene_editorial",
+    "model": "gpt-5.4",
+    "latencyMs": 1200
   }
 }
 ```
 
-事件类型建议包括：
-
-- `task_started`
-- `retrieval_started`
-- `retrieval_completed`
-- `simulation_turn_started`
-- `character_intent`
-- `action_resolved`
-- `director_cue`
-- `tool_call`
-- `tool_result`
-- `delta`
-- `warning`
-- `consistency_issue`
-- `task_completed`
-- `task_failed`
+未来如果迁移到远端编排服务，可以在不改变客户端 store 语义的前提下，把这些本地事件映射为 SSE 或 WebSocket 任务事件。当前实现仍以本地 store snapshot、SQLite 和 JSONL 为可观测性来源。
 
 ## 6. 结构化记忆系统设计
 
@@ -1264,14 +1246,14 @@ Flutter 端应允许作者在模拟期间以三种方式介入：
 ### Phase 1：工程骨架
 
 - Flutter 工程初始化
-- Riverpod 状态分层
-- Drift 本地库
+- `ServiceRegistry` + `ChangeNotifier` + scope 状态分层
+- `sqlite3` 本地库与 schema migration
 - 项目/章节/场景 CRUD
 
 ### Phase 2：AI 最小闭环
 
 - 沙盒模拟接口
-- SSE 轮次流
+- `StoryGenerationRunStore` 阶段消息与本地事件日志
 - 导演初始化与角色轮次
 - 叙述者重写结果保存
 
@@ -1327,15 +1309,14 @@ Flutter 端应允许作者在模拟期间以三种方式介入：
 ## 17. 建议的首版技术栈
 
 - 客户端：Flutter
-- 状态管理：Riverpod
-- 本地数据库：Drift + SQLite
-- 后端 API：FastAPI
-- 异步任务：Celery 或 Dramatiq
-- 主数据库：PostgreSQL
-- 向量索引：pgvector
-- 图数据库：Neo4j
-- 实时流：SSE
-- 对象存储：S3 兼容存储
+- 状态管理：`ServiceRegistry` + `ChangeNotifier` store + `InheritedWidget` / `InheritedNotifier` scopes
+- 本地数据库：`sqlite3` direct SQL + local schema migrations
+- 设置存储：AES-GCM 加密的 `settings.json` + `.settings.key`
+- AI 接入：`AppLlmClient` + `AppLlmProviderAdapters` + BYOK
+- 编排：客户端内 `ChapterGenerationOrchestrator`
+- 记忆：本地 story / character / roleplay memory stores
+- 可观测性：`telemetry.db` + daily JSONL
+- 未来可选：FastAPI / worker / pgvector / Neo4j / SSE / S3 compatible storage
 
 ## 18. 最终落地原则
 

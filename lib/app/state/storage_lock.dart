@@ -23,28 +23,24 @@ class StorageLock {
 }
 
 class _LockQueue {
-  Future<void>? _pending;
+  Future<void>? _tail;
 
   Future<T> run<T>(Future<T> Function() action) async {
-    if (_pending == null) {
-      try {
-        final future = action();
-        _pending = future.then((_) {}, onError: (_) {});
-        return await future;
-      } finally {
-        _pending = null;
-      }
+    final previous = _tail;
+    final completer = Completer<void>();
+    _tail = completer.future;
+
+    if (previous != null) {
+      await previous;
     }
 
-    final previous = _pending!;
-    final completer = Completer<void>();
-    _pending = completer.future;
-    await previous;
     try {
       return await action();
     } finally {
+      if (identical(_tail, completer.future)) {
+        _tail = null;
+      }
       completer.complete();
-      _pending = null;
     }
   }
 }

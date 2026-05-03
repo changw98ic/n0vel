@@ -134,7 +134,7 @@ class AppLlmLoggingMiddleware implements AppLlmClient {
         'host': host,
         'latencyMs': elapsed,
         'messageCount': messageCount,
-        'maxTokens': request.maxTokens,
+        'maxTokens': request.effectiveMaxTokens,
         if (result.promptTokens != null) 'promptTokens': result.promptTokens!,
         if (result.completionTokens != null)
           'completionTokens': result.completionTokens!,

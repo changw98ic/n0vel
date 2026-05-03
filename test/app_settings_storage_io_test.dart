@@ -5,7 +5,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_storage_io.dart';
 
 void main() {
-  test('file storage persists apiKey directly in settings.json', () async {
+  test('file storage encrypts settings.json and restores apiKey', () async {
     final directory = await Directory.systemTemp.createTemp(
       'novel_writer_settings_storage_test',
     );
@@ -28,8 +28,9 @@ void main() {
     });
 
     final raw = await file.readAsString();
-    expect(raw.contains('sk-secure-key'), isTrue);
-    expect(raw.contains('"apiKey"'), isTrue);
+    expect(raw.contains('sk-secure-key'), isFalse);
+    expect(raw.contains('"apiKey"'), isFalse);
+    expect(raw.contains('novel-writer-settings-aes-gcm-v1'), isTrue);
 
     final restored = await storage.load();
     expect(restored?['apiKey'], 'sk-secure-key');
@@ -38,57 +39,63 @@ void main() {
     expect(storage.lastLoadIssue, AppSettingsPersistenceIssue.none);
   });
 
-  test('file storage keeps empty apiKey in settings.json when cleared', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_settings_storage_clear_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
+  test(
+    'file storage keeps cleared apiKey encrypted in settings.json',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_settings_storage_clear_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
 
-    final file = File('${directory.path}/settings.json');
-    final storage = FileAppSettingsStorage(file: file);
+      final file = File('${directory.path}/settings.json');
+      final storage = FileAppSettingsStorage(file: file);
 
-    final result = await storage.save({
-      'providerName': 'OpenAI 兼容服务',
-      'baseUrl': 'https://api.example.com/v1',
-      'model': 'gpt-5.4',
-      'apiKey': '',
-      'themePreference': 'light',
-    });
+      final result = await storage.save({
+        'providerName': 'OpenAI 兼容服务',
+        'baseUrl': 'https://api.example.com/v1',
+        'model': 'gpt-5.4',
+        'apiKey': '',
+        'themePreference': 'light',
+      });
 
-    final raw = await file.readAsString();
-    expect(raw.contains('"apiKey":""'), isTrue);
-    expect(result.issue, AppSettingsPersistenceIssue.none);
-  });
+      final raw = await file.readAsString();
+      expect(raw.contains('"apiKey"'), isFalse);
+      expect(result.issue, AppSettingsPersistenceIssue.none);
+    },
+  );
 
-  test('file storage loads apiKey from persisted JSON without keychain fallback', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_settings_storage_load_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
+  test(
+    'file storage loads apiKey from persisted JSON without keychain fallback',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_settings_storage_load_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
 
-    final file = File('${directory.path}/settings.json');
-    await file.parent.create(recursive: true);
-    await file.writeAsString(
-      '{"providerName":"Ollama Cloud","baseUrl":"https://ollama.com/v1/","model":"kimi-k2.6","apiKey":"sk-inline-key","timeoutMs":30000,"maxConcurrentRequests":3,"themePreference":"light"}',
-    );
+      final file = File('${directory.path}/settings.json');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(
+        '{"providerName":"Ollama Cloud","baseUrl":"https://ollama.com/v1/","model":"kimi-k2.6","apiKey":"sk-inline-key","timeoutMs":30000,"maxConcurrentRequests":3,"themePreference":"light"}',
+      );
 
-    final storage = FileAppSettingsStorage(file: file);
-    final restored = await storage.load();
+      final storage = FileAppSettingsStorage(file: file);
+      final restored = await storage.load();
 
-    expect(restored?['apiKey'], 'sk-inline-key');
-    expect(restored?['providerName'], 'Ollama Cloud');
-    expect(restored?['maxConcurrentRequests'], 3);
-    expect(storage.lastLoadIssue, AppSettingsPersistenceIssue.none);
-    expect(storage.lastLoadDetail, isNull);
-  });
+      expect(restored?['apiKey'], 'sk-inline-key');
+      expect(restored?['providerName'], 'Ollama Cloud');
+      expect(restored?['maxConcurrentRequests'], 3);
+      expect(storage.lastLoadIssue, AppSettingsPersistenceIssue.none);
+      expect(storage.lastLoadDetail, isNull);
+    },
+  );
 
   test('file storage reports malformed json as fileReadFailed', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -134,53 +141,56 @@ void main() {
     expect(storage.lastLoadDetail, 'settings.json 必须是 JSON object。');
   });
 
-  test('file storage overwrites previous data on second save', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_settings_storage_overwrite_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
+  test(
+    'file storage overwrites previous encrypted data on second save',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_settings_storage_overwrite_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
 
-    final file = File('${directory.path}/settings.json');
-    final storage = FileAppSettingsStorage(file: file);
+      final file = File('${directory.path}/settings.json');
+      final storage = FileAppSettingsStorage(file: file);
 
-    await storage.save({
-      'providerName': '旧服务商',
-      'baseUrl': 'https://old.example.com/v1',
-      'model': 'gpt-4.1-mini',
-      'apiKey': 'sk-old-key',
-      'timeoutMs': 10000,
-      'maxConcurrentRequests': 1,
-      'themePreference': 'light',
-    });
+      await storage.save({
+        'providerName': '旧服务商',
+        'baseUrl': 'https://old.example.com/v1',
+        'model': 'gpt-4.1-mini',
+        'apiKey': 'sk-old-key',
+        'timeoutMs': 10000,
+        'maxConcurrentRequests': 1,
+        'themePreference': 'light',
+      });
 
-    await storage.save({
-      'providerName': 'OpenAI 兼容服务',
-      'baseUrl': 'https://new.example.com/v1',
-      'model': 'gpt-5.4',
-      'apiKey': 'sk-new-key',
-      'timeoutMs': 60000,
-      'maxConcurrentRequests': 4,
-      'themePreference': 'dark',
-    });
+      await storage.save({
+        'providerName': 'OpenAI 兼容服务',
+        'baseUrl': 'https://new.example.com/v1',
+        'model': 'gpt-5.4',
+        'apiKey': 'sk-new-key',
+        'timeoutMs': 60000,
+        'maxConcurrentRequests': 4,
+        'themePreference': 'dark',
+      });
 
-    final restored = await storage.load();
-    expect(restored, isNotNull);
-    expect(restored!['providerName'], 'OpenAI 兼容服务');
-    expect(restored['baseUrl'], 'https://new.example.com/v1');
-    expect(restored['model'], 'gpt-5.4');
-    expect(restored['apiKey'], 'sk-new-key');
-    expect(restored['timeoutMs'], 60000);
-    expect(restored['maxConcurrentRequests'], 4);
-    expect(restored['themePreference'], 'dark');
+      final restored = await storage.load();
+      expect(restored, isNotNull);
+      expect(restored!['providerName'], 'OpenAI 兼容服务');
+      expect(restored['baseUrl'], 'https://new.example.com/v1');
+      expect(restored['model'], 'gpt-5.4');
+      expect(restored['apiKey'], 'sk-new-key');
+      expect(restored['timeoutMs'], 60000);
+      expect(restored['maxConcurrentRequests'], 4);
+      expect(restored['themePreference'], 'dark');
 
-    final raw = await file.readAsString();
-    expect(raw.contains('sk-old-key'), isFalse);
-    expect(raw.contains('sk-new-key'), isTrue);
-  });
+      final raw = await file.readAsString();
+      expect(raw.contains('sk-old-key'), isFalse);
+      expect(raw.contains('sk-new-key'), isFalse);
+    },
+  );
 
   test('file storage auto-creates parent directory on save', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -192,9 +202,7 @@ void main() {
       }
     });
 
-    final nestedFile = File(
-      '${directory.path}/deep/nested/dir/settings.json',
-    );
+    final nestedFile = File('${directory.path}/deep/nested/dir/settings.json');
     expect(await nestedFile.parent.exists(), isFalse);
 
     final storage = FileAppSettingsStorage(file: nestedFile);

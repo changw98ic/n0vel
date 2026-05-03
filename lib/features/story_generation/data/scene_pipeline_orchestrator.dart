@@ -7,6 +7,7 @@ import 'scene_editorial_generator.dart';
 import 'scene_polish_pass.dart';
 import 'scene_pipeline_models.dart';
 import 'scene_review_coordinator.dart';
+import 'scene_stage_narrator.dart';
 import 'scene_state_resolver.dart';
 import 'story_generation_models.dart';
 import 'dynamic_role_agent_runner.dart';
@@ -127,6 +128,7 @@ class ScenePipelineOrchestrator {
     DynamicRoleAgentRunner? dynamicRoleAgentRunner,
     SceneStateResolver? stateResolver,
     SceneEditorialGenerator? editorialGenerator,
+    SceneStageNarrator? stageNarrator,
     SceneReviewCoordinator? reviewCoordinator,
     ScenePolishPass? polishPass,
     RetrievalController? retrievalController,
@@ -144,6 +146,8 @@ class ScenePipelineOrchestrator {
        _editorialGenerator =
            editorialGenerator ??
            SceneEditorialGenerator(settingsStore: settingsStore),
+       _stageNarrator =
+           stageNarrator ?? SceneStageNarrator(settingsStore: settingsStore),
        _reviewCoordinator =
            reviewCoordinator ??
            SceneReviewCoordinator(settingsStore: settingsStore),
@@ -162,6 +166,7 @@ class ScenePipelineOrchestrator {
   final DynamicRoleAgentRunner _dynamicRoleAgentRunner;
   final SceneStateResolver _stateResolver;
   final SceneEditorialGenerator _editorialGenerator;
+  final SceneStageNarrator _stageNarrator;
   final SceneReviewCoordinator _reviewCoordinator;
   final ScenePolishPass _polishPass;
   final RetrievalController _retrievalController;
@@ -236,12 +241,23 @@ class ScenePipelineOrchestrator {
       taskCard: taskCard,
       turns: roleTurns,
     );
+    final stageCapsule = await _stageNarrator.generate(
+      taskCard: taskCard,
+      director: director,
+      roleOutputs: rawRoleOutputs,
+      roleTurns: roleTurns,
+      retrievalCapsules: capsules,
+      roleplaySession: roleplaySession,
+      onStatus: statusCallback,
+    );
+    final sceneCapsules = [...capsules, if (stageCapsule != null) stageCapsule];
 
     // 6. Resolve beats
     final resolvedBeats = await _stateResolver.resolve(
       taskCard: taskCard,
       roleTurns: roleTurns,
-      capsules: capsules,
+      capsules: sceneCapsules,
+      roleplaySession: roleplaySession,
       onStatus: statusCallback,
     );
 
@@ -262,7 +278,7 @@ class ScenePipelineOrchestrator {
       final editorialDraft = await _editorialGenerator.generate(
         taskCard: taskCard,
         resolvedBeats: resolvedBeats,
-        capsules: capsules,
+        capsules: sceneCapsules,
         attempt: attempt,
         roleplaySession: roleplaySession,
         reviewFeedback: reviewFeedback,
@@ -307,7 +323,7 @@ class ScenePipelineOrchestrator {
           return ScenePipelineOutput(
             taskCard: taskCard,
             roleTurns: roleTurns,
-            capsules: capsules,
+            capsules: sceneCapsules,
             resolvedBeats: resolvedBeats,
             editorialDraft: editorialDraft,
             review: review,
@@ -332,7 +348,7 @@ class ScenePipelineOrchestrator {
           return ScenePipelineOutput(
             taskCard: taskCard,
             roleTurns: roleTurns,
-            capsules: capsules,
+            capsules: sceneCapsules,
             resolvedBeats: resolvedBeats,
             editorialDraft: polishedDraftForRetry,
             review: review,
@@ -351,7 +367,7 @@ class ScenePipelineOrchestrator {
           return ScenePipelineOutput(
             taskCard: taskCard,
             roleTurns: roleTurns,
-            capsules: capsules,
+            capsules: sceneCapsules,
             resolvedBeats: resolvedBeats,
             editorialDraft: polishedDraftForRetry,
             review: review,
@@ -370,7 +386,7 @@ class ScenePipelineOrchestrator {
           return ScenePipelineOutput(
             taskCard: taskCard,
             roleTurns: roleTurns,
-            capsules: capsules,
+            capsules: sceneCapsules,
             resolvedBeats: resolvedBeats,
             editorialDraft: polishedDraftForRetry,
             review: review,

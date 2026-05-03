@@ -68,6 +68,39 @@ class AppLlmProviderRegistry {
     models: ['deepseek-chat', 'deepseek-reasoner'],
   );
 
+  static const mimo = AppLlmProvider(
+    id: 'mimo',
+    name: 'Xiaomi MiMo',
+    defaultBaseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+    models: [
+      'mimo-v2.5-pro',
+      'mimo-v2.5',
+      'mimo-v2-pro',
+      'mimo-v2-omni',
+      'mimo-v2-flash',
+    ],
+    modelAliases: {'mimo-v25-pro': 'mimo-v2.5-pro', 'mimo-v25': 'mimo-v2.5'},
+  );
+
+  static const zhipu = AppLlmProvider(
+    id: 'zhipu',
+    name: '智谱 GLM',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    models: [
+      'glm-5.1',
+      'glm-5',
+      'glm-5-turbo',
+      'glm-4.7',
+      'glm-4.7-flash',
+      'glm-4.6',
+      'glm-4.5',
+      'glm-4.5-air',
+      'glm-4.5-flash',
+      'glm-4-plus',
+      'glm-4-flash-250414',
+    ],
+  );
+
   static const custom = AppLlmProvider(
     id: 'custom',
     name: 'OpenAI 兼容服务',
@@ -75,13 +108,17 @@ class AppLlmProviderRegistry {
     models: [],
   );
 
-  static const List<AppLlmProvider> all = [openai, kimi, deepseek, custom];
+  static const List<AppLlmProvider> all = [
+    openai,
+    kimi,
+    deepseek,
+    mimo,
+    zhipu,
+    custom,
+  ];
 
   static AppLlmProvider findById(String id) {
-    return all.firstWhere(
-      (p) => p.id == id,
-      orElse: () => custom,
-    );
+    return all.firstWhere((p) => p.id == id, orElse: () => custom);
   }
 
   static AppLlmProvider findByModel(String model) {

@@ -6,6 +6,7 @@ import '../domain/scene_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'scene_roleplay_session_models.dart';
+import 'scene_cast_roleplay_policy.dart';
 import 'story_generation_formatter_trace.dart';
 
 class SceneReviewCoordinator implements SceneReviewService {
@@ -186,6 +187,7 @@ class SceneReviewCoordinator implements SceneReviewService {
   }) async {
     onStatus?.call('场景 ${brief.chapterId}/${brief.sceneId} · $passName');
     final evidenceSection = _buildEvidenceSection(retrievalPack);
+    final noninteractiveCastBoundary = noninteractiveCastBoundaryText(brief);
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       messages: [
@@ -198,7 +200,10 @@ class SceneReviewCoordinator implements SceneReviewService {
               '决定：REWRITE_PROSE\n'
               '决定：REPLAN_SCENE\n'
               'For uncertainty, choose 决定：REWRITE_PROSE.\n'
-              'Use 原因： for the second line and keep it brief. Focus on blocking issues.',
+              'Use 原因： for the second line and keep it brief. Focus on blocking issues. '
+              'If character choices replace a director beat but complete 同等剧情功能, choose PASS; '
+              'if they only provide emotion or clue recognition while the required story function is missing, choose REPLAN_SCENE. '
+              'If prose makes a noninteractive/dead/evidence-only cast member act, speak, think, or makes their body/remains/attached evidence actively move, emit, attack, or open in the moment, choose REWRITE_PROSE.',
         ),
         AppLlmChatMessage(
           role: 'user',
@@ -206,9 +211,11 @@ class SceneReviewCoordinator implements SceneReviewService {
             '任务：$taskType',
             '评审：$passLabel',
             '评审类别：${_categoryList(categories)}',
-            '规则：聚焦阻塞问题，正文改写交给后续步骤',
+            '规则：聚焦阻塞问题，正文改写交给后续步骤；读者会出戏的角色越权、测试说明、明显 AI 套话均视为阻塞问题',
             '场：${_compact(brief.sceneTitle, maxChars: 40)}',
             '导演：${_compact(director.text, maxChars: 120)}',
+            if (noninteractiveCastBoundary.isNotEmpty)
+              noninteractiveCastBoundary,
             '角色输入：${_roleSummary(roleOutputs)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
               '角色扮演过程：${roleplaySession.toPromptText()}',
@@ -259,6 +266,18 @@ class SceneReviewCoordinator implements SceneReviewService {
       onStatus?.call(
         '场景 ${brief.chapterId}/${brief.sceneId} · $passName format fallback',
       );
+    }
+    final noninteractiveViolation = noninteractiveCastViolationText(
+      brief,
+      prose.text,
+    );
+    if (noninteractiveViolation.isNotEmpty &&
+        parsed.status == SceneReviewStatus.pass) {
+      parsed = _ParsedReviewOutput(
+        status: SceneReviewStatus.rewriteProse,
+        reason: noninteractiveViolation,
+      );
+      rawText = '决定：REWRITE_PROSE\n原因：$noninteractiveViolation';
     }
     await _recordFormatterTrace(
       brief: brief,

@@ -62,7 +62,7 @@ class AppLlmCallTraceEntry {
       model: request.model,
       host: host,
       messageCount: request.messages.length,
-      maxTokens: request.maxTokens,
+      maxTokens: request.effectiveMaxTokens,
       succeeded: result.succeeded,
       latencyMs: result.latencyMs,
       promptTokens: result.promptTokens,

@@ -2,6 +2,8 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'prompt_string_utils.dart';
+import 'scene_cast_roleplay_policy.dart';
+import 'scene_stage_narrator.dart';
 import 'story_generation_pass_retry.dart';
 import 'scene_pipeline_models.dart';
 import 'scene_roleplay_session_models.dart';
@@ -46,6 +48,9 @@ class SceneEditorialGenerator {
     final roleplayDraft = roleplaySession?.toRoleplayDraftPromptText(
       maxChars: hardLimit * 2,
     );
+    final noninteractiveCastBoundary = noninteractiveCastBoundaryText(
+      taskCard.brief,
+    );
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       initialMaxTokens: storyGenerationEditorialMaxTokens,
@@ -62,14 +67,19 @@ class SceneEditorialGenerator {
             '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
             '长度边界${l.colon}接近目标长度，硬上限为$hardLimit ${l.charactersUnit}',
             '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+            if (noninteractiveCastBoundary.isNotEmpty)
+              noninteractiveCastBoundary,
             if (roleplayDraft != null && roleplayDraft.isNotEmpty) ...[
               '角色扮演正文草稿：',
               roleplayDraft,
               '润色边界：以角色扮演正文草稿为正文底稿，保留角色动作、对白、顺序和已裁定事实；补顺段落衔接、语气和节奏。',
             ],
             _formatBeats(resolvedBeats),
-            if (capsules.isNotEmpty)
-              '${l.contextLabel}${l.colon}${PromptStringUtils.mapJoin(capsules, (c) => c.summary, separator: l.listSeparator)}',
+            if (_stageCapsules(capsules).isNotEmpty)
+              '场景旁白/舞台信息（权威场景源）：'
+                  '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+            if (_retrievalCapsules(capsules).isNotEmpty)
+              '${l.contextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
               '角色扮演公开过程：${roleplaySession.toCommittedPromptText(maxChars: 2200)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)
@@ -110,6 +120,22 @@ class SceneEditorialGenerator {
         ..write('[${kindLabel(b.kind)}]@${b.sourceCharacterId} ${b.content}');
     }
     return buf.toString();
+  }
+
+  List<ContextCapsule> _stageCapsules(List<ContextCapsule> capsules) {
+    return [
+      for (final capsule in capsules)
+        if (capsule.intent.toolName == SceneStageNarrator.capsuleToolName)
+          capsule,
+    ];
+  }
+
+  List<ContextCapsule> _retrievalCapsules(List<ContextCapsule> capsules) {
+    return [
+      for (final capsule in capsules)
+        if (capsule.intent.toolName != SceneStageNarrator.capsuleToolName)
+          capsule,
+    ];
   }
 
   SceneEditorialDraft _localDraft({

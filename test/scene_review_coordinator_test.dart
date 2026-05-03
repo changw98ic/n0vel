@@ -97,6 +97,96 @@ void main() {
       expect(result.decision, SceneReviewDecision.pass);
     });
 
+    test('includes noninteractive cast boundaries in review prompt', () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (request) {
+          final user = request.messages.last.content;
+          expect(user, contains('非行动角色边界'));
+          expect(user, contains('陈默'));
+          expect(user, contains('不可主动行动、说话或产生即时心理描写'));
+          expect(user, contains('也不可主动移动、喷吐、伸出、攻击'));
+          return const AppLlmChatResult.success(text: '决定：PASS\n原因：角色边界成立。');
+        },
+      );
+      final store = _setupStore(fakeClient);
+      final coordinator = SceneReviewCoordinator(settingsStore: store);
+
+      final result = await coordinator.review(
+        brief: SceneBrief(
+          chapterId: 'chapter-01',
+          chapterTitle: '第一章 无声的共振层',
+          sceneId: 'scene-02',
+          sceneTitle: '被缝嘴的笑者',
+          sceneSummary: '陆沉扫描陈默的尸体。',
+          cast: [
+            SceneCastCandidate(
+              characterId: 'victim-chen',
+              name: '陈默',
+              role: '受害者遗体',
+              participation: const SceneCastParticipation(
+                interaction: '缝合嘴角渗出黑色液体',
+              ),
+              metadata: const {
+                'roleplayMode': 'evidence',
+                'canAct': false,
+                'lifeState': 'corpse',
+              },
+            ),
+          ],
+        ),
+        director: _director,
+        roleOutputs: _roleOutputs,
+        prose: _prose,
+      );
+
+      expect(result.decision, SceneReviewDecision.pass);
+    });
+
+    test(
+      'local boundary guard rewrites when a corpse body becomes active',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：模型误判通过。');
+          },
+        );
+        final store = _setupStore(fakeClient);
+        final coordinator = SceneReviewCoordinator(settingsStore: store);
+
+        final result = await coordinator.review(
+          brief: SceneBrief(
+            chapterId: 'chapter-01',
+            chapterTitle: '第一章 无声的共振层',
+            sceneId: 'scene-02',
+            sceneTitle: '被缝嘴的笑者',
+            sceneSummary: '陆沉扫描陈默的尸体。',
+            cast: [
+              SceneCastCandidate(
+                characterId: 'victim-chen',
+                name: '陈默',
+                role: '受害者遗体',
+                metadata: const {
+                  'roleplayMode': 'evidence',
+                  'canAct': false,
+                  'lifeState': 'corpse',
+                },
+              ),
+            ],
+          ),
+          director: _director,
+          roleOutputs: _roleOutputs,
+          prose: const SceneProseDraft(
+            text: '陈默嘴角的黑色骨线开始蠕动，随后从口腔激射而出。',
+            attempt: 1,
+          ),
+        );
+
+        expect(result.decision, SceneReviewDecision.rewriteProse);
+        expect(result.judge.status, SceneReviewStatus.rewriteProse);
+        expect(result.judge.reason, contains('非行动角色边界违规'));
+      },
+    );
+
     test(
       'blocking review mode metadata still uses the default combined pass',
       () async {
@@ -517,7 +607,9 @@ Analysis: 正文完全是模型元分析，不是小说正文。
     test('includes brief, director, roles, and prose in prompt', () async {
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
+          final system = request.messages.first.content;
           final user = request.messages.last.content;
+          expect(system, contains('同等剧情功能'));
           expect(user, contains('仓库门外'));
           expect(user, contains('目标：逼问'));
           expect(user, contains('柳溪'));

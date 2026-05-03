@@ -2,12 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'app_settings_storage.dart';
+import 'settings_json_cipher.dart';
 import 'storage_lock.dart';
 
 class FileAppSettingsStorage implements AppSettingsStorage {
-  FileAppSettingsStorage({File? file}) : _file = file ?? _resolveFile();
+  FileAppSettingsStorage({File? file, SettingsJsonCipher? cipher})
+    : this._(file ?? _resolveFile(), cipher);
+
+  FileAppSettingsStorage._(File file, SettingsJsonCipher? cipher)
+    : _file = file,
+      _cipher = cipher ?? SettingsJsonCipher.forSettingsFile(file);
 
   final File _file;
+  final SettingsJsonCipher _cipher;
   AppSettingsPersistenceIssue _lastLoadIssue = AppSettingsPersistenceIssue.none;
   String? _lastLoadDetail;
 
@@ -50,6 +57,16 @@ class FileAppSettingsStorage implements AppSettingsStorage {
           issue: AppSettingsPersistenceIssue.fileWriteFailed,
           detail: error.message,
         );
+      } on SettingsJsonCipherException catch (error) {
+        return AppSettingsSaveResult(
+          issue: AppSettingsPersistenceIssue.fileWriteFailed,
+          detail: error.message,
+        );
+      } on FormatException catch (error) {
+        return AppSettingsSaveResult(
+          issue: AppSettingsPersistenceIssue.fileWriteFailed,
+          detail: error.message,
+        );
       }
     });
   }
@@ -68,9 +85,14 @@ class FileAppSettingsStorage implements AppSettingsStorage {
         return null;
       }
 
-      return decoded.map(
+      final normalized = decoded.map(
         (key, value) => MapEntry(key.toString(), value as Object?),
       );
+      if (_cipher.isEncryptedEnvelope(normalized)) {
+        return await _cipher.decryptEnvelope(normalized);
+      }
+
+      return normalized;
     } on FileSystemException catch (error) {
       _lastLoadIssue = AppSettingsPersistenceIssue.fileReadFailed;
       _lastLoadDetail = error.message;
@@ -79,12 +101,17 @@ class FileAppSettingsStorage implements AppSettingsStorage {
       _lastLoadIssue = AppSettingsPersistenceIssue.fileReadFailed;
       _lastLoadDetail = error.message;
       return null;
+    } on SettingsJsonCipherException catch (error) {
+      _lastLoadIssue = AppSettingsPersistenceIssue.fileReadFailed;
+      _lastLoadDetail = error.message;
+      return null;
     }
   }
 
   Future<void> _writeData(Map<String, Object?> data) async {
     await _file.parent.create(recursive: true);
-    await _file.writeAsString(jsonEncode(data));
+    final encrypted = await _cipher.encryptMap(data);
+    await _file.writeAsString(jsonEncode(encrypted));
   }
 }
 

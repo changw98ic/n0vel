@@ -88,6 +88,30 @@ void main() {
       expect(request.messages[0].role, 'system');
       expect(request.messages[3].content, 'u2');
     });
+
+    test('uses omitted max token limit by default', () {
+      const request = AppLlmChatRequest(
+        baseUrl: 'http://localhost',
+        apiKey: 'key',
+        model: 'm',
+        timeoutMs: 1000,
+        messages: [AppLlmChatMessage(role: 'user', content: 'test')],
+      );
+
+      expect(request.maxTokens, AppLlmChatRequest.unlimitedMaxTokens);
+      expect(request.effectiveMaxTokens, AppLlmChatRequest.unlimitedMaxTokens);
+    });
+
+    test('normalizes non-positive max token values to omitted limit', () {
+      expect(
+        AppLlmChatRequest.normalizeMaxTokens(0),
+        AppLlmChatRequest.unlimitedMaxTokens,
+      );
+      expect(
+        AppLlmChatRequest.normalizeMaxTokens(-1),
+        AppLlmChatRequest.unlimitedMaxTokens,
+      );
+    });
   });
 
   group('AppLlmChatResult', () {

@@ -48,6 +48,7 @@ app.*.map.json
 /.omx/
 /.superpowers/
 /setting.json
+/.settings.key
 
 # Auto-team runtime
 .auto-team/
