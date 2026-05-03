@@ -258,80 +258,79 @@ class SceneStateResolver {
       roleTurns,
       roleplaySession,
     );
-    final result = await requestStoryGenerationPassWithRetry(
-      settingsStore: _settingsStore,
-      maxTransientRetries: 0,
-      maxEscalatedTokens: storyGenerationEditorialMaxTokens,
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content: StoryPromptTemplates.sysSceneBeatResolve,
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '${l.taskLabel}${l.colon}scene_beat_resolve',
-            '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
-            if (hasAuthoritativeRoleplay) ...[
-              '规划背景（非既定事实，不得直接输出为场景拍）：'
-                  '${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
-              if (taskCard.directorPlan.trim().isNotEmpty)
-                '导演规划（非既定事实，不得直接输出为场景拍）：'
-                    '${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
-            ] else ...[
-              '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
-              '${l.directorLabel}${l.colon}${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
-            ],
-            if (taskCard.directorPlanParsed != null) ...[
-              if (taskCard.directorPlanParsed!.tone.isNotEmpty)
-                '${l.toneFieldLabel}${l.colon}${taskCard.directorPlanParsed!.tone}',
-              '${l.pacingFieldLabel}${l.colon}${_pacingLabel(taskCard.directorPlanParsed!.pacing)}',
-            ],
-            _turnSummary(roleTurns),
-            if (roleplaySession != null && !roleplaySession.isEmpty)
-              '角色扮演裁决（权威事实源）：'
-                  '${roleplaySession.toCommittedPromptText(maxChars: 2400)}',
-            if (_stageCapsules(capsules).isNotEmpty)
-              '场景旁白/舞台信息（权威场景源）：'
-                  '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
-            if (_retrievalCapsules(capsules).isNotEmpty)
-              '${l.retrievalContextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
-            if (hasAuthoritativeRoleplay)
-              '约束：只从角色输入、角色扮演裁决和检索上下文抽取场景拍；'
-                  '场景旁白/舞台信息可作为环境、氛围、物理机制与公共证据；'
-                  '规划背景只用于场景边界和语气，不是已发生事件。',
-            '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
-          ].join('\n'),
-        ),
-      ],
-    );
+    final messages = [
+      AppLlmChatMessage(
+        role: 'system',
+        content: StoryPromptTemplates.sysSceneBeatResolve,
+      ),
+      AppLlmChatMessage(
+        role: 'user',
+        content: [
+          '${l.taskLabel}${l.colon}scene_beat_resolve',
+          '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
+          if (hasAuthoritativeRoleplay) ...[
+            '规划背景（非既定事实，不得直接输出为场景拍）：'
+                '${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+            if (taskCard.directorPlan.trim().isNotEmpty)
+              '导演规划（非既定事实，不得直接输出为场景拍）：'
+                  '${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+          ] else ...[
+            '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+            '${l.directorLabel}${l.colon}${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+          ],
+          if (taskCard.directorPlanParsed != null) ...[
+            if (taskCard.directorPlanParsed!.tone.isNotEmpty)
+              '${l.toneFieldLabel}${l.colon}${taskCard.directorPlanParsed!.tone}',
+            '${l.pacingFieldLabel}${l.colon}${_pacingLabel(taskCard.directorPlanParsed!.pacing)}',
+          ],
+          _turnSummary(roleTurns),
+          if (roleplaySession != null && !roleplaySession.isEmpty)
+            '角色扮演裁决（权威事实源）：'
+                '${roleplaySession.toCommittedPromptText(maxChars: 2400)}',
+          if (_stageCapsules(capsules).isNotEmpty)
+            '场景旁白/舞台信息（权威场景源）：'
+                '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+          if (_retrievalCapsules(capsules).isNotEmpty)
+            '${l.retrievalContextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+          if (hasAuthoritativeRoleplay)
+            '约束：只从角色输入、角色扮演裁决和检索上下文抽取场景拍；'
+                '场景旁白/舞台信息可作为环境、氛围、物理机制与公共证据；'
+                '规划背景只用于场景边界和语气，不是已发生事件。',
+          '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
+        ].join('\n'),
+      ),
+    ];
 
-    if (!result.succeeded) {
-      return _fallbackBeats(
+    while (true) {
+      final result = await requestStoryGenerationPassWithRetry(
+        settingsStore: _settingsStore,
+        maxTransientRetries: 0,
+        maxEscalatedTokens: storyGenerationEditorialMaxTokens,
+        messages: messages,
+      );
+
+      if (!result.succeeded) {
+        return _fallbackBeats(
+          taskCard: taskCard,
+          roleTurns: roleTurns,
+          capsules: capsules,
+          roleplaySession: roleplaySession,
+        );
+      }
+
+      final beats = _filterPlanningOnlyBeats(
+        _parseBeats(result.text!),
         taskCard: taskCard,
         roleTurns: roleTurns,
         capsules: capsules,
         roleplaySession: roleplaySession,
       );
-    }
+      if (beats.isEmpty) {
+        continue;
+      }
 
-    final beats = _filterPlanningOnlyBeats(
-      _parseBeats(result.text!),
-      taskCard: taskCard,
-      roleTurns: roleTurns,
-      capsules: capsules,
-      roleplaySession: roleplaySession,
-    );
-    if (beats.isEmpty) {
-      return _fallbackBeats(
-        taskCard: taskCard,
-        roleTurns: roleTurns,
-        capsules: capsules,
-        roleplaySession: roleplaySession,
-      );
+      return List<SceneBeat>.unmodifiable(beats);
     }
-
-    return List<SceneBeat>.unmodifiable(beats);
   }
 
   /// Parse the LLM response into structured beats.
