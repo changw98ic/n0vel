@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/navigation/app_navigator.dart';
+import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
@@ -391,8 +392,10 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
               label: '规则摘要',
               initialValue: current.ruleSummary,
               maxLines: 3,
-              onChanged: (value) =>
-                  store.updateWorldNode(nodeId: current.id, ruleSummary: value),
+              onChanged: (value) {
+                store.updateWorldNode(nodeId: current.id, ruleSummary: value);
+                AppSceneContextScope.of(context).syncContext();
+              },
             ),
             const SizedBox(height: 8),
             _InfoBlock(
@@ -432,6 +435,20 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
   }
 
   Widget _buildNodeFields(AppWorkspaceStore store, WorldNodeRecord current) {
+    void onFieldChanged(String nodeId, {String? title, String? location,
+        String? type, String? detail, String? summary, String? ruleSummary}) {
+      store.updateWorldNode(
+        nodeId: nodeId,
+        title: title,
+        location: location,
+        type: type,
+        detail: detail,
+        summary: summary,
+        ruleSummary: ruleSummary,
+      );
+      AppSceneContextScope.of(context).syncContext();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -442,7 +459,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           label: '节点名称',
           initialValue: current.title,
           onChanged: (value) =>
-              store.updateWorldNode(nodeId: current.id, title: value),
+              onFieldChanged(current.id, title: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -452,7 +469,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           label: '所在区域',
           initialValue: current.location,
           onChanged: (value) =>
-              store.updateWorldNode(nodeId: current.id, location: value),
+              onFieldChanged(current.id, location: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -462,7 +479,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           label: '类型',
           initialValue: current.type,
           onChanged: (value) =>
-              store.updateWorldNode(nodeId: current.id, type: value),
+              onFieldChanged(current.id, type: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -473,7 +490,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           initialValue: current.detail,
           maxLines: 3,
           onChanged: (value) =>
-              store.updateWorldNode(nodeId: current.id, detail: value),
+              onFieldChanged(current.id, detail: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -484,7 +501,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           initialValue: current.summary,
           maxLines: 3,
           onChanged: (value) =>
-              store.updateWorldNode(nodeId: current.id, summary: value),
+              onFieldChanged(current.id, summary: value),
         ),
       ],
     );

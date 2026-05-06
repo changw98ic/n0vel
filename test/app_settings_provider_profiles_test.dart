@@ -126,26 +126,29 @@ void main() {
     );
   });
 
-  test('upsertRequestProviderRoute updates existing route by pattern', () async {
-    await store.upsertRequestProviderRoute(
-      const AppLlmRequestProviderRoute(
-        traceNamePattern: 'scene_review_*',
-        providerProfileId: 'old-profile',
-      ),
-    );
-    await store.upsertRequestProviderRoute(
-      const AppLlmRequestProviderRoute(
-        traceNamePattern: 'scene_review_*',
-        providerProfileId: 'new-profile',
-      ),
-    );
+  test(
+    'upsertRequestProviderRoute updates existing route by pattern',
+    () async {
+      await store.upsertRequestProviderRoute(
+        const AppLlmRequestProviderRoute(
+          traceNamePattern: 'scene_review_*',
+          providerProfileId: 'old-profile',
+        ),
+      );
+      await store.upsertRequestProviderRoute(
+        const AppLlmRequestProviderRoute(
+          traceNamePattern: 'scene_review_*',
+          providerProfileId: 'new-profile',
+        ),
+      );
 
-    expect(store.snapshot.requestProviderRoutes, hasLength(1));
-    expect(
-      store.snapshot.requestProviderRoutes.first.providerProfileId,
-      'new-profile',
-    );
-  });
+      expect(store.snapshot.requestProviderRoutes, hasLength(1));
+      expect(
+        store.snapshot.requestProviderRoutes.first.providerProfileId,
+        'new-profile',
+      );
+    },
+  );
 
   test('removeRequestProviderRoute removes by pattern', () async {
     await store.upsertRequestProviderRoute(
@@ -181,6 +184,59 @@ void main() {
     await store.removeRequestProviderRoute('nonexistent');
 
     expect(store.snapshot.requestProviderRoutes, hasLength(1));
+  });
+
+  test('single chapter preset adds routed providers and routes', () async {
+    await store.save(
+      providerName: '智谱 GLM',
+      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      model: 'glm-4.5',
+      apiKey: 'zhipu-key',
+    );
+    await store.upsertProviderProfile(
+      const AppLlmProviderProfile(
+        id: 'ollama-kimi',
+        providerName: 'Old',
+        baseUrl: 'https://old.example.com/v1',
+        model: 'old-model',
+        apiKey: 'keep-this-key',
+      ),
+    );
+
+    await store.applySingleChapterGenerationProviderPreset();
+
+    expect(store.snapshot.providerName, '智谱 GLM');
+    expect(store.snapshot.baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
+    expect(store.snapshot.model, 'glm-5.1');
+    expect(store.snapshot.apiKey, 'zhipu-key');
+
+    final profiles = store.snapshot.providerProfiles;
+    final primary = profiles.singleWhere((p) => p.id == 'primary');
+    final kimi = profiles.singleWhere((p) => p.id == 'ollama-kimi');
+    final mimo = profiles.singleWhere((p) => p.id == 'mimo');
+    expect(primary.providerName, '智谱 GLM');
+    expect(primary.model, 'glm-5.1');
+    expect(kimi.providerName, 'Ollama Cloud');
+    expect(kimi.baseUrl, 'https://ollama.com/v1');
+    expect(kimi.model, 'kimi-k2.6');
+    expect(kimi.apiKey, 'keep-this-key');
+    expect(mimo.providerName, 'Xiaomi MiMo');
+    expect(mimo.model, 'mimo-v2.5-pro');
+
+    final routes = store.snapshot.requestProviderRoutes;
+    expect(routes, hasLength(9));
+    expect(
+      routes
+          .singleWhere((r) => r.traceNamePattern == 'scene_roleplay_turn')
+          .providerProfileId,
+      'ollama-kimi',
+    );
+    expect(
+      routes
+          .singleWhere((r) => r.traceNamePattern == 'scene_quality_scoring')
+          .providerProfileId,
+      'mimo',
+    );
   });
 
   // ---------------------------------------------------------------------------

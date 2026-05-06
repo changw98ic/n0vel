@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
@@ -27,6 +28,7 @@ class ProjectListPage extends StatefulWidget {
     'project-list-new-project-button',
   );
   static const searchFieldKey = ValueKey<String>('project-list-search-field');
+  static const projectNameFieldKey = ValueKey<String>('project-list-name-field');
   static const continueProjectButtonKey = ValueKey<String>(
     'project-list-continue-project-button',
   );
@@ -496,10 +498,24 @@ class _ProjectListPageState extends State<ProjectListPage> {
     AppNavigator.push(context, AppRoutes.storyBible);
   }
 
-  void _createProject() {
+  Future<void> _createProject() async {
+    final name = await showAppTextInputDialog(
+      context: context,
+      title: '新建项目',
+      description: '为你的新作品起个名字，创建后会出现在书架中。',
+      hintText: '输入项目名称',
+      fieldKey: ProjectListPage.projectNameFieldKey,
+      confirmText: '创建',
+    );
+    if (name == null || name.isEmpty) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     final store = AppWorkspaceScope.of(context);
     setState(() {
-      store.createProject();
+      store.createProject(projectName: name);
       _selectedProjectId = store.currentProjectId;
       _searchController.clear();
     });

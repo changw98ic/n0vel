@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/navigation/app_navigator.dart';
+import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
@@ -483,6 +484,19 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     AppWorkspaceStore store,
     CharacterRecord current,
   ) {
+    void onFieldChanged(String characterId, {String? name, String? role,
+        String? note, String? need, String? summary}) {
+      store.updateCharacter(
+        characterId: characterId,
+        name: name,
+        role: role,
+        note: note,
+        need: need,
+        summary: summary,
+      );
+      AppSceneContextScope.of(context).syncContext();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -493,7 +507,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           label: '姓名',
           initialValue: current.name,
           onChanged: (value) =>
-              store.updateCharacter(characterId: current.id, name: value),
+              onFieldChanged(current.id, name: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -503,7 +517,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           label: '身份',
           initialValue: current.role,
           onChanged: (value) =>
-              store.updateCharacter(characterId: current.id, role: value),
+              onFieldChanged(current.id, role: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -514,7 +528,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           initialValue: current.note,
           maxLines: 3,
           onChanged: (value) =>
-              store.updateCharacter(characterId: current.id, note: value),
+              onFieldChanged(current.id, note: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -525,7 +539,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           initialValue: current.need,
           maxLines: 3,
           onChanged: (value) =>
-              store.updateCharacter(characterId: current.id, need: value),
+              onFieldChanged(current.id, need: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -536,7 +550,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           initialValue: current.summary,
           maxLines: 3,
           onChanged: (value) =>
-              store.updateCharacter(characterId: current.id, summary: value),
+              onFieldChanged(current.id, summary: value),
         ),
       ],
     );

@@ -286,6 +286,13 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   bool get _isInteractiveDefault =>
       widget.uiState == WorkbenchUiState.defaultHidden;
 
+  bool get _isEditorDirty {
+    final controller = _draftController;
+    final store = _draftStore;
+    if (controller == null || store == null) return false;
+    return controller.text != store.snapshot.text;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1587,9 +1594,10 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     ).resolve<StoryGenerationRunStore>();
     final authorFeedbackStore = AuthorFeedbackScope.of(context);
     final reviewTaskStore = ReviewTaskScope.of(context);
-    final effectiveSimulationStatus = _effectiveSimulationStatus(
-      simulation.status,
-    );
+    final effectiveSimulationStatus =
+        storyRunStore.snapshot.status == StoryGenerationRunStatus.cancelled
+        ? SimulationStatus.none
+        : _effectiveSimulationStatus(simulation.status);
     final sceneContext = AppSceneContextScope.of(context).snapshot;
     final settingsStore = AppSettingsScope.of(context);
     final settings = settingsStore.snapshot;
@@ -1650,9 +1658,38 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       canGenerateAi: canGenerateAi,
       hasSceneCharacterBinding: hasSceneCharacterBinding,
       hasSceneWorldReference: hasSceneWorldReference,
+      storyRunCancelled:
+          storyRunStore.snapshot.status == StoryGenerationRunStatus.cancelled,
     );
 
-    return DesktopShellFrame(
+    return PopScope(
+      canPop: !_isEditorDirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await showDialog<bool>(
+          context: context,
+          builder: (context) => DesktopModalDialog(
+            title: '未保存的修改',
+            description: '当前正文有未保存的修改，确定要离开吗？',
+            body: const SizedBox.shrink(),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('继续编辑'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('离开'),
+              ),
+            ],
+          ),
+        );
+        if (shouldLeave == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: DesktopShellFrame(
       header: DesktopBreadcrumbBar(
         barKey: WorkbenchShellPage.breadcrumbKey,
         breadcrumb: workspace.currentProjectBreadcrumb,
@@ -2160,6 +2197,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         leftText: _statusLabel(effectiveSimulationStatus),
         rightText: _statusMetaLabel(draft.text),
       ),
+    ),
     );
   }
 
@@ -2444,8 +2482,11 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     required bool canGenerateAi,
     required bool hasSceneCharacterBinding,
     required bool hasSceneWorldReference,
+    required bool storyRunCancelled,
   }) {
-    final simulationStatus = _effectiveSimulationStatus(simulation.status);
+    final simulationStatus = storyRunCancelled
+        ? SimulationStatus.none
+        : _effectiveSimulationStatus(simulation.status);
     switch (widget.uiState) {
       case WorkbenchUiState.defaultHidden:
       case WorkbenchUiState.simulationCompleted:

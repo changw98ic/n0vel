@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_version_store.dart';
+import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/desktop_shell.dart';
 
 class VersionHistoryPage extends StatefulWidget {
@@ -147,7 +148,17 @@ class _VersionHistoryPageState extends State<VersionHistoryPage> {
                     alignment: Alignment.centerLeft,
                     child: hasRestorableHistory
                         ? FilledButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              final confirmed = await showAppConfirmDialog(
+                                context: context,
+                                title: '恢复版本',
+                                description: '确定要恢复到此版本吗？当前草稿内容会被替换。',
+                                body: const SizedBox.shrink(),
+                                confirmText: '恢复',
+                              );
+                              if (!confirmed || !context.mounted) {
+                                return;
+                              }
                               AppDraftScope.of(
                                 context,
                               ).updateText(selectedEntry.content);

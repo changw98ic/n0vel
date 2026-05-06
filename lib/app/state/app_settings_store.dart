@@ -9,6 +9,66 @@ import '../../features/story_generation/data/prompt_language.dart';
 import 'app_settings_storage.dart';
 
 const Duration _llmPoolTransientFailureCooldown = Duration(seconds: 3);
+const String _singleChapterDefaultProviderName = '智谱 GLM';
+const String _singleChapterDefaultBaseUrl =
+    'https://open.bigmodel.cn/api/paas/v4';
+const String _singleChapterDefaultModel = 'glm-5.1';
+
+const List<AppLlmProviderProfile> _singleChapterProviderPresetProfiles = [
+  AppLlmProviderProfile(
+    id: 'ollama-kimi',
+    providerName: 'Ollama Cloud',
+    baseUrl: 'https://ollama.com/v1',
+    model: 'kimi-k2.6',
+    apiKey: '',
+  ),
+  AppLlmProviderProfile(
+    id: 'mimo',
+    providerName: 'Xiaomi MiMo',
+    baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+    model: 'mimo-v2.5-pro',
+    apiKey: '',
+  ),
+];
+
+const List<AppLlmRequestProviderRoute> _singleChapterProviderPresetRoutes = [
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_director_polish',
+    providerProfileId: 'ollama-kimi',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_roleplay_turn',
+    providerProfileId: 'ollama-kimi',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_roleplay_arbitrate',
+    providerProfileId: 'ollama-kimi',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_beat_resolve',
+    providerProfileId: 'mimo',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_editorial',
+    providerProfileId: 'mimo',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'language_polish',
+    providerProfileId: 'mimo',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_combined_review',
+    providerProfileId: 'mimo',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_review_*',
+    providerProfileId: 'mimo',
+  ),
+  AppLlmRequestProviderRoute(
+    traceNamePattern: 'scene_quality_scoring',
+    providerProfileId: 'mimo',
+  ),
+];
 
 enum AppThemePreference { light, dark, system }
 
@@ -1060,6 +1120,53 @@ class AppSettingsStore extends ChangeNotifier {
     return _persist();
   }
 
+  Future<AppSettingsSaveResult>
+  applySingleChapterGenerationProviderPreset() async {
+    _hasLocalMutations = true;
+    final defaultApiKey = _isZhipuBaseUrl(_snapshot.baseUrl)
+        ? _snapshot.apiKey
+        : '';
+    final profilesById = {
+      for (final profile in _snapshot.providerProfiles) profile.id: profile,
+    };
+    for (final preset in _singleChapterProviderPresetProfiles) {
+      final existing = profilesById[preset.id];
+      profilesById[preset.id] = AppLlmProviderProfile(
+        id: preset.id,
+        providerName: preset.providerName,
+        baseUrl: preset.baseUrl,
+        model: preset.model,
+        apiKey: existing?.apiKey ?? preset.apiKey,
+      );
+    }
+    final routesByPattern = {
+      for (final route in _snapshot.requestProviderRoutes)
+        route.traceNamePattern: route,
+    };
+    for (final preset in _singleChapterProviderPresetRoutes) {
+      routesByPattern[preset.traceNamePattern] = preset;
+    }
+    final nextProfiles = _syncPrimaryProviderProfile(
+      profilesById.values.toList(),
+      providerName: _singleChapterDefaultProviderName,
+      baseUrl: _singleChapterDefaultBaseUrl,
+      model: _singleChapterDefaultModel,
+      apiKey: defaultApiKey,
+    );
+    _snapshot = _snapshot.copyWith(
+      providerName: _singleChapterDefaultProviderName,
+      baseUrl: _singleChapterDefaultBaseUrl,
+      model: _singleChapterDefaultModel,
+      apiKey: defaultApiKey,
+      hasApiKey: defaultApiKey.isNotEmpty,
+      providerProfiles: nextProfiles,
+      requestProviderRoutes: routesByPattern.values.toList(),
+    );
+    _syncRequestPoolLimits();
+    notifyListeners();
+    return _persist();
+  }
+
   Future<AppSettingsSaveResult> removeRequestProviderRoute(
     String traceNamePattern,
   ) async {
@@ -1712,6 +1819,11 @@ class AppSettingsStore extends ChangeNotifier {
     return hasBaseUrl && hasModel && hasApiKey;
   }
 
+  bool _isZhipuBaseUrl(String baseUrl) {
+    final host = Uri.tryParse(baseUrl.trim())?.host.toLowerCase() ?? '';
+    return host.contains('bigmodel.cn') || host.contains('zhipuai.cn');
+  }
+
   AppLlmProvider _providerForSettings(String providerName, String baseUrl) {
     final parsedProvider = providerName.toAppLlmProvider();
     if (parsedProvider != AppLlmProvider.openaiCompatible) {
@@ -1721,7 +1833,7 @@ class AppSettingsStore extends ChangeNotifier {
     if (host.contains('xiaomimimo.com')) {
       return AppLlmProvider.mimo;
     }
-    if (host.contains('bigmodel.cn') || host.contains('zhipuai.cn')) {
+    if (_isZhipuBaseUrl(baseUrl)) {
       return AppLlmProvider.zhipu;
     }
     return parsedProvider;

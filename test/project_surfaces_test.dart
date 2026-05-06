@@ -27,6 +27,18 @@ import 'test_support/clipboard_spy.dart';
 void main() {
   late FakeProjectTransferService transferService;
 
+  Future<void> createProjectViaDialog(
+    WidgetTester tester, {
+    String name = '新建项目 4',
+  }) async {
+    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
+    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(ProjectListPage.projectNameFieldKey), name);
+    await tester.tap(find.text('创建'));
+    await tester.pumpAndSettle();
+  }
+
   setUp(() {
     transferService = FakeProjectTransferService();
     AppAiHistoryStore.debugStorageOverride = InMemoryAppAiHistoryStorage();
@@ -212,9 +224,7 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp());
     await tester.pump();
 
-    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.pump();
+    await createProjectViaDialog(tester);
 
     expect(find.text('新建项目 4'), findsWidgets);
     expect(find.text('打开'), findsOneWidget);
@@ -228,11 +238,7 @@ void main() {
       await tester.pumpWidget(const NovelWriterApp());
       await tester.pump();
 
-      await tester.ensureVisible(
-        find.byKey(ProjectListPage.newProjectButtonKey),
-      );
-      await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
-      await tester.pump();
+      await createProjectViaDialog(tester);
       await openProjectDrawer(tester);
       await tester.tap(find.byKey(ProjectListPage.workbenchShortcutKey));
       await tester.pumpAndSettle();
@@ -252,9 +258,7 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp());
     await tester.pump();
 
-    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.pump();
+    await createProjectViaDialog(tester);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -271,9 +275,7 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp());
     await tester.pump();
 
-    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.pump();
+    await createProjectViaDialog(tester);
 
     tester
         .state<NavigatorState>(find.byType(Navigator))
@@ -839,9 +841,7 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp());
     await tester.pump();
 
-    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
-    await tester.pump();
+    await createProjectViaDialog(tester);
 
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(ProjectListPage)),

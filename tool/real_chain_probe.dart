@@ -13,6 +13,11 @@ import 'package:novel_writer/features/story_generation/data/scene_pipeline_sched
 import 'package:novel_writer/features/story_generation/data/story_generation_formatter_trace.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
+const String _defaultOllamaBaseUrl = 'https://ollama.com/v1';
+const String _defaultMimoBaseUrl = 'https://token-plan-cn.xiaomimimo.com/v1';
+const String _defaultOllamaModel = 'kimi-k2.6';
+const String _defaultMimoModel = 'mimo-v2.5-pro';
+
 Future<void> main() async {
   final outputRoot = _newOutputRoot();
   await outputRoot.create(recursive: true);
@@ -49,6 +54,15 @@ Future<void> main() async {
     stderr.writeln(
       'Missing ZHIPU_API_KEY, MIMO_API_KEY, or OLLAMA_API_KEY in setting.json or environment.',
     );
+    exitCode = 2;
+    return;
+  }
+  if (settings.routingIssue != null) {
+    await _writeFailureReport(
+      outputRoot: outputRoot,
+      reason: settings.routingIssue!,
+    );
+    stderr.writeln(settings.routingIssue);
     exitCode = 2;
     return;
   }
@@ -104,6 +118,26 @@ Future<void> main() async {
     exitCode = 3;
     return;
   }
+  await settingsStore.save(
+    providerName: settings.providerName,
+    baseUrl: settings.baseUrl,
+    model: settings.model,
+    apiKey: settings.apiKey,
+    timeout: const AppLlmTimeoutConfig(
+      connectTimeoutMs: 10000,
+      sendTimeoutMs: 30000,
+      receiveTimeoutMs: 180000,
+      idleTimeoutMs: 60000,
+    ),
+    maxConcurrentRequests: settings.maxConcurrentRequests,
+    maxTokens: settings.maxTokens,
+    providerProfiles: settings.providerProfiles,
+    requestProviderRoutes: settings.requestProviderRoutes,
+    notify: false,
+  );
+  await status(
+    'configured routed providers: ${_providerRouteSummary(settings)}',
+  );
 
   final formatterTraceSink = FileStoryGenerationFormatterTraceSink(
     formatterFile,
@@ -430,6 +464,7 @@ Future<String> _buildSummary({
       '- provider host: `${Uri.tryParse(settings.baseUrl)?.host ?? settings.baseUrl}`',
     )
     ..writeln('- model: `${settings.model}`')
+    ..writeln('- provider routes: ${_providerRouteSummary(settings)}')
     ..writeln('- max concurrent requests: ${settings.maxConcurrentRequests}')
     ..writeln('- max concurrent scenes: ${settings.maxConcurrentScenes}')
     ..writeln('- elapsed: ${(elapsedMs / 1000).toStringAsFixed(1)}s')
@@ -652,15 +687,149 @@ _ResolvedSettings _resolveSettings(
         ]),
       ) ??
       AppLlmChatRequest.unlimitedMaxTokens;
+  final ollamaProfile = _providerProfileFromConfig(
+    id: 'ollama-kimi',
+    providerName: 'Ollama Cloud',
+    defaultBaseUrl: _defaultOllamaBaseUrl,
+    defaultModel: _defaultOllamaModel,
+    baseUrlKeys: const ['OLLAMA_BASE_URL'],
+    modelKeys: const ['OLLAMA_MODEL'],
+    apiKeyKeys: const ['OLLAMA_API_KEY'],
+    environment: environment,
+    localConfig: localConfig,
+  );
+  final mimoProfile = _providerProfileFromConfig(
+    id: 'mimo',
+    providerName: 'Xiaomi MiMo',
+    defaultBaseUrl: _defaultMimoBaseUrl,
+    defaultModel: _defaultMimoModel,
+    baseUrlKeys: const ['MIMO_BASE_URL'],
+    modelKeys: const ['MIMO_MODEL'],
+    apiKeyKeys: const ['MIMO_API_KEY'],
+    environment: environment,
+    localConfig: localConfig,
+  );
+  final hasOllamaProfile = _isUsableProviderProfile(ollamaProfile);
+  final hasMimoProfile = _isUsableProviderProfile(mimoProfile);
+  final routingIssue = [
+    if (!hasOllamaProfile) 'OLLAMA_API_KEY for ollama-kimi routed steps',
+    if (!hasMimoProfile) 'MIMO_API_KEY for mimo routed steps',
+  ];
+  final providerProfiles = [
+    if (hasOllamaProfile) ollamaProfile,
+    if (hasMimoProfile) mimoProfile,
+  ];
+  final requestProviderRoutes = [
+    if (hasOllamaProfile) ...const [
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_director_polish',
+        providerProfileId: 'ollama-kimi',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_roleplay_turn',
+        providerProfileId: 'ollama-kimi',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_roleplay_arbitrate',
+        providerProfileId: 'ollama-kimi',
+      ),
+    ],
+    if (hasMimoProfile) ...const [
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_beat_resolve',
+        providerProfileId: 'mimo',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_editorial',
+        providerProfileId: 'mimo',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'language_polish',
+        providerProfileId: 'mimo',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_combined_review',
+        providerProfileId: 'mimo',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_review_*',
+        providerProfileId: 'mimo',
+      ),
+      AppLlmRequestProviderRoute(
+        traceNamePattern: 'scene_quality_scoring',
+        providerProfileId: 'mimo',
+      ),
+    ],
+  ];
   return _ResolvedSettings(
     providerName: providerName,
     baseUrl: baseUrl,
     apiKey: apiKey,
     model: model,
+    providerProfiles: providerProfiles,
+    requestProviderRoutes: requestProviderRoutes,
+    routingIssue: routingIssue.isEmpty
+        ? null
+        : 'Missing routed provider configuration: ${routingIssue.join(', ')}.',
     maxConcurrentRequests: maxConcurrent.clamp(1, 6),
     maxConcurrentScenes: maxConcurrentScenes.clamp(1, 4),
     maxTokens: AppLlmChatRequest.normalizeMaxTokens(maxTokens),
   );
+}
+
+AppLlmProviderProfile _providerProfileFromConfig({
+  required String id,
+  required String providerName,
+  required String defaultBaseUrl,
+  required String defaultModel,
+  required List<String> baseUrlKeys,
+  required List<String> modelKeys,
+  required List<String> apiKeyKeys,
+  required Map<String, String> environment,
+  required Map<String, String> localConfig,
+}) {
+  final baseUrl = _firstNonEmpty([
+    for (final key in baseUrlKeys) environment[key],
+    for (final key in baseUrlKeys) localConfig[key],
+    defaultBaseUrl,
+  ]);
+  final model = _firstNonEmpty([
+    for (final key in modelKeys) environment[key],
+    for (final key in modelKeys) localConfig[key],
+    defaultModel,
+  ]);
+  final apiKey = _firstNonEmpty([
+    for (final key in apiKeyKeys) environment[key],
+    for (final key in apiKeyKeys) localConfig[key],
+  ]);
+  return AppLlmProviderProfile(
+    id: id,
+    providerName: providerName,
+    baseUrl: baseUrl,
+    model: model,
+    apiKey: apiKey,
+  );
+}
+
+bool _isUsableProviderProfile(AppLlmProviderProfile profile) =>
+    profile.baseUrl.trim().isNotEmpty &&
+    profile.model.trim().isNotEmpty &&
+    profile.apiKey.trim().isNotEmpty;
+
+String _providerRouteSummary(_ResolvedSettings settings) {
+  if (settings.requestProviderRoutes.isEmpty) {
+    return '`none`';
+  }
+  final profilesById = {
+    for (final profile in settings.providerProfiles) profile.id: profile,
+  };
+  return settings.requestProviderRoutes
+      .map((route) {
+        final profile = profilesById[route.providerProfileId];
+        final model = profile == null ? 'unknown' : profile.model;
+        return '`${route.traceNamePattern}` -> `${route.providerProfileId}/$model`';
+      })
+      .join('; ');
 }
 
 bool _isZhipuBaseUrl(String baseUrl) {
@@ -682,6 +851,9 @@ class _ResolvedSettings {
     required this.baseUrl,
     required this.apiKey,
     required this.model,
+    required this.providerProfiles,
+    required this.requestProviderRoutes,
+    required this.routingIssue,
     required this.maxConcurrentRequests,
     required this.maxConcurrentScenes,
     required this.maxTokens,
@@ -691,6 +863,9 @@ class _ResolvedSettings {
   final String baseUrl;
   final String apiKey;
   final String model;
+  final List<AppLlmProviderProfile> providerProfiles;
+  final List<AppLlmRequestProviderRoute> requestProviderRoutes;
+  final String? routingIssue;
   final int maxConcurrentRequests;
   final int maxConcurrentScenes;
   final int maxTokens;

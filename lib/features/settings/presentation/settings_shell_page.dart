@@ -366,6 +366,9 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             for (final profile in settings.providerProfiles) ...[
               _ProfileCard(
                 profile: profile,
+                onEdit: profile.id == 'primary'
+                    ? null
+                    : () => _showProfileDialog(context, existing: profile),
                 onDelete: profile.id == 'primary'
                     ? null
                     : () {
@@ -382,6 +385,15 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             key: SettingsShellPage.addProfileButtonKey,
             onPressed: () => _showProfileDialog(context),
             child: const Text('添加提供方'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () {
+              AppSettingsScope.of(
+                context,
+              ).applySingleChapterGenerationProviderPreset();
+            },
+            child: const Text('应用单章生成路由预设'),
           ),
           const SizedBox(height: 24),
           Text('路由规则', style: theme.textTheme.titleMedium),
@@ -738,24 +750,28 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     ];
   }
 
-  Future<void> _showProfileDialog(BuildContext context) async {
+  Future<void> _showProfileDialog(
+    BuildContext context, {
+    AppLlmProviderProfile? existing,
+  }) async {
     final store = AppSettingsScope.of(context);
-    final idController = TextEditingController();
-    final nameController = TextEditingController();
-    final urlController = TextEditingController();
-    final modelController = TextEditingController();
-    final keyController = TextEditingController();
+    final idController = TextEditingController(text: existing?.id);
+    final nameController = TextEditingController(text: existing?.providerName);
+    final urlController = TextEditingController(text: existing?.baseUrl);
+    final modelController = TextEditingController(text: existing?.model);
+    final keyController = TextEditingController(text: existing?.apiKey);
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('添加提供方'),
+          title: Text(existing == null ? '添加提供方' : '编辑提供方'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: idController,
+                  readOnly: existing != null,
                   decoration: const InputDecoration(
                     labelText: '标识（英文，唯一）',
                     hintText: '例如：glm-review',
@@ -1277,9 +1293,14 @@ class _PersistenceOverlayCard extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile, required this.onDelete});
+  const _ProfileCard({
+    required this.profile,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final AppLlmProviderProfile profile;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -1316,6 +1337,11 @@ class _ProfileCard extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: onEdit,
+            tooltip: onEdit == null ? '默认配置请在上方编辑' : '编辑',
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 20),
