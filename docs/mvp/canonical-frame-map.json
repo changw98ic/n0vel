@@ -12,7 +12,10 @@
     "Project Import Export": "z0mJ1"
   },
   "supplemental_pages": {
-    "Scene Management": "PIRts"
+    "Scene Management": "PIRts",
+    "Story Bible / Aggregated Facts": "Z0240",
+    "Production Board / Progress Loop": "Z0340",
+    "Review Tasks / Queue States": "Z0402"
   },
   "workbench_states": {
     "Writing Workbench / Default Hidden": "WT5mH",
@@ -26,6 +29,7 @@
     "Writing Workbench / Rename Scene Dialog": "VCoJM",
     "Writing Workbench / Delete Scene Confirm": "ttVz8",
     "Writing Workbench / Menu Drawer Open": "i2PgM",
+    "Writing Workbench / Full Drawer Navigation": "Z0134",
     "Writing Workbench / Missing Character Binding": "o6hOU",
     "Writing Workbench / Missing Character Reference": "WmFpE",
     "Writing Workbench / Missing World Reference": "emCHR",
@@ -80,6 +84,7 @@
     "Project List / Database Read Failed": "qW9NX",
     "Project List / Import Failed": "X4Udf",
     "Project List / Delete Confirm": "01wqz",
+    "Project List / Responsive Shelf Fit": "Z0073",
     "Project Import Export / Import Success": "aYhVV",
     "Project Import Export / Overwrite Success": "XrBiQ",
     "Project Import Export / Overwrite Confirm": "kJVPV",
@@ -88,7 +93,8 @@
     "Project Import Export / No Exportable Project": "O5g2A",
     "Project Import Export / Major Version Blocked": "nJ1Vf",
     "Project Import Export / Minor Version Warning": "sqxPi",
-    "Project Import Export / Export Success": "4U4Ue"
+    "Project Import Export / Export Success": "4U4Ue",
+    "Project Import Export / Contained Long Paths": "Z0194"
   },
   "style_settings_simulation": {
     "Style Panel / Empty": "hs0KX",

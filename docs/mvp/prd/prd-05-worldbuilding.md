@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 05 世界观页
 
 ## 页面目标

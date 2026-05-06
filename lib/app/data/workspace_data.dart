@@ -111,7 +111,10 @@ class WorkspaceData {
       styleByProjectId: buildDefaultProjectStyles(projects),
       auditUiByProjectId: buildDefaultProjectAuditUi(projects),
       projectTransferState: ProjectTransferState.ready,
-      currentProjectId: projects.first.id,
+      currentProjectId: normalizeCurrentProjectId(
+        preferredProjectId: null,
+        projects: projects,
+      ),
     );
   }
 
@@ -130,15 +133,16 @@ class WorkspaceData {
   }) {
     return WorkspaceData(
       projects: projects ?? this.projects,
-      charactersByProjectId: charactersByProjectId ?? this.charactersByProjectId,
+      charactersByProjectId:
+          charactersByProjectId ?? this.charactersByProjectId,
       scenesByProjectId: scenesByProjectId ?? this.scenesByProjectId,
-      worldNodesByProjectId: worldNodesByProjectId ?? this.worldNodesByProjectId,
+      worldNodesByProjectId:
+          worldNodesByProjectId ?? this.worldNodesByProjectId,
       auditIssuesByProjectId:
           auditIssuesByProjectId ?? this.auditIssuesByProjectId,
       styleByProjectId: styleByProjectId ?? this.styleByProjectId,
       auditUiByProjectId: auditUiByProjectId ?? this.auditUiByProjectId,
-      projectTransferState:
-          projectTransferState ?? this.projectTransferState,
+      projectTransferState: projectTransferState ?? this.projectTransferState,
       currentProjectId: currentProjectId ?? this.currentProjectId,
     );
   }

@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 04 角色库页
 
 ## 页面目标

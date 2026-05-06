@@ -1,20 +1,256 @@
 part of 'workbench_shell_page.dart';
 
+class _CreationGuideCard extends StatelessWidget {
+  const _CreationGuideCard({
+    required this.currentStageIndex,
+    required this.hasCharacters,
+    required this.hasWorldNodes,
+    required this.hasSceneSummary,
+    required this.hasDraft,
+    required this.hasSceneCharacterBinding,
+    required this.hasSceneWorldReference,
+    required this.hasRun,
+    required this.onOpenCharacters,
+    required this.onOpenWorldbuilding,
+    required this.onOpenOutline,
+  });
+
+  final int currentStageIndex;
+  final bool hasCharacters;
+  final bool hasWorldNodes;
+  final bool hasSceneSummary;
+  final bool hasDraft;
+  final bool hasSceneCharacterBinding;
+  final bool hasSceneWorldReference;
+  final bool hasRun;
+  final VoidCallback onOpenCharacters;
+  final VoidCallback onOpenWorldbuilding;
+  final VoidCallback onOpenOutline;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final steps = [
+      _GuideStep('作品设定', true),
+      _GuideStep('人物 / 世界观', hasCharacters && hasWorldNodes),
+      _GuideStep('大纲 / 场景目标', hasSceneSummary),
+      _GuideStep('本场资料', hasSceneCharacterBinding && hasSceneWorldReference),
+      _GuideStep('生成候选稿', hasDraft || hasRun),
+      _GuideStep('改稿 / 定稿', hasRun),
+    ];
+    final currentStep = steps[currentStageIndex.clamp(0, steps.length - 1)];
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: appPanelDecoration(context, color: palette.surface),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('创作向导', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(
+                      '当前建议：${currentStep.label}。先把资料看清楚，再让 AI 生成候选稿。',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: onOpenCharacters,
+                    child: const Text('人物'),
+                  ),
+                  TextButton(
+                    onPressed: onOpenWorldbuilding,
+                    child: const Text('世界观'),
+                  ),
+                  TextButton(
+                    onPressed: onOpenOutline,
+                    child: const Text('作品资料'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var index = 0; index < steps.length; index += 1)
+                Chip(
+                  label: Text(steps[index].label),
+                  avatar: Icon(
+                    steps[index].done
+                        ? Icons.check_circle
+                        : index == currentStageIndex
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 16,
+                    color: steps[index].done
+                        ? const Color(0xFF5B7A5A)
+                        : index == currentStageIndex
+                        ? const Color(0xFFB6813B)
+                        : theme.disabledColor,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideStep {
+  const _GuideStep(this.label, this.done);
+
+  final String label;
+  final bool done;
+}
+
+String? _candidateDraftText(StoryGenerationRunSnapshot snapshot) {
+  for (final message in snapshot.messages.reversed) {
+    if (message.kind == StoryGenerationRunMessageKind.editorial &&
+        message.body.trim().isNotEmpty) {
+      return message.body.trim();
+    }
+  }
+  return null;
+}
+
+class _CandidateDraftCard extends StatelessWidget {
+  const _CandidateDraftCard({
+    required this.text,
+    required this.onAccept,
+    required this.onRevise,
+    required this.onDismiss,
+  });
+
+  final String text;
+  final VoidCallback onAccept;
+  final VoidCallback onRevise;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final preview = _candidatePreview(text);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF5B7A5A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('AI 候选稿', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text('正文尚未被覆盖。你可以先阅读候选内容，再决定是否采纳。', style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: palette.elevated,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: palette.border),
+            ),
+            child: Text(
+              preview,
+              style: theme.textTheme.bodySmall,
+              maxLines: 8,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton(onPressed: onAccept, child: const Text('采纳到正文')),
+              OutlinedButton(onPressed: onRevise, child: const Text('继续修改')),
+              TextButton(onPressed: onDismiss, child: const Text('放弃候选')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _candidatePreview(String text) {
+  final normalized = text.trim();
+  if (normalized.length <= 900) {
+    return normalized;
+  }
+  return '${normalized.substring(0, 900)}...';
+}
+
+class _ConfirmationLine extends StatelessWidget {
+  const _ConfirmationLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelMedium),
+          const SizedBox(height: 3),
+          Text(value, style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
 class _StoryGenerationRunPanel extends StatelessWidget {
   const _StoryGenerationRunPanel({
     required this.store,
     required this.canRun,
+    required this.dismissedCandidateText,
     required this.onRun,
     required this.onForceFailure,
     required this.onCancel,
+    required this.onAcceptCandidate,
+    required this.onReviseCandidate,
+    required this.onDismissCandidate,
     required this.onMapReviewTasks,
   });
 
   final StoryGenerationRunStore store;
   final bool canRun;
+  final String? dismissedCandidateText;
   final VoidCallback onRun;
   final VoidCallback onForceFailure;
   final VoidCallback onCancel;
+  final ValueChanged<String> onAcceptCandidate;
+  final ValueChanged<String> onReviseCandidate;
+  final ValueChanged<String> onDismissCandidate;
   final ValueChanged<StoryGenerationRunSnapshot> onMapReviewTasks;
 
   @override
@@ -27,6 +263,11 @@ class _StoryGenerationRunPanel extends StatelessWidget {
         final canStart = canRun && !isRunning;
         final messages = _highValueMessages(snapshot.messages);
         final reviewIssueMessages = _reviewIssueMessages(snapshot);
+        final candidateDraft = _candidateDraftText(snapshot);
+        final showCandidateDraft =
+            candidateDraft != null &&
+            candidateDraft.trim().isNotEmpty &&
+            candidateDraft.trim() != dismissedCandidateText?.trim();
         final palette = desktopPalette(context);
         final theme = Theme.of(context);
         return Container(
@@ -70,12 +311,12 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                       FilledButton(
                         key: WorkbenchShellPage.runSimulationButtonKey,
                         onPressed: canStart ? onRun : null,
-                        child: Text(snapshot.hasRun ? '重跑' : '运行当前场景'),
+                        child: Text(snapshot.hasRun ? '重新试写' : '让 AI 写这一场'),
                       ),
                       OutlinedButton(
                         key: WorkbenchShellPage.failSimulationButtonKey,
                         onPressed: canStart ? onForceFailure : null,
-                        child: const Text('模拟失败'),
+                        child: const Text('标记未完成'),
                       ),
                       if (isRunning)
                         OutlinedButton(
@@ -111,6 +352,15 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                   );
                 },
               ),
+              if (showCandidateDraft) ...[
+                const SizedBox(height: 10),
+                _CandidateDraftCard(
+                  text: candidateDraft,
+                  onAccept: () => onAcceptCandidate(candidateDraft),
+                  onRevise: () => onReviseCandidate(candidateDraft),
+                  onDismiss: () => onDismissCandidate(candidateDraft),
+                ),
+              ],
               if (messages.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 for (final message in messages)
@@ -352,10 +602,10 @@ class _ToolWindowPanel extends StatelessWidget {
     }
 
     final (title, description) = switch (activePanel) {
-      WorkbenchToolPanel.resources => ('资料窗口', '角色摘要 / 世界观摘要 / 当前场景资料会显示在这里。'),
-      WorkbenchToolPanel.ai => ('AI 工具窗口', '工具模式 / 历史区 / 输入区会在这里展开。'),
+      WorkbenchToolPanel.resources => ('场景资料', '这一场会使用的人物、世界观和场景摘要会显示在这里。'),
+      WorkbenchToolPanel.ai => ('AI 写作助手', '选择写作动作、查看历史记录，并告诉 AI 你想怎么改。'),
       WorkbenchToolPanel.feedback => ('作者反馈', '记录审稿意见、修订请求和采纳/驳回决策。'),
-      WorkbenchToolPanel.reviewTasks => ('审查任务', '把审查发现转成可跟进的修订任务。'),
+      WorkbenchToolPanel.reviewTasks => ('改稿任务', '把问题检查结果变成可跟进的改稿任务。'),
       WorkbenchToolPanel.settings => ('设置快捷面板', '当前提供方、模型、界面模式和快速入口会显示在这里。'),
     };
 
@@ -379,7 +629,7 @@ class _ToolWindowPanel extends StatelessWidget {
                         ? 'AI 配置异常'
                         : canGenerateAi
                         ? 'AI 已就绪'
-                        : 'AI 功能暂不可用',
+                        : 'AI 暂不可用',
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -388,7 +638,7 @@ class _ToolWindowPanel extends StatelessWidget {
                         ? settingsFeedback.title!
                         : canGenerateAi
                         ? '当前模型：${settings.model}'
-                        : '请先前往设置补全密钥与提供方配置。',
+                        : '请先在设置里补全密钥与模型提供方。',
                     style: theme.textTheme.bodySmall,
                   ),
                   if (hasSettingsWarning) ...[
@@ -780,9 +1030,24 @@ class _ToolWindowPanel extends StatelessWidget {
                     children: [
                       for (final scene in scenes)
                         ChoiceChip(
-                          label: Text(scene.title),
+                          key: ValueKey<String>(
+                            'workbench-scene-chip-${scene.id}',
+                          ),
+                          label: Text(
+                            scene.title,
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.visible,
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          tooltip: scene.title,
                           selected: scene.id == currentSceneId,
-                          onSelected: (_) => onSelectScene(scene),
+                          onSelected: (_) {
+                            if (scene.id != currentSceneId) {
+                              onSelectScene(scene);
+                            }
+                          },
                         ),
                     ],
                   ),
@@ -811,19 +1076,19 @@ class _ToolWindowPanel extends StatelessWidget {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: onSyncContext,
-                    child: const Text('同步到工作台'),
+                    child: const Text('刷新当前场景资料'),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     uiState == WorkbenchUiState.missingCharacterReference
-                        ? '角色引用已失效'
+                        ? '出场人物需要重新确认'
                         : sceneContext.characterSummary,
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     uiState == WorkbenchUiState.missingWorldReference
-                        ? '世界观引用已失效'
+                        ? '世界观资料需要重新确认'
                         : sceneContext.worldSummary,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -978,41 +1243,80 @@ class _StatusBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accentColor),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: accentColor, size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hasAction = actionLabel != null;
+          final inline = !hasAction || constraints.maxWidth >= 260;
+          final bannerBody = [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(message, style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ];
+
+          final actionButton = hasAction
+              ? [
+                  if (!inline) const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: onActionTap,
+                      style: TextButton.styleFrom(
+                        foregroundColor: accentColor,
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        actionLabel!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: accentColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ]
+              : <Widget>[];
+
+          if (inline) {
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: theme.textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(message, style: theme.textTheme.bodySmall),
+                Icon(Icons.info_outline, color: accentColor, size: 18),
+                const SizedBox(width: 12),
+                ...bannerBody,
+                if (hasAction) ...[const SizedBox(width: 12), ...actionButton],
               ],
-            ),
-          ),
-          if (actionLabel != null) ...[
-            const SizedBox(width: 12),
-            TextButton(
-              onPressed: onActionTap,
-              style: TextButton.styleFrom(
-                foregroundColor: accentColor,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: accentColor, size: 18),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: bannerBody,
+                    ),
+                  ),
+                ],
               ),
-              child: Text(
-                actionLabel!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: accentColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ],
+              ...actionButton,
+            ],
+          );
+        },
       ),
     );
   }

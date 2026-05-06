@@ -45,7 +45,7 @@ void main() {
     expect(find.text('世界观'), findsOneWidget);
     expect(find.text('维护地点、组织、规则与引用关系'), findsOneWidget);
     expect(find.text('新建节点'), findsOneWidget);
-    expect(find.text('规则索引已同步'), findsOneWidget);
+    expect(find.text('世界观资料已保存'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {

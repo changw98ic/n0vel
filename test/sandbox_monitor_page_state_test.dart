@@ -45,9 +45,9 @@ void main() {
         ),
       );
 
-      expect(find.text('模拟进行中'), findsWidgets);
+      expect(find.text('AI 正在写这一场'), findsWidgets);
       expect(find.text('准备上下文进行中'), findsOneWidget);
-      expect(find.text('模拟聊天室'), findsOneWidget);
+      expect(find.text('AI 生成过程'), findsOneWidget);
     });
 
     testWidgets('completed preview shows all stages done', (tester) async {
@@ -57,9 +57,9 @@ void main() {
         ),
       );
 
-      expect(find.text('模拟已完成'), findsWidgets);
+      expect(find.text('AI 试写完成'), findsWidgets);
       expect(find.text('叙述改写已完成'), findsOneWidget);
-      expect(find.text('模拟聊天室'), findsOneWidget);
+      expect(find.text('AI 生成过程'), findsOneWidget);
     });
 
     testWidgets('failed preview shows failure headline and summary', (tester) async {
@@ -71,7 +71,7 @@ void main() {
 
       expect(find.text('运行失败摘要'), findsWidgets);
       expect(find.text('多角色讨论失败'), findsOneWidget);
-      expect(find.text('模拟聊天室'), findsOneWidget);
+      expect(find.text('AI 生成过程'), findsOneWidget);
     });
 
     testWidgets('none preview renders the empty state card', (tester) async {
@@ -81,7 +81,7 @@ void main() {
         ),
       );
 
-      expect(find.text('还没有模拟过程'), findsOneWidget);
+      expect(find.text('还没有生成过程'), findsOneWidget);
       expect(find.text('关闭'), findsOneWidget);
     });
   });

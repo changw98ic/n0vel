@@ -68,7 +68,7 @@ void main() {
     restoredWorkspaceStore.openProject(firstProjectId);
     await Future<void>.delayed(const Duration(milliseconds: 60));
     expect(restoredAiHistoryStore.entries.first.prompt, '项目一历史');
-    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('仓库门外'));
+    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
   });
 
   test('AI history and scene context persist by scene scope within a project', () async {
@@ -134,6 +134,6 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 60));
 
     expect(restoredAiHistoryStore.entries.first.prompt, '场景 05 历史');
-    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('仓库门外'));
+    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
   });
 }

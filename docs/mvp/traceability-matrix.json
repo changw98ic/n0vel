@@ -3,13 +3,13 @@
     "project_list": {
       "prd": "prd-01-project-list.md",
       "primary_frame": "nXod8",
-      "related_frames": ["MS3Oh", "az4YP", "qW9NX", "X4Udf", "01wqz"],
+      "related_frames": ["MS3Oh", "az4YP", "qW9NX", "X4Udf", "01wqz", "Z0073"],
       "smoke_tests": ["Smoke 01", "Smoke 09", "Smoke 10"]
     },
     "writing_workbench": {
       "prd": "prd-02-writing-workbench.md",
       "primary_frame": "47nGt",
-      "related_frames": ["WT5mH", "aBO8C", "XBhIG", "AMlNT", "i2PgM", "y6Ufy", "ea0WQ", "go6Qc", "FPMUS", "O5wWx", "dSehn", "6RjjP", "WmFpE", "emCHR", "o6hOU", "eOH82", "4K0UK", "lV0iX", "bgE7z"],
+      "related_frames": ["WT5mH", "aBO8C", "XBhIG", "AMlNT", "i2PgM", "Z0134", "y6Ufy", "ea0WQ", "go6Qc", "FPMUS", "O5wWx", "dSehn", "6RjjP", "WmFpE", "emCHR", "o6hOU", "eOH82", "4K0UK", "lV0iX", "bgE7z"],
       "smoke_tests": ["Smoke 01", "Smoke 02", "Smoke 04", "Smoke 05", "Smoke 06", "Smoke 12"]
     },
     "sandbox_monitor": {
@@ -51,7 +51,7 @@
     "project_import_export": {
       "prd": "prd-09-project-import-export.md",
       "primary_frame": "z0mJ1",
-      "related_frames": ["aYhVV", "XrBiQ", "kJVPV", "YqiXr", "f4cfp", "O5g2A", "nJ1Vf", "sqxPi", "4U4Ue"],
+      "related_frames": ["aYhVV", "XrBiQ", "kJVPV", "YqiXr", "f4cfp", "O5g2A", "nJ1Vf", "sqxPi", "4U4Ue", "Z0194"],
       "smoke_tests": ["Smoke 09", "Smoke 10"]
     },
     "settings_byok": {
@@ -73,6 +73,24 @@
       "primary_frame": "PIRts",
       "related_frames": ["aI0tb", "GKvUk", "fhYDR", "nl6rr", "h4puH", "OiGfq"],
       "runtime_evidence": ["test/scene_surfaces_test.dart"]
+    },
+    "story_bible": {
+      "design_source": "pencil supplement 2026-05-04",
+      "primary_frame": "Z0240",
+      "related_frames": [],
+      "runtime_evidence": ["test/reference_surfaces_test.dart"]
+    },
+    "production_board": {
+      "design_source": "pencil supplement 2026-05-04",
+      "primary_frame": "Z0340",
+      "related_frames": [],
+      "runtime_evidence": ["test/production_board_page_test.dart"]
+    },
+    "review_tasks": {
+      "design_source": "pencil supplement 2026-05-04",
+      "primary_frame": "Z0402",
+      "related_frames": [],
+      "runtime_evidence": ["test/production_board_page_test.dart"]
     }
   },
   "interaction_tracks": {

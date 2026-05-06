@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 03 模拟过程弹窗
 
 ## 页面目标

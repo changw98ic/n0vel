@@ -281,6 +281,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   String _lastDraftText = '';
   String? _activeDraftScopeId;
   _EditorReturnAnchor? _pendingReturnAnchor;
+  String? _dismissedCandidateText;
 
   bool get _isInteractiveDefault =>
       widget.uiState == WorkbenchUiState.defaultHidden;
@@ -475,7 +476,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         ? _editorScrollController.offset
         : 0.0;
     return _EditorReturnAnchor(
-      sceneId: workspace.currentProject.sceneId,
+      sceneId: workspace.currentProjectOrNull?.sceneId ?? '',
       selection: selection,
       scrollOffset: scrollOffset,
       expectedText: _draftController?.text ?? '',
@@ -486,13 +487,15 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final workspace = AppWorkspaceScope.of(context);
     final draftStore = AppDraftScope.of(context);
     var pendingAnchor = anchor;
-    if (workspace.currentProject.sceneId != anchor.sceneId) {
+    final projectId = workspace.currentProjectOrNull?.id ?? '';
+    final sceneId = workspace.currentProjectOrNull?.sceneId ?? '';
+    if (projectId.isEmpty || sceneId != anchor.sceneId) {
       final targetScene = workspace.scenes.where(
         (scene) => scene.id == anchor.sceneId,
       );
-      if (targetScene.isNotEmpty) {
+      if (targetScene.isNotEmpty && projectId.isNotEmpty) {
         final scene = targetScene.first;
-        final targetScopeId = '${workspace.currentProject.id}::${scene.id}';
+        final targetScopeId = '$projectId::${scene.id}';
         pendingAnchor = _EditorReturnAnchor(
           sceneId: anchor.sceneId,
           selection: anchor.selection,
@@ -517,7 +520,8 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       return;
     }
     final workspace = AppWorkspaceScope.of(context);
-    if (workspace.currentProject.sceneId != pendingAnchor.sceneId) {
+    if ((workspace.currentProjectOrNull?.sceneId ?? '') !=
+        pendingAnchor.sceneId) {
       return;
     }
     final controller = _draftController!;
@@ -779,7 +783,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         ? Uri.tryParse(settings.baseUrl.trim())!.host
         : settings.baseUrl.trim();
     final simulationSummary = switch (simulation.status) {
-      SimulationStatus.none => '暂无模拟记录',
+      SimulationStatus.none => '还没有 AI 试写记录',
       SimulationStatus.running =>
         '${simulation.headline} · ${simulation.stageSummary}',
       SimulationStatus.completed =>
@@ -1396,6 +1400,53 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     );
   }
 
+  Future<void> _acceptAiCandidateDraft(String candidateText) async {
+    final trimmedCandidate = candidateText.trim();
+    if (trimmedCandidate.isEmpty) {
+      return;
+    }
+    final draftStore = AppDraftScope.of(context);
+    final versionStore = AppVersionScope.of(context);
+    final original = draftStore.snapshot.text;
+    try {
+      await versionStore.captureSnapshotAndPersist(
+        label: '采纳 AI 候选稿前',
+        content: original,
+      );
+      await draftStore.updateTextAndPersist(trimmedCandidate);
+      await versionStore.captureSnapshotAndPersist(
+        label: '采纳 AI 候选稿',
+        content: trimmedCandidate,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _dismissedCandidateText = trimmedCandidate;
+      });
+      await _showMessageDialog(
+        title: '已采纳候选稿',
+        message: '正文已更新，并已保存采纳前后的两个版本。',
+      );
+    } catch (_) {
+      await _showMessageDialog(
+        title: '采纳失败',
+        message: '候选稿没有写入正文。请检查本地保存状态后重试。',
+      );
+    }
+  }
+
+  void _reviseAiCandidateDraft(String candidateText) {
+    _aiPromptController.text = '基于当前 AI 候选稿继续修改：';
+    _aiPromptController.selection = TextSelection.collapsed(
+      offset: _aiPromptController.text.length,
+    );
+    setState(() {
+      _activeToolPanel = WorkbenchToolPanel.ai;
+      _aiToolMode = AiToolMode.rewrite;
+    });
+  }
+
   void _mapReviewSnapshotToTasks(StoryGenerationRunSnapshot snapshot) {
     final reviewMessages = _reviewIssueMessages(snapshot);
     if (reviewMessages.isEmpty) {
@@ -1500,6 +1551,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     if (_activeDraftScopeId != draftStore.activeProjectId) {
       _activeDraftScopeId = draftStore.activeProjectId;
       _aiSelections.clear();
+      _dismissedCandidateText = null;
       _lastDraftText = draft.text;
       _lastEditorSelection = TextSelection.collapsed(offset: draft.text.length);
       if (_pendingReturnAnchor != null &&
@@ -1546,23 +1598,58 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final diagnosticReport = settingsStore.diagnosticReport;
     final canGenerateAi =
         settingsStore.hasReadyConfiguration && !settingsHasPersistenceIssue;
+    final currentSceneId = workspace.currentScene.id;
+    final hasSyncedCharacterContext = _hasUsableSceneContext(
+      sceneContext.characterSummary,
+      '角色摘要',
+    );
+    final hasSyncedWorldContext = _hasUsableSceneContext(
+      sceneContext.worldSummary,
+      '世界观摘要',
+    );
     final linkedCharacters = [
       for (final character in workspace.characters)
-        if (character.linkedSceneIds.contains(workspace.currentScene.id))
+        if (_resourceBelongsToCurrentScene(
+          linkedSceneIds: character.linkedSceneIds,
+          currentSceneId: currentSceneId,
+          resourceName: character.name,
+          syncedSummary: sceneContext.characterSummary,
+        ))
           character,
     ];
     final linkedWorldNodes = [
       for (final node in workspace.worldNodes)
-        if (node.linkedSceneIds.contains(workspace.currentScene.id)) node,
+        if (_resourceBelongsToCurrentScene(
+          linkedSceneIds: node.linkedSceneIds,
+          currentSceneId: currentSceneId,
+          resourceName: node.title,
+          syncedSummary: sceneContext.worldSummary,
+        ))
+          node,
     ];
-    final canRunSimulation =
-        linkedCharacters.isNotEmpty && linkedWorldNodes.isNotEmpty;
+    final hasSceneCharacterBinding =
+        linkedCharacters.isNotEmpty ||
+        (workspace.characters.isNotEmpty && hasSyncedCharacterContext);
+    final hasSceneWorldReference =
+        linkedWorldNodes.isNotEmpty ||
+        (workspace.worldNodes.isNotEmpty && hasSyncedWorldContext);
+    final canRunSimulation = hasSceneCharacterBinding && hasSceneWorldReference;
+    final guideStageIndex = _creativeGuideStageIndex(
+      hasCharacters: workspace.characters.isNotEmpty,
+      hasWorldNodes: workspace.worldNodes.isNotEmpty,
+      hasSceneSummary: workspace.currentScene.summary.trim().isNotEmpty,
+      hasDraft: draft.text.trim().isNotEmpty,
+      hasSceneCharacterBinding: hasSceneCharacterBinding,
+      hasSceneWorldReference: hasSceneWorldReference,
+      hasRun: storyRunStore.snapshot.hasRun,
+    );
     final statusBanner = _buildStatusBanner(
       theme,
       simulation,
       showContextSynced: _showContextSyncedBanner,
-      hasSceneCharacterBinding: linkedCharacters.isNotEmpty,
-      hasSceneWorldReference: linkedWorldNodes.isNotEmpty,
+      canGenerateAi: canGenerateAi,
+      hasSceneCharacterBinding: hasSceneCharacterBinding,
+      hasSceneWorldReference: hasSceneWorldReference,
     );
 
     return DesktopShellFrame(
@@ -1580,6 +1667,97 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
           final showToolRail =
               layoutConstraints.maxWidth >=
               DesktopLayoutTokens.narrowBreakpoint;
+          final toolWindow = _activeToolPanel != null
+              ? Container(
+                  key: WorkbenchShellPage.toolWindowKey,
+                  width: DesktopLayoutTokens.workbenchToolWindowWidth,
+                  padding: const EdgeInsets.all(16),
+                  decoration: appPanelDecoration(context),
+                  child: _ToolWindowPanel(
+                    activePanel: _activeToolPanel!,
+                    authorFeedbackStore: authorFeedbackStore,
+                    reviewTaskStore: reviewTaskStore,
+                    scenes: workspace.scenes,
+                    currentSceneId:
+                        workspace.currentProjectOrNull?.sceneId ?? '',
+                    currentChapterId:
+                        workspace.currentSceneOrNull?.chapterLabel ?? '',
+                    currentSceneLabel:
+                        workspace.currentSceneOrNull?.displayLocation ?? '',
+                    sourceRunId: _sourceRunId(
+                      workspace.currentProjectOrNull?.id ?? '',
+                      storyRunStore.snapshot,
+                    ),
+                    sourceRunLabel: _sourceRunLabel(storyRunStore.snapshot),
+                    sceneContext: sceneContext,
+                    uiState: widget.uiState,
+                    settings: settings,
+                    settingsFeedback: settingsFeedback,
+                    settingsHasPersistenceIssue: settingsHasPersistenceIssue,
+                    canGenerateAi: canGenerateAi,
+                    isGeneratingAi: _isGeneratingAi,
+                    diagnosticReport: diagnosticReport,
+                    aiToolMode: _aiToolMode,
+                    historyEntries: AppAiHistoryScope.of(context).entries,
+                    aiPromptController: _aiPromptController,
+                    onRetrySecureStore: settingsStore.retrySecureStoreAccess,
+                    draftText: draft.text,
+                    currentSelectionPreview: currentSelectionPreview,
+                    selectionDrafts: List<_AiSelectionDraft>.unmodifiable(
+                      _aiSelections,
+                    ),
+                    onSelectAiMode: (mode) {
+                      setState(() {
+                        _aiToolMode = mode;
+                      });
+                    },
+                    onGenerateAiSuggestion: _generateAiSuggestion,
+                    onReplayAiHistory: _replayAiHistory,
+                    onDeleteAiHistoryEntry: (entry) {
+                      AppAiHistoryScope.of(context).removeEntry(entry.sequence);
+                    },
+                    onClearAiHistory: () {
+                      AppAiHistoryScope.of(context).clear();
+                    },
+                    onSyncContext: () {
+                      AppSceneContextScope.of(context).syncContext();
+                      setState(() {
+                        _showContextSyncedBanner = true;
+                      });
+                    },
+                    onSelectScene: (scene) {
+                      workspace.updateCurrentScene(
+                        sceneId: scene.id,
+                        recentLocation: scene.displayLocation,
+                      );
+                    },
+                    onCreateScene: () => _showSceneDialog(
+                      context,
+                      title: '新建场景',
+                      initialValue: '',
+                      onConfirm: workspace.createScene,
+                    ),
+                    onRenameScene: () => _showSceneDialog(
+                      context,
+                      title: '重命名场景',
+                      initialValue: workspace.currentSceneOrNull?.title ?? '',
+                      onConfirm: workspace.renameCurrentScene,
+                    ),
+                    onDeleteScene: () => _confirmDeleteScene(
+                      context,
+                      workspace.deleteCurrentScene,
+                    ),
+                    canDeleteScene: workspace.canDeleteCurrentScene,
+                    onOpenSettings: () =>
+                        _openSettingsAndRestoreAnchor(closeToolPanel: true),
+                    onAddCurrentSelection: _addCurrentSelectionFromEditor,
+                    onEditSelectionPrompt: _editSelectionPrompt,
+                    onRemoveSelection: _removeSelection,
+                  ),
+                )
+              : null;
+          final showToolRailInCompact =
+              showToolRail && !(compact && toolWindow != null && _isDrawerOpen);
 
           final editorPane = Expanded(
             child: Container(
@@ -1589,96 +1767,195 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (statusBanner != null) ...[
-                    statusBanner,
-                    const SizedBox(height: 12),
-                  ],
-                  if (_isInteractiveDefault) ...[
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final secondaryActions = Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            OutlinedButton(
-                              key: WorkbenchShellPage.saveVersionButtonKey,
-                              onPressed: () {
-                                AppVersionScope.of(context).captureSnapshot(
-                                  label: '手动保存',
-                                  content: draft.text,
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (statusBanner != null) ...[
+                            statusBanner,
+                            const SizedBox(height: 12),
+                          ],
+                          _CreationGuideCard(
+                            currentStageIndex: guideStageIndex,
+                            hasCharacters: workspace.characters.isNotEmpty,
+                            hasWorldNodes: workspace.worldNodes.isNotEmpty,
+                            hasSceneSummary: workspace.currentScene.summary
+                                .trim()
+                                .isNotEmpty,
+                            hasDraft: draft.text.trim().isNotEmpty,
+                            hasSceneCharacterBinding: hasSceneCharacterBinding,
+                            hasSceneWorldReference: hasSceneWorldReference,
+                            hasRun: storyRunStore.snapshot.hasRun,
+                            onOpenCharacters: () {
+                              final anchor = _captureReturnAnchor();
+                              AppNavigator.push(context, AppRoutes.characters);
+                              _restoreReturnAnchor(anchor);
+                            },
+                            onOpenWorldbuilding: () {
+                              final anchor = _captureReturnAnchor();
+                              AppNavigator.push(
+                                context,
+                                AppRoutes.worldbuilding,
+                              );
+                              _restoreReturnAnchor(anchor);
+                            },
+                            onOpenOutline: () {
+                              AppNavigator.push(context, AppRoutes.storyBible);
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          if (_isInteractiveDefault) ...[
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final secondaryActions = Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    OutlinedButton(
+                                      key: WorkbenchShellPage
+                                          .saveVersionButtonKey,
+                                      onPressed: () {
+                                        AppVersionScope.of(
+                                          context,
+                                        ).captureSnapshot(
+                                          label: '手动保存',
+                                          content: draft.text,
+                                        );
+                                      },
+                                      child: const Text('保存版本'),
+                                    ),
+                                    TextButton(
+                                      key: WorkbenchShellPage
+                                          .openVersionsButtonKey,
+                                      onPressed: () {
+                                        AppNavigator.push(
+                                          context,
+                                          AppRoutes.versions,
+                                        );
+                                      },
+                                      child: const Text('查看版本'),
+                                    ),
+                                  ],
+                                );
+                                final runPanel = _StoryGenerationRunPanel(
+                                  store: storyRunStore,
+                                  canRun: canRunSimulation,
+                                  dismissedCandidateText:
+                                      _dismissedCandidateText,
+                                  onRun: () async {
+                                    final confirmed = await _confirmAiSceneRun(
+                                      providerSummary: settingsStore
+                                          .generationProviderSummary(),
+                                      characterNames:
+                                          _resourceNamesForConfirmation(
+                                            linked: [
+                                              for (final character
+                                                  in linkedCharacters)
+                                                character.name,
+                                            ],
+                                            fallback: [
+                                              for (final character
+                                                  in workspace.characters)
+                                                character.name,
+                                            ],
+                                          ),
+                                      worldNames: _resourceNamesForConfirmation(
+                                        linked: [
+                                          for (final node in linkedWorldNodes)
+                                            node.title,
+                                        ],
+                                        fallback: [
+                                          for (final node
+                                              in workspace.worldNodes)
+                                            node.title,
+                                        ],
+                                      ),
+                                      sceneLabel: workspace
+                                          .currentScene
+                                          .displayLocation,
+                                      sceneSummary:
+                                          workspace.currentScene.summary,
+                                      draftWordCount: draft.text.trim().length,
+                                    );
+                                    if (!confirmed || !context.mounted) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _dismissedCandidateText = null;
+                                    });
+                                    AppSimulationScope.of(
+                                      context,
+                                    ).startSuccessfulRun(eventLog: _eventLog);
+                                    storyRunStore.runCurrentScene();
+                                  },
+                                  onForceFailure: () {
+                                    AppSimulationScope.of(
+                                      context,
+                                    ).startFailureRun(eventLog: _eventLog);
+                                    storyRunStore.runCurrentScene(
+                                      forceFailure: true,
+                                    );
+                                  },
+                                  onCancel: () {
+                                    storyRunStore.cancelCurrentRun();
+                                    AppSimulationScope.of(
+                                      context,
+                                    ).reset(eventLog: _eventLog);
+                                  },
+                                  onAcceptCandidate: _acceptAiCandidateDraft,
+                                  onReviseCandidate: _reviseAiCandidateDraft,
+                                  onDismissCandidate: (candidateText) {
+                                    setState(() {
+                                      _dismissedCandidateText = candidateText;
+                                    });
+                                  },
+                                  onMapReviewTasks: _mapReviewSnapshotToTasks,
+                                );
+
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: appPanelDecoration(
+                                    context,
+                                    color: palette.surface,
+                                  ),
+                                  child: constraints.maxWidth < 420
+                                      ? Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '正文优先显示，快速操作保持低干扰。',
+                                              style: theme.textTheme.bodySmall,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            runPanel,
+                                            const SizedBox(height: 8),
+                                            secondaryActions,
+                                          ],
+                                        )
+                                      : Row(
+                                          children: [
+                                            Expanded(child: runPanel),
+                                            const SizedBox(width: 12),
+                                            Flexible(child: secondaryActions),
+                                          ],
+                                        ),
                                 );
                               },
-                              child: const Text('保存版本'),
                             ),
-                            TextButton(
-                              key: WorkbenchShellPage.openVersionsButtonKey,
-                              onPressed: () {
-                                AppNavigator.push(context, AppRoutes.versions);
-                              },
-                              child: const Text('查看版本'),
-                            ),
+                            const SizedBox(height: 12),
                           ],
-                        );
-                        final runPanel = _StoryGenerationRunPanel(
-                          store: storyRunStore,
-                          canRun: canRunSimulation,
-                          onRun: () {
-                            AppSimulationScope.of(
-                              context,
-                            ).startSuccessfulRun(eventLog: _eventLog);
-                            storyRunStore.runCurrentScene();
-                          },
-                          onForceFailure: () {
-                            AppSimulationScope.of(
-                              context,
-                            ).startFailureRun(eventLog: _eventLog);
-                            storyRunStore.runCurrentScene(forceFailure: true);
-                          },
-                          onCancel: () {
-                            storyRunStore.cancelCurrentRun();
-                            AppSimulationScope.of(
-                              context,
-                            ).reset(eventLog: _eventLog);
-                          },
-                          onMapReviewTasks: _mapReviewSnapshotToTasks,
-                        );
-
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: appPanelDecoration(
-                            context,
-                            color: palette.surface,
-                          ),
-                          child: constraints.maxWidth < 420
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '正文优先显示，快速操作保持低干扰。',
-                                      style: theme.textTheme.bodySmall,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    runPanel,
-                                    const SizedBox(height: 8),
-                                    secondaryActions,
-                                  ],
-                                )
-                              : Row(
-                                  children: [
-                                    Expanded(child: runPanel),
-                                    const SizedBox(width: 12),
-                                    Flexible(child: secondaryActions),
-                                  ],
-                                ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                  ],
+                  ),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1753,93 +2030,6 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               ),
             ),
           );
-
-          final toolWindow = _activeToolPanel != null
-              ? Container(
-                  key: WorkbenchShellPage.toolWindowKey,
-                  width: DesktopLayoutTokens.workbenchToolWindowWidth,
-                  padding: const EdgeInsets.all(16),
-                  decoration: appPanelDecoration(context),
-                  child: _ToolWindowPanel(
-                    activePanel: _activeToolPanel!,
-                    authorFeedbackStore: authorFeedbackStore,
-                    reviewTaskStore: reviewTaskStore,
-                    scenes: workspace.scenes,
-                    currentSceneId: workspace.currentProject.sceneId,
-                    currentChapterId: workspace.currentScene.chapterLabel,
-                    currentSceneLabel: workspace.currentScene.displayLocation,
-                    sourceRunId: _sourceRunId(
-                      workspace.currentProject.id,
-                      storyRunStore.snapshot,
-                    ),
-                    sourceRunLabel: _sourceRunLabel(storyRunStore.snapshot),
-                    sceneContext: sceneContext,
-                    uiState: widget.uiState,
-                    settings: settings,
-                    settingsFeedback: settingsFeedback,
-                    settingsHasPersistenceIssue: settingsHasPersistenceIssue,
-                    canGenerateAi: canGenerateAi,
-                    isGeneratingAi: _isGeneratingAi,
-                    diagnosticReport: diagnosticReport,
-                    aiToolMode: _aiToolMode,
-                    historyEntries: AppAiHistoryScope.of(context).entries,
-                    aiPromptController: _aiPromptController,
-                    onRetrySecureStore: settingsStore.retrySecureStoreAccess,
-                    draftText: draft.text,
-                    currentSelectionPreview: currentSelectionPreview,
-                    selectionDrafts: List<_AiSelectionDraft>.unmodifiable(
-                      _aiSelections,
-                    ),
-                    onSelectAiMode: (mode) {
-                      setState(() {
-                        _aiToolMode = mode;
-                      });
-                    },
-                    onGenerateAiSuggestion: _generateAiSuggestion,
-                    onReplayAiHistory: _replayAiHistory,
-                    onDeleteAiHistoryEntry: (entry) {
-                      AppAiHistoryScope.of(context).removeEntry(entry.sequence);
-                    },
-                    onClearAiHistory: () {
-                      AppAiHistoryScope.of(context).clear();
-                    },
-                    onSyncContext: () {
-                      AppSceneContextScope.of(context).syncContext();
-                      setState(() {
-                        _showContextSyncedBanner = true;
-                      });
-                    },
-                    onSelectScene: (scene) {
-                      workspace.updateCurrentScene(
-                        sceneId: scene.id,
-                        recentLocation: scene.displayLocation,
-                      );
-                    },
-                    onCreateScene: () => _showSceneDialog(
-                      context,
-                      title: '新建场景',
-                      initialValue: '',
-                      onConfirm: workspace.createScene,
-                    ),
-                    onRenameScene: () => _showSceneDialog(
-                      context,
-                      title: '重命名场景',
-                      initialValue: workspace.currentScene.title,
-                      onConfirm: workspace.renameCurrentScene,
-                    ),
-                    onDeleteScene: () => _confirmDeleteScene(
-                      context,
-                      workspace.deleteCurrentScene,
-                    ),
-                    canDeleteScene: workspace.canDeleteCurrentScene,
-                    onOpenSettings: () =>
-                        _openSettingsAndRestoreAnchor(closeToolPanel: true),
-                    onAddCurrentSelection: _addCurrentSelectionFromEditor,
-                    onEditSelectionPrompt: _editSelectionPrompt,
-                    onRemoveSelection: _removeSelection,
-                  ),
-                )
-              : null;
 
           final toolRail = Container(
             key: WorkbenchShellPage.toolRailKey,
@@ -1931,7 +2121,10 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                   SizedBox(width: spacing),
                 ],
                 editorPane,
-                if (showToolRail) ...[SizedBox(width: spacing), toolRail],
+                if (showToolRailInCompact) ...[
+                  SizedBox(width: spacing),
+                  toolRail,
+                ],
               ],
             );
           }
@@ -1981,61 +2174,78 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        isSelected: true,
-        onTap: () {
-          setState(() {
-            _isDrawerOpen = false;
-          });
-        },
-      ),
-      DesktopMenuItemData(
-        label: '生产看板',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.productionBoard);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '审查任务',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.reviewTasks);
-        },
-      ),
-      DesktopMenuItemData(label: '设置', onTap: _openSettingsAndRestoreAnchor),
-    ];
+    void closeDrawer() {
+      setState(() {
+        _isDrawerOpen = false;
+      });
+    }
+
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.workbench,
+      onShelf: () {
+        closeDrawer();
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+      onWorkbench: closeDrawer,
+      onStyle: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.style);
+      },
+      onScenes: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.scenes);
+      },
+      onCharacters: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.characters);
+      },
+      onWorldbuilding: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.worldbuilding);
+      },
+      onStoryBible: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.storyBible);
+      },
+      onAudit: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.audit);
+      },
+      onSettings: _openSettingsAndRestoreAnchor,
+      onProductionBoard: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.productionBoard);
+      },
+      onReviewTasks: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.reviewTasks);
+      },
+    );
   }
 
   String _statusLabel(SimulationStatus status) {
     switch (status) {
       case SimulationStatus.none:
-        return '暂无模拟记录';
+        return '还没有 AI 试写记录';
       case SimulationStatus.running:
-        return '模拟进行中';
+        return 'AI 正在写这一场';
       case SimulationStatus.completed:
-        return '模拟已完成';
+        return 'AI 试写完成';
       case SimulationStatus.failed:
-        return '模拟失败';
+        return 'AI 试写失败';
     }
   }
 
   String _statusMetaLabel(String draftText) {
     final panelLabel = switch (_activeToolPanel) {
-      WorkbenchToolPanel.resources => '资料窗口',
+      WorkbenchToolPanel.resources => '场景资料',
       WorkbenchToolPanel.ai => 'AI 工具',
       WorkbenchToolPanel.feedback => '作者反馈',
-      WorkbenchToolPanel.reviewTasks => '审查任务',
+      WorkbenchToolPanel.reviewTasks => '改稿任务',
       WorkbenchToolPanel.settings => '设置快捷面板',
       null => '写作模式',
     };
-    return '$panelLabel · 阅读模式可切换 · ${_formatDraftUnitCount(draftText)} 字';
+    return '$panelLabel · 阅读模式可切换 · ${_formatDraftUnitCount(draftText)} 字符';
   }
 
   String _formatDraftUnitCount(String draftText) {
@@ -2104,10 +2314,134 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     );
   }
 
+  Future<bool> _confirmAiSceneRun({
+    required String providerSummary,
+    required List<String> characterNames,
+    required List<String> worldNames,
+    required String sceneLabel,
+    required String sceneSummary,
+    required int draftWordCount,
+  }) async {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('确认让 AI 写这一场'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'AI 会先生成候选内容和过程记录，不会直接覆盖正文。你可以看完后再决定采纳、改写或放弃。',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  _ConfirmationLine(label: '将使用', value: providerSummary),
+                  _ConfirmationLine(label: '当前场景', value: sceneLabel),
+                  _ConfirmationLine(
+                    label: '出场人物',
+                    value: characterNames.isEmpty
+                        ? '还没有明确出场人物'
+                        : characterNames.join('、'),
+                  ),
+                  _ConfirmationLine(
+                    label: '世界观资料',
+                    value: worldNames.isEmpty
+                        ? '还没有明确世界观资料'
+                        : worldNames.join('、'),
+                  ),
+                  _ConfirmationLine(
+                    label: '场景目标',
+                    value: sceneSummary.trim().isEmpty
+                        ? '还没有场景摘要，AI 会更依赖正文上下文。'
+                        : sceneSummary.trim(),
+                  ),
+                  _ConfirmationLine(
+                    label: '当前正文',
+                    value: '$draftWordCount 字符，自动保存仍会保留原文。',
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: palette.border),
+                    ),
+                    child: Text(
+                      '安全规则：AI 只生成候选稿；正文需要你主动采纳才会改变。建议生成前先点一次「保存版本」。',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('先不生成'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('确认生成候选稿'),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  int _creativeGuideStageIndex({
+    required bool hasCharacters,
+    required bool hasWorldNodes,
+    required bool hasSceneSummary,
+    required bool hasDraft,
+    required bool hasSceneCharacterBinding,
+    required bool hasSceneWorldReference,
+    required bool hasRun,
+  }) {
+    if (!hasCharacters || !hasWorldNodes) {
+      return 1;
+    }
+    if (!hasSceneSummary) {
+      return 2;
+    }
+    if (!hasSceneCharacterBinding || !hasSceneWorldReference) {
+      return 3;
+    }
+    if (!hasDraft && !hasRun) {
+      return 4;
+    }
+    if (hasRun) {
+      return 5;
+    }
+    return 4;
+  }
+
+  List<String> _resourceNamesForConfirmation({
+    required List<String> linked,
+    required List<String> fallback,
+  }) {
+    final source = linked.isNotEmpty ? linked : fallback;
+    return [
+      for (final name in source)
+        if (name.trim().isNotEmpty) name.trim(),
+    ];
+  }
+
   Widget? _buildStatusBanner(
     ThemeData theme,
     AppSimulationSnapshot simulation, {
     required bool showContextSynced,
+    required bool canGenerateAi,
     required bool hasSceneCharacterBinding,
     required bool hasSceneWorldReference,
   }) {
@@ -2119,39 +2453,61 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       case WorkbenchUiState.noSimulationYet:
         if (showContextSynced) {
           return _StatusBanner(
-            title: '资料已同步到当前工作台。',
-            message: '角色、世界观与上下文摘要已经刷新，正文位置保持不变。',
+            title: '当前场景资料已刷新。',
+            message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
             accentColor: const Color(0xFF5B7A5A),
           );
         }
         if (!hasSceneCharacterBinding) {
           return _StatusBanner(
-            title: '模拟不可用：当前场景还没有绑定参与角色。',
-            message: '正文仍可继续编辑，但运行模拟前需要补充角色绑定。',
+            title: '这一场还没选择出场人物。',
+            message: '选择出场人物后，AI 才能按角色设定写这一场。',
+            actionLabel: '选择出场人物',
+            onActionTap: () {
+              final anchor = _captureReturnAnchor();
+              AppNavigator.push(context, AppRoutes.characters);
+              _restoreReturnAnchor(anchor);
+            },
             accentColor: const Color(0xFFB6813B),
           );
         }
         if (!hasSceneWorldReference) {
           return _StatusBanner(
-            title: '世界观引用已失效，地点与规则约束需要重新绑定。',
-            message: '正文可继续编辑，但场景约束与模拟条件当前不可用。',
+            title: '这一场还没选择世界观资料。',
+            message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
+            actionLabel: '选择世界观资料',
+            onActionTap: () {
+              final anchor = _captureReturnAnchor();
+              AppNavigator.push(context, AppRoutes.worldbuilding);
+              _restoreReturnAnchor(anchor);
+            },
             accentColor: const Color(0xFFB6813B),
           );
         }
         switch (simulationStatus) {
           case SimulationStatus.none:
-            return widget.uiState == WorkbenchUiState.noSimulationYet
-                ? _StatusBanner(
-                    title: '暂无可查看的模拟记录。',
-                    message: '你仍然可以继续编辑正文，或先发起一次新的模拟。',
-                    accentColor: const Color(0xFF5C6E85),
-                  )
-                : null;
+            if (widget.uiState == WorkbenchUiState.noSimulationYet) {
+              return _StatusBanner(
+                title: '还没有 AI 试写记录。',
+                message: '你可以继续写正文，或让 AI 按当前资料试写这一场。',
+                accentColor: const Color(0xFF5C6E85),
+              );
+            }
+            if (!canGenerateAi) {
+              return _StatusBanner(
+                title: 'AI 还没配置好。',
+                message: '请先在设置里保存可用的供应商、模型和密钥，再生成候选稿。',
+                actionLabel: '前往设置',
+                onActionTap: _openSettingsAndRestoreAnchor,
+                accentColor: const Color(0xFFB6813B),
+              );
+            }
+            return null;
           case SimulationStatus.running:
             return _StatusBanner(
-              title: '模拟进行中',
+              title: 'AI 正在写这一场',
               message: '${simulation.summary} · ${simulation.stageSummary}',
-              actionLabel: '查看模拟过程',
+              actionLabel: '查看生成过程',
               onActionTap: () {
                 _openSandboxMonitor(fallbackStatus: SimulationStatus.running);
               },
@@ -2159,9 +2515,9 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             );
           case SimulationStatus.completed:
             return _StatusBanner(
-              title: '模拟已完成',
+              title: 'AI 试写完成',
               message: '${simulation.summary} · ${simulation.sceneLabel}',
-              actionLabel: '查看模拟过程',
+              actionLabel: '查看生成过程',
               onActionTap: () {
                 _openSandboxMonitor(fallbackStatus: SimulationStatus.completed);
               },
@@ -2169,9 +2525,9 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             );
           case SimulationStatus.failed:
             return _StatusBanner(
-              title: '模拟未完成，正文保持原样。',
+              title: 'AI 试写未完成，正文保持原样。',
               message: '${simulation.summary} · ${simulation.turnSummary}',
-              actionLabel: '查看失败详情',
+              actionLabel: '查看原因',
               onActionTap: () {
                 _openSandboxMonitor(
                   fallbackStatus: SimulationStatus.failed,
@@ -2193,30 +2549,75 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         );
       case WorkbenchUiState.missingCharacterBinding:
         return _StatusBanner(
-          title: '模拟不可用：当前场景还没有绑定参与角色。',
-          message: '正文仍可继续编辑，但运行模拟前需要补充角色绑定。',
+          title: '这一场还没选择出场人物。',
+          message: '选择出场人物后，AI 才能按角色设定写这一场。',
+          actionLabel: '选择出场人物',
+          onActionTap: () {
+            AppNavigator.push(context, AppRoutes.characters);
+          },
           accentColor: const Color(0xFFB6813B),
         );
       case WorkbenchUiState.missingCharacterReference:
         return _StatusBanner(
-          title: '角色引用已失效，正文仍可继续编辑。',
-          message: '重新绑定角色后，人物摘要与模拟入口会恢复。',
+          title: '出场人物需要重新确认，正文仍可继续编辑。',
+          message: '重新选择出场人物后，人物摘要和 AI 写作入口会恢复。',
+          actionLabel: '选择出场人物',
+          onActionTap: () {
+            AppNavigator.push(context, AppRoutes.characters);
+          },
           accentColor: const Color(0xFFB6813B),
         );
       case WorkbenchUiState.missingWorldReference:
         return _StatusBanner(
-          title: '世界观引用已失效，地点与规则约束需要重新绑定。',
-          message: '正文可继续编辑，但场景约束与模拟条件当前不可用。',
+          title: '这一场还没选择世界观资料。',
+          message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
+          actionLabel: '选择世界观资料',
+          onActionTap: () {
+            AppNavigator.push(context, AppRoutes.worldbuilding);
+          },
           accentColor: const Color(0xFFB6813B),
         );
       case WorkbenchUiState.contextSynced:
         return _StatusBanner(
-          title: '资料已同步到当前工作台。',
-          message: '角色、世界观与上下文摘要已经刷新，正文位置保持不变。',
+          title: '当前场景资料已刷新。',
+          message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
           accentColor: const Color(0xFF5B7A5A),
         );
     }
   }
+}
+
+bool _resourceBelongsToCurrentScene({
+  required List<String> linkedSceneIds,
+  required String currentSceneId,
+  required String resourceName,
+  required String syncedSummary,
+}) {
+  if (linkedSceneIds.contains(currentSceneId)) {
+    return true;
+  }
+  if (linkedSceneIds.isNotEmpty) {
+    return false;
+  }
+  return syncedSummary.contains(resourceName);
+}
+
+bool _hasUsableSceneContext(String value, String expectedPrefix) {
+  final normalized = value.trim();
+  if (normalized.isEmpty ||
+      normalized.contains('等待同步') ||
+      normalized.contains('暂无') ||
+      normalized.contains('还没有')) {
+    return false;
+  }
+  if (!normalized.startsWith(expectedPrefix)) {
+    return true;
+  }
+  return normalized
+      .substring(expectedPrefix.length)
+      .replaceFirst('：', '')
+      .trim()
+      .isNotEmpty;
 }
 
 List<StoryGenerationRunMessage> _reviewIssueMessages(

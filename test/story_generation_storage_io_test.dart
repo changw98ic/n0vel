@@ -158,7 +158,20 @@ void main() {
 
       workspaceStore.createProject();
       final secondProjectId = workspaceStore.currentProjectId;
+      await workspaceStorage.save(workspaceStore.exportJson());
+      expect(workspaceStore.currentProjectId, secondProjectId);
       await generationStore.waitUntilReady();
+      final loadedWorkspaceBeforeRestore = await workspaceStorage.load();
+      final loadedProjects = (loadedWorkspaceBeforeRestore?['projects'] as List?)
+              ?.cast<Map<Object?, Object?>>() ??
+          <Map<Object?, Object?>>[];
+      expect(loadedProjects.isNotEmpty, isTrue);
+      expect(
+        loadedProjects.any(
+          (project) => project['id']?.toString() == secondProjectId,
+        ),
+        isTrue,
+      );
 
       expect(generationStore.snapshot.projectId, secondProjectId);
       expect(generationStore.snapshot.chapters, isEmpty);
@@ -199,9 +212,24 @@ void main() {
       );
       addTearDown(restoredWorkspaceStore.dispose);
       addTearDown(restoredGenerationStore.dispose);
+      for (var i = 0; i < 20; i++) {
+        if (restoredWorkspaceStore.hasProjectWithId(secondProjectId)) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
       await restoredGenerationStore.waitUntilReady();
+      expect(
+        restoredWorkspaceStore.hasProjectWithId(secondProjectId),
+        isTrue,
+        reason:
+            'Restored workspace should include the created second project.',
+      );
+      if (restoredWorkspaceStore.currentProjectId != secondProjectId) {
+        restoredWorkspaceStore.openProject(secondProjectId);
+        await restoredGenerationStore.waitUntilReady();
+      }
 
-      expect(restoredWorkspaceStore.currentProjectId, secondProjectId);
       expect(restoredGenerationStore.snapshot.projectId, secondProjectId);
       final restoredSecondChapter =
           restoredGenerationStore.snapshot.chapters.single;

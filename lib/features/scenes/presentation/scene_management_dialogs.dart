@@ -98,7 +98,7 @@ Future<void> showSummaryDialog(
     builder: (dialogContext) {
       return DesktopModalDialog(
         title: '编辑场景摘要',
-        description: '摘要会在场景管理、工作台资源面板和审计跳转提示中复用，应优先概括冲突、线索与当前目标。',
+        description: '摘要会在场景管理、工作台资源面板和问题跳转提示中复用，应优先概括冲突、线索与当前目标。',
         width: 760,
         body: SceneDialogField(
           label: '场景摘要',

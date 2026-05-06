@@ -79,7 +79,7 @@ class ProjectRecord {
     return ProjectRecord(
       id: json['id']?.toString() ?? generateProjectId(),
       sceneId: json['sceneId']?.toString() ?? generateSceneId(),
-      title: json['title']?.toString() ?? '未命名项目',
+      title: fallbackDisplayText(json['title'], fallback: '新建项目'),
       genre: json['genre']?.toString() ?? '',
       summary: json['summary']?.toString() ?? '',
       recentLocation: json['recentLocation']?.toString() ?? '',
@@ -125,7 +125,7 @@ class SceneRecord {
 class CharacterRecord {
   const CharacterRecord({
     required this.id,
-    this.name = '未命名角色',
+    this.name = '新角色',
     this.role = '',
     this.note = '',
     this.need = '',
@@ -182,7 +182,7 @@ class CharacterRecord {
     return CharacterRecord(
       id: json['id']?.toString() ??
           fallbackScopedRecordId('character', json['name']),
-      name: json['name']?.toString() ?? '未命名角色',
+      name: fallbackDisplayText(json['name'], fallback: '新角色'),
       role: json['role']?.toString() ?? '',
       note: json['note']?.toString() ?? '',
       need: json['need']?.toString() ?? '',
@@ -196,7 +196,7 @@ class CharacterRecord {
 class WorldNodeRecord {
   const WorldNodeRecord({
     required this.id,
-    this.title = '未命名节点',
+    this.title = '新节点',
     this.location = '',
     this.type = '',
     this.detail = '',
@@ -258,7 +258,7 @@ class WorldNodeRecord {
     return WorldNodeRecord(
       id: json['id']?.toString() ??
           fallbackScopedRecordId('world', json['title']),
-      title: json['title']?.toString() ?? '未命名节点',
+      title: fallbackDisplayText(json['title'], fallback: '新节点'),
       location: json['location']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       detail: json['detail']?.toString() ?? '',
@@ -273,7 +273,7 @@ class WorldNodeRecord {
 class AuditIssueRecord {
   const AuditIssueRecord({
     required this.id,
-    this.title = '未命名问题',
+    this.title = '待处理问题',
     this.evidence = '',
     this.target = '',
     this.status = AuditIssueStatus.open,
@@ -327,7 +327,7 @@ class AuditIssueRecord {
     return AuditIssueRecord(
       id: json['id']?.toString() ??
           fallbackScopedRecordId('audit', json['title']),
-      title: json['title']?.toString() ?? '未命名问题',
+      title: fallbackDisplayText(json['title'], fallback: '待处理问题'),
       evidence: json['evidence']?.toString() ?? '',
       target: json['target']?.toString() ?? '',
       status: decodeAuditIssueStatus(json['status']),
@@ -340,7 +340,7 @@ class AuditIssueRecord {
 class StyleProfileRecord {
   const StyleProfileRecord({
     required this.id,
-    this.name = '未命名风格',
+    this.name = '默认风格',
     this.source = 'questionnaire',
     this.jsonData = const {},
   });
@@ -377,7 +377,7 @@ class StyleProfileRecord {
     return StyleProfileRecord(
       id: json['id']?.toString() ??
           fallbackScopedRecordId('style', json['name']),
-      name: json['name']?.toString() ?? '未命名风格',
+      name: fallbackDisplayText(json['name'], fallback: '默认风格'),
       source: json['source']?.toString() ?? 'questionnaire',
       jsonData: stringObjectMapFromRaw(json['jsonData']),
     );
@@ -426,6 +426,11 @@ String fallbackScopedRecordId(String prefix, Object? seed) {
     return '$prefix-fallback';
   }
   return '$prefix-$normalized';
+}
+
+String fallbackDisplayText(Object? raw, {required String fallback}) {
+  final trimmed = raw?.toString().trim() ?? '';
+  return trimmed.isEmpty ? fallback : trimmed;
 }
 
 List<String> stringListFromRaw(Object? raw) {

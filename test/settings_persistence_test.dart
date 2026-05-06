@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -297,6 +299,89 @@ void main() {
 
       expect(baseUrlField.controller?.text, 'https://draft.local/v1');
       expect(apiKeyField.controller?.text, 'sk-recovered-key');
+    },
+  );
+
+  testWidgets(
+    'read-failure warning keeps local field edits made before restore completes',
+    (tester) async {
+      final storage = _DelayedReadWithFailureStorage();
+      AppSettingsStore.debugStorageOverride = storage;
+
+      await tester.pumpWidget(const NovelWriterApp(home: SettingsShellPage()));
+
+      await tester.enterText(
+        find.byKey(SettingsShellPage.baseUrlFieldKey),
+        'https://draft.local/v1',
+      );
+      storage.completeRead();
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('设置文件读取失败'), findsWidgets);
+      expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+      final baseUrlField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.baseUrlFieldKey),
+      );
+      expect(baseUrlField.controller?.text, 'https://draft.local/v1');
+    },
+  );
+
+  testWidgets(
+    'write-failure warning keeps edited values when delayed restore succeeds',
+    (tester) async {
+      final storage = _DelayedReadThenWriteRecoveryStorage();
+      AppSettingsStore.debugStorageOverride = storage;
+
+      await tester.pumpWidget(const NovelWriterApp(home: SettingsShellPage()));
+
+      await tester.enterText(
+        find.byKey(SettingsShellPage.baseUrlFieldKey),
+        'https://draft.local/v1',
+      );
+      await tester.enterText(
+        find.byKey(SettingsShellPage.modelFieldKey),
+        'gpt-5.4',
+      );
+      await tester.enterText(
+        find.byKey(SettingsShellPage.apiKeyFieldKey),
+        'sk-draft-key',
+      );
+      await tester.tap(find.byKey(SettingsShellPage.saveButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(find.text('设置保存失败'), findsWidgets);
+
+      storage.completeRead();
+      await tester.pumpAndSettle();
+
+      expect(find.text('设置保存失败'), findsWidgets);
+      final baseUrlField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.baseUrlFieldKey),
+      );
+      final modelField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.modelFieldKey),
+      );
+      final apiKeyField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.apiKeyFieldKey),
+      );
+      expect(baseUrlField.controller?.text, 'https://draft.local/v1');
+      expect(modelField.controller?.text, 'gpt-5.4');
+      expect(apiKeyField.controller?.text, 'sk-draft-key');
+      expect(find.byKey(SettingsShellPage.retrySecureStoreButtonKey), findsOneWidget);
+
+      await tester.tap(find.byKey(SettingsShellPage.retrySecureStoreButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(find.text('配置已重新保存'), findsWidgets);
+      final restoredBaseUrlField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.baseUrlFieldKey),
+      );
+      final restoredApiKeyField = tester.widget<TextField>(
+        find.byKey(SettingsShellPage.apiKeyFieldKey),
+      );
+      expect(restoredBaseUrlField.controller?.text, 'https://draft.local/v1');
+      expect(restoredApiKeyField.controller?.text, 'sk-draft-key');
     },
   );
 
@@ -672,5 +757,80 @@ class _RecordingAppEventLogStorage implements AppEventLogStorage {
   @override
   Future<void> write(AppEventLogEntry entry) async {
     entries.add(entry);
+  }
+}
+
+class _DelayedReadWithFailureStorage implements AppSettingsStorage {
+  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue =>
+      AppSettingsPersistenceIssue.fileReadFailed;
+
+  @override
+  String? get lastLoadDetail => 'settings.json is unreadable';
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    return _loadCompleter.future;
+  }
+
+  void completeRead() {
+    _loadCompleter.complete({
+      'providerName': 'OpenAI 兼容服务',
+      'baseUrl': 'https://api.example.com/v1',
+      'model': 'gpt-5.4',
+      'apiKey': 'sk-initial',
+      'themePreference': 'light',
+    });
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    return const AppSettingsSaveResult();
+  }
+}
+
+class _DelayedReadThenWriteRecoveryStorage implements AppSettingsStorage {
+  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
+  int _saveCallCount = 0;
+  AppSettingsPersistenceIssue _lastLoadIssue =
+      AppSettingsPersistenceIssue.fileReadFailed;
+  String? _lastLoadDetail;
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue => _lastLoadIssue;
+
+  @override
+  String? get lastLoadDetail => _lastLoadDetail;
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    return _loadCompleter.future;
+  }
+
+  void completeRead() {
+    _lastLoadIssue = AppSettingsPersistenceIssue.none;
+    _lastLoadDetail = null;
+    _loadCompleter.complete({
+      'providerName': 'OpenAI 兼容服务',
+      'baseUrl': 'https://api.example.com/v1',
+      'model': 'gpt-5.4',
+      'apiKey': 'sk-persisted',
+      'themePreference': 'light',
+      'maxConcurrentRequests': 2,
+      'maxTokens': 1200,
+    });
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    _saveCallCount += 1;
+    return AppSettingsSaveResult(
+      issue: _saveCallCount == 1
+          ? AppSettingsPersistenceIssue.fileWriteFailed
+          : AppSettingsPersistenceIssue.none,
+      detail: _saveCallCount == 1 ? 'settings.json write denied' : null,
+    );
   }
 }

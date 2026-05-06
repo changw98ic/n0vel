@@ -92,7 +92,7 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
           ),
           const SizedBox(width: 16),
           SizedBox(
-            width: 180,
+            width: 220,
             child: Container(
               decoration: appPanelDecoration(context),
               padding: const EdgeInsets.all(16),
@@ -109,7 +109,7 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
           ),
           const SizedBox(width: 16),
           SizedBox(
-            width: 220,
+            width: 260,
             child: Container(
               key: ProjectImportExportPage.manifestKey,
               decoration: appPanelDecoration(context),
@@ -532,6 +532,7 @@ class _FieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPath = value.contains(Platform.pathSeparator) && value.length > 36;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -544,7 +545,55 @@ class _FieldRow extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 6),
-          Text(value, style: Theme.of(context).textTheme.bodyMedium),
+          isPath
+              ? _PathValueText(value: value)
+              : Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _PathValueText extends StatelessWidget {
+  const _PathValueText({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final separator = Platform.pathSeparator;
+    final separatorIndex = value.lastIndexOf(separator);
+    final fileName = separatorIndex == -1
+        ? value
+        : value.substring(separatorIndex + 1);
+    final directory = separatorIndex == -1
+        ? ''
+        : value.substring(0, separatorIndex);
+
+    return Tooltip(
+      message: value,
+      waitDuration: const Duration(milliseconds: 600),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            fileName,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (directory.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              directory,
+              style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );

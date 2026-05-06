@@ -42,9 +42,9 @@ void main() {
       const NovelWriterApp(home: AuditCenterPage()),
     );
 
-    expect(find.text('审计中心'), findsOneWidget);
-    expect(find.text('查看一致性问题、证据与处理状态'), findsOneWidget);
-    expect(find.text('审计规则已同步'), findsOneWidget);
+    expect(find.text('问题检查'), findsOneWidget);
+    expect(find.text('查看故事问题、依据与处理状态'), findsOneWidget);
+    expect(find.text('问题规则已更新'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -91,7 +91,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('返回工作台'), findsOneWidget);
-    expect(find.text('重新审计'), findsOneWidget);
+    expect(find.text('重新检查'), findsOneWidget);
   });
 
   testWidgets('shows jump failed state', (tester) async {
@@ -107,6 +107,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('返回工作台'), findsOneWidget);
-    expect(find.text('重新审计'), findsOneWidget);
+    expect(find.text('重新检查'), findsOneWidget);
   });
 }

@@ -18,6 +18,9 @@
 ## 补充页面
 
 - `Scene Management`
+- `Story Bible / Aggregated Facts`
+- `Production Board / Progress Loop`
+- `Review Tasks / Queue States`
 
 ## 场景管理状态
 
@@ -41,6 +44,7 @@
 - `Writing Workbench / Rename Scene Dialog`
 - `Writing Workbench / Delete Scene Confirm`
 - `Writing Workbench / Menu Drawer Open`
+- `Writing Workbench / Full Drawer Navigation`
 - `Writing Workbench / Missing Character Binding`
 - `Writing Workbench / AI Modify Failed`
 - `Writing Workbench / AI Accept Failed`
@@ -68,6 +72,11 @@
 
 - `Global Shell / Settings File Read Failed`
 - `Global Shell / Settings File Write Failed`
+
+## UI 对齐补充状态
+
+- `Project List / Responsive Shelf Fit`
+- `Project Import Export / Contained Long Paths`
 
 ## 提示 / 轻警告状态
 

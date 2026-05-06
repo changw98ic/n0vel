@@ -10,15 +10,18 @@ this repository — including trivial lookups and single-file edits.
 The user should not need to repeatedly say "use subagents" or
 paste the agent-workflow prompt.
 
-This is an explicit standing user request to use agent-flow for every task.
-All tasks — including trivial one-shot lookups and single-file edits — must
-follow the full agent-flow pattern: classify, delegate, verify. No exceptions.
+This is an explicit standing user request to prefer agent-flow for
+non-trivial work. Simple queries and single-file edits may run solo
+without the full agent-flow pattern.
 
 Leader protocol:
-- First classify the task as `agent-flow` or `OMX-runtime`.
-- Use `agent-flow` for every task, with no `solo` exception. Even small,
-  low-risk lookups or single-file edits must go through the agent-flow
-  classification, delegation, and verification pattern.
+- First classify the task as `solo`, `agent-flow`, or `OMX-runtime`.
+- Use `solo` for simple lookups, single-file edits, or one-command
+  verifications that do not require cross-module reasoning.
+- Use `agent-flow` for tasks involving more than 3 files, multiple
+  modules, command execution with side effects, or final verification
+  claims. These must follow the full classification, delegation, and
+  verification pattern.
 - Use native subagents for bounded discovery, implementation, review, or
   verification lanes whenever a task requires repository inspection, command
   execution, file edits, or final evidence.
@@ -57,6 +60,22 @@ Novel-generation quality defaults:
   context from scratch unless the task explicitly asks for a reset.
 - For quality gates, target 95 as the passing threshold unless the user gives a
   different number.
+
+## RTK Command Prefix
+
+OMX agent-flow and auto-team workers use a `rtk_cmd()` helper that prefixes
+any shell tool command with `rtk` when the `rtk` binary is on `$PATH`; when
+`rtk` is not installed the original command runs unchanged (graceful
+degradation).
+
+- **Scope**: all shell tool invocations in agent prompts, verification steps,
+  and planner review prompts — `flutter`, `dart`, `bash -n`, `make`, or any
+  other tool command.
+- **Out of scope**: the `claude` / `codex` agent processes themselves, and
+  bare `bash` invocations that re-enter this script (worker respawn, tmux
+  windows) — these are process lifecycle, not tool commands.
+- **Usage**: `$(rtk_cmd flutter analyze --no-pub)` produces either
+  `rtk flutter analyze --no-pub` or `flutter analyze --no-pub`.
 
 ## Safety And Verification
 

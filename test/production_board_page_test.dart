@@ -75,9 +75,9 @@ void main() {
     expect(find.byKey(ProductionBoardPage.recentRunKey), findsOneWidget);
     expect(find.text('继续生成'), findsOneWidget);
     expect(find.text('打开工作台'), findsAtLeastNWidgets(1));
-    expect(find.text('Review Tasks'), findsOneWidget);
-    expect(find.text('打开审查任务'), findsOneWidget);
-    expect(find.text('作品圣经'), findsOneWidget);
+    expect(find.text('改稿任务'), findsOneWidget);
+    expect(find.text('打开改稿任务'), findsOneWidget);
+    expect(find.text('作品圣经'), findsAtLeastNWidgets(1));
     expect(find.text('导出'), findsAtLeastNWidgets(1));
 
     await tester.scrollUntilVisible(

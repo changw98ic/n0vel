@@ -16,8 +16,9 @@ class VersionEntry {
   }
 
   static VersionEntry fromJson(Map<Object?, Object?> json) {
+    final label = json['label']?.toString().trim() ?? '';
     return VersionEntry(
-      label: json['label']?.toString() ?? '未命名版本',
+      label: label.isEmpty ? '自动保存版本' : label,
       content: json['content']?.toString() ?? '',
     );
   }

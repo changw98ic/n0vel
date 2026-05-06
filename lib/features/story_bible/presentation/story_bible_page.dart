@@ -70,7 +70,7 @@ class _StoryBiblePageState extends State<StoryBiblePage> {
           ),
           statusBar: DesktopStatusStrip(
             leftText: '已聚合 ${bible.factCount} 条设定事实',
-            rightText: '状态区仅显示占位与已有审计计数',
+            rightText: '已整理作品资料与问题数量',
           ),
         );
       },

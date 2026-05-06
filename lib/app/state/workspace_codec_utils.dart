@@ -6,7 +6,7 @@ import 'workspace_types.dart';
 // Default Data
 // ============================================================================
 
-const List<CharacterRecord> defaultCharacters = [
+const List<CharacterRecord> defaultCharacters = <CharacterRecord>[
   CharacterRecord(
     id: 'character-liuxi',
     name: '柳溪',
@@ -39,7 +39,7 @@ const List<CharacterRecord> defaultCharacters = [
   ),
 ];
 
-const List<WorldNodeRecord> defaultWorldNodes = [
+const List<WorldNodeRecord> defaultWorldNodes = <WorldNodeRecord>[
   WorldNodeRecord(
     id: 'world-old-harbor-rules',
     title: '旧港规则',
@@ -70,12 +70,12 @@ const List<WorldNodeRecord> defaultWorldNodes = [
     detail: '旧脚本仍在巡检系统中误触发。',
     summary: '会导致仓库门禁记录偏移，给追逐段制造错位信息。',
     ruleSummary: '旧脚本触发时，门禁记录会与真实通行不一致。',
-    referenceSummary: '是仓库层数记录偏移与时间线跳跃两条审计问题的共同来源。',
+    referenceSummary: '是仓库层数记录偏移与时间线跳跃两条问题的共同来源。',
     linkedSceneIds: ['scene-05-witness-room', 'scene-12-warehouse-talk'],
   ),
 ];
 
-const List<AuditIssueRecord> defaultAuditIssues = [
+const List<AuditIssueRecord> defaultAuditIssues = <AuditIssueRecord>[
   AuditIssueRecord(
     id: 'audit-motive-conflict',
     title: '角色动机冲突',
@@ -96,7 +96,7 @@ const List<AuditIssueRecord> defaultAuditIssues = [
   ),
 ];
 
-const Map<String, Object?> defaultStyleQuestionnaireDraft = {
+const Map<String, Object?> defaultStyleQuestionnaireDraft = <String, Object?>{
   'profile_name': '冷峻悬疑第一人称',
   'language': 'zh-CN',
   'genre_tags': ['悬疑'],
@@ -332,11 +332,21 @@ int decodeClampedInt(
 // ============================================================================
 
 List<ProjectRecord> sortProjects(List<ProjectRecord> projects) {
+  return _sortAndDedupeProjects(projects);
+}
+
+List<ProjectRecord> _sortAndDedupeProjects(List<ProjectRecord> projects) {
   final sorted = List<ProjectRecord>.from(projects);
   sorted.sort(
     (left, right) => right.lastOpenedAtMs.compareTo(left.lastOpenedAtMs),
   );
-  return sorted;
+
+  final dedupedById = <String, ProjectRecord>{};
+  for (final project in sorted) {
+    dedupedById.putIfAbsent(project.id, () => project);
+  }
+
+  return dedupedById.values.toList();
 }
 
 String chapterLabelFromRecentLocation(String recentLocation) {
@@ -412,7 +422,7 @@ String encodePrettyJson(Map<String, Object?> jsonData) {
 
 String normalizeStyleName(Object? rawName) {
   final trimmed = rawName?.toString().trim() ?? '';
-  return trimmed.isEmpty ? '未命名风格' : trimmed;
+  return trimmed.isEmpty ? '默认风格' : trimmed;
 }
 
 // ============================================================================

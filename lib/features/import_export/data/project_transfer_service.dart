@@ -53,7 +53,10 @@ class ProjectPackageManifest {
     return ProjectPackageManifest(
       packageName: (json['name'] as String?) ?? 'lunarifest',
       projectId: (json['project_id'] as String?) ?? '',
-      projectTitle: (json['project_title'] as String?) ?? '未命名项目',
+      projectTitle: _fallbackManifestText(
+        json['project_title'],
+        fallback: '导入项目',
+      ),
       schemaMajor: (json['schema_major'] as int?) ?? 1,
       schemaMinor: (json['schema_minor'] as int?) ?? 0,
       exportedAtMs: (json['exported_at_ms'] as int?) ?? 0,
@@ -61,6 +64,11 @@ class ProjectPackageManifest {
           (json['content_summary'] as String?) ?? '正文 / 资料 / 风格 / 版本',
     );
   }
+}
+
+String _fallbackManifestText(Object? raw, {required String fallback}) {
+  final trimmed = raw?.toString().trim() ?? '';
+  return trimmed.isEmpty ? fallback : trimmed;
 }
 
 class ProjectPackageInspection {

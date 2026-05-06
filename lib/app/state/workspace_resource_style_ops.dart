@@ -255,7 +255,7 @@ mixin _ResourceStyleOps on _WorkspaceFields {
       projectId: _currentProjectId,
       profile: StyleProfileRecord(
         id: generateScopedRecordId('style'),
-        name: profileJson['name']?.toString() ?? '未命名风格',
+        name: normalizeStyleName(profileJson['name']),
         source: 'questionnaire',
         jsonData: profileJson,
       ),
@@ -312,7 +312,7 @@ mixin _ResourceStyleOps on _WorkspaceFields {
       projectId: _currentProjectId,
       profile: StyleProfileRecord(
         id: generateScopedRecordId('style'),
-        name: result.profileJson['name']?.toString() ?? '未命名风格',
+        name: normalizeStyleName(result.profileJson['name']),
         source: 'json',
         jsonData: result.profileJson,
       ),

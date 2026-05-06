@@ -54,6 +54,11 @@ Map<String, Object?> stringObjectMapFromRaw(Object? raw) {
   return {for (final entry in raw.entries) entry.key.toString(): entry.value};
 }
 
+String _fallbackDisplayText(Object? raw, {required String fallback}) {
+  final trimmed = raw?.toString().trim() ?? '';
+  return trimmed.isEmpty ? fallback : trimmed;
+}
+
 String _fallbackScopedRecordId(String prefix, Object? seed) {
   final normalized = seed?.toString().trim().toLowerCase().replaceAll(
     RegExp(r'[^a-z0-9]+'),
@@ -151,7 +156,7 @@ class ProjectRecord {
     return ProjectRecord(
       id: json['id']?.toString() ?? generateProjectId(),
       sceneId: json['sceneId']?.toString() ?? generateSceneId(),
-      title: json['title']?.toString() ?? '未命名项目',
+      title: _fallbackDisplayText(json['title'], fallback: '新建项目'),
       genre: json['genre']?.toString() ?? '',
       summary: json['summary']?.toString() ?? '',
       recentLocation: json['recentLocation']?.toString() ?? '',
@@ -255,7 +260,7 @@ class CharacterRecord {
       id:
           json['id']?.toString() ??
           _fallbackScopedRecordId('character', json['name']),
-      name: json['name']?.toString() ?? '未命名角色',
+      name: _fallbackDisplayText(json['name'], fallback: '新角色'),
       role: json['role']?.toString() ?? '',
       note: json['note']?.toString() ?? '',
       need: json['need']?.toString() ?? '',
@@ -332,7 +337,7 @@ class WorldNodeRecord {
       id:
           json['id']?.toString() ??
           _fallbackScopedRecordId('world', json['title']),
-      title: json['title']?.toString() ?? '未命名节点',
+      title: _fallbackDisplayText(json['title'], fallback: '新节点'),
       location: json['location']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       detail: json['detail']?.toString() ?? '',
@@ -402,7 +407,7 @@ class AuditIssueRecord {
       id:
           json['id']?.toString() ??
           _fallbackScopedRecordId('audit', json['title']),
-      title: json['title']?.toString() ?? '未命名问题',
+      title: _fallbackDisplayText(json['title'], fallback: '待处理问题'),
       evidence: json['evidence']?.toString() ?? '',
       target: json['target']?.toString() ?? '',
       status: _decodeAuditIssueStatus(json['status']),
@@ -448,7 +453,7 @@ class StyleProfileRecord {
       id:
           json['id']?.toString() ??
           _fallbackScopedRecordId('style', json['name']),
-      name: json['name']?.toString() ?? '未命名风格',
+      name: _fallbackDisplayText(json['name'], fallback: '默认风格'),
       source: json['source']?.toString() ?? 'questionnaire',
       jsonData: stringObjectMapFromRaw(json['jsonData']),
     );

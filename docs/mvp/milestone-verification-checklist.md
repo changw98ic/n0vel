@@ -9,6 +9,8 @@
 - `Writing Workbench` → `47nGt`
 - `Writing Workbench / Default Hidden` → `WT5mH`
 - `Writing Workbench / Menu Drawer Open` → `i2PgM`
+- `Project List / Responsive Shelf Fit` → `Z0073`
+- `Writing Workbench / Full Drawer Navigation` → `Z0134`
 - `Writing Workbench / API Key Missing` → `y6Ufy`
 - `Writing Workbench / Missing Character Binding` → `o6hOU`
 - `Writing Workbench / Missing Character Reference` → `WmFpE`
@@ -17,6 +19,8 @@
 ### 验收项
 
 - 左侧 `menu drawer` 默认仅显示贴边把手，展开后只包含 `Dashboard / 编辑工作台 / 设置`
+- 项目列表在窄宽窗口下都保持项目 `shelf` 与入口操作不溢出
+- 工作台完整 `menu drawer` 展开态必须保留正文主编辑区可读
 - 顶部使用 `breadcrumb` 表达项目结构，不把项目结构塞回 `menu drawer`
 - 右侧工具条只承载工作工具，不承担全局导航
 - 工作台阻断态都保留正文上下文，不跳转独立页面
@@ -86,6 +90,9 @@
 - `Project Import Export / Import Success` → `aYhVV`
 - `Project Import Export / Overwrite Success` → `XrBiQ`
 - `Project Import Export / Overwrite Confirm` → `kJVPV`
+- `Project Import Export / Contained Long Paths` → `Z0194`
+- `Production Board / Progress Loop` → `Z0340`
+- `Review Tasks / Queue States` → `Z0402`
 - `Project Import Export / Missing Manifest` → `f4cfp`
 - `Project Import Export / Major Version Blocked` → `nJ1Vf`
 - `Project Import Export / Minor Version Warning` → `sqxPi`
@@ -96,7 +103,9 @@
 - 模拟过程是工作台上的弹窗，不是单独页面导航
 - 模拟运行中采用分阶段整批刷新，不做逐字流式抖动
 - 模拟完成 / 失败后，工作台都能收到轻摘要回传
+- `Production Board` 与 `Review Tasks` 能承接模拟完成 / 失败后的进度与复核状态
 - 导入成功后必须有明确的成功摘要态
+- 导入导出长路径 / 长文件名必须限制在容器内，不能挤压主操作区
 - 覆盖导入成功后必须明确说明旧索引已被替换刷新
 - `manifest.json` 缺失、`schema_major` 不一致必须使用专用阻断态
 - `schema_minor` 不一致只能做轻警告，不能误做阻断
@@ -117,6 +126,7 @@
 - `Settings / Network Error` → `BtJNK`
 - `Settings / Save Success` → `HcPSf`
 - `Character Library` / `Worldbuilding` / `Audit Center` 及其关键状态
+- `Story Bible / Aggregated Facts` → `Z0240`
 
 ### 验收项
 
@@ -124,6 +134,7 @@
 - 已失败请求不会自动重试
 - `401/403`、`404 model_not_found`、`DNS/网络错误` 要映射成不同错误态
 - 角色与世界观保存成功后，工作台相关摘要立即刷新
+- `Story Bible` 聚合事实视图能展示资料汇总，并标记受失效引用影响的事实
 - 必填字段缺失时，高亮缺失字段并阻止索引写入
 - 删除被引用资料后，工作台必须出现失效引用提示
 

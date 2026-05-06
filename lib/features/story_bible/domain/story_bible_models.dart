@@ -74,13 +74,13 @@ class StoryBibleAggregator {
 
   StoryBibleSection _projectBrief(ProjectRecord project) {
     return StoryBibleSection(
-      title: '项目 Brief',
+      title: '作品简介',
       kind: StoryBibleSectionKind.fact,
       entries: [
         StoryBibleEntry(
           title: project.title,
           meta: _joinNonEmpty([project.genre, project.recentLocation]),
-          body: _fallback(project.summary, '当前项目还没有 brief 摘要。'),
+          body: _fallback(project.summary, '当前项目还没有作品简介。'),
         ),
       ],
     );
@@ -177,18 +177,18 @@ class StoryBibleAggregator {
 
   StoryBibleSection _generationStatus() {
     return const StoryBibleSection(
-      title: '生成状态占位',
+      title: '写作进度',
       kind: StoryBibleSectionKind.status,
       entries: [
         StoryBibleEntry(
           title: '章节生成',
-          meta: '未推断',
-          body: '这里只声明 Story Bible 已聚合的素材；不会把缺失的生成流水线状态伪装成已完成。',
+          meta: '还没有生成记录',
+          body: '这里汇总作品已经整理好的素材；没有生成过的章节不会被标成已完成。',
         ),
         StoryBibleEntry(
           title: '伏笔 / 连续性',
-          meta: '未接入',
-          body: '当前版本不提供完整伏笔系统，只保留后续接入点。',
+          meta: '暂未开启',
+          body: '当前版本还不能自动检查伏笔和连续性，你可以先用大纲和场景摘要人工核对。',
         ),
       ],
     );
@@ -198,13 +198,13 @@ class StoryBibleAggregator {
     final openCount = auditIssues.where((issue) => issue.isOpen).length;
     final closedCount = auditIssues.length - openCount;
     return StoryBibleSection(
-      title: '审稿状态占位',
+      title: '问题检查',
       kind: StoryBibleSectionKind.status,
       entries: [
         StoryBibleEntry(
-          title: '审计中心问题',
-          meta: '开放 $openCount / 已处理 $closedCount',
-          body: '展示已有审计问题数量；不额外生成未存在的审稿结论。',
+          title: '待处理问题',
+          meta: '待处理 $openCount / 已处理 $closedCount',
+          body: '这里只显示已经发现的问题数量，不会凭空生成审稿结论。',
         ),
       ],
     );

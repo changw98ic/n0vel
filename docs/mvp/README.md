@@ -49,6 +49,8 @@ MVP 还必须满足一条交互原则：
 - [MVP 追踪矩阵 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.json)
 - [MVP 设计交付完成度](/Users/chengwen/dev/novel-wirter/docs/mvp/release-readiness.md)
 - [MVP 设计交付完成度 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/release-readiness.json)
+- [MVP Docs Changelog](/Users/chengwen/dev/novel-wirter/docs/mvp/CHANGELOG.md)
+- [SSD + Harness 执行计划](/Users/chengwen/dev/novel-wirter/docs/mvp/ssd-harness-execution-plan.md)
 - [MVP 文档校验脚本](/Users/chengwen/dev/novel-wirter/docs/mvp/validate_mvp_docs.py)
 - [MVP 按角色开始](/Users/chengwen/dev/novel-wirter/docs/mvp/start-here-by-role.md)
 - [MVP 按角色开始 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/start-here-by-role.json)

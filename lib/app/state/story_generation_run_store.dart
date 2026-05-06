@@ -369,14 +369,14 @@ class StoryGenerationRunStore extends ChangeNotifier {
         status: StoryGenerationRunStatus.running,
         sceneId: brief.sceneId,
         sceneLabel: _sceneLabel(),
-        headline: '角色编排进行中',
-        summary: '正在为当前场景生成 director、角色回合、裁定与审查。',
-        stageSummary: '正在准备场景任务卡',
+        headline: 'AI 正在准备这一场',
+        summary: '正在整理场景目标、出场人物和改稿检查；正文不会被直接覆盖。',
+        stageSummary: '正在准备候选稿',
         participants: baseParticipants,
         messages: [
           const StoryGenerationRunMessage(
             title: '运行开始',
-            body: '新 roleplay runtime 已接管当前场景。',
+            body: 'AI 已开始按当前场景资料试写；生成内容会先作为候选记录，等待作者确认。',
             kind: StoryGenerationRunMessageKind.status,
           ),
           ..._revisionRequestMessages(revisionRequests),
@@ -400,15 +400,15 @@ class StoryGenerationRunStore extends ChangeNotifier {
       _setSnapshot(
         _snapshot.copyWith(
           status: StoryGenerationRunStatus.failed,
-          headline: '角色编排失败',
-          summary: '当前场景在进入正式正文前被显式中止。',
+          headline: 'AI 试写失败',
+          summary: 'AI 写作在生成正文前停止，正文未被改动。',
           stageSummary: '失败',
           errorDetail: 'force-failure',
           messages: [
             ..._snapshot.messages,
             const StoryGenerationRunMessage(
               title: '运行失败摘要',
-              body: '当前场景的角色编排在测试入口被中止。',
+              body: '这次 AI 试写已被停止，正文未被改动。',
               kind: StoryGenerationRunMessageKind.error,
             ),
           ],
@@ -420,8 +420,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
 
     try {
       final orchestrator = _orchestratorFactory(_settingsStore);
-      orchestrator.isRunCancelled =
-          () => !_isCurrentRun(runToken, runSceneScopeId);
+      orchestrator.isRunCancelled = () =>
+          !_isCurrentRun(runToken, runSceneScopeId);
       final output = await orchestrator.runScene(
         brief,
         onStatus: (message) {
@@ -469,8 +469,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
           status: StoryGenerationRunStatus.failed,
           sceneId: brief.sceneId,
           sceneLabel: _sceneLabel(),
-          headline: '角色编排失败',
-          summary: '当前场景没有通过新的 roleplay runtime。',
+          headline: 'AI 试写失败',
+          summary: '这次 AI 试写没有完成。',
           stageSummary: '失败',
           errorDetail: error.toString(),
           participants: baseParticipants,
@@ -501,8 +501,8 @@ class StoryGenerationRunStore extends ChangeNotifier {
     _setSnapshot(
       _snapshot.copyWith(
         status: StoryGenerationRunStatus.cancelled,
-        headline: '角色编排已取消',
-        summary: '当前场景的 roleplay 运行已停止，已保留取消前记录的消息与状态。',
+        headline: 'AI 试写已取消',
+        summary: '这次 AI 试写已停止，已保留停止前的记录。',
         stageSummary: '已取消',
         errorDetail: 'cancelled',
         messages: [
@@ -561,12 +561,13 @@ class StoryGenerationRunStore extends ChangeNotifier {
   }
 
   StoryGenerationRunSnapshot _idleSnapshotForCurrentScene() {
+    final scene = _workspaceStore.currentSceneOrNull;
     return StoryGenerationRunSnapshot(
       status: StoryGenerationRunStatus.idle,
-      sceneId: _workspaceStore.currentScene.id,
-      sceneLabel: _sceneLabel(),
-      headline: '还没有角色编排记录',
-      summary: '请先在当前场景发起一次新的 roleplay 运行。',
+      sceneId: scene?.id ?? '',
+      sceneLabel: scene != null ? _sceneLabel() : '',
+      headline: '还没有 AI 试写记录',
+      summary: '你可以继续写正文，或点击「让 AI 写这一场」生成初稿。',
       stageSummary: '未开始',
     );
   }
@@ -577,7 +578,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
         id: 'director',
         name: '导演',
         role: '固定编排代理',
-        summary: '负责生成场景任务卡并调度动态角色。',
+        summary: '负责整理这一场的写作目标，并协调出场人物。',
         statusSummary: '等待发放任务卡',
       ),
       for (final cast in brief.cast)
@@ -586,7 +587,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
           name: cast.name,
           role: cast.role,
           summary: cast.metadata['summary']?.toString() ?? cast.role,
-          statusSummary: '等待进入角色回合',
+          statusSummary: '等待进入人物视角',
         ),
     ];
   }
@@ -612,18 +613,18 @@ class StoryGenerationRunStore extends ChangeNotifier {
               roleTurnsByCharacter[member.characterId]?.intent ?? member.role,
           statusSummary:
               roleTurnsByCharacter[member.characterId]?.proposedStateChange ??
-              '已完成当前角色回合',
+              '已完成当前人物视角',
         ),
     ];
     return StoryGenerationRunSnapshot(
       status: StoryGenerationRunStatus.completed,
       sceneId: output.brief.sceneId,
       sceneLabel: _sceneLabel(),
-      headline: '角色编排已完成',
+      headline: 'AI 试写完成',
       summary:
-          '${output.resolvedCast.length} 名动态角色完成当前场景，审查结果为 ${output.review.decision.name}。',
+          '${output.resolvedCast.length} 位出场人物完成这一场，候选内容已保留为记录，检查结果：${output.review.decision.name}。',
       stageSummary: output.review.feedback.isEmpty
-          ? '审查通过'
+          ? '候选稿已生成，等待作者采纳'
           : output.review.feedback,
       turnLabel: output.roleTurns.isEmpty
           ? '第 0 回合'
@@ -632,7 +633,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
       messages: [
         ..._authorFeedbackMessages(),
         StoryGenerationRunMessage(
-          title: '导演任务卡',
+          title: '写作任务',
           body: output.director.text,
           kind: StoryGenerationRunMessageKind.director,
           participantId: 'director',
@@ -640,14 +641,14 @@ class StoryGenerationRunStore extends ChangeNotifier {
         for (final turn in output.roleTurns)
           StoryGenerationRunMessage(
             title:
-                '${_participantName(output.resolvedCast, turn.characterId)} · 角色回合',
+                '${_participantName(output.resolvedCast, turn.characterId)} · 人物视角',
             body: turn.toLegacyRoleText(),
             kind: StoryGenerationRunMessageKind.roleTurn,
             participantId: turn.characterId,
           ),
         for (final beat in output.resolvedBeats)
           StoryGenerationRunMessage(
-            title: '拍 ${beat.beatIndex} · 裁定',
+            title: '拍 ${beat.beatIndex} · 情节推进',
             body: beat.actionAccepted
                 ? [
                     if (beat.acceptedAction.trim().isNotEmpty)

@@ -29,8 +29,8 @@
 
 ### 文档与资产
 
-- 顶层 MVP 文档与资产：`27` 份
-- 页面级 PRD：`11` 份
+- 顶层 MVP 文档与资产：`29` 份
+- 页面级 PRD：`12` 份
 - 已补齐的交接 / 校验文档包括：
   - [MVP 文档集总览 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/README.json)
   - [Frame / State Coverage](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)

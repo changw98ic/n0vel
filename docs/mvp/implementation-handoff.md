@@ -47,6 +47,9 @@ python3 docs/mvp/validate_mvp_docs.py
 ### 补充页面
 
 - `Scene Management` → `PIRts`
+- `Story Bible / Aggregated Facts` → `Z0240`
+- `Production Board / Progress Loop` → `Z0340`
+- `Review Tasks / Queue States` → `Z0402`
 
 ### 场景管理状态
 
@@ -70,6 +73,7 @@ python3 docs/mvp/validate_mvp_docs.py
 - `Writing Workbench / Rename Scene Dialog` → `VCoJM`
 - `Writing Workbench / Delete Scene Confirm` → `ttVz8`
 - `Writing Workbench / Menu Drawer Open` → `i2PgM`
+- `Writing Workbench / Full Drawer Navigation` → `Z0134`
 - `Writing Workbench / Missing Character Binding` → `o6hOU`
 - `Writing Workbench / Missing Character Reference` → `WmFpE`
 - `Writing Workbench / Missing World Reference` → `emCHR`
@@ -119,6 +123,7 @@ python3 docs/mvp/validate_mvp_docs.py
 - `Project List / Database Read Failed` → `qW9NX`
 - `Project List / Import Failed` → `X4Udf`
 - `Project List / Delete Confirm` → `01wqz`
+- `Project List / Responsive Shelf Fit` → `Z0073`
 - `Project Import Export / Import Success` → `aYhVV`
 - `Project Import Export / Export Success` → `4U4Ue`
 - `Project Import Export / Overwrite Success` → `XrBiQ`
@@ -128,6 +133,7 @@ python3 docs/mvp/validate_mvp_docs.py
 - `Project Import Export / No Exportable Project` → `O5g2A`
 - `Project Import Export / Major Version Blocked` → `nJ1Vf`
 - `Project Import Export / Minor Version Warning` → `sqxPi`
+- `Project Import Export / Contained Long Paths` → `Z0194`
 
 ### 风格 / 设置 / 模拟
 

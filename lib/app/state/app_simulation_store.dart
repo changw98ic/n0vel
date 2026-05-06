@@ -132,7 +132,7 @@ class AppSimulationSnapshot {
     );
   }
 
-  static const String emptyHeadline = '暂无模拟记录';
+  static const String emptyHeadline = '还没有 AI 试写记录';
   static const String emptySummary = '请先运行一次模拟，再回来查看多角色讨论。';
 
   static AppSimulationSnapshot empty() {
@@ -140,10 +140,10 @@ class AppSimulationSnapshot {
       status: SimulationStatus.none,
       headline: emptyHeadline,
       summary: emptySummary,
-      sceneLabel: '月潮回声 / 第三章 / 场景 05',
+      sceneLabel: '',
       turnLabel: '第 00 回合',
-      turnSummary: '尚未开始模拟。',
-      footerHint: '给导演补充要求后，再开始一次新的模拟。',
+      turnSummary: '还没有开始生成。',
+      footerHint: '补充写作要求后，再让 AI 试写一次。',
       stageSummary: '未开始',
       stages: [],
       participants: [],
@@ -952,7 +952,7 @@ class AppSimulationStore extends AppProjectScopedStore {
   String _currentSceneLabel() {
     final ws = workspaceStore;
     if (ws == null || ws.currentProjectId.isEmpty) {
-      return '月潮回声 / 第三章 / 场景 05';
+      return '';
     }
     return ws.currentProjectBreadcrumb;
   }
@@ -961,14 +961,14 @@ class AppSimulationStore extends AppProjectScopedStore {
     if (_runMode == _SimulationRunMode.realAgents) {
       return _buildRealAgentSnapshot(
         status: SimulationStatus.running,
-        headline: '真实多 Agent 模拟进行中',
+        headline: 'AI 正在按多角色资料写这一场',
         summary: '正在使用真实 provider 轮转导演、主角和对立角色。',
         stageSummary: '准备真实上下文',
       );
     }
     return AppSimulationSnapshot(
       status: SimulationStatus.running,
-      headline: '模拟进行中',
+      headline: 'AI 正在写这一场',
       summary: '导演已开始分配任务，角色方正在认领。',
       sceneLabel: _currentSceneLabel(),
       turnLabel: '第 05 回合',
@@ -998,14 +998,14 @@ class AppSimulationStore extends AppProjectScopedStore {
     if (_runMode == _SimulationRunMode.realAgents) {
       return _buildRealAgentSnapshot(
         status: SimulationStatus.running,
-        headline: '真实多 Agent 模拟进行中',
+        headline: 'AI 正在按多角色资料写这一场',
         summary: '真实角色回合正在写入持久化记录。',
         stageSummary: '真实多角色讨论进行中',
       );
     }
     return AppSimulationSnapshot(
       status: SimulationStatus.running,
-      headline: '模拟进行中',
+      headline: 'AI 正在写这一场',
       summary: '角色方已经开始讨论，导演正在根据分歧重新调度。',
       sceneLabel: _currentSceneLabel(),
       turnLabel: '第 05 回合',
@@ -1035,14 +1035,14 @@ class AppSimulationStore extends AppProjectScopedStore {
     if (_runMode == _SimulationRunMode.realAgents) {
       return _buildRealAgentSnapshot(
         status: SimulationStatus.completed,
-        headline: '真实多 Agent 模拟已完成',
+        headline: 'AI 多角色试写完成',
         summary: '导演、主角和对立角色的真实 provider 输出已收束。',
         stageSummary: '真实多角色讨论已完成',
       );
     }
     return AppSimulationSnapshot(
       status: SimulationStatus.completed,
-      headline: '模拟已完成',
+      headline: 'AI 试写完成',
       summary: '导演调度与角色讨论已收束，新的场景草稿候选已生成。',
       sceneLabel: _currentSceneLabel(),
       turnLabel: '第 05 回合',
@@ -1083,7 +1083,7 @@ class AppSimulationStore extends AppProjectScopedStore {
     if (_runMode == _SimulationRunMode.realAgents) {
       return _buildRealAgentSnapshot(
         status: SimulationStatus.failed,
-        headline: '真实多 Agent 模拟失败',
+        headline: 'AI 多角色试写失败',
         summary: '至少一个真实 provider 回合未返回可用文本。',
         stageSummary: '真实多角色讨论失败',
       );

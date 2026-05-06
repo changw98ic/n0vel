@@ -61,6 +61,21 @@ mixin _WorkspaceCodec on _WorkspaceFields {
     await _storage.save(exportJson());
   }
 
+  void _healEmptyDecodedWorkspace() {
+    final projects = sortProjects(buildDefaultProjects());
+    _projects = projects;
+    _charactersByProjectId = buildDefaultProjectCharacters(projects);
+    _scenesByProjectId = buildDefaultProjectScenes(projects);
+    _worldNodesByProjectId = buildDefaultProjectWorldNodes(projects);
+    _auditIssuesByProjectId = buildDefaultProjectAuditIssues(projects);
+    _styleByProjectId = buildDefaultProjectStyles(projects);
+    _auditUiByProjectId = buildDefaultProjectAuditUi(projects);
+    _currentProjectId = _normalizeCurrentProjectId(
+      preferredProjectId: null,
+      projects: projects,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Decode Methods
   // ---------------------------------------------------------------------------
@@ -164,9 +179,9 @@ mixin _WorkspaceCodec on _WorkspaceFields {
         final selectedProfileId =
             value['selectedStyleProfileId']?.toString() ?? '';
         final fallbackStyle = defaultStyleState();
-        final resolvedProfiles = profiles.isEmpty
-            ? fallbackStyle.profiles
-            : profiles;
+        final resolvedProfiles = profiles.isNotEmpty
+            ? profiles
+            : fallbackStyle.profiles;
         result[entry.key.toString()] = ProjectStyleState(
           inputMode: decodeStyleInputMode(value['styleInputMode']),
           intensity: decodeClampedInt(
@@ -183,10 +198,12 @@ mixin _WorkspaceCodec on _WorkspaceFields {
               : questionnaireDraft,
           jsonDraft:
               value['styleJsonDraft']?.toString() ??
-              encodePrettyJson(resolvedProfiles.first.jsonData),
+              (resolvedProfiles.isNotEmpty
+                  ? encodePrettyJson(resolvedProfiles.first.jsonData)
+                  : ''),
           profiles: resolvedProfiles,
           selectedProfileId: selectedProfileId.isEmpty
-              ? resolvedProfiles.first.id
+              ? (resolvedProfiles.isNotEmpty ? resolvedProfiles.first.id : '')
               : selectedProfileId,
           workflowState: decodeStyleWorkflowState(value['styleWorkflowState']),
           workflowMessage:

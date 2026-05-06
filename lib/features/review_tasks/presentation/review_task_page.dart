@@ -26,8 +26,8 @@ class _ReviewTaskPageState extends State<ReviewTaskPage> {
         return DesktopShellFrame(
           header: const DesktopHeaderBar(
             titleKey: ReviewTaskPage.titleKey,
-            title: 'Review Tasks',
-            subtitle: '审查发现、修订任务和处理状态',
+            title: '改稿任务',
+            subtitle: '问题检查结果、修订任务和处理状态',
             showBackButton: true,
           ),
           body: Row(
@@ -44,7 +44,7 @@ class _ReviewTaskPageState extends State<ReviewTaskPage> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ReviewTaskPanel(store: store, title: '审查任务队列'),
+                child: ReviewTaskPanel(store: store, title: '改稿任务队列'),
               ),
             ],
           ),

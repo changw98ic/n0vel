@@ -59,10 +59,7 @@ void main() {
         expect(find.byType(DesktopShellFrame), findsOneWidget);
 
         // Top header actions: new project, import, search
-        expect(
-          find.byKey(ProjectListPage.newProjectButtonKey),
-          findsOneWidget,
-        );
+        expect(find.byKey(ProjectListPage.newProjectButtonKey), findsOneWidget);
         expect(find.text('导入工程'), findsWidgets);
         expect(find.byKey(ProjectListPage.searchFieldKey), findsOneWidget);
 
@@ -85,6 +82,28 @@ void main() {
         expect(find.byType(DesktopStatusStrip), findsOneWidget);
       },
     );
+
+    testWidgets('Project List keeps the new-project shelf card in view', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pump();
+
+      final newCardCopy = find.text('从空白书架里直接开始，不再额外占一整块区域。');
+
+      expect(newCardCopy, findsOneWidget);
+      expect(
+        tester.getRect(newCardCopy).right,
+        lessThanOrEqualTo(desktopSize.width),
+      );
+      expect(
+        tester.getRect(newCardCopy).right,
+        lessThanOrEqualTo(
+          tester.getRect(find.byKey(ProjectListPage.detailKey)).left,
+        ),
+      );
+    });
 
     testWidgets(
       'Writing Workbench renders left handle, breadcrumb, editor surface, tool rail, and status strip',
@@ -126,10 +145,7 @@ void main() {
           const NovelWriterApp(home: WorkbenchShellPage()),
         );
 
-        expect(
-          find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          findsNothing,
-        );
+        expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsNothing);
 
         await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
         await tester.pump();
@@ -138,14 +154,32 @@ void main() {
           find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
           findsOneWidget,
         );
+        for (final label in [
+          '书架',
+          '编辑工作台',
+          '风格面板',
+          '场景管理',
+          '角色库',
+          '世界观',
+          '作品圣经',
+          '问题检查',
+          '生产看板',
+          '改稿任务',
+          '设置',
+        ]) {
+          expect(
+            find.descendant(
+              of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
+              matching: find.text(label),
+            ),
+            findsOneWidget,
+          );
+        }
 
         await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
         await tester.pump();
 
-        expect(
-          find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          findsNothing,
-        );
+        expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsNothing);
       },
     );
   });
@@ -153,47 +187,42 @@ void main() {
   // --- Workbench behavior preservation ---
 
   group('workbench behavior preservation', () {
-    testWidgets(
-      'running simulation still updates the summary banner',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: WorkbenchShellPage()),
-        );
+    testWidgets('running simulation still updates the summary banner', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-        await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
-        await tester.pump();
+      await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
+      await tester.pump();
 
-        expect(find.text('模拟进行中'), findsWidgets);
+      await tester.tap(find.text('确认生成候选稿'));
+      await tester.pump();
 
-        await tester.pump(const Duration(milliseconds: 800));
-        await tester.pump();
+      expect(find.text('AI 正在写这一场'), findsWidgets);
 
-        expect(find.text('模拟已完成'), findsWidgets);
-      },
-    );
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
 
-    testWidgets(
-      'opening versions still navigates to chapter history',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: WorkbenchShellPage()),
-        );
+      expect(find.text('AI 试写完成'), findsWidgets);
+    });
 
-        await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
-        await tester.pumpAndSettle();
+    testWidgets('opening versions still navigates to chapter history', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-        expect(find.text('章节版本'), findsOneWidget);
-        expect(find.byKey(VersionHistoryPage.versionListKey), findsOneWidget);
-      },
-    );
+      await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(find.text('章节版本'), findsOneWidget);
+      expect(find.byKey(VersionHistoryPage.versionListKey), findsOneWidget);
+    });
 
     testWidgets('reading mode remains reachable', (tester) async {
       await setDesktopSize(tester);
-      await tester.pumpWidget(
-        const NovelWriterApp(home: WorkbenchShellPage()),
-      );
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
       await tester.tap(find.byKey(WorkbenchShellPage.readingToolButtonKey));
       await tester.pumpAndSettle();
@@ -205,9 +234,7 @@ void main() {
       tester,
     ) async {
       await setDesktopSize(tester);
-      await tester.pumpWidget(
-        const NovelWriterApp(home: WorkbenchShellPage()),
-      );
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
       await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
       await tester.pump();
@@ -226,9 +253,7 @@ void main() {
       'Style Panel renders three distinct content columns under the shared shell',
       (tester) async {
         await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: StylePanelPage()),
-        );
+        await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
         expect(find.byType(DesktopShellFrame), findsOneWidget);
         expect(find.text('风格输入'), findsOneWidget);
@@ -272,10 +297,7 @@ void main() {
         await tester.pumpWidget(const NovelWriterApp());
         await tester.pump();
 
-        if (find
-            .byKey(ProjectListPage.menuDrawerPanelKey)
-            .evaluate()
-            .isEmpty) {
+        if (find.byKey(ProjectListPage.menuDrawerPanelKey).evaluate().isEmpty) {
           await tester.tap(find.byKey(ProjectListPage.menuDrawerHandleKey));
           await tester.pump();
         }
@@ -287,18 +309,31 @@ void main() {
       },
     );
 
-    testWidgets(
-      'Project List retains workbench entry after shell changes',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(const NovelWriterApp());
-        await tester.pump();
+    testWidgets('Project Import Export keeps long package paths contained', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(
+        const NovelWriterApp(home: ProjectImportExportPage()),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(ProjectListPage.openProjectButtonKey));
-        await tester.pumpAndSettle();
+      expect(find.byKey(ProjectImportExportPage.titleKey), findsOneWidget);
+      expect(find.text('lunaris-export.zip'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
 
-        expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
-      },
-    );
+    testWidgets('Project List retains workbench entry after shell changes', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pump();
+
+      await tester.tap(find.byKey(ProjectListPage.openProjectButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
+    });
   });
 }

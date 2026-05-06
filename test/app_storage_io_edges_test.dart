@@ -438,6 +438,7 @@ void main() {
                 'note': '备注',
                 'need': '需求',
                 'summary': '角色摘要',
+                'linkedSceneIds': <String>[],
               },
             ],
             'project-b': 'invalid-character-list',
@@ -506,6 +507,7 @@ void main() {
             'note': '备注',
             'need': '需求',
             'summary': '角色摘要',
+            'linkedSceneIds': <String>[],
           },
         ]);
         expect(characters.containsKey('project-b'), isFalse);

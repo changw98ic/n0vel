@@ -55,7 +55,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
     expect(aiHistoryStore.entries.first.prompt, '项目一意图');
-    expect(sceneContextStore.snapshot.sceneSummary, contains('仓库门外'));
+    expect(sceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
     expect(simulationStore.snapshot.status, SimulationStatus.completed);
 
     workspaceStore.openProject(secondProjectId);
@@ -113,7 +113,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
     expect(aiHistoryStore.entries.first.prompt, '场景 05 历史');
-    expect(sceneContextStore.snapshot.sceneSummary, contains('仓库门外'));
+    expect(sceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
     expect(simulationStore.snapshot.status, SimulationStatus.completed);
   });
 }

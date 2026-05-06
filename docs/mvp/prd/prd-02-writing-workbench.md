@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 02 写作工作台
 
 ## 页面目标

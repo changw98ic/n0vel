@@ -26,7 +26,7 @@ abstract class AppProjectScopedStore extends ChangeNotifier {
   AppProjectScopedStore({
     AppWorkspaceStore? workspaceStore,
     this.scopeMode = AppStoreScopeMode.scene,
-    String fallbackProjectId = 'project-yuechao::scene-05-witness-room',
+    String fallbackProjectId = '',
   }) : _workspaceStore = workspaceStore,
        _fallbackProjectId = fallbackProjectId {
     _activeProjectId = _resolveProjectId();

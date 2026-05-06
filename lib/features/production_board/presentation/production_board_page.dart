@@ -396,13 +396,13 @@ class _LoopHandoffPanel extends StatelessWidget {
                 ),
                 _LoopHandoffCard(
                   icon: Icons.fact_check_outlined,
-                  title: 'Review Tasks',
+                  title: '改稿任务',
                   countLabel:
                       '$activeReviewTaskCount 个活跃任务 · ${snapshot.reviewQueueScenes} 个看板审查项',
                   body: activeReviewTaskCount == 0
-                      ? 'Review Tasks 已接入全局任务队列；可从工作台审查消息转为任务。'
-                      : '打开任务队列，处理审查发现、修订项和忽略项。',
-                  actionLabel: '打开审查任务',
+                      ? '改稿任务 已接入全局任务队列；可从工作台审查消息转为任务。'
+                      : '打开任务队列，处理问题检查结果、修订项和忽略项。',
+                  actionLabel: '打开改稿任务',
                   onPressed: onOpenReviewTasks,
                 ),
                 _LoopHandoffCard(
@@ -412,15 +412,15 @@ class _LoopHandoffPanel extends StatelessWidget {
                   body: activeFeedbackCount == 0
                       ? '作者反馈已接入工作台；当前项目没有待处理反馈。'
                       : '从工作台反馈面板处理采纳、驳回或修订请求。',
-                  actionLabel: '打开反馈面板',
+                  actionLabel: '打开作者反馈',
                   onPressed: onOpenWorkbench,
                 ),
                 _LoopHandoffCard(
                   icon: Icons.menu_book_outlined,
-                  title: 'Story Bible',
+                  title: '作品圣经',
                   countLabel:
                       '${snapshot.totalChapters} 章 / ${snapshot.totalScenes} 场景',
-                  body: '核对项目素材、章节与场景上下文，再回到工作台继续生产。',
+                  body: '核对作品素材、章节和场景资料，再回到工作台继续写。',
                   actionLabel: '打开作品圣经',
                   onPressed: onOpenStoryBible,
                 ),
@@ -431,7 +431,7 @@ class _LoopHandoffPanel extends StatelessWidget {
                       '${snapshot.completedScenes}/${snapshot.totalScenes} 场景已通过',
                   body: snapshot.totalScenes == 0
                       ? '项目还没有可导出的场景；导出页可查看当前工程包状态。'
-                      : '完成生成、审查和反馈处理后，导出当前项目工程包。',
+                      : '完成生成、问题检查和反馈处理后，导出当前项目工程包。',
                   actionLabel: '打开导出',
                   onPressed: onOpenExport,
                 ),

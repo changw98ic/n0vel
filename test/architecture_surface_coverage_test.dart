@@ -19,7 +19,7 @@ void main() {
     'Character Library': ['CharacterPage', '角色库', '4KVQe'],
     'Worldbuilding': ['WorldPage', '世界观', 'dH2Mr'],
     'Style Panel': ['StylePage', '风格面板', 'ff8vo'],
-    'Audit Center': ['AuditPage', '审计中心', 'p8Lkt'],
+    'Audit Center': ['AuditPage', '问题检查', 'p8Lkt'],
     'Chapter Versions': ['VersionPage', '章节版本', 'Ym6ea'],
     'Project Import Export': ['ImportExportPage', '工程导入导出', 'z0mJ1'],
     'Settings & BYOK': ['SettingsPage', '设置与 BYOK', 'DnwrZ'],
