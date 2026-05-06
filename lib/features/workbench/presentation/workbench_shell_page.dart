@@ -1605,7 +1605,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final settingsHasPersistenceIssue = settingsStore.hasPersistenceIssue;
     final diagnosticReport = settingsStore.diagnosticReport;
     final canGenerateAi =
-        settingsStore.hasReadyConfiguration && !settingsHasPersistenceIssue;
+        settingsStore.hasAnyReadyConfiguration && !settingsHasPersistenceIssue;
     final currentSceneId = workspace.currentScene.id;
     final hasSyncedCharacterContext = _hasUsableSceneContext(
       sceneContext.characterSummary,

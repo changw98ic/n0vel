@@ -515,7 +515,14 @@ class AppSettingsStore extends ChangeNotifier {
   bool get hasSupportedModel =>
       isSupportedModel(_snapshot.model) || _allowsEmptyApiKey;
   bool get hasReadyConfiguration =>
-      _hasRequiredApiKey && hasValidBaseUrl && hasModel && hasSupportedModel;
+      _hasRequiredApiKey &&
+      hasValidBaseUrl &&
+      hasModel &&
+      hasSupportedModel;
+
+  bool get hasAnyReadyConfiguration =>
+      hasReadyConfiguration ||
+      _snapshot.providerProfiles.any(_isUsableProfile);
   bool get canRunConnectionTest => hasReadyConfiguration;
   bool get canSaveConfiguration => hasReadyConfiguration;
   bool get canRetrySecureStoreAccess =>
