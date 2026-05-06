@@ -26,6 +26,8 @@
     {"path": "traceability-matrix.json", "title": "MVP 追踪矩阵 (JSON)", "category": "governance", "format": "json"},
     {"path": "traceability-matrix.md", "title": "MVP 追踪矩阵", "category": "governance", "format": "markdown"},
     {"path": "ui-design-standards.md", "title": "UI 设计稿标准与偏好", "category": "design", "format": "markdown"},
+    {"path": "CHANGELOG.md", "title": "MVP Docs Changelog", "category": "governance", "format": "markdown"},
+    {"path": "ssd-harness-execution-plan.md", "title": "SSD + Harness 执行计划", "category": "governance", "format": "markdown"},
     {"path": "validate_mvp_docs.py", "title": "MVP 文档校验脚本", "category": "tooling", "format": "python"}
   ]
 }

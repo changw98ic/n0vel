@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 06 风格面板页
 
 ## 页面目标

@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 08 章节版本页
 
 ## 页面目标

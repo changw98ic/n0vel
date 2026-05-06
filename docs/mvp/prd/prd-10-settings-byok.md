@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 10 设置与 BYOK 页
 
 ## 页面目标

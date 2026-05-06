@@ -1,3 +1,6 @@
+---
+status: implemented
+---
 # PRD 11 纯净阅读态
 
 ## 页面目标
