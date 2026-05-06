@@ -556,6 +556,104 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('deletes a project after confirmation and removes it from shelf', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const NovelWriterApp());
+    await tester.pump();
+
+    // The default shelf has 3 projects: 月潮回声, 盐港档案, 灰烬天气
+    expect(find.text('月潮回声'), findsWidgets);
+
+    // Tap the delete button in the detail panel for the selected project
+    final deleteButton = find.descendant(
+      of: find.byKey(ProjectListPage.detailKey),
+      matching: find.widgetWithText(OutlinedButton, '删除'),
+    );
+    await tester.ensureVisible(deleteButton);
+    await tester.tap(deleteButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    // Confirmation dialog appears
+    expect(find.text('确认删除项目'), findsOneWidget);
+    expect(find.text('删除对象'), findsOneWidget);
+    expect(find.text('删除说明'), findsOneWidget);
+
+    // Confirm deletion by tapping the "删除" button in the dialog actions
+    await tester.tap(find.text('删除').last);
+    await tester.pumpAndSettle();
+
+    // The project should no longer appear in the shelf cards
+    expect(find.text('月潮回声'), findsNothing);
+
+    // The shelf should now show only the remaining 2 projects
+    final workspaceStore = AppWorkspaceScope.of(
+      tester.element(find.byType(ProjectListPage)),
+    );
+    expect(workspaceStore.projects.length, 2);
+  });
+
+  testWidgets('canceling delete dialog keeps the project on the shelf', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const NovelWriterApp());
+    await tester.pump();
+
+    expect(find.text('月潮回声'), findsWidgets);
+
+    // Open the delete confirmation dialog
+    final deleteButton = find.descendant(
+      of: find.byKey(ProjectListPage.detailKey),
+      matching: find.widgetWithText(OutlinedButton, '删除'),
+    );
+    await tester.ensureVisible(deleteButton);
+    await tester.tap(deleteButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认删除项目'), findsOneWidget);
+
+    // Cancel the deletion
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    // The project is still on the shelf
+    expect(find.text('月潮回声'), findsWidgets);
+
+    final workspaceStore = AppWorkspaceScope.of(
+      tester.element(find.byType(ProjectListPage)),
+    );
+    expect(workspaceStore.projects.length, 3);
+  });
+
+  testWidgets('search hides non-matching projects and restores on clear', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const NovelWriterApp());
+    await tester.pump();
+
+    // All 3 default projects are visible initially
+    expect(find.text('月潮回声'), findsWidgets);
+    expect(find.text('盐港档案'), findsWidgets);
+    expect(find.text('灰烬天气'), findsWidgets);
+
+    // Type a search that only matches one project
+    await tester.enterText(find.byKey(ProjectListPage.searchFieldKey), '灰烬');
+    await tester.pump();
+
+    // Only the matching project card is visible
+    expect(find.text('灰烬天气'), findsWidgets);
+    expect(find.text('月潮回声'), findsNothing);
+    expect(find.text('盐港档案'), findsNothing);
+
+    // Clear search to restore all projects
+    await tester.enterText(find.byKey(ProjectListPage.searchFieldKey), '');
+    await tester.pump();
+
+    expect(find.text('月潮回声'), findsWidgets);
+    expect(find.text('盐港档案'), findsWidgets);
+    expect(find.text('灰烬天气'), findsWidgets);
+  });
+
   testWidgets('default import export ready view renders key panels', (
     tester,
   ) async {
