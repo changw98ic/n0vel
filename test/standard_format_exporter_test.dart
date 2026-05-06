@@ -496,7 +496,7 @@ void main() {
         worldNodes: const [],
       );
       final md = exporter.export(input, StandardExportFormat.markdown);
-      expect(md, contains('### 未命名角色'));
+      expect(md, contains('### 新角色'));
     });
 
     test('world node with minimal fields exports cleanly', () {
@@ -515,7 +515,7 @@ void main() {
         worldNodes: const [WorldNodeRecord(id: 'w1')],
       );
       final md = exporter.export(input, StandardExportFormat.markdown);
-      expect(md, contains('### 未命名节点'));
+      expect(md, contains('### 新节点'));
     });
   });
 }

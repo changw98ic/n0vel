@@ -98,19 +98,78 @@ mixin _WorkspaceFields on ChangeNotifier {
       List.unmodifiable(_styleStateForCurrentProject().warningMessages);
   ProjectTransferState get projectTransferState => _projectTransferState;
   String get currentProjectId => _currentProjectId;
-  ProjectRecord get currentProject =>
-      projectById(_currentProjectId) ?? _projects.first;
+  ProjectRecord? get currentProjectOrNull {
+    final projectList = projects;
+    return projectById(_currentProjectId) ??
+        (projectList.isEmpty ? null : projectList.first);
+  }
+
+  ProjectRecord get currentProject {
+    final project = projectById(_currentProjectId);
+    if (project != null) {
+      return project;
+    }
+    if (_projects.isEmpty) {
+      throw StateError('No current project is available.');
+    }
+    return _projects.first;
+  }
+
   String get currentProjectBreadcrumb =>
       '${currentProject.title} / ${currentProject.recentLocation}';
-  String get currentSceneScopeId =>
-      '${currentProject.id}::${currentProject.sceneId}';
+  SceneRecord? get currentSceneOrNull {
+    final project = currentProjectOrNull;
+    if (project == null) {
+      return null;
+    }
+    final byId = sceneById(_currentProjectId, project.sceneId);
+    if (byId != null) {
+      return byId;
+    }
+    final scenesForProject = _scenesForProject(project.id);
+    if (scenesForProject.isNotEmpty) {
+      return scenesForProject.first;
+    }
+    final fallbackScenes = defaultScenesForProject(project);
+    if (fallbackScenes.isNotEmpty) {
+      return fallbackScenes.first;
+    }
+    return null;
+  }
+  String get currentSceneScopeId {
+    final project = currentProjectOrNull;
+    return project == null ? '' : '${project.id}::${project.sceneId}';
+  }
   SceneRecord get currentScene =>
-      sceneById(_currentProjectId, currentProject.sceneId) ??
-      _scenesForCurrentProject().first;
+      currentSceneOrNull ?? _currentSceneFallback();
+
+  SceneRecord _currentSceneFallback() {
+    final project = currentProjectOrNull;
+    if (project == null) {
+      throw StateError('No current scene is available.');
+    }
+    final scenesForProject = _scenesForProject(project.id);
+    if (scenesForProject.isNotEmpty) {
+      return scenesForProject.first;
+    }
+    final fallbackScenes = defaultScenesForProject(project);
+    if (fallbackScenes.isNotEmpty) {
+      return fallbackScenes.first;
+    }
+    throw StateError('No fallback scene is available.');
+  }
   int get selectedAuditIssueIndex =>
       _auditSelectionIndexForProject(_currentProjectId);
+  AuditIssueRecord? get selectedAuditIssueOrNull {
+    final issues = auditIssues;
+    if (issues.isEmpty) {
+      return null;
+    }
+    final index = selectedAuditIssueIndex;
+    return index < 0 || index >= issues.length ? issues.first : issues[index];
+  }
   AuditIssueRecord get selectedAuditIssue =>
-      auditIssues[selectedAuditIssueIndex];
+      selectedAuditIssueOrNull ?? const AuditIssueRecord(id: '');
   AuditIssueFilter get auditIssueFilter =>
       _selectedAuditStateForCurrentProject().filter;
   List<AuditIssueRecord> get filteredAuditIssues {
@@ -369,7 +428,10 @@ class AppWorkspaceStore extends ChangeNotifier
       ),
       _styleByProjectId = buildDefaultProjectStyles(buildDefaultProjects()),
       _auditUiByProjectId = buildDefaultProjectAuditUi(buildDefaultProjects()),
-      _currentProjectId = buildDefaultProjects().first.id {
+      _currentProjectId = (() {
+        final projects = sortProjects(buildDefaultProjects());
+        return projects.isEmpty ? '' : projects.first.id;
+      })() {
     _restore();
   }
 

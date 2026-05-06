@@ -1,9 +1,44 @@
+import 'dart:convert';
+
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import 'app_authoring_storage_io_support.dart';
 import 'app_workspace_storage.dart';
 import 'workspace_storage_io_helpers.dart';
 import 'workspace_storage_schema.dart';
+
+List<String> _decodeLinkedSceneIds(String? raw) {
+  if (raw == null || raw.trim().isEmpty) {
+    return const <String>[];
+  }
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(raw);
+  } on FormatException {
+    return const <String>[];
+  }
+  if (decoded is! List) {
+    return const <String>[];
+  }
+  return [
+    for (final value in decoded)
+      if (value != null && value.toString().trim().isNotEmpty) value.toString(),
+  ];
+}
+
+String _encodeLinkedSceneIds(Object? raw) {
+  if (raw is Iterable) {
+    return jsonEncode([
+      for (final value in raw)
+        if (value != null && value.toString().trim().isNotEmpty)
+          value.toString(),
+    ]);
+  }
+  if (raw is String && raw.trim().isNotEmpty) {
+    return jsonEncode([raw]);
+  }
+  return '[]';
+}
 
 class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
   SqliteAppWorkspaceStorage({String? dbPath})
@@ -26,7 +61,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
       );
       final characters = database.select(
         '''
-        SELECT project_id, name, role, note, need_text, summary
+        SELECT project_id, name, role, note, need_text, summary, linked_scene_ids
         FROM workspace_characters
         WHERE scope_key = ?
         ORDER BY project_id ASC, position_no ASC
@@ -35,7 +70,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
       );
       final worldNodes = database.select(
         '''
-        SELECT project_id, title, location, type, detail, summary
+        SELECT project_id, title, location, type, detail, summary, linked_scene_ids
         FROM workspace_world_nodes
         WHERE scope_key = ?
         ORDER BY project_id ASC, position_no ASC
@@ -114,6 +149,9 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
             'note': row['note'] as String,
             'need': row['need_text'] as String,
             'summary': row['summary'] as String,
+            'linkedSceneIds': _decodeLinkedSceneIds(
+              row['linked_scene_ids'] as String?,
+            ),
           },
         ),
         'scenesByProject': WorkspaceStorageHelpers.groupRowsByProject(
@@ -133,6 +171,9 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
             'type': row['type'] as String,
             'detail': row['detail'] as String,
             'summary': row['summary'] as String,
+            'linkedSceneIds': _decodeLinkedSceneIds(
+              row['linked_scene_ids'] as String?,
+            ),
           },
         ),
         'auditIssuesByProject': WorkspaceStorageHelpers.groupRowsByProject(
@@ -233,13 +274,21 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           scopeKey: _scopeKey,
           tableName: 'workspace_characters',
           rowsByProject: charactersByProject,
-          columnNames: const ['name', 'role', 'note', 'need_text', 'summary'],
+          columnNames: const [
+            'name',
+            'role',
+            'note',
+            'need_text',
+            'summary',
+            'linked_scene_ids',
+          ],
           valuesBuilder: (row) => [
             row['name']?.toString() ?? '',
             row['role']?.toString() ?? '',
             row['note']?.toString() ?? '',
             row['need']?.toString() ?? '',
             row['summary']?.toString() ?? '',
+            _encodeLinkedSceneIds(row['linkedSceneIds']),
           ],
         );
         WorkspaceStorageHelpers.insertProjectScopedRows(
@@ -260,13 +309,21 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           scopeKey: _scopeKey,
           tableName: 'workspace_world_nodes',
           rowsByProject: worldNodesByProject,
-          columnNames: const ['title', 'location', 'type', 'detail', 'summary'],
+          columnNames: const [
+            'title',
+            'location',
+            'type',
+            'detail',
+            'summary',
+            'linked_scene_ids',
+          ],
           valuesBuilder: (row) => [
             row['title']?.toString() ?? '',
             row['location']?.toString() ?? '',
             row['type']?.toString() ?? '',
             row['detail']?.toString() ?? '',
             row['summary']?.toString() ?? '',
+            _encodeLinkedSceneIds(row['linkedSceneIds']),
           ],
         );
         WorkspaceStorageHelpers.insertProjectScopedRows(

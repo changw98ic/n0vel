@@ -112,7 +112,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                           child: Column(
                             children: [
                               _SandboxHeader(
-                                title: '模拟聊天室',
+                                title: 'AI 生成过程',
                                 subtitle: '多角色协作流 · 导演调度视图',
                               ),
                               const SizedBox(height: 16),
@@ -224,7 +224,7 @@ class _SandboxEmptyState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '还没有模拟过程',
+            '还没有生成过程',
             style: theme.textTheme.titleLarge?.copyWith(
               color: const Color(0xFF2E2925),
               fontWeight: FontWeight.w600,
@@ -232,7 +232,7 @@ class _SandboxEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '当前章节还没有运行过 SimulationRun，因此暂时没有多 agent 输出可查看。请先在写作工作台发起一次模拟。',
+            '这一章还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF514943),
               height: 1.55,

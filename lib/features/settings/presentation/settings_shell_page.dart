@@ -38,6 +38,14 @@ class SettingsShellPage extends StatefulWidget {
   );
   static const themeLightButtonKey = ValueKey<String>('settings-theme-light');
   static const themeDarkButtonKey = ValueKey<String>('settings-theme-dark');
+  static const addProfileButtonKey = ValueKey<String>(
+    'settings-add-profile-button',
+  );
+  static const profileListKey = ValueKey<String>('settings-profile-list');
+  static const addRouteButtonKey = ValueKey<String>(
+    'settings-add-route-button',
+  );
+  static const routeListKey = ValueKey<String>('settings-route-list');
 
   @override
   State<SettingsShellPage> createState() => _SettingsShellPageState();
@@ -343,6 +351,67 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             label: '并发上限',
             controller: _maxConcurrentRequestsController,
             fieldKey: SettingsShellPage.maxConcurrentRequestsFieldKey,
+          ),
+          const SizedBox(height: 24),
+          Text('多提供方配置', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            '为不同的 AI 阶段指定独立的模型服务。未匹配路由时使用上方默认提供方。',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          if (settings.providerProfiles.isEmpty)
+            Text('暂无额外提供方。', style: theme.textTheme.bodySmall)
+          else ...[
+            for (final profile in settings.providerProfiles) ...[
+              _ProfileCard(
+                profile: profile,
+                onDelete: profile.id == 'primary'
+                    ? null
+                    : () {
+                        AppSettingsScope.of(
+                          context,
+                        ).removeProviderProfile(profile.id);
+                      },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+          const SizedBox(height: 4),
+          OutlinedButton(
+            key: SettingsShellPage.addProfileButtonKey,
+            onPressed: () => _showProfileDialog(context),
+            child: const Text('添加提供方'),
+          ),
+          const SizedBox(height: 24),
+          Text('路由规则', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            '将 trace 名称匹配到指定提供方。支持通配符，如 scene_review_*。',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          if (settings.requestProviderRoutes.isEmpty)
+            Text('暂无路由规则。', style: theme.textTheme.bodySmall)
+          else ...[
+            for (final route in settings.requestProviderRoutes) ...[
+              _RouteCard(
+                route: route,
+                profiles: settings.providerProfiles,
+                onDelete: () {
+                  AppSettingsScope.of(
+                    context,
+                  ).removeRequestProviderRoute(route.traceNamePattern);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+          const SizedBox(height: 4),
+          OutlinedButton(
+            key: SettingsShellPage.addRouteButtonKey,
+            onPressed: () => _showRouteDialog(context),
+            child: const Text('添加路由'),
           ),
         ],
       ),
@@ -667,6 +736,187 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         },
       ),
     ];
+  }
+
+  Future<void> _showProfileDialog(BuildContext context) async {
+    final store = AppSettingsScope.of(context);
+    final idController = TextEditingController();
+    final nameController = TextEditingController();
+    final urlController = TextEditingController();
+    final modelController = TextEditingController();
+    final keyController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('添加提供方'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: idController,
+                  decoration: const InputDecoration(
+                    labelText: '标识（英文，唯一）',
+                    hintText: '例如：glm-review',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '提供方名称',
+                    hintText: '例如：智谱 GLM',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlController,
+                  decoration: const InputDecoration(
+                    labelText: '接口地址',
+                    hintText: 'https://open.bigmodel.cn/api/paas/v4',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: modelController,
+                  decoration: const InputDecoration(
+                    labelText: '模型',
+                    hintText: '例如：glm-5.1',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: keyController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: '密钥',
+                    hintText: '输入 API Key',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final id = idController.text.trim();
+                if (id.isEmpty ||
+                    nameController.text.trim().isEmpty ||
+                    urlController.text.trim().isEmpty ||
+                    modelController.text.trim().isEmpty) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+    final profileId = idController.text.trim();
+    final profileName = nameController.text.trim();
+    final profileUrl = urlController.text.trim();
+    final profileModel = modelController.text.trim();
+    final profileKey = keyController.text.trim();
+    if (result != true) return;
+    if (!mounted) return;
+    await store.upsertProviderProfile(
+      AppLlmProviderProfile(
+        id: profileId,
+        providerName: profileName,
+        baseUrl: profileUrl,
+        model: profileModel,
+        apiKey: profileKey,
+      ),
+    );
+  }
+
+  Future<void> _showRouteDialog(BuildContext context) async {
+    final settingsStore = AppSettingsScope.of(context);
+    final profiles = settingsStore.snapshot.providerProfiles;
+    if (profiles.isEmpty) {
+      return;
+    }
+    final patternController = TextEditingController();
+    String? selectedProfileId = profiles.first.id;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('添加路由'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: patternController,
+                      decoration: const InputDecoration(
+                        labelText: 'Trace 名称模式',
+                        hintText: '例如：scene_review_*',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedProfileId,
+                      decoration: const InputDecoration(labelText: '目标提供方'),
+                      items: [
+                        for (final profile in profiles)
+                          DropdownMenuItem(
+                            value: profile.id,
+                            child: Text(
+                              '${profile.id} (${profile.model})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selectedProfileId = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (patternController.text.trim().isEmpty ||
+                        selectedProfileId == null) {
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: const Text('保存'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    final routePattern = patternController.text.trim();
+    if (result != true) return;
+    if (selectedProfileId == null) return;
+    if (!mounted) return;
+    await settingsStore.upsertRequestProviderRoute(
+      AppLlmRequestProviderRoute(
+        traceNamePattern: routePattern,
+        providerProfileId: selectedProfileId!,
+      ),
+    );
   }
 
   Color _feedbackColor(AppSettingsFeedbackTone tone) {
@@ -1019,6 +1269,114 @@ class _PersistenceOverlayCard extends StatelessWidget {
                   child: const Text('重试配置'),
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.profile, required this.onDelete});
+
+  final AppLlmProviderProfile profile;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${profile.providerName} · ${profile.model}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  profile.baseUrl,
+                  style: theme.textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (profile.id == 'primary') ...[
+                  const SizedBox(height: 4),
+                  Text('默认写作配置会自动同步到这里。', style: theme.textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20),
+            onPressed: onDelete,
+            tooltip: onDelete == null ? '默认配置不能删除' : '删除',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteCard extends StatelessWidget {
+  const _RouteCard({
+    required this.route,
+    required this.profiles,
+    required this.onDelete,
+  });
+
+  final AppLlmRequestProviderRoute route;
+  final List<AppLlmProviderProfile> profiles;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final profileName =
+        profiles
+            .where((p) => p.id == route.providerProfileId)
+            .map((p) => '${p.providerName} (${p.model})')
+            .firstOrNull ??
+        route.providerProfileId;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(route.traceNamePattern, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 4),
+                Text(
+                  profileName,
+                  style: theme.textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20),
+            onPressed: onDelete,
+            tooltip: '删除',
           ),
         ],
       ),

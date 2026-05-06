@@ -21,7 +21,8 @@ class CachedProjectStorage implements ProjectStorage {
   final Duration _writeDelay;
 
   /// In-memory read cache keyed by projectId.
-  /// An empty const map acts as a sentinel for "loaded but absent on disk".
+  /// Missing rows are intentionally not cached, so imports or external writes
+  /// can become visible the next time a store restores the active project.
   final Map<String, Map<String, Object?>> _cache = {};
 
   /// Projects with pending writes not yet flushed to disk.
@@ -33,17 +34,21 @@ class CachedProjectStorage implements ProjectStorage {
   Future<Map<String, Object?>?> load({required String projectId}) async {
     if (_cache.containsKey(projectId)) {
       final cached = _cache[projectId]!;
-      return identical(cached, const <String, Object?>{})
-          ? null
-          : cloneStorageMap(cached);
+      return cloneStorageMap(cached);
     }
     final data = await _delegate.load(projectId: projectId);
-    _cache[projectId] = data == null ? const {} : cloneStorageMap(data);
-    return data;
+    if (data == null) {
+      return null;
+    }
+    _cache[projectId] = cloneStorageMap(data);
+    return cloneStorageMap(data);
   }
 
   @override
-  Future<void> save(Map<String, Object?> data, {required String projectId}) async {
+  Future<void> save(
+    Map<String, Object?> data, {
+    required String projectId,
+  }) async {
     final cloned = cloneStorageMap(data);
     _cache[projectId] = cloned;
     _pending[projectId] = cloned;

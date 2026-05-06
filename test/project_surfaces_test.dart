@@ -457,7 +457,7 @@ void main() {
       await openProjectDrawer(tester);
       await tester.tap(find.byKey(ProjectListPage.auditShortcutKey));
       await tester.pumpAndSettle();
-      expect(find.text('审计中心'), findsOneWidget);
+      expect(find.text('问题检查'), findsOneWidget);
     },
   );
 
@@ -733,6 +733,53 @@ void main() {
 
     expect(find.text('导出成功'), findsOneWidget);
     expect(find.textContaining('工程包已写入本地导出目录'), findsOneWidget);
+  });
+
+  testWidgets('author can create write and export without unnamed data', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const NovelWriterApp());
+    await tester.pump();
+
+    await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
+    await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
+    await tester.pump();
+
+    final workspaceStore = AppWorkspaceScope.of(
+      tester.element(find.byType(ProjectListPage)),
+    );
+    workspaceStore.createCharacter();
+    workspaceStore.createWorldNode();
+    await tester.pump();
+
+    tester
+        .state<NavigatorState>(find.byType(Navigator))
+        .push(
+          MaterialPageRoute<void>(builder: (_) => const WorkbenchShellPage()),
+        );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(WorkbenchShellPage.editorTextFieldKey),
+      '作者端到端草稿：角色带着目标进入场景，世界规则推动下一步冲突。',
+    );
+    await tester.pump();
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+
+    tester
+        .state<NavigatorState>(find.byType(Navigator))
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => const ProjectImportExportPage(),
+          ),
+        );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('导出当前工程'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('导出成功'), findsOneWidget);
+    expect(transferService._exportManifest?.projectTitle, '新建项目 4');
+    expect(workspaceStore.exportJson().toString(), isNot(contains('未命名')));
   });
 }
 

@@ -271,42 +271,12 @@ class _ProjectListPageState extends State<ProjectListPage> {
   ) {
     final palette = desktopPalette(context);
     if (widget.uiState == ProjectListUiState.empty) {
-      return AppEmptyState(
-        style: AppEmptyStateStyle.prominent,
-        title: '当前还没有项目',
-        message: '可以直接从书架里新建一个项目，或从左侧菜单导入工程。',
-        actions: [
-          FilledButton(onPressed: _createProject, child: const Text('新建项目')),
-          OutlinedButton(
-            onPressed: () {
-              setState(() {
-                _isDrawerOpen = true;
-              });
-            },
-            child: const Text('打开菜单'),
-          ),
-        ],
-      );
+      return _buildEmptyShelfState(context);
     }
 
     if (widget.uiState == ProjectListUiState.searchNoResults ||
         visibleProjects.isEmpty) {
-      return AppEmptyState(
-        style: AppEmptyStateStyle.prominent,
-        title: '没有匹配的项目',
-        message: '换个关键词试试，或直接从书架里新建一个项目。',
-        actions: [
-          FilledButton(
-            onPressed: () {
-              setState(() {
-                _searchController.clear();
-              });
-            },
-            child: const Text('清空搜索'),
-          ),
-          OutlinedButton(onPressed: _createProject, child: const Text('新建项目')),
-        ],
-      );
+      return _buildSearchNoResultsState(context);
     }
 
     return Column(
@@ -336,10 +306,16 @@ class _ProjectListPageState extends State<ProjectListPage> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              if (selectedProject == null) {
+                return widget.uiState == ProjectListUiState.searchNoResults
+                    ? _buildSearchNoResultsState(context)
+                    : _buildEmptyShelfState(context);
+              }
+
               final compact =
                   constraints.maxWidth <
                   DesktopLayoutTokens.compactPageBreakpoint;
-              final currentProject = selectedProject ?? visibleProjects.first;
+              final currentProject = selectedProject;
               final shelf = _ProjectShelfPanel(
                 projects: visibleProjects,
                 selectedProject: currentProject,
@@ -380,6 +356,44 @@ class _ProjectListPageState extends State<ProjectListPage> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchNoResultsState(BuildContext context) {
+    return AppEmptyState(
+      style: AppEmptyStateStyle.prominent,
+      title: '没有匹配的项目',
+      message: '换个关键词试试，或直接从书架里新建一个项目。',
+      actions: [
+        FilledButton(
+          onPressed: () {
+            setState(() {
+              _searchController.clear();
+            });
+          },
+          child: const Text('清空搜索'),
+        ),
+        OutlinedButton(onPressed: _createProject, child: const Text('新建项目')),
+      ],
+    );
+  }
+
+  Widget _buildEmptyShelfState(BuildContext context) {
+    return AppEmptyState(
+      style: AppEmptyStateStyle.prominent,
+      title: '当前还没有项目',
+      message: '可以直接从书架里新建一个项目，或从左侧菜单导入工程。',
+      actions: [
+        FilledButton(onPressed: _createProject, child: const Text('新建项目')),
+        OutlinedButton(
+          onPressed: () {
+            setState(() {
+              _isDrawerOpen = true;
+            });
+          },
+          child: const Text('打开菜单'),
         ),
       ],
     );
@@ -504,17 +518,20 @@ class _ProjectListPageState extends State<ProjectListPage> {
   }
 
   ProjectRecord? _resolveSelectedProject(List<ProjectRecord> visibleProjects) {
-    if (visibleProjects.isEmpty) {
+    final store = AppWorkspaceScope.of(context);
+    final fallbackProject = visibleProjects.isNotEmpty
+        ? visibleProjects.first
+        : (store.projects.isEmpty ? null : store.projects.first);
+    if (fallbackProject == null) {
       return null;
     }
-    final store = AppWorkspaceScope.of(context);
     final resolvedProjectId = _selectedProjectId ?? store.currentProjectId;
     if (resolvedProjectId.isEmpty) {
-      return visibleProjects.first;
+      return fallbackProject;
     }
     return visibleProjects.cast<ProjectRecord?>().firstWhere(
       (project) => project?.id == resolvedProjectId,
-      orElse: () => visibleProjects.first,
+      orElse: () => fallbackProject,
     );
   }
 
@@ -550,11 +567,15 @@ class _ProjectListPageState extends State<ProjectListPage> {
       onProductionBoard: () {
         AppNavigator.push(context, AppRoutes.productionBoard);
       },
-      onWorkbench: () => _openWorkbench(
-        context,
-        _resolveSelectedProject(_visibleProjects(_projects(context))) ??
-            _projects(context).first,
-      ),
+      onWorkbench: () {
+        final selected = _resolveSelectedProject(
+          _visibleProjects(_projects(context)),
+        );
+        if (selected == null) {
+          return;
+        }
+        _openWorkbench(context, selected);
+      },
       onStyle: () {
         AppNavigator.push(context, AppRoutes.style);
       },
@@ -567,11 +588,15 @@ class _ProjectListPageState extends State<ProjectListPage> {
       onWorldbuilding: () {
         AppNavigator.push(context, AppRoutes.worldbuilding);
       },
-      onStoryBible: () => _openStoryBible(
-        context,
-        _resolveSelectedProject(_visibleProjects(_projects(context))) ??
-            _projects(context).first,
-      ),
+      onStoryBible: () {
+        final selected = _resolveSelectedProject(
+          _visibleProjects(_projects(context)),
+        );
+        if (selected == null) {
+          return;
+        }
+        _openStoryBible(context, selected);
+      },
       onAudit: () {
         AppNavigator.push(context, AppRoutes.audit);
       },
@@ -584,7 +609,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
       sceneButtonKey: ProjectListPage.sceneShortcutKey,
       characterButtonKey: ProjectListPage.characterShortcutKey,
       worldButtonKey: ProjectListPage.worldShortcutKey,
-      storyBibleButtonKey: ProjectListPage.storyBibleShortcutKey,
+      storyBibleButtonKey: ProjectListPage.storyBibleButtonKey,
       auditButtonKey: ProjectListPage.auditShortcutKey,
     );
   }
@@ -646,12 +671,20 @@ class _ProjectShelfCard extends StatelessWidget {
     required this.project,
     required this.isSelected,
     this.compact = false,
+    this.featuredWidth = 360,
+    this.standardWidth = 240,
+    this.featuredHeight = 236,
+    this.standardHeight = 196,
     required this.onTap,
   });
 
   final ProjectRecord project;
   final bool isSelected;
   final bool compact;
+  final double featuredWidth;
+  final double standardWidth;
+  final double featuredHeight;
+  final double standardHeight;
   final VoidCallback onTap;
 
   @override
@@ -660,8 +693,8 @@ class _ProjectShelfCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     final featured = isSelected && !compact;
-    final width = featured ? 360.0 : 240.0;
-    final height = featured ? 236.0 : 196.0;
+    final width = featured ? featuredWidth : standardWidth;
+    final height = featured ? featuredHeight : standardHeight;
     final radius = featured ? 18.0 : 14.0;
     final background = isSelected ? palette.subtle : palette.surface;
 
@@ -958,9 +991,15 @@ class _CompactProjectDetailContent extends StatelessWidget {
 }
 
 class _NewProjectShelfCard extends StatelessWidget {
-  const _NewProjectShelfCard({required this.onTap});
+  const _NewProjectShelfCard({
+    required this.onTap,
+    this.width = 220,
+    this.height = 196,
+  });
 
   final VoidCallback onTap;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -968,8 +1007,8 @@ class _NewProjectShelfCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SizedBox(
-      width: 220,
-      height: 196,
+      width: width,
+      height: height,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -1063,16 +1102,7 @@ class _ProjectShelfPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final shelfChildren = <Widget>[
-      for (final project in projects)
-        _ProjectShelfCard(
-          project: project,
-          isSelected: project == selectedProject,
-          compact: compact,
-          onTap: () => onSelectProject(project),
-        ),
-      _NewProjectShelfCard(onTap: onCreateProject),
-    ];
+    final shelfBody = _buildShelfBody();
 
     return Container(
       decoration: appPanelDecoration(context),
@@ -1087,37 +1117,7 @@ class _ProjectShelfPanel extends StatelessWidget {
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 18),
-          if (compact)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var index = 0; index < shelfChildren.length; index++) ...[
-                  shelfChildren[index],
-                  if (index != shelfChildren.length - 1)
-                    const SizedBox(height: 16),
-                ],
-              ],
-            )
-          else
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (
-                      var index = 0;
-                      index < shelfChildren.length;
-                      index++
-                    ) ...[
-                      shelfChildren[index],
-                      if (index != shelfChildren.length - 1)
-                        const SizedBox(width: 16),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+          if (compact) shelfBody else Expanded(child: shelfBody),
           if (!compact) ...[
             const SizedBox(height: 16),
             Container(
@@ -1131,6 +1131,69 @@ class _ProjectShelfPanel extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildShelfBody() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final constrained = constraints.maxWidth < 980;
+        final gap = constrained ? 12.0 : 16.0;
+        final featuredWidth = constrained ? 300.0 : 360.0;
+        final standardWidth = constrained ? 200.0 : 240.0;
+        final newProjectWidth = constrained ? 176.0 : 220.0;
+        final featuredHeight = constrained ? 226.0 : 236.0;
+        final standardHeight = 200.0;
+        final shelfChildren = <Widget>[
+          for (final project in projects)
+            _ProjectShelfCard(
+              project: project,
+              isSelected: project == selectedProject,
+              compact: compact,
+              featuredWidth: featuredWidth,
+              standardWidth: standardWidth,
+              featuredHeight: featuredHeight,
+              standardHeight: standardHeight,
+              onTap: () => onSelectProject(project),
+            ),
+          _NewProjectShelfCard(
+            onTap: onCreateProject,
+            width: newProjectWidth,
+            height: standardHeight,
+          ),
+        ];
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < shelfChildren.length; index++) ...[
+                shelfChildren[index],
+                if (index != shelfChildren.length - 1) SizedBox(height: gap),
+              ],
+            ],
+          );
+        }
+
+        if (constrained) {
+          return SingleChildScrollView(
+            child: Wrap(spacing: gap, runSpacing: gap, children: shelfChildren),
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < shelfChildren.length; index++) ...[
+                shelfChildren[index],
+                if (index != shelfChildren.length - 1) SizedBox(width: gap),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

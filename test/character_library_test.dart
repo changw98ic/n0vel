@@ -45,7 +45,7 @@ void main() {
     expect(find.text('角色库'), findsOneWidget);
     expect(find.text('维护人物信息、心理参数与引用场景'), findsOneWidget);
     expect(find.text('新建角色'), findsOneWidget);
-    expect(find.text('角色索引已同步'), findsOneWidget);
+    expect(find.text('人物资料已保存'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -89,7 +89,7 @@ void main() {
 
     expect(find.text('缺少必填字段'), findsOneWidget);
     expect(
-      find.textContaining('当前角色尚未填写姓名'),
+      find.textContaining('当前人物还没有名字'),
       findsOneWidget,
     );
     expect(

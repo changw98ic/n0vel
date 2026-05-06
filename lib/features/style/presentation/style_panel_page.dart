@@ -47,6 +47,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
   bool _isDrawerOpen = false;
   late final TextEditingController _jsonDraftController;
   bool _jsonControllerReady = false;
+  bool _syncGuard = false;
 
   @override
   void initState() {
@@ -68,8 +69,11 @@ class _StylePanelPageState extends State<StylePanelPage> {
     final effectiveUiState = _effectiveUiState(store);
     final draft = store.styleQuestionnaireDraft;
     if (!_jsonControllerReady) {
+      _syncGuard = true;
       _jsonDraftController.text = store.styleJsonDraft;
+      _syncGuard = false;
       _jsonDraftController.addListener(() {
+        if (_syncGuard) return;
         if (_jsonDraftController.text !=
             AppWorkspaceScope.of(context).styleJsonDraft) {
           AppWorkspaceScope.of(
@@ -79,10 +83,12 @@ class _StylePanelPageState extends State<StylePanelPage> {
       });
       _jsonControllerReady = true;
     } else if (_jsonDraftController.text != store.styleJsonDraft) {
+      _syncGuard = true;
       _jsonDraftController.value = _jsonDraftController.value.copyWith(
         text: store.styleJsonDraft,
         selection: TextSelection.collapsed(offset: store.styleJsonDraft.length),
       );
+      _syncGuard = false;
     }
 
     final inputPanel = Container(

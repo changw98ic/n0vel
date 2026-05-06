@@ -237,7 +237,7 @@ void main() {
       await runFuture;
 
       expect(runStore.snapshot.status, StoryGenerationRunStatus.cancelled);
-      expect(runStore.snapshot.headline, '角色编排已取消');
+      expect(runStore.snapshot.headline, 'AI 试写已取消');
       final stored = await storage.load(
         sceneScopeId: workspaceStore.currentSceneScopeId,
       );

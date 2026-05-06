@@ -168,7 +168,7 @@ List<DesktopMenuItemData> buildDesktopWorkspaceMenuItems({
         onTap: onStoryBible,
       ),
     DesktopMenuItemData(
-      label: '审计中心',
+      label: '问题检查',
       buttonKey: auditButtonKey,
       isSelected: selected == DesktopWorkspaceSection.audit,
       onTap: onAudit,
@@ -181,7 +181,7 @@ List<DesktopMenuItemData> buildDesktopWorkspaceMenuItems({
       ),
     if (onReviewTasks != null)
       DesktopMenuItemData(
-        label: '审查任务',
+        label: '改稿任务',
         isSelected: selected == DesktopWorkspaceSection.reviewTasks,
         onTap: onReviewTasks,
       ),

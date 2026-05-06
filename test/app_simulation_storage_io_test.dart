@@ -201,7 +201,7 @@ void main() {
 
       expect(restoredStore.snapshot.status, SimulationStatus.completed);
       expect(restoredStore.snapshot.messages, hasLength(6));
-      expect(restoredStore.snapshot.headline, contains('真实多 Agent'));
+      expect(restoredStore.snapshot.headline, contains('AI 多角色试写'));
     },
   );
 

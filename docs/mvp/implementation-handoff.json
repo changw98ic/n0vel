@@ -18,7 +18,7 @@
   "milestones": {
     "M1": {
       "title": "壳层与主工作台",
-      "related_frames": ["47nGt", "WT5mH", "i2PgM", "y6Ufy", "o6hOU", "WmFpE", "emCHR"],
+      "related_frames": ["47nGt", "WT5mH", "i2PgM", "Z0134", "y6Ufy", "o6hOU", "WmFpE", "emCHR"],
       "done_when": [
         "左侧 menu drawer、breadcrumb、右侧工具条稳定",
         "正文保持主视觉中心",
@@ -44,11 +44,19 @@
     },
     "M4": {
       "title": "模拟与导入导出",
-      "related_frames": ["YTrUo", "fBn5z", "JJh0t", "GtV8t", "Fekvk", "z0mJ1", "aYhVV", "XrBiQ", "kJVPV", "f4cfp", "nJ1Vf", "sqxPi", "O5g2A"],
+      "related_frames": ["YTrUo", "fBn5z", "JJh0t", "GtV8t", "Fekvk", "z0mJ1", "Z0194", "aYhVV", "XrBiQ", "kJVPV", "f4cfp", "nJ1Vf", "sqxPi", "O5g2A"],
       "done_when": [
         "SimulationRun 回传和刷新模式稳定",
         "导入成功 / 覆盖成功后的索引刷新稳定",
         "导入阻断态和轻警告态清晰分层"
+      ]
+    },
+    "M5": {
+      "title": "闭环补充页面",
+      "related_frames": ["Z0073", "Z0240", "Z0340", "Z0402"],
+      "done_when": [
+        "书架响应式补充稿可回查",
+        "作品圣经、生产看板、审查任务有补充设计基线"
       ]
     }
   },

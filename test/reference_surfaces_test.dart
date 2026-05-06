@@ -183,7 +183,7 @@ void main() {
 
     expect(find.text('缺少必填字段'), findsOneWidget);
     expect(
-      find.text('当前角色尚未填写姓名，因此本轮不会写入角色索引，也不会同步到写作工作台的角色摘要。'),
+      find.text('当前人物还没有名字，因此这次不会保存到人物资料，也不会刷新写作工作台的人物摘要。'),
       findsOneWidget,
     );
     expect(find.text('缺少姓名时，系统不会生成角色摘要，也不会同步到写作工作台。'), findsOneWidget);
@@ -315,7 +315,7 @@ void main() {
   testWidgets('shows audit center ready state', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: AuditCenterPage()));
 
-    expect(find.text('审计中心'), findsOneWidget);
+    expect(find.text('问题检查'), findsOneWidget);
     expect(find.textContaining('角色动机冲突'), findsOneWidget);
   });
 
@@ -381,7 +381,7 @@ void main() {
     expect(find.text('当前项目暂无问题'), findsOneWidget);
     expect(find.text('暂无一致性问题'), findsOneWidget);
     expect(find.text('当前项目没有检测到角色、规则、道具或时间线冲突。'), findsOneWidget);
-    expect(find.text('当前无需处理。后续运行审计后，问题会出现在这里。'), findsOneWidget);
+    expect(find.text('当前无需处理。后续运行问题检查后，问题会出现在这里。'), findsOneWidget);
 
     await tester.pumpWidget(
       const NovelWriterApp(
@@ -410,7 +410,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('建议动作'), findsOneWidget);
-    expect(find.text('重新审计'), findsOneWidget);
+    expect(find.text('重新检查'), findsOneWidget);
     expect(find.text('当前限制'), findsOneWidget);
 
     await tester.pumpWidget(
@@ -420,11 +420,11 @@ void main() {
     );
     expect(find.text('跳转失败'), findsOneWidget);
     expect(
-      find.text('目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从审计中心直接跳回原位置。'),
+      find.text('目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从问题检查直接跳回原位置。'),
       findsOneWidget,
     );
     expect(find.text('建议动作'), findsOneWidget);
-    expect(find.text('重新审计'), findsOneWidget);
+    expect(find.text('重新检查'), findsOneWidget);
     expect(find.text('当前限制'), findsOneWidget);
   });
 }

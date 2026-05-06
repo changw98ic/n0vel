@@ -141,7 +141,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         ],
       ),
       statusBar: const DesktopStatusStrip(
-        leftText: '角色索引已同步',
+        leftText: '人物资料已保存',
         rightText: '场景 05',
       ),
     );
@@ -262,7 +262,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
             const SizedBox(height: 12),
             const _StateCard(
               title: '缺少必填字段',
-              message: '当前角色尚未填写姓名，因此本轮不会写入角色索引，也不会同步到写作工作台的角色摘要。',
+              message: '当前人物还没有名字，因此这次不会保存到人物资料，也不会刷新写作工作台的人物摘要。',
               accent: Color(0xFF51624D),
             ),
             if (current != null) ...[

@@ -132,18 +132,8 @@ class WorkspaceDataValidator {
   ValidationResult validateProject(Map<String, Object?> project) {
     final errors = <ValidationError>[];
 
-    _requireNonEmpty(
-      project['id'],
-      'id',
-      '项目 id 不能为空',
-      errors,
-    );
-    _requireNonEmpty(
-      project['sceneId'],
-      'sceneId',
-      '项目 sceneId 不能为空',
-      errors,
-    );
+    _requireNonEmpty(project['id'], 'id', '项目 id 不能为空', errors);
+    _requireNonEmpty(project['sceneId'], 'sceneId', '项目 sceneId 不能为空', errors);
     _requireNonEmptyTrimmed(
       project['title'],
       'title',
@@ -153,10 +143,12 @@ class WorkspaceDataValidator {
 
     final ts = project['lastOpenedAtMs'];
     if (ts is! int || ts <= 0) {
-      errors.add(const ValidationError(
-        field: 'lastOpenedAtMs',
-        message: 'lastOpenedAtMs 必须是正整数',
-      ));
+      errors.add(
+        const ValidationError(
+          field: 'lastOpenedAtMs',
+          message: 'lastOpenedAtMs 必须是正整数',
+        ),
+      );
     }
 
     return errors.isEmpty
@@ -168,12 +160,7 @@ class WorkspaceDataValidator {
     final errors = <ValidationError>[];
 
     _requireNonEmpty(scene['id'], 'id', '场景 id 不能为空', errors);
-    _requireNonEmptyTrimmed(
-      scene['title'],
-      'title',
-      '场景 title 不能为空白',
-      errors,
-    );
+    _requireNonEmptyTrimmed(scene['title'], 'title', '场景 title 不能为空白', errors);
 
     return errors.isEmpty
         ? ValidationResult.ok()
@@ -186,12 +173,7 @@ class WorkspaceDataValidator {
   }) {
     final errors = <ValidationError>[];
 
-    _requireNonEmptyTrimmed(
-      character['name'],
-      'name',
-      '角色 name 不能为空白',
-      errors,
-    );
+    _requireNonEmptyTrimmed(character['name'], 'name', '角色 name 不能为空白', errors);
 
     _validateLinkedSceneIds(
       character['linkedSceneIds'],
@@ -211,12 +193,7 @@ class WorkspaceDataValidator {
   }) {
     final errors = <ValidationError>[];
 
-    _requireNonEmptyTrimmed(
-      node['title'],
-      'title',
-      '世界节点 title 不能为空白',
-      errors,
-    );
+    _requireNonEmptyTrimmed(node['title'], 'title', '世界节点 title 不能为空白', errors);
 
     _validateLinkedSceneIds(
       node['linkedSceneIds'],
@@ -236,7 +213,7 @@ class WorkspaceDataValidator {
     _requireNonEmptyTrimmed(
       issue['title'],
       'title',
-      '审计问题 title 不能为空白',
+      '问题检查 title 不能为空白',
       errors,
     );
 
@@ -244,11 +221,13 @@ class WorkspaceDataValidator {
     if (status != null &&
         status.isNotEmpty &&
         !const {'open', 'resolved', 'ignored'}.contains(status)) {
-      errors.add(ValidationError(
-        field: 'status',
-        message: 'status 必须是 open/resolved/ignored 之一，实际值: $status',
-        severity: ValidationSeverity.warning,
-      ));
+      errors.add(
+        ValidationError(
+          field: 'status',
+          message: 'status 必须是 open/resolved/ignored 之一，实际值: $status',
+          severity: ValidationSeverity.warning,
+        ),
+      );
     }
 
     return errors.isEmpty
@@ -259,30 +238,29 @@ class WorkspaceDataValidator {
   ValidationResult validateStyleProfile(Map<String, Object?> profile) {
     final errors = <ValidationError>[];
 
-    _requireNonEmptyTrimmed(
-      profile['name'],
-      'name',
-      '风格配置 name 不能为空白',
-      errors,
-    );
+    _requireNonEmptyTrimmed(profile['name'], 'name', '风格配置 name 不能为空白', errors);
 
     final source = profile['source']?.toString();
     if (source != null &&
         source.isNotEmpty &&
         !const {'questionnaire', 'sample', 'custom'}.contains(source)) {
-      errors.add(ValidationError(
-        field: 'source',
-        message: 'source 应为 questionnaire/sample/custom 之一，实际值: $source',
-        severity: ValidationSeverity.warning,
-      ));
+      errors.add(
+        ValidationError(
+          field: 'source',
+          message: 'source 应为 questionnaire/sample/custom 之一，实际值: $source',
+          severity: ValidationSeverity.warning,
+        ),
+      );
     }
 
     final jsonData = profile['jsonData'];
     if (jsonData != null && jsonData is! Map) {
-      errors.add(const ValidationError(
-        field: 'jsonData',
-        message: 'jsonData 必须是 Map 类型',
-      ));
+      errors.add(
+        const ValidationError(
+          field: 'jsonData',
+          message: 'jsonData 必须是 Map 类型',
+        ),
+      );
     }
 
     return errors.isEmpty
@@ -309,20 +287,24 @@ class WorkspaceDataValidator {
     for (final key in listKeys) {
       final value = data[key];
       if (value != null && value is! List) {
-        errors.add(ValidationError(
-          field: key,
-          message: '$key 必须是 List，实际类型: ${value.runtimeType}',
-        ));
+        errors.add(
+          ValidationError(
+            field: key,
+            message: '$key 必须是 List，实际类型: ${value.runtimeType}',
+          ),
+        );
       }
     }
 
     for (final key in mapKeys) {
       final value = data[key];
       if (value != null && value is! Map) {
-        errors.add(ValidationError(
-          field: key,
-          message: '$key 必须是 Map，实际类型: ${value.runtimeType}',
-        ));
+        errors.add(
+          ValidationError(
+            field: key,
+            message: '$key 必须是 Map，实际类型: ${value.runtimeType}',
+          ),
+        );
       }
     }
 
@@ -346,13 +328,15 @@ class WorkspaceDataValidator {
     for (final entry in scoped.entries) {
       final projectId = entry.key.toString();
       if (validProjectIds.isNotEmpty && !validProjectIds.contains(projectId)) {
-        result = result.merge(ValidationResult.fail([
-          ValidationError(
-            field: key,
-            message: '引用了不存在的项目 id: $projectId',
-            context: key,
-          ),
-        ]));
+        result = result.merge(
+          ValidationResult.fail([
+            ValidationError(
+              field: key,
+              message: '引用了不存在的项目 id: $projectId',
+              context: key,
+            ),
+          ]),
+        );
         continue;
       }
 
@@ -364,14 +348,16 @@ class WorkspaceDataValidator {
         if (item is! Map) continue;
         final itemResult = validator(Map<String, Object?>.from(item));
         for (final error in itemResult.errors) {
-          result = result.merge(ValidationResult.fail([
-            ValidationError(
-              field: error.field,
-              message: error.message,
-              context: '$key.$projectId[$i]',
-              severity: error.severity,
-            ),
-          ]));
+          result = result.merge(
+            ValidationResult.fail([
+              ValidationError(
+                field: error.field,
+                message: error.message,
+                context: '$key.$projectId[$i]',
+                severity: error.severity,
+              ),
+            ]),
+          );
         }
       }
     }
@@ -402,29 +388,27 @@ class WorkspaceDataValidator {
   }) {
     if (value == null) return;
     if (value is! List) {
-      errors.add(ValidationError(
-        field: field,
-        message: '$field 必须是 List 类型',
-      ));
+      errors.add(ValidationError(field: field, message: '$field 必须是 List 类型'));
       return;
     }
     for (var i = 0; i < value.length; i++) {
       final item = value[i]?.toString().trim() ?? '';
       if (item.isEmpty) {
-        errors.add(ValidationError(
-          field: '$field[$i]',
-          message: '$field[$i] 不能为空字符串',
-        ));
+        errors.add(
+          ValidationError(field: '$field[$i]', message: '$field[$i] 不能为空字符串'),
+        );
         continue;
       }
       if (validSceneIds != null &&
           validSceneIds.isNotEmpty &&
           !validSceneIds.contains(item)) {
-        errors.add(ValidationError(
-          field: '$field[$i]',
-          message: '引用了不存在的场景 id: $item',
-          severity: ValidationSeverity.warning,
-        ));
+        errors.add(
+          ValidationError(
+            field: '$field[$i]',
+            message: '引用了不存在的场景 id: $item',
+            severity: ValidationSeverity.warning,
+          ),
+        );
       }
     }
   }

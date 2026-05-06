@@ -61,6 +61,22 @@ Novel-generation quality defaults:
 - For quality gates, target 95 as the passing threshold unless the user gives a
   different number.
 
+## RTK Command Prefix
+
+OMX agent-flow and auto-team workers use a `rtk_cmd()` helper that prefixes
+any shell tool command with `rtk` when the `rtk` binary is on `$PATH`; when
+`rtk` is not installed the original command runs unchanged (graceful
+degradation).
+
+- **Scope**: all shell tool invocations in agent prompts, verification steps,
+  and planner review prompts — `flutter`, `dart`, `bash -n`, `make`, or any
+  other tool command.
+- **Out of scope**: the `claude` / `codex` agent processes themselves, and
+  bare `bash` invocations that re-enter this script (worker respawn, tmux
+  windows) — these are process lifecycle, not tool commands.
+- **Usage**: `$(rtk_cmd flutter analyze --no-pub)` produces either
+  `rtk flutter analyze --no-pub` or `flutter analyze --no-pub`.
+
 ## Safety And Verification
 
 - Proceed automatically on clear, reversible work.

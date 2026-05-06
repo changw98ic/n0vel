@@ -10,6 +10,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/story_prompt_templates.dart';
+import 'test_support/app_settings_fake_storages.dart';
 
 void main() {
   test(
@@ -34,6 +35,225 @@ void main() {
       expect(store.snapshot.hasApiKey, isFalse);
     },
   );
+
+  test(
+    'settings store surfaces read failure as persistence issue on restore',
+    () async {
+      final store = AppSettingsStore(
+        storage: ReadFailureWarningStorage(),
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.hasPersistenceIssue, isTrue);
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileReadFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置文件读取失败');
+      expect(store.feedback.message, contains('无法读取 settings.json'));
+    },
+  );
+
+  test(
+    'settings store keeps read-failure warning when restore completes after local mutation',
+    () async {
+      final storage = _DelayedReadWithFailureAndWriteFailureStorage();
+      final store = AppSettingsStore(
+        storage: storage,
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: 'Draft Provider',
+        baseUrl: 'https://draft.local/v1',
+        model: 'gpt-5.4',
+        apiKey: 'sk-draft',
+      );
+
+      storage.completeRead();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileReadFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置文件读取失败');
+      expect(store.snapshot.providerName, 'Draft Provider');
+      expect(store.feedback.message, contains('无法读取 settings.json'));
+    },
+  );
+
+  test(
+    'save warning survives delayed restore success when local edits already exist',
+    () async {
+      final storage = _DelayedReadThenWriteRecoveryStorage();
+      final store = AppSettingsStore(
+        storage: storage,
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await store.saveWithFeedback(
+        providerName: 'Draft Provider',
+        baseUrl: 'https://draft.local/v1',
+        model: 'gpt-5.4',
+        apiKey: 'sk-draft',
+        timeoutMs: 30000,
+      );
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileWriteFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置保存失败');
+      expect(store.snapshot.providerName, 'Draft Provider');
+
+      storage.completeRead();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileWriteFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置保存失败');
+      expect(store.snapshot.providerName, 'Draft Provider');
+      expect(store.snapshot.apiKey, 'sk-draft');
+
+      await store.retrySecureStoreAccess();
+
+      expect(store.activePersistenceIssue, AppSettingsPersistenceIssue.none);
+      expect(store.feedback.title, '配置已重新保存');
+      expect(store.snapshot.providerName, 'Draft Provider');
+      expect(store.snapshot.apiKey, 'sk-draft');
+    },
+  );
+
+  test(
+    'successful save clears local mutation flag before read-retry restore',
+    () async {
+      final storage = _ReadFailureThenRecoveryStorage();
+      final store = AppSettingsStore(
+        storage: storage,
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileReadFailed,
+      );
+      expect(store.snapshot.apiKey, 'sk-initial');
+
+      await store.saveWithFeedback(
+        providerName: 'Draft Provider',
+        baseUrl: 'https://draft.local/v1',
+        model: 'gpt-5.4',
+        apiKey: 'sk-draft',
+        timeoutMs: 30000,
+        maxConcurrentRequests: 4,
+      );
+
+      expect(store.activePersistenceIssue, AppSettingsPersistenceIssue.none);
+      expect(store.feedback.title, '保存成功');
+
+      await store.retrySecureStoreAccess();
+
+      expect(store.activePersistenceIssue, AppSettingsPersistenceIssue.none);
+      expect(store.snapshot.providerName, '智谱 GLM');
+      expect(store.snapshot.baseUrl, 'https://api.openai.com/v1');
+      expect(store.snapshot.model, 'glm-4');
+      expect(store.snapshot.apiKey, 'sk-recovered');
+    },
+  );
+
+  test(
+    'settings store clears write blocker after secure-store retry',
+    () async {
+      final store = AppSettingsStore(
+        storage: RecoveringWriteStorage(),
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await store.saveWithFeedback(
+        providerName: 'OpenAI 兼容服务',
+        baseUrl: 'https://api.example.com/v1',
+        model: 'gpt-5.4',
+        apiKey: 'sk-warning-key',
+        timeoutMs: 30000,
+      );
+
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileWriteFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置保存失败');
+
+      await store.retrySecureStoreAccess();
+
+      expect(store.activePersistenceIssue, AppSettingsPersistenceIssue.none);
+      expect(store.canRetrySecureStoreAccess, isFalse);
+      expect(store.feedback.title, '配置已重新保存');
+    },
+  );
+
+  test('settings store recovers persisted read failure with retry', () async {
+    final store = AppSettingsStore(
+      storage: RecoveringReadStorage(),
+      llmClient: _CapturingLlmClient(),
+    );
+    addTearDown(store.dispose);
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      store.activePersistenceIssue,
+      AppSettingsPersistenceIssue.fileReadFailed,
+    );
+    expect(store.feedback.title, '设置文件读取失败');
+    expect(store.snapshot.apiKey, isEmpty);
+
+    await store.retrySecureStoreAccess();
+
+    expect(store.activePersistenceIssue, AppSettingsPersistenceIssue.none);
+    expect(store.feedback.title, '配置已重新加载');
+    expect(store.snapshot.providerName, '智谱 GLM');
+    expect(store.snapshot.baseUrl, 'https://api.openai.com/v1');
+    expect(store.snapshot.model, 'glm-4');
+    expect(store.snapshot.apiKey, 'sk-recovered-key');
+    expect(store.snapshot.maxConcurrentRequests, 2);
+    expect(store.snapshot.maxTokens, 4096);
+    expect(
+      store.snapshot.providerProfiles
+          .singleWhere((p) => p.id == 'zhipu-fallback')
+          .providerName,
+      '智谱 GLM',
+    );
+    expect(
+      store.snapshot.providerProfiles
+          .singleWhere((p) => p.id == 'zhipu-fallback')
+          .id,
+      'zhipu-fallback',
+    );
+    expect(
+      store.snapshot.requestProviderRoutes.single.traceNamePattern,
+      'scene_review_*',
+    );
+    expect(
+      store.snapshot.requestProviderRoutes.single.providerProfileId,
+      'zhipu-fallback',
+    );
+    expect(store.feedback.message, contains('settings.json 已重新读取，当前配置已同步。'));
+  });
 
   test('local CCR-compatible endpoints accept routed model names', () async {
     final store = AppSettingsStore(
@@ -102,7 +322,10 @@ void main() {
       ],
     });
 
-    expect(snapshot.providerProfiles.single.id, 'ollama-kimi');
+    expect(
+      snapshot.providerProfiles.singleWhere((p) => p.id == 'ollama-kimi').id,
+      'ollama-kimi',
+    );
     expect(
       snapshot.requestProviderRoutes.single.traceNamePattern,
       'scene_review_*',
@@ -111,7 +334,13 @@ void main() {
     final encoded = snapshot.toJson();
     final profiles = encoded['providerProfiles'] as List<Object?>;
     final routes = encoded['requestProviderRoutes'] as List<Object?>;
-    expect((profiles.single as Map)['model'], 'kimi-k2.6');
+    expect(profiles, hasLength(2));
+    expect(
+      (profiles.cast<Map>().singleWhere(
+        (p) => p['id'] == 'ollama-kimi',
+      ))['model'],
+      'kimi-k2.6',
+    );
     expect((routes.single as Map)['providerProfileId'], 'ollama-kimi');
   });
 
@@ -283,10 +512,7 @@ void main() {
       expect(llmEvents.single.metadata['model'], 'kimi-k2.6');
       final nestedMetadata = llmEvents.single.metadata['metadata'];
       expect(nestedMetadata, isA<Map>());
-      expect(
-        (nestedMetadata as Map)['providerProfileId'],
-        'ollama-kimi',
-      );
+      expect((nestedMetadata as Map)['providerProfileId'], 'ollama-kimi');
     },
   );
 
@@ -672,6 +898,164 @@ class _ControllableSettingsStorage implements AppSettingsStorage {
   void completeSave() {
     _saveCompleter?.complete(const AppSettingsSaveResult());
     _controlNextSave = false;
+  }
+}
+
+class _ReadFailureThenRecoveryStorage implements AppSettingsStorage {
+  int _loadCount = 0;
+  AppSettingsPersistenceIssue _lastLoadIssue =
+      AppSettingsPersistenceIssue.fileReadFailed;
+  String? _lastLoadDetail;
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue => _lastLoadIssue;
+
+  @override
+  String? get lastLoadDetail => _lastLoadDetail;
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    _loadCount += 1;
+    if (_loadCount == 1) {
+      _lastLoadIssue = AppSettingsPersistenceIssue.fileReadFailed;
+      _lastLoadDetail = 'settings.json is unreadable';
+      return {
+        'providerName': 'OpenAI 兼容服务',
+        'baseUrl': 'https://api.example.com/v1',
+        'model': 'gpt-5.4',
+        'apiKey': 'sk-initial',
+        'themePreference': 'light',
+      };
+    }
+
+    _lastLoadIssue = AppSettingsPersistenceIssue.none;
+    _lastLoadDetail = null;
+    return {
+      'providerName': '智谱 GLM',
+      'baseUrl': 'https://api.openai.com/v1',
+      'model': 'glm-4',
+      'apiKey': 'sk-recovered',
+      'themePreference': 'dark',
+      'maxConcurrentRequests': 2,
+      'maxTokens': 800,
+    };
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    return const AppSettingsSaveResult();
+  }
+}
+
+class _DelayedReadWithFailureStorage implements AppSettingsStorage {
+  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue =>
+      AppSettingsPersistenceIssue.fileReadFailed;
+
+  @override
+  String? get lastLoadDetail => 'settings.json is unreadable';
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    return _loadCompleter.future;
+  }
+
+  void completeRead() {
+    _loadCompleter.complete({
+      'providerName': 'OpenAI 兼容服务',
+      'baseUrl': 'https://api.example.com/v1',
+      'model': 'gpt-5.4',
+      'apiKey': 'sk-initial',
+      'themePreference': 'light',
+    });
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    return const AppSettingsSaveResult();
+  }
+}
+
+class _DelayedReadThenWriteRecoveryStorage implements AppSettingsStorage {
+  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
+  int _saveCallCount = 0;
+  AppSettingsPersistenceIssue _lastLoadIssue =
+      AppSettingsPersistenceIssue.fileReadFailed;
+  String? _lastLoadDetail;
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue => _lastLoadIssue;
+
+  @override
+  String? get lastLoadDetail => _lastLoadDetail;
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    return _loadCompleter.future;
+  }
+
+  void completeRead() {
+    _lastLoadIssue = AppSettingsPersistenceIssue.none;
+    _lastLoadDetail = null;
+    _loadCompleter.complete({
+      'providerName': 'OpenAI 兼容服务',
+      'baseUrl': 'https://api.example.com/v1',
+      'model': 'gpt-5.4',
+      'apiKey': 'sk-persisted',
+      'themePreference': 'light',
+      'maxConcurrentRequests': 2,
+      'maxTokens': 1200,
+    });
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    _saveCallCount += 1;
+    return AppSettingsSaveResult(
+      issue: _saveCallCount == 1
+          ? AppSettingsPersistenceIssue.fileWriteFailed
+          : AppSettingsPersistenceIssue.none,
+      detail: _saveCallCount == 1 ? 'settings.json write denied' : null,
+    );
+  }
+}
+
+class _DelayedReadWithFailureAndWriteFailureStorage
+    implements AppSettingsStorage {
+  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
+  int _saveCallCount = 0;
+
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue =>
+      AppSettingsPersistenceIssue.fileReadFailed;
+
+  @override
+  String? get lastLoadDetail => 'settings.json is unreadable';
+
+  @override
+  Future<Map<String, Object?>?> load() async {
+    return _loadCompleter.future;
+  }
+
+  void completeRead() {
+    _loadCompleter.complete({
+      'providerName': 'OpenAI 兼容服务',
+      'baseUrl': 'https://api.example.com/v1',
+      'model': 'gpt-5.4',
+      'apiKey': 'sk-initial',
+      'themePreference': 'light',
+    });
+  }
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    _saveCallCount += 1;
+    return AppSettingsSaveResult(
+      issue: AppSettingsPersistenceIssue.fileWriteFailed,
+      detail: 'settings.json write denied',
+    );
   }
 }
 

@@ -187,7 +187,7 @@ const defaultWorldNodes = <WorldNodeRecord>[
     detail: '旧脚本仍在巡检系统中误触发。',
     summary: '会导致仓库门禁记录偏移，给追逐段制造错位信息。',
     ruleSummary: '旧脚本触发时，门禁记录会与真实通行不一致。',
-    referenceSummary: '是仓库层数记录偏移与时间线跳跃两条审计问题的共同来源。',
+    referenceSummary: '是仓库层数记录偏移与时间线跳跃两条问题的共同来源。',
     linkedSceneIds: ['scene-05-witness-room', 'scene-12-warehouse-talk'],
   ),
 ];
@@ -382,7 +382,11 @@ List<ProjectRecord> sortProjects(List<ProjectRecord> projects) {
   sorted.sort(
     (left, right) => right.lastOpenedAtMs.compareTo(left.lastOpenedAtMs),
   );
-  return sorted;
+  final dedupedById = <String, ProjectRecord>{};
+  for (final project in sorted) {
+    dedupedById.putIfAbsent(project.id, () => project);
+  }
+  return dedupedById.values.toList();
 }
 
 String chapterLabelFromRecentLocation(String recentLocation) {
@@ -445,7 +449,7 @@ String encodePrettyJson(Map<String, Object?> jsonData) {
 
 String normalizeStyleName(Object? rawName) {
   final trimmed = rawName?.toString().trim() ?? '';
-  return trimmed.isEmpty ? '未命名风格' : trimmed;
+  return trimmed.isEmpty ? '默认风格' : trimmed;
 }
 
 Map<String, Object?> styleDraftFromProfileJson(Map<String, Object?> jsonData) {

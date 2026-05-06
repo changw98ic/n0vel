@@ -265,6 +265,14 @@ class AppSettingsSnapshot {
     AppThemePreference.system => ThemeMode.system,
   };
 
+  AppLlmProviderProfile get primaryProviderProfile => AppLlmProviderProfile(
+    id: 'primary',
+    providerName: providerName,
+    baseUrl: baseUrl,
+    model: model,
+    apiKey: apiKey,
+  );
+
   Map<String, Object?> toJson() {
     return {
       'providerName': providerName,
@@ -307,10 +315,14 @@ class AppSettingsSnapshot {
       json['requestProviderRoutes'],
     );
 
+    final providerName = (json['providerName'] as String?) ?? 'OpenAI 兼容服务';
+    final baseUrl =
+        (json['baseUrl'] as String?) ?? 'https://api.example.com/v1';
+    final model = (json['model'] as String?) ?? 'gpt-4.1-mini';
     return AppSettingsSnapshot(
-      providerName: (json['providerName'] as String?) ?? 'OpenAI 兼容服务',
-      baseUrl: (json['baseUrl'] as String?) ?? 'https://api.example.com/v1',
-      model: (json['model'] as String?) ?? 'gpt-4.1-mini',
+      providerName: providerName,
+      baseUrl: baseUrl,
+      model: model,
       apiKey: apiKey,
       timeout: AppLlmTimeoutConfig.fromJson(json),
       maxConcurrentRequests: (json['maxConcurrentRequests'] as int?) ?? 1,
@@ -319,7 +331,16 @@ class AppSettingsSnapshot {
       ),
       hasApiKey: apiKey.isNotEmpty,
       themePreference: themePreference,
-      providerProfiles: providerProfiles,
+      providerProfiles: _profilesWithPrimary(
+        providerProfiles,
+        AppLlmProviderProfile(
+          id: 'primary',
+          providerName: providerName,
+          baseUrl: baseUrl,
+          model: model,
+          apiKey: apiKey,
+        ),
+      ),
       requestProviderRoutes: requestProviderRoutes,
       promptLanguage: promptLanguage,
     );
@@ -458,6 +479,32 @@ class AppSettingsStore extends ChangeNotifier {
     return diagnostic?.report;
   }
 
+  String providerSummaryForTrace(String traceName) {
+    final routedSettings = _settingsForRequestTrace(traceName);
+    final source = routedSettings.providerProfileId == null
+        ? '默认配置'
+        : '路由：${routedSettings.providerProfileId}';
+    return '${routedSettings.providerName} · '
+        '${_normalizeRequestedModel(routedSettings.model)}（$source）';
+  }
+
+  String generationProviderSummary() {
+    const traceNames = [
+      'scene_generation',
+      'scene_roleplay_turn',
+      'scene_roleplay_arbitrate',
+      'scene_editorial',
+      'scene_review',
+    ];
+    final summaries = <String>{
+      for (final traceName in traceNames) providerSummaryForTrace(traceName),
+    };
+    if (summaries.length == 1) {
+      return summaries.single;
+    }
+    return summaries.join('；');
+  }
+
   Future<AppSettingsSaveResult> save({
     required String providerName,
     required String baseUrl,
@@ -475,6 +522,13 @@ class AppSettingsStore extends ChangeNotifier {
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
     _hasLocalMutations = true;
+    final nextProfiles = _syncPrimaryProviderProfile(
+      providerProfiles ?? _snapshot.providerProfiles,
+      providerName: providerName,
+      baseUrl: baseUrl,
+      model: normalizedModel,
+      apiKey: apiKey,
+    );
     _snapshot = _snapshot.copyWith(
       providerName: providerName,
       baseUrl: baseUrl,
@@ -487,7 +541,7 @@ class AppSettingsStore extends ChangeNotifier {
         maxTokens ?? _snapshot.maxTokens,
       ),
       hasApiKey: apiKey.isNotEmpty,
-      providerProfiles: providerProfiles,
+      providerProfiles: nextProfiles,
       requestProviderRoutes: requestProviderRoutes,
     );
     _syncRequestPoolLimits();
@@ -902,29 +956,162 @@ class AppSettingsStore extends ChangeNotifier {
     return _persist();
   }
 
+  Future<AppSettingsSaveResult> upsertProviderProfile(
+    AppLlmProviderProfile profile,
+  ) async {
+    _hasLocalMutations = true;
+    if (profile.id == 'primary') {
+      final normalizedModel = _normalizeRequestedModel(profile.model);
+      final nextProfiles = _syncPrimaryProviderProfile(
+        _snapshot.providerProfiles,
+        providerName: profile.providerName,
+        baseUrl: profile.baseUrl,
+        model: normalizedModel,
+        apiKey: profile.apiKey,
+      );
+      _snapshot = _snapshot.copyWith(
+        providerName: profile.providerName,
+        baseUrl: profile.baseUrl,
+        model: normalizedModel,
+        apiKey: profile.apiKey,
+        hasApiKey: profile.apiKey.isNotEmpty,
+        providerProfiles: nextProfiles,
+      );
+      _syncRequestPoolLimits();
+      notifyListeners();
+      return _persist();
+    }
+    final updated = [
+      for (final existing in _snapshot.providerProfiles)
+        if (existing.id == profile.id) profile else existing,
+    ];
+    if (!updated.any((p) => p.id == profile.id)) {
+      updated.add(profile);
+    }
+    _snapshot = _snapshot.copyWith(providerProfiles: updated);
+    _syncRequestPoolLimits();
+    notifyListeners();
+    return _persist();
+  }
+
+  List<AppLlmProviderProfile> _syncPrimaryProviderProfile(
+    List<AppLlmProviderProfile> profiles, {
+    required String providerName,
+    required String baseUrl,
+    required String model,
+    required String apiKey,
+  }) {
+    final primary = AppLlmProviderProfile(
+      id: 'primary',
+      providerName: providerName.trim().isEmpty ? '默认提供方' : providerName.trim(),
+      baseUrl: baseUrl.trim(),
+      model: model.trim(),
+      apiKey: apiKey,
+    );
+    return _profilesWithPrimary(profiles, primary);
+  }
+
+  Future<AppSettingsSaveResult> removeProviderProfile(String id) async {
+    final previous = _snapshot.providerProfiles;
+    final updated = [
+      for (final p in previous)
+        if (p.id != id) p,
+    ];
+    if (updated.length == previous.length) {
+      return const AppSettingsSaveResult();
+    }
+    _hasLocalMutations = true;
+    final orphanedPatterns = {
+      for (final route in _snapshot.requestProviderRoutes)
+        if (route.providerProfileId == id) route.traceNamePattern,
+    };
+    var routes = _snapshot.requestProviderRoutes;
+    if (orphanedPatterns.isNotEmpty) {
+      routes = [
+        for (final route in routes)
+          if (!orphanedPatterns.contains(route.traceNamePattern)) route,
+      ];
+    }
+    _snapshot = _snapshot.copyWith(
+      providerProfiles: updated,
+      requestProviderRoutes: routes,
+    );
+    _syncRequestPoolLimits();
+    notifyListeners();
+    return _persist();
+  }
+
+  Future<AppSettingsSaveResult> upsertRequestProviderRoute(
+    AppLlmRequestProviderRoute route,
+  ) async {
+    _hasLocalMutations = true;
+    final updated = [
+      for (final existing in _snapshot.requestProviderRoutes)
+        if (existing.traceNamePattern == route.traceNamePattern)
+          route
+        else
+          existing,
+    ];
+    if (!updated.any((r) => r.traceNamePattern == route.traceNamePattern)) {
+      updated.add(route);
+    }
+    _snapshot = _snapshot.copyWith(requestProviderRoutes: updated);
+    notifyListeners();
+    return _persist();
+  }
+
+  Future<AppSettingsSaveResult> removeRequestProviderRoute(
+    String traceNamePattern,
+  ) async {
+    final previous = _snapshot.requestProviderRoutes;
+    final updated = [
+      for (final r in previous)
+        if (r.traceNamePattern != traceNamePattern) r,
+    ];
+    if (updated.length == previous.length) {
+      return const AppSettingsSaveResult();
+    }
+    _hasLocalMutations = true;
+    _snapshot = _snapshot.copyWith(requestProviderRoutes: updated);
+    notifyListeners();
+    return _persist();
+  }
+
   Future<void> _restore() async {
     final restored = await _storage.load();
-    if (restored == null || _hasLocalMutations) {
+    if (restored == null) {
       return;
     }
 
-    _snapshot = AppSettingsSnapshot.fromJson(restored);
-    _syncRequestPoolLimits();
-    if (_storage.lastLoadIssue != AppSettingsPersistenceIssue.none) {
+    final hasLoadIssue =
+        _storage.lastLoadIssue != AppSettingsPersistenceIssue.none;
+    if (!_hasLocalMutations) {
+      _snapshot = AppSettingsSnapshot.fromJson(restored);
+      _syncRequestPoolLimits();
+    }
+
+    if (hasLoadIssue) {
       _activePersistenceIssue = _storage.lastLoadIssue;
       _feedback = _feedbackForLoadIssue(
         _storage.lastLoadIssue,
         _storage.lastLoadDetail,
       );
-    } else {
+    } else if (!_hasLocalMutations) {
       _activePersistenceIssue = AppSettingsPersistenceIssue.none;
       _activePersistenceSummary = null;
       _activePersistenceDetail = null;
+      _hasLocalMutations = false;
     }
     notifyListeners();
   }
 
-  Future<AppSettingsSaveResult> _persist() => _storage.save(_snapshot.toJson());
+  Future<AppSettingsSaveResult> _persist() async {
+    final result = await _storage.save(_snapshot.toJson());
+    if (result.issue == AppSettingsPersistenceIssue.none) {
+      _hasLocalMutations = false;
+    }
+    return result;
+  }
 
   Future<void> retrySecureStoreAccess() async {
     final originalIssue = _activePersistenceIssue;
@@ -979,10 +1166,13 @@ class AppSettingsStore extends ChangeNotifier {
     if (_activePersistenceIssue == AppSettingsPersistenceIssue.none) {
       if (restored != null) {
         final restoredSnapshot = AppSettingsSnapshot.fromJson(restored);
-        _snapshot = _snapshot.copyWith(
-          apiKey: restoredSnapshot.apiKey,
-          hasApiKey: restoredSnapshot.hasApiKey,
-        );
+        _snapshot = _hasLocalMutations
+            ? _snapshot.copyWith(
+                apiKey: restoredSnapshot.apiKey,
+                hasApiKey: restoredSnapshot.hasApiKey,
+              )
+            : restoredSnapshot;
+        _syncRequestPoolLimits();
       }
       _activePersistenceSummary = null;
       _activePersistenceDetail = null;
@@ -1563,6 +1753,28 @@ List<AppLlmProviderProfile> _providerProfilesFromJson(Object? raw) {
       if (AppLlmProviderProfile.fromJson(item) != null)
         AppLlmProviderProfile.fromJson(item)!,
   ];
+}
+
+List<AppLlmProviderProfile> _profilesWithPrimary(
+  List<AppLlmProviderProfile> profiles,
+  AppLlmProviderProfile primary,
+) {
+  final updated = <AppLlmProviderProfile>[];
+  var inserted = false;
+  for (final profile in profiles) {
+    if (profile.id == primary.id) {
+      if (!inserted) {
+        updated.add(primary);
+        inserted = true;
+      }
+    } else {
+      updated.add(profile);
+    }
+  }
+  if (!inserted) {
+    updated.insert(0, primary);
+  }
+  return List<AppLlmProviderProfile>.unmodifiable(updated);
 }
 
 List<AppLlmRequestProviderRoute> _requestProviderRoutesFromJson(Object? raw) {

@@ -50,7 +50,7 @@ void main() {
     });
     expect(restored.packageName, 'restored');
     expect(restored.projectId, '');
-    expect(restored.projectTitle, '未命名项目');
+    expect(restored.projectTitle, '导入项目');
     expect(restored.schemaMajor, 1);
     expect(restored.schemaMinor, 0);
     expect(restored.contentSummary, '正文 / 资料 / 风格 / 版本');

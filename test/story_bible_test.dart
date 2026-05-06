@@ -87,7 +87,7 @@ void main() {
     expect(bible.projectTitle, '谐振之城');
     expect(
       bible.factSections
-          .singleWhere((section) => section.title == '项目 Brief')
+          .singleWhere((section) => section.title == '作品简介')
           .entries
           .single
           .body,
@@ -127,15 +127,15 @@ void main() {
     );
 
     final generation = bible.statusSections.singleWhere(
-      (section) => section.title == '生成状态占位',
+      (section) => section.title == '写作进度',
     );
-    expect(generation.entries.first.meta, '未推断');
-    expect(generation.entries.last.body, contains('不提供完整伏笔系统'));
+    expect(generation.entries.first.meta, '还没有生成记录');
+    expect(generation.entries.last.body, contains('当前版本还不能自动检查伏笔和连续性'));
 
     final review = bible.statusSections.singleWhere(
-      (section) => section.title == '审稿状态占位',
+      (section) => section.title == '问题检查',
     );
-    expect(review.entries.single.meta, '开放 1 / 已处理 1');
+    expect(review.entries.single.meta, '待处理 1 / 已处理 1');
   });
 
   testWidgets('renders fact and status columns as separate surfaces', (
@@ -168,8 +168,8 @@ void main() {
     expect(find.byKey(StoryBiblePage.factsKey), findsOneWidget);
     expect(find.byKey(StoryBiblePage.statusKey), findsOneWidget);
     expect(find.text('设定事实'), findsNothing);
-    expect(find.text('生成状态占位'), findsOneWidget);
-    expect(find.text('审稿状态占位'), findsOneWidget);
-    expect(find.textContaining('不会把缺失的生成流水线状态伪装成已完成'), findsOneWidget);
+    expect(find.text('章节生成'), findsOneWidget);
+    expect(find.text('问题检查'), findsOneWidget);
+    expect(find.textContaining('没有生成过的章节不会被标成已完成'), findsOneWidget);
   });
 }

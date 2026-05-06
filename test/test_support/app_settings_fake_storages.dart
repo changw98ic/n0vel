@@ -43,11 +43,33 @@ class RecoveringReadStorage implements AppSettingsStorage {
         ? AppSettingsPersistenceIssue.fileReadFailed
         : AppSettingsPersistenceIssue.none;
     return {
-      'providerName': 'OpenAI 兼容服务',
-      'baseUrl': 'https://api.example.com/v1',
-      'model': 'gpt-5.4',
+      'providerName': _loadCount == 1 ? 'OpenAI 兼容服务' : '智谱 GLM',
+      'baseUrl':
+          _loadCount == 1 ? 'https://api.example.com/v1' : 'https://api.openai.com/v1',
+      'model': _loadCount == 1 ? 'gpt-5.4' : 'glm-4',
       'apiKey': _loadCount == 1 ? '' : 'sk-recovered-key',
       'themePreference': 'light',
+      'providerProfiles': _loadCount == 1
+          ? <Map<String, String>>[]
+          : <Map<String, String>>[
+              {
+                'id': 'zhipu-fallback',
+                'providerName': '智谱 GLM',
+                'baseUrl': 'https://open.bigmodel.cn/api/paas/v4',
+                'model': 'glm-4',
+                'apiKey': 'zhipu-route-key',
+              },
+            ],
+      'requestProviderRoutes': _loadCount == 1
+          ? <Map<String, String>>[]
+          : <Map<String, String>>[
+              {
+                'traceNamePattern': 'scene_review_*',
+                'providerProfileId': 'zhipu-fallback',
+              },
+            ],
+      'maxConcurrentRequests': 2,
+      'maxTokens': 800,
     };
   }
 

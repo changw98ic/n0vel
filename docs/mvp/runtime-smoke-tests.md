@@ -4,6 +4,15 @@
 
 与 [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md) 不同，这里更强调端到端运行结果，而不是单页对齐。
 
+## 执行状态字段
+
+- `执行状态`：`未执行` / `执行中` / `已执行` / `阻塞`。
+- `执行结果`：`未记录` / `通过` / `失败` / `部分通过` / `跳过`。
+- `执行日期`：使用 `YYYY-MM-DD`；未执行时填写 `未记录`。
+- `执行人`：记录执行者或执行机制，例如 `手工测试`、`Codex`、`QA`。
+- `执行环境`：记录设备、系统、浏览器或 App 版本等可复现信息。
+- `缺陷记录`：记录缺陷编号、问题摘要或 `无`。
+
 ## Smoke 01 工作台打开
 
 ### 相关 frame
@@ -11,6 +20,8 @@
 - `47nGt` `Writing Workbench`
 - `WT5mH` `Writing Workbench / Default Hidden`
 - `i2PgM` `Writing Workbench / Menu Drawer Open`
+- `Z0073` `Project List / Responsive Shelf Fit`
+- `Z0134` `Writing Workbench / Full Drawer Navigation`
 
 ### 相关文档
 
@@ -24,15 +35,30 @@
 
 ### 检查步骤
 
-1. 打开任意项目并进入工作台
-2. 确认左侧只显示隐藏 `menu drawer` 把手
-3. 确认顶部显示 `breadcrumb`
-4. 确认右侧工具条存在且可见
+1. 在项目列表页切换窄宽窗口，确认项目卡片与最近项目 `shelf` 不溢出
+2. 打开任意项目并进入工作台
+3. 确认左侧只显示隐藏 `menu drawer` 把手
+4. 展开 `menu drawer` 并确认完整导航可见
+5. 确认顶部显示 `breadcrumb`
+6. 确认右侧工具条存在且可见
 
 ### 通过标准
 
+- 项目列表 `shelf` 在窄宽窗口下都保持在容器内
 - 正文是主视觉中心
 - `menu drawer`、`breadcrumb`、右侧工具条层级清楚
+- 完整 `menu drawer` 展开态不遮挡正文主编辑区
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 02 AI 改写阻断
 
@@ -58,6 +84,17 @@
 - 请求不发出
 - 出现 `Writing Workbench / Overlapping Selections`
 - 正文不改动
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 03 AI 修改确认与恢复
 
@@ -89,6 +126,17 @@
 - 接受后只生成 `1` 个章节版本
 - 正文只在接受后改动
 
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
+
 ## Smoke 04 无模拟记录
 
 ### 相关 frame
@@ -115,17 +163,30 @@
 - 工作台显示轻提示，而不是弹空壳监视器页
 - 不打断正文编辑
 
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
+
 ## Smoke 05 模拟完成回传
 
 ### 相关 frame
 
 - `O5wWx` `Writing Workbench / Simulation Completed`
 - `YTrUo` `Sandbox Monitor`
+- `Z0340` `Production Board / Progress Loop`
 
 ### 相关文档
 
 - [PRD 02 写作工作台](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-02-writing-workbench.md)
 - [PRD 03 模拟过程弹窗](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-03-sandbox-monitor.md)
+- [MVP 实现交接稿](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.md)
 
 ### 前置
 
@@ -137,11 +198,24 @@
 2. 返回工作台
 3. 观察顶部摘要条
 4. 从摘要条进入模拟过程
+5. 查看 `Production Board` 的进度闭环
 
 ### 通过标准
 
 - 工作台出现完成摘要
 - 能再次打开同一轮模拟结果
+- `Production Board` 能反映最新完成轮次且不丢失进度状态
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 06 模拟失败回传
 
@@ -149,11 +223,13 @@
 
 - `dSehn` `Writing Workbench / Simulation Failed Summary`
 - `GtV8t` `Simulation Monitor / Failed`
+- `Z0402` `Review Tasks / Queue States`
 
 ### 相关文档
 
 - [PRD 02 写作工作台](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-02-writing-workbench.md)
 - [PRD 03 模拟过程弹窗](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-03-sandbox-monitor.md)
+- [MVP 实现交接稿](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.md)
 
 ### 前置
 
@@ -164,12 +240,25 @@
 1. 触发失败模拟
 2. 返回工作台
 3. 打开失败详情
+4. 查看 `Review Tasks` 队列状态
 
 ### 通过标准
 
 - 工作台出现失败摘要
 - 明确说明正文未改动
 - 失败详情可再次查看
+- `Review Tasks` 保留可处理的失败 / 复核队列状态
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 07 阅读器返回锚点
 
@@ -200,6 +289,17 @@
 - 滚动位置恢复
 - 光标或选区锚点恢复
 
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
+
 ## Smoke 08 版本恢复
 
 ### 相关 frame
@@ -228,15 +328,28 @@
 - 原历史版本仍保留
 - 若版本池已满，最旧版本只在恢复结果落盘成功后淘汰
 
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
+
 ## Smoke 09 导入成功
 
 ### 相关 frame
 
 - `aYhVV` `Project Import Export / Import Success`
+- `Z0194` `Project Import Export / Contained Long Paths`
 
 ### 相关文档
 
 - [PRD 09 工程导入导出页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-09-project-import-export.md)
+- [MVP 实现交接稿](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.md)
 
 ### 前置
 
@@ -246,13 +359,26 @@
 
 1. 在导入导出页执行导入
 2. 观察成功摘要
-3. 点击 `打开项目`
+3. 核对长路径 / 长文件名显示
+4. 点击 `打开项目`
 
 ### 通过标准
 
 - 成功摘要出现
 - 明确显示索引刷新完成
+- 导入导出长路径被限制在容器内，不挤压主操作区
 - 可直接进入导入后的项目
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 10 覆盖导入成功
 
@@ -279,6 +405,17 @@
 
 - 旧索引被替换刷新
 - 角色 / 世界观 / 风格 / 版本 / 最近写作位置同步更新
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
 
 ## Smoke 11 设置保存后生效
 
@@ -307,6 +444,17 @@
 - 已失败旧请求不会自动重试
 - 下一次新请求读取新配置
 
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |
+
 ## Smoke 12 引用失效回收
 
 ### 相关 frame
@@ -315,12 +463,14 @@
 - `emCHR` `Writing Workbench / Missing World Reference`
 - `bRkQL` `Character Library / Delete Referenced Confirm`
 - `CQycp` `Worldbuilding / Delete Parent Confirm`
+- `Z0240` `Story Bible / Aggregated Facts`
 
 ### 相关文档
 
 - [PRD 02 写作工作台](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-02-writing-workbench.md)
 - [PRD 04 角色库页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-04-character-library.md)
 - [PRD 05 世界观页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-05-worldbuilding.md)
+- [MVP 实现交接稿](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.md)
 
 ### 前置
 
@@ -330,9 +480,22 @@
 
 1. 删除被引用资料
 2. 回到对应工作台场景
+3. 进入 `Story Bible` 聚合事实视图
 
 ### 通过标准
 
 - 工作台出现引用失效提示
 - 正文仍可继续编辑
 - 相关摘要 / 约束 / 模拟入口进入失效状态
+- `Story Bible` 聚合事实继续可读，并标记受影响的失效引用
+
+### 执行记录
+
+| 字段 | 内容 |
+| --- | --- |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 无 |

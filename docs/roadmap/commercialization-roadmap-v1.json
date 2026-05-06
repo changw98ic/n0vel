@@ -1,0 +1,128 @@
+{
+  "project": "novel-writer-commercialization-v1",
+  "owner_split": "Codex=规划验收, Claude=代码实现",
+  "time_unit": "day",
+  "phases": [
+    {
+      "id": "W0",
+      "name": "启动与发布门禁定义",
+      "codex": [
+        "定义发布门禁与阻断条件"
+      ],
+      "claude": [
+        "CI 阻断配置点提取与落地"
+      ],
+      "critical_gates": ["P0", "发布否决条件"]
+    },
+    {
+      "id": "W1",
+      "name": "P0 缺陷处理",
+      "codex": [
+        "P0 缺陷定义与关闭条件"
+      ],
+      "claude": [
+        "修复/补齐关键测试失败"
+      ],
+      "critical_gates": ["P0"]
+    },
+    {
+      "id": "W2",
+      "name": "安全治理",
+      "codex": [
+        "安全基线验收清单"
+      ],
+      "claude": [
+        "配置与密钥安全加固"
+      ],
+      "critical_gates": ["安全"]
+    },
+    {
+      "id": "W3",
+      "name": "运营监控与成本治理",
+      "codex": [
+        "运营指标字典"
+      ],
+      "claude": [
+        "请求/生成链路可观测性"
+      ],
+      "critical_gates": ["运营"]
+    },
+    {
+      "id": "W4",
+      "name": "规划追踪自动化",
+      "codex": [
+        "PRD-Mapping Schema"
+      ],
+      "claude": [
+        "mapping 校验脚本与 CI"
+      ],
+      "critical_gates": ["一致性"]
+    },
+    {
+      "id": "W5",
+      "name": "工作台 v1（上）",
+      "codex": [
+        "版本对比/回滚/批注需求冻结"
+      ],
+      "claude": [
+        "主链路 MVP 开发"
+      ],
+      "critical_gates": ["体验"]
+    },
+    {
+      "id": "W6",
+      "name": "工作台 v1（下）",
+      "codex": [
+        "补充验收项"
+      ],
+      "claude": [
+        "批注与历史追踪落地"
+      ],
+      "critical_gates": ["体验"]
+    },
+    {
+      "id": "W7",
+      "name": "A11y 与响应式",
+      "codex": [
+        "键盘/焦点/断点验收规范"
+      ],
+      "claude": [
+        "可访问性与布局修复"
+      ],
+      "critical_gates": ["体验", "可访问性"]
+    },
+    {
+      "id": "W8",
+      "name": "质量指标化",
+      "codex": [
+        "章节质量评分标准"
+      ],
+      "claude": [
+        "评分数据接入与展示"
+      ],
+      "critical_gates": ["质量"]
+    },
+    {
+      "id": "W9",
+      "name": "设计系统工程化",
+      "codex": [
+        "UI 契约与规则固化"
+      ],
+      "claude": [
+        "主题/组件契约落地"
+      ],
+      "critical_gates": ["UI 一致性"]
+    },
+    {
+      "id": "W10",
+      "name": "收口与上线评审",
+      "codex": [
+        "最终验收清单"
+      ],
+      "claude": [
+        "代码回归与文档同步"
+      ],
+      "critical_gates": ["P0", "P1", "安全", "体验"]
+    }
+  ]
+}

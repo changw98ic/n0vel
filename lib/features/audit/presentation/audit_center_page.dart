@@ -91,8 +91,8 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
     );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '审计中心',
-        subtitle: '查看一致性问题、证据与处理状态',
+        title: '问题检查',
+        subtitle: '查看故事问题、依据与处理状态',
         showBackButton: true,
         actions: [
           Wrap(
@@ -111,7 +111,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
       ),
       body: body,
       statusBar: DesktopStatusStrip(
-        leftText: '审计规则已同步',
+        leftText: '问题规则已更新',
         rightText: currentIssue?.target ?? '场景 05',
       ),
     );
@@ -221,7 +221,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '建议动作',
-              message: '可返回工作台检查当前章节正文，或重新发起审计以刷新最新证据索引。',
+              message: '可返回工作台检查当前章节正文，或重新检查以刷新最新依据。',
             ),
           ],
         ),
@@ -238,12 +238,12 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '跳转失败',
-              message: '目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从审计中心直接跳回原位置。',
+              message: '目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从问题检查直接跳回原位置。',
             ),
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '建议动作',
-              message: '可返回工作台手动定位当前章节，或重新运行审计以刷新最新场景索引。',
+              message: '可返回工作台手动定位当前章节，或重新检查以刷新最新场景位置。',
             ),
           ],
         ),
@@ -284,7 +284,10 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
         children: [
           Text('处理动作', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const _InfoBlock(title: '处理动作', message: '当前无需处理。后续运行审计后，问题会出现在这里。'),
+          const _InfoBlock(
+            title: '处理动作',
+            message: '当前无需处理。后续运行问题检查后，问题会出现在这里。',
+          ),
         ],
       );
     }
@@ -319,7 +322,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新审计')),
+            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const _InfoBlock(title: '当前限制', message: '由于关联草稿不存在，当前无法直接跳转到原证据位置。'),
@@ -344,7 +347,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新审计')),
+            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const _InfoBlock(title: '当前限制', message: '当前无法直接跳转到原证据位置。'),

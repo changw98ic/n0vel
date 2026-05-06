@@ -140,7 +140,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         ],
       ),
       statusBar: const DesktopStatusStrip(
-        leftText: '规则索引已同步',
+        leftText: '世界观资料已保存',
         rightText: '场景 05',
       ),
     );

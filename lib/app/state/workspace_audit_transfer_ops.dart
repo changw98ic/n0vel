@@ -85,7 +85,11 @@ mixin _AuditTransferOps on _WorkspaceCodec {
   }
 
   void updateSelectedAuditIgnoreReason(String value) {
-    final currentIssue = selectedAuditIssue;
+    final currentIssue = selectedAuditIssueOrNull;
+    if (currentIssue == null) {
+      _setAuditActionFeedback('当前项目暂无问题可编辑。');
+      return;
+    }
     updateAuditIssue(
       auditIssuesByProjectId: _auditIssuesByProjectId,
       auditUiByProjectId: _auditUiByProjectId,
@@ -97,7 +101,12 @@ mixin _AuditTransferOps on _WorkspaceCodec {
   }
 
   void jumpToSelectedAuditScene() {
-    final targetScene = _sceneForAuditIssue(selectedAuditIssue);
+    final currentIssue = selectedAuditIssueOrNull;
+    if (currentIssue == null) {
+      _setAuditActionFeedback('当前项目暂无问题可跳转。');
+      return;
+    }
+    final targetScene = _sceneForAuditIssue(currentIssue);
     if (targetScene != null) {
       updateCurrentScene(
         sceneId: targetScene.id,
@@ -108,30 +117,39 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       auditIssuesByProjectId: _auditIssuesByProjectId,
       auditUiByProjectId: _auditUiByProjectId,
       projectId: _currentProjectId,
-      issueId: selectedAuditIssue.id,
+      issueId: currentIssue.id,
       transform: (issue) => issue.copyWith(lastAction: '已跳转到 ${issue.target}'),
       actionFeedback: targetScene == null
-          ? '未能定位到 ${selectedAuditIssue.target} 对应场景。'
-          : '已跳转到关联场景 ${selectedAuditIssue.target}。',
+          ? '未能定位到 ${currentIssue.target} 对应场景。'
+          : '已跳转到关联场景 ${currentIssue.target}。',
     );
   }
 
   void markSelectedAuditIssueResolved() {
+    final currentIssue = selectedAuditIssueOrNull;
+    if (currentIssue == null) {
+      _setAuditActionFeedback('当前项目暂无问题可标记。');
+      return;
+    }
     updateAuditIssue(
       auditIssuesByProjectId: _auditIssuesByProjectId,
       auditUiByProjectId: _auditUiByProjectId,
       projectId: _currentProjectId,
-      issueId: selectedAuditIssue.id,
+      issueId: currentIssue.id,
       transform: (issue) => issue.copyWith(
         status: AuditIssueStatus.resolved,
         lastAction: '已标记为已处理',
       ),
-      actionFeedback: '已标记为已处理，可在下一轮审计中复核。',
+      actionFeedback: '已标记为已处理，可在下一轮问题检查中复核。',
     );
   }
 
   void ignoreSelectedAuditIssue() {
-    final currentIssue = selectedAuditIssue;
+    final currentIssue = selectedAuditIssueOrNull;
+    if (currentIssue == null) {
+      _setAuditActionFeedback('当前项目暂无问题可忽略。');
+      return;
+    }
     if (currentIssue.ignoreReason.trim().isEmpty) {
       _auditUiByProjectId[_currentProjectId] =
           _selectedAuditStateForCurrentProject().copyWith(
@@ -151,12 +169,36 @@ mixin _AuditTransferOps on _WorkspaceCodec {
     );
   }
 
+  void _setAuditActionFeedback(String message) {
+    _auditUiByProjectId[_currentProjectId] =
+        _selectedAuditStateForCurrentProject().copyWith(
+          actionFeedback: message,
+        );
+    _commitMutation();
+  }
+
   // ---------------------------------------------------------------------------
   // Import
   // ---------------------------------------------------------------------------
 
   void importJson(Map<String, Object?> data) {
-    _projects = _decodeProjects(data['projects']);
+    final decodedProjects = _decodeProjects(data['projects']);
+    if (!_hasUniqueProjectIds(decodedProjects)) {
+      return;
+    }
+
+    if (decodedProjects.isEmpty) {
+      _healEmptyDecodedWorkspace();
+      _projectTransferState = decodeProjectTransferState(
+        data['projectTransferState'],
+      );
+      _hasLocalMutations = true;
+      unawaited(_persist());
+      notifyListeners();
+      return;
+    }
+
+    _projects = decodedProjects;
     _charactersByProjectId = _decodeCharactersByProject(
       rawByProject: data['charactersByProject'],
       legacyRaw: data['characters'],
@@ -204,25 +246,41 @@ mixin _AuditTransferOps on _WorkspaceCodec {
   }) {
     final rawProjects = data['projects'];
     if (rawProjects is! List) {
+      if (_projects.isEmpty) {
+        _healEmptyDecodedWorkspace();
+        _hasLocalMutations = true;
+        unawaited(_persist());
+        notifyListeners();
+      }
       return;
     }
     final incomingProjects = _decodeList(rawProjects, ProjectRecord.fromJson);
+    if (!_hasUniqueProjectIds(incomingProjects)) {
+      return;
+    }
+
     if (incomingProjects.isEmpty) {
+      if (_projects.isEmpty) {
+        _healEmptyDecodedWorkspace();
+        _hasLocalMutations = true;
+        unawaited(_persist());
+        notifyListeners();
+      }
       return;
     }
     final incomingProject = incomingProjects.first.copyWith(
       lastOpenedAtMs: DateTime.now().millisecondsSinceEpoch,
     );
 
+    if (!overwriteExisting && hasProjectWithId(incomingProject.id)) {
+      return;
+    }
+
     final nextProjects = [
       for (final project in _projects)
         if (project.id != incomingProject.id) project,
     ];
-    if (!overwriteExisting && !hasProjectWithId(incomingProject.id)) {
-      nextProjects.insert(0, incomingProject);
-    } else {
-      nextProjects.add(incomingProject);
-    }
+    nextProjects.insert(0, incomingProject);
     _projects = sortProjects(nextProjects);
 
     final incomingCharacters = _decodeCharactersByProject(
@@ -262,10 +320,18 @@ mixin _AuditTransferOps on _WorkspaceCodec {
     _worldNodesByProjectId[incomingProject.id] =
         incomingWorldNodes[incomingProject.id] ?? const [];
     _auditIssuesByProjectId[incomingProject.id] =
-        incomingAuditIssues[incomingProject.id] ?? const [];
-    _styleByProjectId[incomingProject.id] = incomingStyles[incomingProject.id]!;
+        incomingAuditIssues[incomingProject.id] ??
+        List<AuditIssueRecord>.from(defaultAuditIssues);
+    _styleByProjectId[incomingProject.id] =
+        incomingStyles[incomingProject.id] ?? defaultStyleState();
     _auditUiByProjectId[incomingProject.id] =
-        incomingAuditStates[incomingProject.id]!;
+        incomingAuditStates[incomingProject.id] ??
+        const ProjectAuditUiState(
+          selectedIssueId: '',
+          selectedIssueIndex: 0,
+          filter: AuditIssueFilter.all,
+          actionFeedback: defaultAuditActionFeedback,
+        );
 
     _currentProjectId = incomingProject.id;
     _hasLocalMutations = true;
@@ -291,5 +357,15 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       }
     }
     return null;
+  }
+
+  bool _hasUniqueProjectIds(List<ProjectRecord> projects) {
+    final seen = <String>{};
+    for (final project in projects) {
+      if (!seen.add(project.id)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

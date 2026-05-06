@@ -55,10 +55,10 @@ class AppSceneContextStore extends AppProjectScopedStore {
   void syncContext() {
     markMutated();
     final nextSnapshot = switch (activeProjectId) {
-      _defaultSceneScopeId => const AppSceneContextSnapshot(
-        sceneSummary: '当前场景：场景 03 · 仓库门外',
-        characterSummary: '角色摘要：柳溪 · 已重新同步',
-        worldSummary: '世界观摘要：旧码头规则 · 已刷新',
+      '' => const AppSceneContextSnapshot(
+        sceneSummary: '',
+        characterSummary: '',
+        worldSummary: '',
       ),
       _ => AppSceneContextSnapshot(
         sceneSummary: '当前场景：${_currentProject().recentLocation}',
@@ -129,7 +129,7 @@ class AppSceneContextStore extends AppProjectScopedStore {
     return _snapshotsByProjectId.putIfAbsent(
       projectId,
       () => switch (projectId) {
-        _defaultSceneScopeId => const AppSceneContextSnapshot(
+        '' => const AppSceneContextSnapshot(
           sceneSummary: _defaultSceneSummary,
           characterSummary: _defaultCharacterSummary,
           worldSummary: _defaultWorldSummary,
@@ -146,50 +146,36 @@ class AppSceneContextStore extends AppProjectScopedStore {
   }
 
   ProjectRecord _currentProject() =>
-      workspaceStore?.currentProject ??
+      workspaceStore?.currentProjectOrNull ??
       const ProjectRecord(
-        id: 'project-yuechao',
-        sceneId: 'scene-03-rainy-dock',
-        title: '月潮回声',
-        genre: '悬疑 / 8.7 万字',
+        id: '',
+        sceneId: '',
+        title: '',
+        genre: '',
         summary: '',
-        recentLocation: '场景 03 · 雨夜码头',
+        recentLocation: '',
         lastOpenedAtMs: 0,
       );
 
   CharacterRecord _currentCharacter() {
     final characters = workspaceStore?.characters ?? const <CharacterRecord>[];
     return characters.isEmpty
-        ? const CharacterRecord(
-            id: 'placeholder-character',
-            name: '柳溪',
-            role: '调查记者',
-            note: '',
-            need: '',
-            summary: '',
-          )
+        ? const CharacterRecord(id: '', name: '')
         : characters.first;
   }
 
   WorldNodeRecord _currentWorldNode() {
     final worldNodes = workspaceStore?.worldNodes ?? const <WorldNodeRecord>[];
     return worldNodes.isEmpty
-        ? const WorldNodeRecord(
-            id: 'placeholder-world-node',
-            title: '旧港规则',
-            location: '',
-            type: '规则',
-            detail: '',
-            summary: '',
-          )
+        ? const WorldNodeRecord(id: '', title: '')
         : worldNodes.first;
   }
 }
 
-const String _defaultSceneSummary = '当前场景：场景 03 · 雨夜码头';
-const String _defaultCharacterSummary = '角色摘要：柳溪 · 调查记者';
-const String _defaultWorldSummary = '世界观摘要：港城旧码头 · 风暴预警';
-const String _defaultSceneScopeId = 'project-yuechao::scene-05-witness-room';
+const String _defaultSceneSummary = '';
+const String _defaultCharacterSummary = '';
+const String _defaultWorldSummary = '';
+const String _defaultSceneScopeId = '';
 
 class AppSceneContextScope extends InheritedNotifier<AppSceneContextStore> {
   const AppSceneContextScope({

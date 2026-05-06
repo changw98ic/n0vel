@@ -13,7 +13,7 @@
 - [系统结构（简化架构）](#系统结构简化架构)
 - [最小系统依赖与启动要求](#最小系统依赖与启动要求)
 - [核心功能操作路径（从入口到结果）](#核心功能操作路径从入口到结果)
-- [截图与演示（待补）](#截图与演示待补)
+- [截图与演示](#截图与演示)
 - [30 秒项目简介（对外可直接使用）](#30-秒项目简介对外可直接使用)
 - [Roadmap（开发方向）](#roadmap开发方向)
 - [发布说明模板（Release Notes）](#发布说明模板release-notes)
@@ -287,13 +287,29 @@ flutter pub get
 
 ---
 
-## 截图与演示（待补）
+## 截图与演示
 
-> 你可以把截图放在 `web/` 或 `docs/` 下，然后替换下面占位块。
+> 截图和视频素材尚未制作。以下为已有的测试级验证证据，覆盖 UI 主路径和核心生成逻辑。
 
-- ![应用主页占位](docs/placeholders/app-home.png)
-- ![生成流程占位](docs/placeholders/pipeline.png)
-- ![审核任务占位](docs/placeholders/review-feedback.png)
+### 验证证据
+
+- **Demo readiness 文档**: [docs/demo/demo-readiness.md](docs/demo/demo-readiness.md) — 完整的 UI 和核心逻辑验证路径说明
+- **Verification 日志**: [docs/demo/verification.md](docs/demo/verification.md) — 实际运行的命令与结果
+- **UI 验证**: 97 个 widget 测试覆盖工作台 shell 全路径（设置、AI 生成、审稿、版本、阅读模式）
+- **核心逻辑验证**: 157+ 个单元测试覆盖场景流水线、审核评分、角色上下文注入、章节编排
+- **MVP 文档验证**: 27 份顶层文档 + 11 份 PRD + 158 个 canonical frame + 12 个 smoke test — 全部通过交叉校验
+
+### 快速验证命令
+
+```bash
+flutter analyze --no-pub                                    # 静态分析
+flutter test test/workbench_shell_test.dart -r compact      # UI 主路径
+python3 docs/mvp/validate_mvp_docs.py                       # 文档一致性
+```
+
+### 截图与视频（待制作）
+
+截图和演示视频将放在 `docs/assets/screenshots/` 和 `docs/assets/gifs/` 下，命名规范见下方"外部展示素材目录与命名规范"章节。
 
 ---
 
@@ -435,10 +451,11 @@ This repository contains the application surface, domain/state layers, validatio
 - 桌面端核心写作链路与多模块架构已落地
 - 本地开发验证链路已建立并接入 CI
 - 版本化文档与项目说明正在持续完善
+- **Demo readiness v1**: UI 主路径（97 widget tests）和核心生成逻辑（157+ tests）已验证，详见 [docs/demo/demo-readiness.md](docs/demo/demo-readiness.md)
 
 ### 下一步优先项
 
-- 补齐外部展示截图与 Demo 视频
+- 制作外部展示截图与 Demo 视频（素材命名规范见下方）
 - 提供一套可直接运行的初始化脚手架（脚本/模板）
 - 发布 1.0.0 阶段化特性清单与版本说明
 - 建立稳定的外部协作提交流程
@@ -540,7 +557,12 @@ This repository contains the application surface, domain/state layers, validatio
 
 ## Release Readiness Checklist（发布前检查）
 
-- [ ] 补齐项目截图与 Demo 链接（或移除占位图）
+- [x] UI 主路径验证 — 97 widget tests 通过（[evidence](docs/demo/demo-readiness.md)）
+- [x] 核心生成逻辑验证 — 157+ tests 通过（[evidence](docs/demo/demo-readiness.md)）
+- [x] 静态分析无问题 — `flutter analyze` clean
+- [x] MVP 文档交叉校验 — `validate_mvp_docs.py` 通过
+- [x] Demo evidence 文档 — [docs/demo/demo-readiness.md](docs/demo/demo-readiness.md)
+- [ ] 补齐项目截图与 Demo 视频（素材命名规范见下方）
 - [ ] 确认 `README` 目录（ToC）链接正常
 - [ ] 确认外部依赖安装说明可复现
 - [ ] 确认 `.gitignore` 包含运行态与敏感文件

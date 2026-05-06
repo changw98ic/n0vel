@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_storage_io.dart';
+import 'package:novel_writer/app/state/settings_json_cipher.dart';
 
 void main() {
   test('file storage encrypts settings.json and restores apiKey', () async {
@@ -345,4 +347,101 @@ void main() {
     expect(result.issue, AppSettingsPersistenceIssue.fileWriteFailed);
     expect(result.detail, isNotNull);
   });
+
+  test('file storage reports corrupted ciphertext as fileReadFailed', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'novel_writer_settings_storage_cipher_corrupt_test',
+    );
+    addTearDown(() async {
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    });
+
+    final cipher = SettingsJsonCipher.forSettingsFile(
+      File('${directory.path}/settings.json'),
+    );
+    final file = File('${directory.path}/settings.json');
+    await _writeAndCorruptEncryptedSettings(
+      cipher: cipher,
+      file: file,
+      data: const {
+        'providerName': 'OpenAI 兼容服务',
+        'baseUrl': 'https://api.example.com/v1',
+        'model': 'gpt-5.4',
+        'apiKey': 'sk-corrupt-test',
+        'timeoutMs': 30000,
+        'maxConcurrentRequests': 1,
+        'themePreference': 'dark',
+      },
+    );
+
+    final storage = FileAppSettingsStorage(file: file);
+    final restored = await storage.load();
+
+    expect(restored, isNull);
+    expect(storage.lastLoadIssue, AppSettingsPersistenceIssue.fileReadFailed);
+    expect(storage.lastLoadDetail, isNotNull);
+    expect(storage.lastLoadDetail, contains('AES 解密失败'));
+  });
+
+  test('file storage reports key mismatch as fileReadFailed', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'novel_writer_settings_storage_cipher_mismatch_test',
+    );
+    addTearDown(() async {
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    });
+
+    final file = File('${directory.path}/settings.json');
+    final writerCipher = SettingsJsonCipher.forSettingsFile(file);
+    final stored = await writerCipher.encryptMap({
+      'providerName': 'Ollama Cloud',
+      'baseUrl': 'https://ollama.com/v1',
+      'model': 'kimi-k2.6',
+      'apiKey': 'sk-read-key',
+      'timeoutMs': 120000,
+      'maxConcurrentRequests': 2,
+      'themePreference': 'light',
+    });
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(stored));
+
+    final wrongKeyFile = File('${directory.path}/wrong.key');
+    await wrongKeyFile.writeAsString(
+      base64Encode(List<int>.generate(32, (index) => index % 256)),
+    );
+    final readerStorage = FileAppSettingsStorage(
+      file: file,
+      cipher: SettingsJsonCipher(keyFile: wrongKeyFile),
+    );
+
+    final restored = await readerStorage.load();
+    expect(restored, isNull);
+    expect(readerStorage.lastLoadIssue, AppSettingsPersistenceIssue.fileReadFailed);
+    expect(readerStorage.lastLoadDetail, contains('AES 解密失败'));
+  });
+}
+
+Future<void> _writeAndCorruptEncryptedSettings({
+  required SettingsJsonCipher cipher,
+  required File file,
+  required Map<String, Object?> data,
+}) async {
+  final envelope = await cipher.encryptMap(data);
+  final encrypted = envelope['ciphertext'] as String;
+  if (encrypted.isNotEmpty) {
+    final bytes = utf8.encode(encrypted);
+    bytes[bytes.length - 1] = bytes[bytes.length - 1] == 65 ? 66 : 65;
+    final corrupted = utf8.decode(bytes);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      jsonEncode({
+        ...envelope,
+        'ciphertext': corrupted,
+      }),
+    );
+  }
 }

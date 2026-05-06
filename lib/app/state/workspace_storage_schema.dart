@@ -28,6 +28,7 @@ class WorkspaceSchema {
         note TEXT NOT NULL,
         need_text TEXT NOT NULL,
         summary TEXT NOT NULL,
+        linked_scene_ids TEXT NOT NULL DEFAULT '[]',
         PRIMARY KEY (scope_key, project_id, position_no)
       )
       ''');
@@ -53,6 +54,7 @@ class WorkspaceSchema {
         type TEXT NOT NULL,
         detail TEXT NOT NULL,
         summary TEXT NOT NULL,
+        linked_scene_ids TEXT NOT NULL DEFAULT '[]',
         PRIMARY KEY (scope_key, project_id, position_no)
       )
       ''');
@@ -84,7 +86,35 @@ class WorkspaceSchema {
         PRIMARY KEY (scope_key, project_id, preference_key)
       )
       ''');
+    _ensureColumn(
+      database,
+      tableName: 'workspace_characters',
+      columnName: 'linked_scene_ids',
+      definition: "TEXT NOT NULL DEFAULT '[]'",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_world_nodes',
+      columnName: 'linked_scene_ids',
+      definition: "TEXT NOT NULL DEFAULT '[]'",
+    );
     _ensureIndexes(database);
+  }
+
+  static void _ensureColumn(
+    sqlite3.Database database, {
+    required String tableName,
+    required String columnName,
+    required String definition,
+  }) {
+    final columns = database.select('PRAGMA table_info($tableName)');
+    final columnNames = columns.map((row) => row['name'] as String).toSet();
+    if (columnNames.contains(columnName)) {
+      return;
+    }
+    database.execute(
+      'ALTER TABLE $tableName ADD COLUMN $columnName $definition',
+    );
   }
 
   static void _ensureIndexes(sqlite3.Database database) {
@@ -196,6 +226,7 @@ class WorkspaceSchema {
           note TEXT NOT NULL,
           need_text TEXT NOT NULL,
           summary TEXT NOT NULL,
+          linked_scene_ids TEXT NOT NULL DEFAULT '[]',
           PRIMARY KEY (scope_key, project_id, position_no)
         )
       ''',
@@ -264,6 +295,7 @@ class WorkspaceSchema {
           type TEXT NOT NULL,
           detail TEXT NOT NULL,
           summary TEXT NOT NULL,
+          linked_scene_ids TEXT NOT NULL DEFAULT '[]',
           PRIMARY KEY (scope_key, project_id, position_no)
         )
       ''',

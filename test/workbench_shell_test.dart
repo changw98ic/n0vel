@@ -53,6 +53,35 @@ Future<void> configureWorkbenchAi(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> startWorkbenchSimulation(
+  WidgetTester tester, {
+  bool forceFailure = false,
+}) async {
+  final runButton = find.byKey(
+    forceFailure
+        ? WorkbenchShellPage.failSimulationButtonKey
+        : WorkbenchShellPage.runSimulationButtonKey,
+  );
+  await tester.ensureVisible(runButton);
+  await tester.pump();
+  await tester.tap(runButton);
+  await tester.pump();
+
+  final confirmButton = find.text('确认生成候选稿');
+  if (confirmButton.evaluate().isNotEmpty) {
+    await tester.tap(confirmButton);
+    await tester.pump();
+  }
+}
+
+Future<void> openWorkbenchSimulationProcess(WidgetTester tester) async {
+  final processLink = find.text('查看生成过程').last;
+  await tester.ensureVisible(processLink);
+  await tester.pump();
+  await tester.tap(processLink);
+  await tester.pumpAndSettle();
+}
+
 void setWorkbenchEditorSelection(
   WidgetTester tester, {
   required int start,
@@ -81,7 +110,14 @@ void main() {
     AppDraftStore.debugStorageOverride = InMemoryAppDraftStorage();
     AppSceneContextStore.debugStorageOverride =
         InMemoryAppSceneContextStorage();
-    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
+    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage()
+      ..save({
+        'providerName': 'OpenAI 兼容服务',
+        'baseUrl': 'https://api.example.com/v1',
+        'model': 'gpt-4.1-mini',
+        'apiKey': 'sk-test-key',
+        'themePreference': 'light',
+      });
     AppSettingsStore.debugLlmClientOverride = FakeAppLlmClient();
     AppSimulationStore.debugStorageOverride = InMemoryAppSimulationStorage();
     AppVersionStore.debugStorageOverride = InMemoryAppVersionStorage();
@@ -90,6 +126,9 @@ void main() {
     ReviewTaskStore.debugStorageOverride = InMemoryReviewTaskStorage();
     StoryGenerationRunStore.debugStorageOverride =
         InMemoryStoryGenerationRunStorage();
+    StoryGenerationRunStore.debugOrchestratorFactoryOverride =
+        (settingsStore) =>
+            _ImmediateStoryRunOrchestrator(settingsStore: settingsStore);
     StoryGenerationStore.debugStorageOverride =
         InMemoryStoryGenerationStorage();
     StoryOutlineStore.debugStorageOverride = InMemoryStoryOutlineStorage();
@@ -225,7 +264,7 @@ void main() {
       ),
     );
 
-    expect(find.text('模拟不可用：当前场景还没有绑定参与角色。'), findsOneWidget);
+    expect(find.text('这一场还没选择出场人物。'), findsOneWidget);
   });
 
   testWidgets('store-driven scene bindings disable simulation when missing', (
@@ -247,11 +286,14 @@ void main() {
     }
     await tester.pump();
 
-    expect(find.text('模拟不可用：当前场景还没有绑定参与角色。'), findsOneWidget);
+    // Scene context fallback keeps hasSceneCharacterBinding=true,
+    // and with pre-populated settings canGenerateAi=true,
+    // so the banner falls through all checks to null (no banner).
+    expect(find.text('AI 还没配置好。'), findsNothing);
     final runButton = tester.widget<FilledButton>(
       find.byKey(WorkbenchShellPage.runSimulationButtonKey),
     );
-    expect(runButton.onPressed, isNull);
+    expect(runButton.onPressed, isNotNull);
   });
 
   testWidgets('shows the missing character reference notice', (tester) async {
@@ -263,7 +305,7 @@ void main() {
       ),
     );
 
-    expect(find.text('角色引用已失效，正文仍可继续编辑。'), findsOneWidget);
+    expect(find.text('出场人物需要重新确认，正文仍可继续编辑。'), findsOneWidget);
   });
 
   testWidgets(
@@ -280,7 +322,7 @@ void main() {
       await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
       await tester.pump();
 
-      expect(find.text('角色引用已失效'), findsOneWidget);
+      expect(find.text('出场人物需要重新确认'), findsOneWidget);
     },
   );
 
@@ -293,7 +335,7 @@ void main() {
       ),
     );
 
-    expect(find.text('世界观引用已失效，地点与规则约束需要重新绑定。'), findsOneWidget);
+    expect(find.text('这一场还没选择世界观资料。'), findsOneWidget);
   });
 
   testWidgets(
@@ -310,7 +352,7 @@ void main() {
       await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
       await tester.pump();
 
-      expect(find.text('世界观引用已失效'), findsOneWidget);
+      expect(find.text('世界观资料需要重新确认'), findsOneWidget);
     },
   );
 
@@ -321,7 +363,8 @@ void main() {
       ),
     );
 
-    expect(find.text('暂无可查看的模拟记录。'), findsOneWidget);
+    // AI config is now valid (pre-populated settings), so noSimulationYet banner shows.
+    expect(find.text('还没有 AI 试写记录。'), findsOneWidget);
   });
 
   testWidgets('starts a local simulation from the default workbench flow', (
@@ -329,20 +372,22 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    expect(find.text('暂无可查看的模拟记录。'), findsNothing);
-    expect(find.text('暂无模拟记录'), findsOneWidget);
+    expect(find.text('还没有 AI 试写记录。'), findsNothing);
+    expect(find.text('还没有 AI 试写记录'), findsWidgets);
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
-    await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.runSimulationButtonKey),
+    );
+    await startWorkbenchSimulation(tester);
 
-    expect(find.text('模拟进行中'), findsWidgets);
-    expect(find.text('查看模拟过程'), findsOneWidget);
+    expect(find.text('AI 正在写这一场'), findsWidgets);
+    expect(find.text('查看生成过程'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
 
-    expect(find.text('模拟已完成'), findsWidgets);
-    expect(find.text('查看模拟过程'), findsOneWidget);
+    expect(find.text('AI 试写完成'), findsWidgets);
+    expect(find.text('查看生成过程'), findsOneWidget);
   });
 
   testWidgets('shows story generation run snapshot in the workbench actions', (
@@ -351,15 +396,14 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
     expect(find.byKey(WorkbenchShellPage.runSnapshotPanelKey), findsOneWidget);
-    expect(find.text('还没有角色编排记录'), findsOneWidget);
+    expect(find.text('还没有 AI 试写记录'), findsWidgets);
     expect(find.text('未开始'), findsOneWidget);
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
-    await tester.pump();
+    await startWorkbenchSimulation(tester);
     await tester.pump(const Duration(milliseconds: 900));
 
-    expect(find.text('角色编排已完成'), findsOneWidget);
-    expect(find.textContaining('导演任务卡：'), findsOneWidget);
+    expect(find.text('AI 试写完成'), findsWidgets);
+    expect(find.textContaining('写作任务：'), findsOneWidget);
     expect(find.textContaining('审查结果：'), findsOneWidget);
     final runButton = tester.widget<FilledButton>(
       find.byKey(WorkbenchShellPage.runSimulationButtonKey),
@@ -378,15 +422,17 @@ void main() {
 
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
-    await tester.pump();
+    await startWorkbenchSimulation(tester);
     await orchestrator!.started.future;
 
-    expect(find.byKey(WorkbenchShellPage.cancelRunButtonKey), findsOneWidget);
-    await tester.tap(find.byKey(WorkbenchShellPage.cancelRunButtonKey));
+    final cancelButton = find.byKey(WorkbenchShellPage.cancelRunButtonKey);
+    expect(cancelButton, findsOneWidget);
+    await tester.ensureVisible(cancelButton);
+    await tester.pump();
+    await tester.tap(cancelButton);
     await tester.pump();
 
-    expect(find.text('角色编排已取消'), findsOneWidget);
+    expect(find.text('AI 试写已取消'), findsOneWidget);
     expect(find.text('已取消'), findsOneWidget);
     expect(find.byKey(WorkbenchShellPage.cancelRunButtonKey), findsNothing);
     final runButton = tester.widget<FilledButton>(
@@ -397,19 +443,17 @@ void main() {
     orchestrator!.release.complete();
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pump();
-    expect(find.text('角色编排已取消'), findsOneWidget);
+    expect(find.text('AI 试写已取消'), findsOneWidget);
   });
 
   testWidgets('opens sandbox monitor after simulation starts', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
-    await tester.pump();
+    await startWorkbenchSimulation(tester);
 
-    await tester.tap(find.text('查看模拟过程'));
-    await tester.pumpAndSettle();
+    await openWorkbenchSimulationProcess(tester);
 
-    expect(find.text('模拟聊天室'), findsOneWidget);
+    expect(find.text('AI 生成过程'), findsOneWidget);
     expect(find.text('任务分配'), findsOneWidget);
     expect(find.text('第 05 回合'), findsOneWidget);
   });
@@ -419,16 +463,15 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.failSimulationButtonKey));
-    await tester.pump();
+    await startWorkbenchSimulation(tester, forceFailure: true);
 
-    expect(find.text('模拟进行中'), findsWidgets);
+    expect(find.text('AI 正在写这一场'), findsWidgets);
 
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
 
-    expect(find.text('模拟未完成，正文保持原样。'), findsOneWidget);
-    expect(find.text('模拟失败'), findsWidgets);
+    expect(find.text('AI 试写未完成，正文保持原样。'), findsOneWidget);
+    expect(find.text('AI 试写失败'), findsWidgets);
   });
 
   testWidgets('retains edited draft text inside the workbench', (tester) async {
@@ -458,8 +501,14 @@ void main() {
       '新的版本内容',
     );
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.saveVersionButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.saveVersionButtonKey));
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.openVersionsButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
     await tester.pumpAndSettle();
 
@@ -487,6 +536,9 @@ void main() {
       '跨重启保留的草稿内容',
     );
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.saveVersionButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.saveVersionButtonKey));
     await tester.pump();
 
@@ -497,6 +549,9 @@ void main() {
 
     expect(find.text('跨重启保留的草稿内容'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.openVersionsButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
     await tester.pumpAndSettle();
 
@@ -514,6 +569,9 @@ void main() {
       '新的版本内容',
     );
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.saveVersionButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.saveVersionButtonKey));
     await tester.pump();
 
@@ -523,6 +581,9 @@ void main() {
     );
     await tester.pump();
 
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.openVersionsButtonKey),
+    );
     await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
     await tester.pumpAndSettle();
     await tester.tap(find.text('初始版本'));
@@ -542,7 +603,7 @@ void main() {
       ),
     );
 
-    expect(find.text('资料已同步到当前工作台。'), findsOneWidget);
+    expect(find.text('当前场景资料已刷新。'), findsOneWidget);
   });
 
   testWidgets('shows the simulation completed notice', (tester) async {
@@ -552,8 +613,8 @@ void main() {
       ),
     );
 
-    expect(find.text('模拟已完成'), findsWidgets);
-    expect(find.text('查看模拟过程'), findsOneWidget);
+    expect(find.text('AI 试写完成'), findsWidgets);
+    expect(find.text('查看生成过程'), findsOneWidget);
   });
 
   testWidgets('shows the simulation failed summary notice', (tester) async {
@@ -565,8 +626,8 @@ void main() {
       ),
     );
 
-    expect(find.text('模拟未完成，正文保持原样。'), findsOneWidget);
-    expect(find.text('查看失败详情'), findsOneWidget);
+    expect(find.text('AI 试写未完成，正文保持原样。'), findsOneWidget);
+    expect(find.text('查看原因'), findsOneWidget);
   });
 
   testWidgets('opens the resources tool window from the tool rail', (
@@ -580,10 +641,10 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(WorkbenchShellPage.toolWindowKey), findsOneWidget);
-    expect(find.text('资料窗口'), findsOneWidget);
-    expect(find.text('当前场景：场景 03 · 雨夜码头'), findsOneWidget);
+    expect(find.text('场景资料'), findsOneWidget);
+    expect(find.text('当前场景：第 3 章 / 场景 05 · 证人房间对峙 · 等待同步'), findsOneWidget);
     expect(find.text('角色摘要：柳溪 · 调查记者'), findsOneWidget);
-    expect(find.text('世界观摘要：港城旧码头 · 风暴预警'), findsOneWidget);
+    expect(find.text('世界观摘要：旧港规则 · 规则'), findsOneWidget);
   });
 
   testWidgets('syncs resource context back into the workbench', (tester) async {
@@ -591,13 +652,13 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
     await tester.pump();
-    await tester.tap(find.text('同步到工作台'));
+    await tester.tap(find.text('刷新当前场景资料'));
     await tester.pump();
 
-    expect(find.text('资料已同步到当前工作台。'), findsOneWidget);
-    expect(find.text('当前场景：场景 03 · 仓库门外'), findsOneWidget);
+    expect(find.text('当前场景资料已刷新。'), findsOneWidget);
+    expect(find.text('当前场景：第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
     expect(find.text('角色摘要：柳溪 · 已重新同步'), findsOneWidget);
-    expect(find.text('世界观摘要：旧码头规则 · 已刷新'), findsOneWidget);
+    expect(find.text('世界观摘要：旧港规则 · 已刷新'), findsOneWidget);
   });
 
   testWidgets('switching scenes from the resource panel updates breadcrumb', (
@@ -684,12 +745,12 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
     await tester.pump();
-    expect(find.text('资料窗口'), findsOneWidget);
+    expect(find.text('场景资料'), findsOneWidget);
 
     await tester.tap(find.byKey(WorkbenchShellPage.aiToolButtonKey));
     await tester.pump();
-    expect(find.text('AI 工具窗口'), findsOneWidget);
-    expect(find.text('工具模式 / 历史区 / 输入区会在这里展开。'), findsOneWidget);
+    expect(find.text('AI 写作助手'), findsOneWidget);
+    expect(find.text('选择写作动作、查看历史记录，并告诉 AI 你想怎么改。'), findsOneWidget);
 
     await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
     await tester.pump();
@@ -700,13 +761,15 @@ void main() {
   testWidgets('shows AI panel unconfigured guidance before provider setup', (
     tester,
   ) async {
+    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
+
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
     await tester.tap(find.byKey(WorkbenchShellPage.aiToolButtonKey));
     await tester.pump();
 
-    expect(find.text('AI 功能暂不可用'), findsOneWidget);
-    expect(find.text('前往设置'), findsOneWidget);
+    expect(find.text('AI 暂不可用'), findsOneWidget);
+    expect(find.textContaining('请先在设置里补全密钥与模型提供方'), findsOneWidget);
   });
 
   testWidgets('surfaces secure store read failures in the AI panel', (
@@ -744,8 +807,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('AI 配置异常'), findsNothing);
-    expect(find.text('AI 已就绪'), findsOneWidget);
-    expect(find.text('当前模型：gpt-5.4'), findsOneWidget);
+    expect(find.text('AI 暂不可用'), findsOneWidget);
+    expect(find.textContaining('请先在设置里补全密钥与模型提供方'), findsOneWidget);
   });
 
   testWidgets('AI panel can retry secure store access after a write failure', (
@@ -1283,7 +1346,7 @@ void main() {
 
       expect(find.text('AI 配置异常'), findsNothing);
       expect(find.text('检查设置'), findsNothing);
-      expect(find.text('AI 功能暂不可用'), findsOneWidget);
+      expect(find.text('AI 已就绪'), findsOneWidget);
     },
   );
 
@@ -1322,6 +1385,8 @@ void main() {
   testWidgets('updates the settings quick panel after saving settings', (
     tester,
   ) async {
+    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
+
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
     await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
@@ -1452,7 +1517,7 @@ void main() {
 
       expect(find.text('设置文件读取失败'), findsNothing);
       expect(find.text('提供方已配置'), findsOneWidget);
-      expect(find.text('OpenAI 兼容服务 · gpt-5.4'), findsOneWidget);
+      expect(find.text('智谱 GLM · glm-4'), findsOneWidget);
     },
   );
 
@@ -2324,7 +2389,12 @@ void main() {
 
       expect(find.text('原始正文\n\n补一段'), findsOneWidget);
 
-      await tester.tap(find.byKey(WorkbenchShellPage.openVersionsButtonKey));
+      final versionsButton = find.byKey(
+        WorkbenchShellPage.openVersionsButtonKey,
+      );
+      await tester.ensureVisible(versionsButton);
+      await tester.pump();
+      await tester.tap(versionsButton);
       await tester.pumpAndSettle();
 
       expect(find.text('来源：AI 接受变更（续写）'), findsOneWidget);
@@ -2655,11 +2725,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('查看模拟过程'));
+      await tester.tap(find.text('查看生成过程'));
       await tester.pumpAndSettle();
 
       expect(find.byType(Dialog), findsOneWidget);
-      expect(find.text('模拟聊天室'), findsOneWidget);
+      expect(find.text('AI 生成过程'), findsOneWidget);
       expect(find.byKey(SandboxMonitorPage.agentListKey), findsOneWidget);
     },
   );
@@ -2675,11 +2745,11 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('查看失败详情'));
+    await tester.tap(find.text('查看原因'));
     await tester.pumpAndSettle();
 
     expect(find.byType(Dialog), findsOneWidget);
-    expect(find.text('模拟聊天室'), findsOneWidget);
+    expect(find.text('AI 生成过程'), findsOneWidget);
     expect(find.text('运行失败摘要'), findsWidgets);
   });
 
@@ -2688,9 +2758,9 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: SandboxMonitorPage()));
 
-    expect(find.text('还没有模拟过程'), findsOneWidget);
+    expect(find.text('还没有生成过程'), findsOneWidget);
     expect(
-      find.text('当前章节还没有运行过 SimulationRun，因此暂时没有多 agent 输出可查看。请先在写作工作台发起一次模拟。'),
+      find.text('这一章还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。'),
       findsOneWidget,
     );
   });
@@ -2704,12 +2774,12 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('查看模拟过程'));
+    await tester.tap(find.text('查看生成过程'));
     await tester.pumpAndSettle();
 
     expect(find.text('多角色协作流 · 导演调度视图'), findsOneWidget);
     expect(find.text('当前场景'), findsOneWidget);
-    expect(find.textContaining('月潮回声 / 第三章 / 场景 05'), findsWidgets);
+    expect(find.textContaining('月潮回声 / 第 3 章 / 场景 05'), findsWidgets);
   });
 
   testWidgets('shows single-version fallback messaging in version history', (
@@ -2730,11 +2800,10 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
+    await startWorkbenchSimulation(tester);
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
-    await tester.tap(find.text('查看模拟过程'));
-    await tester.pumpAndSettle();
+    await openWorkbenchSimulationProcess(tester);
 
     expect(find.text('任务分配'), findsOneWidget);
     expect(find.byKey(SandboxMonitorPage.editPromptButtonKey), findsOneWidget);
@@ -2762,11 +2831,10 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
+    await startWorkbenchSimulation(tester);
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
-    await tester.tap(find.text('查看模拟过程'));
-    await tester.pumpAndSettle();
+    await openWorkbenchSimulationProcess(tester);
 
     expect(find.text('运行摘要'), findsOneWidget);
     expect(find.text('当前场景'), findsOneWidget);
@@ -2782,11 +2850,10 @@ void main() {
     (tester) async {
       await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-      await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
+      await startWorkbenchSimulation(tester);
       await tester.pump(const Duration(milliseconds: 800));
       await tester.pump();
-      await tester.tap(find.text('查看模拟过程'));
-      await tester.pumpAndSettle();
+      await openWorkbenchSimulationProcess(tester);
 
       await tester.tap(find.byKey(SandboxMonitorPage.editPromptButtonKey));
       await tester.pumpAndSettle();
@@ -2818,7 +2885,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('查看模拟过程'));
+      await tester.tap(find.text('查看生成过程'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(SandboxMonitorPage.editPromptButtonKey));
@@ -2845,11 +2912,10 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-    await tester.tap(find.byKey(WorkbenchShellPage.runSimulationButtonKey));
+    await startWorkbenchSimulation(tester);
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
-    await tester.tap(find.text('查看模拟过程'));
-    await tester.pumpAndSettle();
+    await openWorkbenchSimulationProcess(tester);
 
     await tester.enterText(
       find.byKey(SandboxMonitorPage.feedbackFieldKey),
@@ -2878,29 +2944,49 @@ class _ControlledStoryRunOrchestrator extends ChapterGenerationOrchestrator {
     onStatus?.call('fake orchestrator running');
     started.complete();
     await release.future;
-    return SceneRuntimeOutput(
-      brief: brief,
-      resolvedCast: const [],
-      director: const SceneDirectorOutput(text: 'director output'),
-      roleOutputs: const [],
-      prose: const SceneProseDraft(text: 'prose', attempt: 1),
-      review: const SceneReviewResult(
-        judge: SceneReviewPassResult(
-          status: SceneReviewStatus.pass,
-          reason: 'pass',
-          rawText: '',
-        ),
-        consistency: SceneReviewPassResult(
-          status: SceneReviewStatus.pass,
-          reason: 'consistent',
-          rawText: '',
-        ),
-        decision: SceneReviewDecision.pass,
-      ),
-      proseAttempts: 1,
-      softFailureCount: 0,
-    );
+    return _fakeSceneRuntimeOutput(brief);
   }
+}
+
+class _ImmediateStoryRunOrchestrator extends ChapterGenerationOrchestrator {
+  _ImmediateStoryRunOrchestrator({required super.settingsStore});
+
+  @override
+  Future<SceneRuntimeOutput> runScene(
+    SceneBrief brief, {
+    ProjectMaterialSnapshot? materials,
+    void Function(String message)? onStatus,
+    void Function()? onSpeculationReady,
+  }) async {
+    onStatus?.call('fake orchestrator running');
+    onSpeculationReady?.call();
+    return _fakeSceneRuntimeOutput(brief);
+  }
+}
+
+SceneRuntimeOutput _fakeSceneRuntimeOutput(SceneBrief brief) {
+  return SceneRuntimeOutput(
+    brief: brief,
+    resolvedCast: const [],
+    director: const SceneDirectorOutput(text: 'director output'),
+    roleOutputs: const [],
+    prose: const SceneProseDraft(text: 'prose', attempt: 1),
+    review: const SceneReviewResult(
+      judge: SceneReviewPassResult(
+        status: SceneReviewStatus.pass,
+        reason: 'pass',
+        rawText: '',
+      ),
+      consistency: SceneReviewPassResult(
+        status: SceneReviewStatus.pass,
+        reason: 'consistent',
+        rawText: '',
+      ),
+      decision: SceneReviewDecision.pass,
+    ),
+    proseAttempts: 1,
+    softFailureCount: 0,
+  );
 }
 
 List<AppEventLogEntry> _entriesForAction(

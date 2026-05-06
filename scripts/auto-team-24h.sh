@@ -6,6 +6,9 @@
 # ========================================================================
 set -uo pipefail
 
+# RTK command wrapper: prefix any command with 'rtk' when available; no-op otherwise
+rtk_cmd() { command -v rtk &>/dev/null && echo "rtk $*" || echo "$*"; }
+
 # === Configuration ===
 PROJECT_DIR="/Users/chengwen/dev/novel-wirter"
 STATE_DIR="$PROJECT_DIR/.auto-team"
@@ -389,7 +392,7 @@ build_prompt() {
 要求:
 1. 先读取计划文件，理解完整上下文和前序依赖
 2. 实现当前里程碑描述的所有功能
-3. 实现完成后执行: cd $project_dir && flutter analyze --no-pub && flutter test --no-pub
+3. 实现完成后执行: cd $project_dir && $(rtk_cmd flutter analyze --no-pub) && $(rtk_cmd flutter test --no-pub)
 4. 测试通过后: git add -A && git commit -m "feat: $milestone"
 5. 如果测试失败，修复后重试，最多 3 次
 6. 全部完成后在最后一行输出: TASK_COMPLETE
@@ -408,7 +411,7 @@ Task: $milestone
 Instructions:
 1. Read the plan file for full context
 2. Implement the milestone requirements
-3. Run: cd $project_dir && flutter analyze --no-pub && flutter test --no-pub
+3. Run: cd $project_dir && $(rtk_cmd flutter analyze --no-pub) && $(rtk_cmd flutter test --no-pub)
 4. If tests pass, commit changes
 5. If tests fail, fix and retry up to 3 times
 6. Print TASK_COMPLETE when done
@@ -628,7 +631,7 @@ verify_task() {
     log "  verify: new commit detected"
     # Check 2: flutter analyze passes (only fail on error-level issues)
     if command -v flutter &>/dev/null; then
-      flutter analyze --no-pub > "$LOG_DIR/verify-task${task_id}.log" 2>&1 || true
+      $(rtk_cmd flutter analyze --no-pub) > "$LOG_DIR/verify-task${task_id}.log" 2>&1 || true
       if grep -q " error •" "$LOG_DIR/verify-task${task_id}.log"; then
         log "  verify: flutter analyze found errors"
         return 1
@@ -796,13 +799,17 @@ run_planner_review() {
   local log_file="$LOG_DIR/planner-review-$(date +%s).log"
   local project_dir="$WORK_DIR"
 
+  local _rtk_analyze _rtk_test
+  _rtk_analyze=$(rtk_cmd flutter analyze --no-pub)
+  _rtk_test=$(rtk_cmd flutter test --no-pub)
+
   local prompt
-  read -r -d '' prompt <<'REVIEW_PROMPT' || true
+  read -r -d '' prompt <<REVIEW_PROMPT || true
 你是项目规划和优化分析专家，负责对 novel-wirter 项目进行全面检查。
 
 请执行以下步骤：
-1. 运行 `flutter analyze --no-pub` 检查代码质量，记录所有 warning 和 error
-2. 运行 `flutter test --no-pub` 检查测试状态，记录失败和跳过的测试
+1. 运行 \`${_rtk_analyze}\` 检查代码质量，记录所有 warning 和 error
+2. 运行 \`${_rtk_test}\` 检查测试状态，记录失败和跳过的测试
 3. 分析项目结构，检查以下方面：
    - 性能瓶颈（不必要的重建、阻塞操作、内存泄漏）
    - 代码重复（相似逻辑、可提取的公共组件）

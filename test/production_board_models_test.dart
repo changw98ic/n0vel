@@ -90,7 +90,7 @@ void main() {
         status: StoryGenerationRunStatus.completed,
         sceneId: 'scene-a',
         sceneLabel: '海港月潮 / 第 1 章 / 场景 01',
-        headline: '角色编排已完成',
+        headline: 'AI 试写完成',
         summary: '审查通过。',
         stageSummary: '审查通过',
       ),

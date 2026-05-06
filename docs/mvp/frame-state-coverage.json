@@ -12,7 +12,10 @@
     "Project Import Export"
   ],
   "supplemental_pages": [
-    "Scene Management"
+    "Scene Management",
+    "Story Bible / Aggregated Facts",
+    "Production Board / Progress Loop",
+    "Review Tasks / Queue States"
   ],
   "scene_management_states": [
     "Scene Management / Create Scene",
@@ -34,6 +37,7 @@
     "Writing Workbench / Rename Scene Dialog",
     "Writing Workbench / Delete Scene Confirm",
     "Writing Workbench / Menu Drawer Open",
+    "Writing Workbench / Full Drawer Navigation",
     "Writing Workbench / Missing Character Binding",
     "Writing Workbench / AI Modify Failed",
     "Writing Workbench / AI Accept Failed",
@@ -59,6 +63,10 @@
   "global_shell_states": [
     "Global Shell / Settings File Read Failed",
     "Global Shell / Settings File Write Failed"
+  ],
+  "layout_alignment_states": [
+    "Project List / Responsive Shelf Fit",
+    "Project Import Export / Contained Long Paths"
   ],
   "warning_states": [
     "Style Panel / Scene Override Notice",
