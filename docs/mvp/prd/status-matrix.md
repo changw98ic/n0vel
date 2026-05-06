@@ -24,6 +24,15 @@ Evidence-based implementation status for all MVP PRDs. Last audited: 2026-05-06.
 - **Total smoke tests**: 12
 - **Test gaps**: PRD-01, PRD-04, PRD-08, PRD-09, PRD-11 have zero feature-level tests
 
+## Open Action Items (from .omx/artifacts/)
+
+| Source | Item | Priority | Status |
+|--------|------|----------|--------|
+| claude-ui-status-20260504 | 7 test failures from empty-state startup vs seeded demo data | P1 | Open |
+| provider-routing-investigation-20260504 | RC-4 Workbench simulation blocker banners lacked navigation actions | P2 | Fixed (provider-routing-implementation) |
+| provider-routing-investigation-20260504 | RC-5 macOS build fragility | P1 | Open |
+| formal-macos-flow-runtime-diagnosis-20260504 | Connection close in TIME_WAIT on startup (telemetry/API key validation) | P3 | Investigating |
+
 ## Milestone Mapping
 
 | Milestone | Scope | Status |

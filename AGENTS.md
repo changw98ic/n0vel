@@ -10,15 +10,18 @@ this repository — including trivial lookups and single-file edits.
 The user should not need to repeatedly say "use subagents" or
 paste the agent-workflow prompt.
 
-This is an explicit standing user request to use agent-flow for every task.
-All tasks — including trivial one-shot lookups and single-file edits — must
-follow the full agent-flow pattern: classify, delegate, verify. No exceptions.
+This is an explicit standing user request to prefer agent-flow for
+non-trivial work. Simple queries and single-file edits may run solo
+without the full agent-flow pattern.
 
 Leader protocol:
-- First classify the task as `agent-flow` or `OMX-runtime`.
-- Use `agent-flow` for every task, with no `solo` exception. Even small,
-  low-risk lookups or single-file edits must go through the agent-flow
-  classification, delegation, and verification pattern.
+- First classify the task as `solo`, `agent-flow`, or `OMX-runtime`.
+- Use `solo` for simple lookups, single-file edits, or one-command
+  verifications that do not require cross-module reasoning.
+- Use `agent-flow` for tasks involving more than 3 files, multiple
+  modules, command execution with side effects, or final verification
+  claims. These must follow the full classification, delegation, and
+  verification pattern.
 - Use native subagents for bounded discovery, implementation, review, or
   verification lanes whenever a task requires repository inspection, command
   execution, file edits, or final evidence.
