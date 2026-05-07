@@ -115,8 +115,8 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '角色库',
-        subtitle: '维护人物信息、心理参数与引用场景',
+        title: '作品设定 · 角色库',
+        subtitle: '人物资料与引用关系',
         showBackButton: true,
         actions: [
           FilledButton(
@@ -142,7 +142,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         ],
       ),
       statusBar: const DesktopStatusStrip(
-        leftText: '人物资料已保存',
+        leftText: '作品设定 · 人物资料已保存',
         rightText: '场景 05',
       ),
     );
@@ -263,7 +263,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
             const SizedBox(height: 12),
             const _StateCard(
               title: '缺少必填字段',
-              message: '当前人物还没有名字，因此这次不会保存到人物资料，也不会刷新写作工作台的人物摘要。',
+              message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
               accent: Color(0xFF51624D),
             ),
             if (current != null) ...[
@@ -394,7 +394,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           const SizedBox(height: 12),
           const _InfoBlock(
             title: '人物摘要',
-            message: '缺少姓名时，系统不会生成角色摘要，也不会同步到写作工作台。',
+            message: '缺少姓名时，暂不整理角色摘要，也不会同步到写作工作台。',
           ),
         ],
       );
@@ -473,19 +473,45 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     if (matchedScene == null) {
       return 'Scene 05';
     }
-    final match = RegExp(r'场景\s*(\d+)').firstMatch(matchedScene.chapterLabel);
-    if (match == null) {
+    final sceneNumber = _sceneNumberFromLabel(matchedScene.chapterLabel);
+    if (sceneNumber == null) {
       return matchedScene.title;
     }
-    return 'Scene ${match.group(1)}';
+    return 'Scene $sceneNumber';
+  }
+
+  String? _sceneNumberFromLabel(String label) {
+    final markerIndex = label.indexOf('场景');
+    if (markerIndex < 0) {
+      return null;
+    }
+    var index = markerIndex + '场景'.length;
+    while (index < label.length && label.codeUnitAt(index) == 0x20) {
+      index++;
+    }
+    final start = index;
+    while (index < label.length) {
+      final codeUnit = label.codeUnitAt(index);
+      if (codeUnit < 0x30 || codeUnit > 0x39) {
+        break;
+      }
+      index++;
+    }
+    return index == start ? null : label.substring(start, index);
   }
 
   Widget _buildCharacterFields(
     AppWorkspaceStore store,
     CharacterRecord current,
   ) {
-    void onFieldChanged(String characterId, {String? name, String? role,
-        String? note, String? need, String? summary}) {
+    void onFieldChanged(
+      String characterId, {
+      String? name,
+      String? role,
+      String? note,
+      String? need,
+      String? summary,
+    }) {
       store.updateCharacter(
         characterId: characterId,
         name: name,
@@ -506,8 +532,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           ),
           label: '姓名',
           initialValue: current.name,
-          onChanged: (value) =>
-              onFieldChanged(current.id, name: value),
+          onChanged: (value) => onFieldChanged(current.id, name: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -516,8 +541,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           ),
           label: '身份',
           initialValue: current.role,
-          onChanged: (value) =>
-              onFieldChanged(current.id, role: value),
+          onChanged: (value) => onFieldChanged(current.id, role: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -527,8 +551,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           label: '笔记',
           initialValue: current.note,
           maxLines: 3,
-          onChanged: (value) =>
-              onFieldChanged(current.id, note: value),
+          onChanged: (value) => onFieldChanged(current.id, note: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -538,8 +561,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           label: '核心需求',
           initialValue: current.need,
           maxLines: 3,
-          onChanged: (value) =>
-              onFieldChanged(current.id, need: value),
+          onChanged: (value) => onFieldChanged(current.id, need: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -549,32 +571,26 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           label: '人物摘要',
           initialValue: current.summary,
           maxLines: 3,
-          onChanged: (value) =>
-              onFieldChanged(current.id, summary: value),
+          onChanged: (value) => onFieldChanged(current.id, summary: value),
         ),
       ],
     );
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.characters,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 }
 
@@ -627,7 +643,7 @@ class _InfoBlock extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -688,9 +704,9 @@ class _StateCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent),
+        border: Border.all(color: desktopPalette(context).borderStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -753,7 +769,7 @@ class _CenteredPanelState extends StatelessWidget {
       width: double.infinity,
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).surfaceRaised,
+        color: desktopPalette(context).subtle,
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -795,7 +811,7 @@ class _CharacterDeleteOverlay extends StatelessWidget {
           decoration: BoxDecoration(
             color: desktopPalette(context).surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFB7AA9A)),
+            border: Border.all(color: desktopPalette(context).borderStrong),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

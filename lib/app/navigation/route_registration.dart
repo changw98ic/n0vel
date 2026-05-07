@@ -4,6 +4,7 @@ import '../../features/import_export/presentation/project_import_export_page.dar
 import '../../features/production_board/presentation/production_board_page.dart';
 import '../../features/projects/presentation/project_list_page.dart';
 import '../../features/reading/presentation/reading_mode_page.dart';
+import '../../features/revision/presentation/revision_hub_page.dart';
 import '../../features/review_tasks/presentation/review_task_page.dart';
 import '../../features/sandbox/presentation/sandbox_monitor_page.dart';
 import '../../features/scenes/presentation/scene_management_page.dart';
@@ -11,6 +12,7 @@ import '../../features/settings/presentation/settings_shell_page.dart';
 import '../../features/style/presentation/style_panel_page.dart';
 import '../../features/story_bible/presentation/story_bible_page.dart';
 import '../../features/versions/presentation/version_history_page.dart';
+import '../../features/work_settings/presentation/work_settings_hub_page.dart';
 import '../../features/workbench/presentation/workbench_shell_page.dart';
 import '../../features/worldbuilding/presentation/worldbuilding_page.dart';
 import 'app_navigator.dart';
@@ -52,6 +54,14 @@ void registerAppRoutes() {
   AppNavigator.register(
     AppRoutes.audit,
     (context, _) => const AuditCenterPage(),
+  );
+  AppNavigator.register(
+    AppRoutes.workSettingsHub,
+    (context, _) => const WorkSettingsHubPage(),
+  );
+  AppNavigator.register(
+    AppRoutes.revisionHub,
+    (context, _) => const RevisionHubPage(),
   );
   AppNavigator.register(
     AppRoutes.importExport,

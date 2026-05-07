@@ -60,7 +60,7 @@ void main() {
     expect(find.byKey(ReadingModePage.pageBodyKey), findsOneWidget);
     expect(find.text('她推开仓库门，雨水顺着袖口滴进掌心。'), findsOneWidget);
     expect(find.text('月潮回声 · 第 1 章 / 场景 01 · 风暴前夜'), findsOneWidget);
-    expect(find.text('关闭纯净模式'), findsOneWidget);
+    expect(find.text('返回写作'), findsOneWidget);
     expect(find.text('单页'), findsOneWidget);
   });
 

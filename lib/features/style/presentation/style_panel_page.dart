@@ -104,19 +104,15 @@ class _StylePanelPageState extends State<StylePanelPage> {
               StyleModeButton(
                 buttonKey: StylePanelPage.questionnaireModeButtonKey,
                 label: '问卷',
-                selected:
-                    store.styleInputMode ==
-                    StyleInputMode.questionnaire,
-                onPressed: () => store.setStyleInputMode(
-                  StyleInputMode.questionnaire,
-                ),
+                selected: store.styleInputMode == StyleInputMode.questionnaire,
+                onPressed: () =>
+                    store.setStyleInputMode(StyleInputMode.questionnaire),
               ),
               StyleModeButton(
                 buttonKey: StylePanelPage.jsonModeButtonKey,
                 label: 'JSON',
                 selected: store.styleInputMode == StyleInputMode.json,
-                onPressed: () =>
-                    store.setStyleInputMode(StyleInputMode.json),
+                onPressed: () => store.setStyleInputMode(StyleInputMode.json),
               ),
             ],
           ),
@@ -124,11 +120,10 @@ class _StylePanelPageState extends State<StylePanelPage> {
           StyleModeFramingCard(
             title: store.styleInputMode == StyleInputMode.questionnaire
                 ? '问卷输入'
-                : 'JSON 草稿',
-            message:
-                store.styleInputMode == StyleInputMode.questionnaire
-                ? '优先补全问卷字段，再生成当前项目的风格摘要。'
-                : '可直接粘贴或导入 StyleProfile JSON，导入后会保留字段校验结果。',
+                : 'JSON 风格草稿',
+            message: store.styleInputMode == StyleInputMode.questionnaire
+                ? '优先补全问卷字段，再整理当前作品的风格摘要。'
+                : '可直接粘贴或导入 StyleProfile JSON，导入后会保留可修订的字段提示。',
           ),
           const SizedBox(height: 16),
           if (store.styleInputMode == StyleInputMode.questionnaire) ...[
@@ -136,10 +131,8 @@ class _StylePanelPageState extends State<StylePanelPage> {
               fieldKey: StylePanelPage.profileNameFieldKey,
               label: '风格名称',
               initialValue: draft['profile_name']?.toString() ?? '',
-              onChanged: (value) => store.updateStyleQuestionnaireField(
-                'profile_name',
-                value,
-              ),
+              onChanged: (value) =>
+                  store.updateStyleQuestionnaireField('profile_name', value),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
@@ -150,8 +143,8 @@ class _StylePanelPageState extends State<StylePanelPage> {
                 'third_person_limited': '第三人称限知',
                 'third_person_multi': '第三人称多视角',
               },
-              onSelected: (value) => store
-                  .updateStyleQuestionnaireField('pov_mode', value),
+              onSelected: (value) =>
+                  store.updateStyleQuestionnaireField('pov_mode', value),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
@@ -159,10 +152,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
               currentValue: draft['dialogue_ratio']?.toString() ?? '',
               values: const {'low': '低', 'medium': '中', 'high': '高'},
               onSelected: (value) =>
-                  store.updateStyleQuestionnaireField(
-                    'dialogue_ratio',
-                    value,
-                  ),
+                  store.updateStyleQuestionnaireField('dialogue_ratio', value),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
@@ -175,11 +165,10 @@ class _StylePanelPageState extends State<StylePanelPage> {
                 'balanced': '均衡',
                 'medium_long': '中长句',
               },
-              onSelected: (value) =>
-                  store.updateStyleQuestionnaireField(
-                    'sentence_length_preference',
-                    value,
-                  ),
+              onSelected: (value) => store.updateStyleQuestionnaireField(
+                'sentence_length_preference',
+                value,
+              ),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
@@ -191,69 +180,51 @@ class _StylePanelPageState extends State<StylePanelPage> {
                 'slow_burn': '慢燃',
               },
               onSelected: (value) =>
-                  store.updateStyleQuestionnaireField(
-                    'rhythm_profile',
-                    value,
-                  ),
+                  store.updateStyleQuestionnaireField('rhythm_profile', value),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
               label: '描写密度',
-              currentValue:
-                  draft['description_density']?.toString() ?? '',
+              currentValue: draft['description_density']?.toString() ?? '',
               values: const {'low': '低', 'medium': '中', 'high': '高'},
-              onSelected: (value) =>
-                  store.updateStyleQuestionnaireField(
-                    'description_density',
-                    value,
-                  ),
+              onSelected: (value) => store.updateStyleQuestionnaireField(
+                'description_density',
+                value,
+              ),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireChoiceGroup(
               label: '情绪强度',
-              currentValue:
-                  draft['emotional_intensity']?.toString() ?? '',
+              currentValue: draft['emotional_intensity']?.toString() ?? '',
               values: const {
                 'low': '低',
                 'medium': '中',
                 'medium_high': '中高',
                 'high': '高',
               },
-              onSelected: (value) =>
-                  store.updateStyleQuestionnaireField(
-                    'emotional_intensity',
-                    value,
-                  ),
+              onSelected: (value) => store.updateStyleQuestionnaireField(
+                'emotional_intensity',
+                value,
+              ),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireTagGroup(
               label: '主要体裁',
-              selectedValues: styleStringListFromRaw(
-                draft['genre_tags'],
-              ),
+              selectedValues: styleStringListFromRaw(draft['genre_tags']),
               values: const ['悬疑', '现实', '都市', '成长'],
-              onToggle: (value) => store.toggleStyleQuestionnaireTag(
-                'genre_tags',
-                value,
-              ),
+              onToggle: (value) =>
+                  store.toggleStyleQuestionnaireTag('genre_tags', value),
             ),
             const SizedBox(height: 12),
             StyleQuestionnaireTagGroup(
               label: '禁忌表达',
-              selectedValues: styleStringListFromRaw(
-                draft['taboo_patterns'],
-              ),
+              selectedValues: styleStringListFromRaw(draft['taboo_patterns']),
               values: const ['过度抒情', '全知解释', '空泛形容词'],
-              onToggle: (value) => store.toggleStyleQuestionnaireTag(
-                'taboo_patterns',
-                value,
-              ),
+              onToggle: (value) =>
+                  store.toggleStyleQuestionnaireTag('taboo_patterns', value),
             ),
           ] else ...[
-            Text(
-              'style_profile.schema.json',
-              style: theme.textTheme.bodySmall,
-            ),
+            Text('style_profile.schema.json', style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -343,10 +314,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration: appPanelDecoration(
-              context,
-              color: palette.elevated,
-            ),
+            decoration: appPanelDecoration(context, color: palette.elevated),
             child: Text(
               store.styleBindingFeedback,
               style: theme.textTheme.bodySmall,
@@ -358,14 +326,14 @@ class _StylePanelPageState extends State<StylePanelPage> {
 
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '风格面板',
-        subtitle: '以问卷为主，支持 JSON 导入的风格配置',
+        title: '作品设定 · 风格',
+        subtitle: '问卷与 JSON 风格档案',
         showBackButton: true,
         actions: [
           FilledButton(
             key: StylePanelPage.generateQuestionnaireButtonKey,
             onPressed: store.generateStyleProfileFromQuestionnaire,
-            child: const Text('生成风格配置'),
+            child: const Text('整理风格档案'),
           ),
         ],
       ),
@@ -427,47 +395,40 @@ class _StylePanelPageState extends State<StylePanelPage> {
   String _footerMessage(StylePanelUiState state) {
     switch (state) {
       case StylePanelUiState.ready:
-        return '校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0';
+        return '风格档案就绪 · 问卷已完成 · 支持 JSON v1.0';
       case StylePanelUiState.empty:
-        return '尚未创建风格配置。';
+        return '尚未创建风格档案。';
       case StylePanelUiState.jsonError:
-        return '配置文件校验失败，请检查字段格式。';
+        return '风格草稿无法读取，请检查字段格式。';
       case StylePanelUiState.unsupportedVersion:
-        return '仅支持 1.0 版配置。';
+        return '仅支持 1.0 版风格档案。';
       case StylePanelUiState.unknownFieldsIgnored:
-        return '检测到未知字段，已忽略并继续生成。';
+        return '发现未知字段，已略过并继续整理。';
       case StylePanelUiState.missingRequiredFields:
-        return '缺少必填字段，当前不会生成风格配置。';
+        return '缺少必填字段，当前暂不整理风格档案。';
       case StylePanelUiState.validationFailed:
         return '风格校验失败，请调整后重试。';
       case StylePanelUiState.maxProfilesReached:
-        return '同一项目最多保留 3 个风格配置。';
+        return '同一项目最多保留 3 个风格档案。';
       case StylePanelUiState.sceneOverrideNotice:
         return '当前场景级绑定优先于项目级默认风格。';
     }
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.style,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 }
 

@@ -34,6 +34,8 @@ abstract final class DesktopLayoutTokens {
   static const double shellPaddingNarrow = 12.0;
   static const double panelSpacingWide = 16.0;
   static const double panelSpacingNarrow = 8.0;
+  static const double splitHandleWidth = 6.0;
+  static const double splitHandleHitArea = 14.0;
 }
 
 enum LayoutSize { narrow, medium, wide }
@@ -75,6 +77,8 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
     required this.success,
     required this.danger,
     required this.info,
+    required this.sidebar,
+    required this.splitHandle,
   });
 
   final Color canvas;
@@ -89,6 +93,8 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
   final Color success;
   final Color danger;
   final Color info;
+  final Color sidebar;
+  final Color splitHandle;
 
   Color get panel => elevated;
 
@@ -108,6 +114,8 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
     Color? success,
     Color? danger,
     Color? info,
+    Color? sidebar,
+    Color? splitHandle,
   }) {
     return DesktopPalette(
       canvas: canvas ?? this.canvas,
@@ -122,6 +130,8 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
       success: success ?? this.success,
       danger: danger ?? this.danger,
       info: info ?? this.info,
+      sidebar: sidebar ?? this.sidebar,
+      splitHandle: splitHandle ?? this.splitHandle,
     );
   }
 
@@ -144,6 +154,8 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
       success: Color.lerp(success, other.success, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       info: Color.lerp(info, other.info, t)!,
+      sidebar: Color.lerp(sidebar, other.sidebar, t)!,
+      splitHandle: Color.lerp(splitHandle, other.splitHandle, t)!,
     );
   }
 }
@@ -156,7 +168,7 @@ BoxDecoration appPanelDecoration(BuildContext context, {Color? color}) {
   return BoxDecoration(
     color: color ?? palette.surface,
     border: Border.all(color: palette.border),
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(10),
   );
 }
 
@@ -164,7 +176,7 @@ BoxDecoration appModalDecoration(BuildContext context, {Color? color}) {
   final palette = desktopPalette(context);
   return BoxDecoration(
     color: color ?? palette.elevated,
-    border: Border.all(color: palette.borderStrong),
-    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: palette.border),
+    borderRadius: BorderRadius.circular(14),
   );
 }

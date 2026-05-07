@@ -73,18 +73,62 @@ void main() {
       expect(error.toString(), 'auditIssues[0].status: [WARNING] 可疑值');
     });
 
+    test('toString with suggestion appends arrow and suggestion', () {
+      const error = ValidationError(
+        field: 'title',
+        message: '不能为空白',
+        suggestion: '请填写标题',
+      );
+      expect(error.toString(), 'title: 不能为空白 -> 请填写标题');
+    });
+
+    test(
+      'toString with all fields combines context, warning, and suggestion',
+      () {
+        const error = ValidationError(
+          field: 'status',
+          message: '可疑值',
+          context: 'auditIssues[0]',
+          severity: ValidationSeverity.warning,
+          suggestion: '请修正状态值',
+        );
+        expect(
+          error.toString(),
+          'auditIssues[0].status: [WARNING] 可疑值 -> 请修正状态值',
+        );
+      },
+    );
+
+    test('suggestion defaults to null', () {
+      const error = ValidationError(field: 'f', message: 'm');
+      expect(error.suggestion, isNull);
+    });
+
+    test('equality considers suggestion', () {
+      const a = ValidationError(field: 'f', message: 'm', suggestion: 's1');
+      const b = ValidationError(field: 'f', message: 'm', suggestion: 's1');
+      const c = ValidationError(field: 'f', message: 'm', suggestion: 's2');
+      const d = ValidationError(field: 'f', message: 'm');
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+      expect(a == c, isFalse);
+      expect(a == d, isFalse);
+    });
+
     test('equality considers all fields', () {
       const a = ValidationError(
         field: 'f',
         message: 'm',
         context: 'c',
         severity: ValidationSeverity.warning,
+        suggestion: 'hint',
       );
       const b = ValidationError(
         field: 'f',
         message: 'm',
         context: 'c',
         severity: ValidationSeverity.warning,
+        suggestion: 'hint',
       );
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
@@ -199,14 +243,14 @@ void main() {
 
   group('validateProject', () {
     Map<String, Object?> validProject() => {
-          'id': 'project-1',
-          'sceneId': 'scene-1',
-          'title': '测试项目',
-          'genre': '悬疑',
-          'summary': '摘要',
-          'recentLocation': '位置',
-          'lastOpenedAtMs': 1700000000000,
-        };
+      'id': 'project-1',
+      'sceneId': 'scene-1',
+      'title': '测试项目',
+      'genre': '悬疑',
+      'summary': '摘要',
+      'recentLocation': '位置',
+      'lastOpenedAtMs': 1700000000000,
+    };
 
     test('valid project passes validation', () {
       expect(validator.validateProject(validProject()).isValid, isTrue);
@@ -270,10 +314,7 @@ void main() {
   group('validateScene', () {
     test('valid scene passes', () {
       expect(
-        validator.validateScene({
-          'id': 'scene-1',
-          'title': '场景一',
-        }).isValid,
+        validator.validateScene({'id': 'scene-1', 'title': '场景一'}).isValid,
         isTrue,
       );
     });
@@ -299,33 +340,27 @@ void main() {
 
   group('validateCharacter', () {
     test('valid character passes', () {
-      expect(
-        validator.validateCharacter({'name': '柳溪'}).isValid,
-        isTrue,
-      );
+      expect(validator.validateCharacter({'name': '柳溪'}).isValid, isTrue);
     });
 
     test('empty name fails', () {
-      expect(
-        validator.validateCharacter({'name': ''}).isValid,
-        isFalse,
-      );
+      expect(validator.validateCharacter({'name': ''}).isValid, isFalse);
     });
 
     test('blank name fails', () {
-      expect(
-        validator.validateCharacter({'name': '  '}).isValid,
-        isFalse,
-      );
+      expect(validator.validateCharacter({'name': '  '}).isValid, isFalse);
     });
 
     test('valid linkedSceneIds passes', () {
       expect(
         validator
-            .validateCharacter({
-              'name': '柳溪',
-              'linkedSceneIds': ['scene-1', 'scene-2'],
-            }, validSceneIds: {'scene-1', 'scene-2'})
+            .validateCharacter(
+              {
+                'name': '柳溪',
+                'linkedSceneIds': ['scene-1', 'scene-2'],
+              },
+              validSceneIds: {'scene-1', 'scene-2'},
+            )
             .isValid,
         isTrue,
       );
@@ -377,20 +412,15 @@ void main() {
     });
 
     test('missing linkedSceneIds is tolerated', () {
-      expect(
-        validator.validateCharacter({'name': '柳溪'}).isValid,
-        isTrue,
-      );
+      expect(validator.validateCharacter({'name': '柳溪'}).isValid, isTrue);
     });
 
     test('linkedSceneIds without validSceneIds skips cross-ref', () {
       expect(
-        validator
-            .validateCharacter({
-              'name': '柳溪',
-              'linkedSceneIds': ['any-id'],
-            })
-            .isValid,
+        validator.validateCharacter({
+          'name': '柳溪',
+          'linkedSceneIds': ['any-id'],
+        }).isValid,
         isTrue,
       );
     });
@@ -402,17 +432,11 @@ void main() {
 
   group('validateWorldNode', () {
     test('valid node passes', () {
-      expect(
-        validator.validateWorldNode({'title': '旧港规则'}).isValid,
-        isTrue,
-      );
+      expect(validator.validateWorldNode({'title': '旧港规则'}).isValid, isTrue);
     });
 
     test('blank title fails', () {
-      expect(
-        validator.validateWorldNode({'title': '\n'}).isValid,
-        isFalse,
-      );
+      expect(validator.validateWorldNode({'title': '\n'}).isValid, isFalse);
     });
 
     test('dangling linkedSceneIds produces warning', () {
@@ -444,42 +468,36 @@ void main() {
 
   group('validateAuditIssue', () {
     test('valid issue passes', () {
-      expect(
-        validator.validateAuditIssue({'title': '角色动机冲突'}).isValid,
-        isTrue,
-      );
+      expect(validator.validateAuditIssue({'title': '角色动机冲突'}).isValid, isTrue);
     });
 
     test('blank title fails', () {
-      expect(
-        validator.validateAuditIssue({'title': ''}).isValid,
-        isFalse,
-      );
+      expect(validator.validateAuditIssue({'title': ''}).isValid, isFalse);
     });
 
     test('valid status open passes', () {
       expect(
-        validator
-            .validateAuditIssue({'title': '问题', 'status': 'open'})
-            .isValid,
+        validator.validateAuditIssue({'title': '问题', 'status': 'open'}).isValid,
         isTrue,
       );
     });
 
     test('valid status resolved passes', () {
       expect(
-        validator
-            .validateAuditIssue({'title': '问题', 'status': 'resolved'})
-            .isValid,
+        validator.validateAuditIssue({
+          'title': '问题',
+          'status': 'resolved',
+        }).isValid,
         isTrue,
       );
     });
 
     test('valid status ignored passes', () {
       expect(
-        validator
-            .validateAuditIssue({'title': '问题', 'status': 'ignored'})
-            .isValid,
+        validator.validateAuditIssue({
+          'title': '问题',
+          'status': 'ignored',
+        }).isValid,
         isTrue,
       );
     });
@@ -492,26 +510,19 @@ void main() {
       expect(result.isValid, isFalse);
       expect(result.hasWarnings, isTrue);
       expect(result.hasErrors, isFalse);
-      expect(
-        result.warnings.first.message,
-        contains('unknown-value'),
-      );
+      expect(result.warnings.first.message, contains('unknown-value'));
     });
 
     test('null status is tolerated', () {
       expect(
-        validator
-            .validateAuditIssue({'title': '问题', 'status': null})
-            .isValid,
+        validator.validateAuditIssue({'title': '问题', 'status': null}).isValid,
         isTrue,
       );
     });
 
     test('empty string status is tolerated', () {
       expect(
-        validator
-            .validateAuditIssue({'title': '问题', 'status': ''})
-            .isValid,
+        validator.validateAuditIssue({'title': '问题', 'status': ''}).isValid,
         isTrue,
       );
     });
@@ -524,38 +535,31 @@ void main() {
   group('validateStyleProfile', () {
     test('valid profile passes', () {
       expect(
-        validator
-            .validateStyleProfile({
-              'id': 'style-1',
-              'name': '悬疑风格',
-              'source': 'questionnaire',
-              'jsonData': {'key': 'value'},
-            })
-            .isValid,
+        validator.validateStyleProfile({
+          'id': 'style-1',
+          'name': '悬疑风格',
+          'source': 'questionnaire',
+          'jsonData': {'key': 'value'},
+        }).isValid,
         isTrue,
       );
     });
 
     test('blank name fails', () {
-      expect(
-        validator.validateStyleProfile({'name': '  '}).isValid,
-        isFalse,
-      );
+      expect(validator.validateStyleProfile({'name': '  '}).isValid, isFalse);
     });
 
     test('empty name fails', () {
-      expect(
-        validator.validateStyleProfile({'name': ''}).isValid,
-        isFalse,
-      );
+      expect(validator.validateStyleProfile({'name': ''}).isValid, isFalse);
     });
 
     test('valid source values all pass', () {
       for (final source in ['questionnaire', 'sample', 'custom']) {
         expect(
-          validator
-              .validateStyleProfile({'name': '测试', 'source': source})
-              .isValid,
+          validator.validateStyleProfile({
+            'name': '测试',
+            'source': source,
+          }).isValid,
           isTrue,
           reason: 'source=$source should be valid',
         );
@@ -585,30 +589,27 @@ void main() {
 
     test('null jsonData is tolerated', () {
       expect(
-        validator
-            .validateStyleProfile({'name': '测试', 'jsonData': null})
-            .isValid,
+        validator.validateStyleProfile({
+          'name': '测试',
+          'jsonData': null,
+        }).isValid,
         isTrue,
       );
     });
 
     test('map jsonData passes', () {
       expect(
-        validator
-            .validateStyleProfile({
-              'name': '测试',
-              'jsonData': {'any': 'value'},
-            })
-            .isValid,
+        validator.validateStyleProfile({
+          'name': '测试',
+          'jsonData': {'any': 'value'},
+        }).isValid,
         isTrue,
       );
     });
 
     test('empty source is tolerated', () {
       expect(
-        validator
-            .validateStyleProfile({'name': '测试', 'source': ''})
-            .isValid,
+        validator.validateStyleProfile({'name': '测试', 'source': ''}).isValid,
         isTrue,
       );
     });
@@ -620,62 +621,62 @@ void main() {
 
   group('validateWorkspaceData', () {
     Map<String, Object?> fullValidData() => {
-          'projects': [
-            {
-              'id': 'project-alpha',
-              'sceneId': 'scene-01',
-              'title': '月潮回声',
-              'genre': '悬疑',
-              'summary': '摘要',
-              'recentLocation': '位置',
-              'lastOpenedAtMs': 1700000000000,
-            },
-          ],
-          'charactersByProject': {
-            'project-alpha': [
-              {
-                'name': '柳溪',
-                'role': '主角',
-                'note': '备注',
-                'need': '需求',
-                'summary': '摘要',
-                'linkedSceneIds': ['scene-01'],
-              },
-            ],
+      'projects': [
+        {
+          'id': 'project-alpha',
+          'sceneId': 'scene-01',
+          'title': '月潮回声',
+          'genre': '悬疑',
+          'summary': '摘要',
+          'recentLocation': '位置',
+          'lastOpenedAtMs': 1700000000000,
+        },
+      ],
+      'charactersByProject': {
+        'project-alpha': [
+          {
+            'name': '柳溪',
+            'role': '主角',
+            'note': '备注',
+            'need': '需求',
+            'summary': '摘要',
+            'linkedSceneIds': ['scene-01'],
           },
-          'scenesByProject': {
-            'project-alpha': [
-              {
-                'id': 'scene-01',
-                'chapterLabel': '第1章',
-                'title': '开篇',
-                'summary': '摘要',
-              },
-            ],
+        ],
+      },
+      'scenesByProject': {
+        'project-alpha': [
+          {
+            'id': 'scene-01',
+            'chapterLabel': '第1章',
+            'title': '开篇',
+            'summary': '摘要',
           },
-          'worldNodesByProject': {
-            'project-alpha': [
-              {
-                'title': '旧港规则',
-                'location': '旧港',
-                'type': '规则',
-                'detail': '细节',
-                'summary': '摘要',
-                'linkedSceneIds': ['scene-01'],
-              },
-            ],
+        ],
+      },
+      'worldNodesByProject': {
+        'project-alpha': [
+          {
+            'title': '旧港规则',
+            'location': '旧港',
+            'type': '规则',
+            'detail': '细节',
+            'summary': '摘要',
+            'linkedSceneIds': ['scene-01'],
           },
-          'auditIssuesByProject': {
-            'project-alpha': [
-              {
-                'title': '动机冲突',
-                'evidence': '证据',
-                'target': '场景05',
-                'status': 'open',
-              },
-            ],
+        ],
+      },
+      'auditIssuesByProject': {
+        'project-alpha': [
+          {
+            'title': '动机冲突',
+            'evidence': '证据',
+            'target': '场景05',
+            'status': 'open',
           },
-        };
+        ],
+      },
+    };
 
     test('fully valid workspace data passes', () {
       expect(validator.validateWorkspaceData(fullValidData()).isValid, isTrue);
@@ -693,7 +694,9 @@ void main() {
     });
 
     test('wrong type for projects list fails', () {
-      final result = validator.validateWorkspaceData({'projects': 'not-a-list'});
+      final result = validator.validateWorkspaceData({
+        'projects': 'not-a-list',
+      });
       expect(result.isValid, isFalse);
       expect(result.errors.first.field, 'projects');
     });
@@ -728,7 +731,13 @@ void main() {
         ],
         'charactersByProject': {
           'project-ghost': [
-            {'name': '幽灵角色', 'role': 'r', 'note': 'n', 'need': 'ne', 'summary': 's'},
+            {
+              'name': '幽灵角色',
+              'role': 'r',
+              'note': 'n',
+              'need': 'ne',
+              'summary': 's',
+            },
           ],
         },
       });
@@ -910,7 +919,12 @@ void main() {
       final result = ValidationResult.fail([
         const ValidationError(field: 'f', message: 'm'),
       ]);
-      expect(() => (result.errors as List).add(const ValidationError(field: 'x', message: 'y')), throwsA(anything));
+      expect(
+        () => (result.errors as List).add(
+          const ValidationError(field: 'x', message: 'y'),
+        ),
+        throwsA(anything),
+      );
     });
   });
 }

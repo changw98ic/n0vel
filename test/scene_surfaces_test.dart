@@ -51,7 +51,7 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp());
 
     await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.sceneShortcutKey));
+    await tester.tap(find.text('阅读'));
     await tester.pumpAndSettle();
 
     expect(find.text('场景管理'), findsOneWidget);

@@ -75,47 +75,58 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
       header: const DesktopHeaderBar(
         title: '工程导入导出',
         titleKey: ProjectImportExportPage.titleKey,
-        subtitle: '导出现有工程包，或导入外部工程',
+        subtitle: '导出当前工程，或导入外部工程包',
         showBackButton: true,
       ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
         children: [
-          DesktopMenuDrawerRegion(
-            isOpen: _isDrawerOpen,
-            onHandleTap: () {
-              setState(() {
-                _isDrawerOpen = !_isDrawerOpen;
-              });
-            },
-            items: _menuItems(context),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 220,
-            child: Container(
-              decoration: appPanelDecoration(context),
-              padding: const EdgeInsets.all(16),
-              child: _buildExportPanel(context, theme, effectiveUiState),
-            ),
-          ),
-          const SizedBox(width: 16),
           Expanded(
-            child: Container(
-              decoration: appPanelDecoration(context),
-              padding: const EdgeInsets.all(16),
-              child: _buildImportPanel(context, theme, effectiveUiState),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DesktopMenuDrawerRegion(
+                  isOpen: _isDrawerOpen,
+                  onHandleTap: () {
+                    setState(() {
+                      _isDrawerOpen = !_isDrawerOpen;
+                    });
+                  },
+                  items: _menuItems(context),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 220,
+                  child: Container(
+                    decoration: appPanelDecoration(context),
+                    padding: const EdgeInsets.all(16),
+                    child: _buildExportPanel(context, theme, effectiveUiState),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    decoration: appPanelDecoration(context),
+                    padding: const EdgeInsets.all(16),
+                    child: _buildImportPanel(context, theme, effectiveUiState),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 260,
+                  child: Container(
+                    key: ProjectImportExportPage.manifestKey,
+                    decoration: appPanelDecoration(context),
+                    padding: const EdgeInsets.all(16),
+                    child: _buildManifestPanel(theme),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 260,
-            child: Container(
-              key: ProjectImportExportPage.manifestKey,
-              decoration: appPanelDecoration(context),
-              padding: const EdgeInsets.all(16),
-              child: _buildManifestPanel(theme),
-            ),
+          const SizedBox(height: 12),
+          _TransferResultLog(
+            descriptor: _resultLogDescriptor(effectiveUiState),
+            accent: _stateAccent(effectiveUiState),
           ),
         ],
       ),
@@ -146,9 +157,21 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
               context,
               color: desktopPalette(context).elevated,
             ),
-            child: Text(
-              exportDisabled ? '目前没有项目' : _service.exportPackagePath,
-              style: theme.textTheme.bodyMedium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  exportDisabled ? '当前没有可导出的项目' : '本地导出目录',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  exportDisabled ? '请先创建或导入项目' : _service.exportPackagePath,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -197,6 +220,13 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
             descriptor: status,
             accent: _stateAccent(effectiveUiState),
           ),
+          if (_shouldShowGuidanceCard(effectiveUiState)) ...[
+            const SizedBox(height: 12),
+            _ImportGuidanceCard(
+              descriptor: _guidanceDescriptor(effectiveUiState),
+              accent: _stateAccent(effectiveUiState),
+            ),
+          ],
           if (effectiveUiState == ProjectImportExportUiState.importSuccess ||
               effectiveUiState ==
                   ProjectImportExportUiState.overwriteSuccess) ...[
@@ -323,25 +353,25 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
           header: '兼容性提示',
           tone: '待确认',
           title: '覆盖确认',
-          message: '覆盖导入会替换同 ID 项目的本地索引与最近写作位置。',
-          detailTitle: '覆盖范围',
-          detailLines: ['同 ID 项目的本地索引', '最近写作位置与书架入口'],
+          message: '检测到导入包中的项目 ID 与本地项目一致；覆盖导入会替换同 ID 项目的本地索引与最近写作位置。',
+          detailTitle: '覆盖导入确认',
+          detailLines: ['继续导入将覆盖当前工程数据', '建议先导出当前项目备份，再确认是否覆盖'],
         );
       case ProjectImportExportUiState.invalidPackage:
         return const _TransferStatusDescriptor(
           header: '失败原因',
           tone: '结构异常',
           title: '非法工程包',
-          message: '工程包结构非法，无法继续导入。',
+          message: '当前选择的工程包缺少必要元信息或版本主号不兼容，系统已阻止导入。',
           detailTitle: '阻塞项',
-          detailLines: ['无法识别为有效工程包', '请重新导出后再尝试导入'],
+          detailLines: ['无法识别为有效工程包', '请重新选择有效工程包，或在来源客户端重新导出'],
         );
       case ProjectImportExportUiState.missingManifest:
         return const _TransferStatusDescriptor(
           header: '失败原因',
           tone: '缺少摘要',
           title: '缺少 manifest.json',
-          message: '无法读取项目元信息，导入按钮已禁用。',
+          message: '无法读取项目元信息：当前选择的工程包无法找到 manifest.json，系统已阻止导入。',
           detailTitle: '阻塞项',
           detailLines: ['manifest.json 缺失', '无法确认项目元信息与兼容性'],
         );
@@ -359,9 +389,9 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
           header: '失败原因',
           tone: '已阻止',
           title: '版本主号不兼容',
-          message: '主版本号不兼容，请重新导出或升级客户端。',
+          message: '当前客户端仅支持 schema v1.x，无法导入更高主版本工程包。',
           detailTitle: '兼容性',
-          detailLines: ['当前客户端仅支持 schema v1.x', '无法导入更高主版本工程包'],
+          detailLines: ['schema_major 不一致', '请在来源客户端降级导出，或升级本地客户端后再重试'],
         );
       case ProjectImportExportUiState.minorVersionWarning:
         return const _TransferStatusDescriptor(
@@ -431,25 +461,150 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
     }
   }
 
+  _TransferStatusDescriptor _resultLogDescriptor(
+    ProjectImportExportUiState effectiveUiState,
+  ) {
+    switch (effectiveUiState) {
+      case ProjectImportExportUiState.ready:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '待执行',
+          title: '准备记录',
+          message: '等待选择工程包或执行导出，结果会在这里留下简短记录。',
+          detailTitle: '当前记录',
+          detailLines: ['包摘要已同步', '兼容性检查将在执行前完成'],
+        );
+      case ProjectImportExportUiState.importSuccess:
+      case ProjectImportExportUiState.overwriteSuccess:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '已完成',
+          title: '已刷新项目索引',
+          message: '正文、角色、世界观、风格配置与最近版本索引已刷新完成。',
+          detailTitle: '同步范围',
+          detailLines: ['角色卡、世界观节点、风格绑定', '章节版本与最近写作位置'],
+        );
+      case ProjectImportExportUiState.exportSuccess:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '已完成',
+          title: '已写入本地导出目录',
+          message: '工程包可直接分发，也可重新导入做一次完整性验证。',
+          detailTitle: '导出位置',
+          detailLines: ['本地导出目录', '建议分发前保留一份项目备份'],
+        );
+      case ProjectImportExportUiState.overwriteConfirm:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '等待确认',
+          title: '覆盖前已暂停',
+          message: '覆盖后仍会保留导入前确认步骤，不允许静默覆盖。',
+          detailTitle: '建议操作',
+          detailLines: ['先导出当前项目备份', '确认同 ID 工程后再继续导入'],
+        );
+      case ProjectImportExportUiState.invalidPackage:
+      case ProjectImportExportUiState.missingManifest:
+      case ProjectImportExportUiState.majorVersionBlocked:
+      case ProjectImportExportUiState.integrityCheckFailed:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '已阻止',
+          title: '无法导入工程包',
+          message: '系统已阻止导入，避免污染本地数据库。',
+          detailTitle: '下一步',
+          detailLines: ['重新选择有效工程包', '或在来源客户端重新导出完整包'],
+        );
+      case ProjectImportExportUiState.noExportableProject:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '无对象',
+          title: '暂无导出对象',
+          message: '请先创建或导入项目，之后才能执行工程导出。',
+          detailTitle: '建议',
+          detailLines: ['确认项目已保存到本地数据库', '没有项目时导出入口保持禁用'],
+        );
+      case ProjectImportExportUiState.minorVersionWarning:
+        return const _TransferStatusDescriptor(
+          header: '导入导出结果日志',
+          tone: '可继续',
+          title: '次版本兼容性提示',
+          message: '版本次号不一致，但仍允许导入并给出兼容性警告。',
+          detailTitle: '建议',
+          detailLines: ['先核对内容摘要', '确认来源工程包后再继续导入'],
+        );
+    }
+  }
+
+  _TransferStatusDescriptor _guidanceDescriptor(
+    ProjectImportExportUiState effectiveUiState,
+  ) {
+    switch (effectiveUiState) {
+      case ProjectImportExportUiState.overwriteConfirm:
+        return const _TransferStatusDescriptor(
+          header: '下一步',
+          tone: '建议备份',
+          title: '覆盖前先留一份备份',
+          message: '如果不确定导入包内容，先导出当前项目，再继续覆盖。',
+          detailTitle: '操作建议',
+          detailLines: ['先导出当前项目备份', '确认同 ID 工程后再执行导入'],
+        );
+      case ProjectImportExportUiState.invalidPackage:
+      case ProjectImportExportUiState.missingManifest:
+      case ProjectImportExportUiState.integrityCheckFailed:
+        return const _TransferStatusDescriptor(
+          header: '下一步',
+          tone: '重新选择',
+          title: '换一个完整工程包',
+          message: '当前文件不能安全导入，重新选择前不会写入本地数据库。',
+          detailTitle: '操作建议',
+          detailLines: ['重新选择有效工程包', '或在来源客户端重新导出完整包'],
+        );
+      case ProjectImportExportUiState.majorVersionBlocked:
+        return const _TransferStatusDescriptor(
+          header: '下一步',
+          tone: '需要处理',
+          title: '先解决版本主号',
+          message: '主版本不兼容时不允许继续导入。',
+          detailTitle: '操作建议',
+          detailLines: ['在来源客户端降级导出', '或升级当前客户端后再重试'],
+        );
+      case ProjectImportExportUiState.ready:
+      case ProjectImportExportUiState.importSuccess:
+      case ProjectImportExportUiState.exportSuccess:
+      case ProjectImportExportUiState.overwriteSuccess:
+      case ProjectImportExportUiState.noExportableProject:
+      case ProjectImportExportUiState.minorVersionWarning:
+        return _resultLogDescriptor(effectiveUiState);
+    }
+  }
+
+  bool _shouldShowGuidanceCard(ProjectImportExportUiState effectiveUiState) {
+    return switch (effectiveUiState) {
+      ProjectImportExportUiState.overwriteConfirm ||
+      ProjectImportExportUiState.invalidPackage ||
+      ProjectImportExportUiState.missingManifest ||
+      ProjectImportExportUiState.majorVersionBlocked ||
+      ProjectImportExportUiState.integrityCheckFailed => true,
+      ProjectImportExportUiState.ready ||
+      ProjectImportExportUiState.importSuccess ||
+      ProjectImportExportUiState.exportSuccess ||
+      ProjectImportExportUiState.overwriteSuccess ||
+      ProjectImportExportUiState.noExportableProject ||
+      ProjectImportExportUiState.minorVersionWarning => false,
+    };
+  }
+
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.importExport,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 
   Future<void> _handleExport(BuildContext context) async {
@@ -703,6 +858,142 @@ class _TransferStatusCard extends StatelessWidget {
                     const SizedBox(height: 6),
                 ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImportGuidanceCard extends StatelessWidget {
+  const _ImportGuidanceCard({required this.descriptor, required this.accent});
+
+  final _TransferStatusDescriptor descriptor;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: accent, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  descriptor.detailTitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: palette.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                for (final line in descriptor.detailLines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      line,
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransferResultLog extends StatelessWidget {
+  const _TransferResultLog({required this.descriptor, required this.accent});
+
+  final _TransferStatusDescriptor descriptor;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 4,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      descriptor.header,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: palette.secondaryText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      descriptor.tone,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${descriptor.title} · ${descriptor.message}',
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Text(
+              descriptor.detailLines.join(' · '),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                height: 1.35,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
             ),
           ),
         ],

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../app/navigation/reading_route_data.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/widgets/desktop_theme.dart';
 
 class ReadingModePage extends StatefulWidget {
   const ReadingModePage({super.key, this.session});
@@ -27,16 +28,6 @@ class ReadingModePage extends StatefulWidget {
 
 class _ReadingModePageState extends State<ReadingModePage> {
   static const int _pageCharThreshold = 220;
-  static const Color _canvasColor = Color(0xFFF6F0E6);
-  static const Color _paperColor = Color(0xFFFFFDFC);
-  static const Color _paperBorderColor = Color(0xFFD8CDC0);
-  static const Color _footerColor = Color(0xFFEEE6DA);
-  static const Color _noticeColor = Color(0xFFF6F0E6);
-  static const Color _noticeBorderColor = Color(0xFFB7AA9A);
-  static const Color _accentColor = Color(0xFF51624D);
-  static const Color _mutedTextColor = Color(0xFF91887D);
-  static const Color _bodyTextColor = Color(0xFF514943);
-  static const Color _titleColor = Color(0xFF2E2925);
 
   final FocusNode _pageFocusNode = FocusNode();
   ReadingSessionData? _activeSession;
@@ -54,6 +45,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = desktopPalette(context);
     final session = widget.session ?? _fallbackSession(context);
     _synchronizeSession(session);
 
@@ -64,8 +56,11 @@ class _ReadingModePageState extends State<ReadingModePage> {
     final previousLabel = _previousHotzoneLabel();
     final nextLabel = _nextHotzoneLabel();
 
+    const warmPaperBg = Color(0xFFF5F0E8);
+    const warmPaperSurface = Color(0xFFFAF6EF);
+
     return Scaffold(
-      backgroundColor: _canvasColor,
+      backgroundColor: warmPaperBg,
       body: SafeArea(
         child: Focus(
           autofocus: true,
@@ -85,7 +80,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
             return KeyEventResult.ignored;
           },
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
             child: Column(
               children: [
                 Row(
@@ -94,9 +89,8 @@ class _ReadingModePageState extends State<ReadingModePage> {
                       key: ReadingModePage.closeButtonKey,
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBF7F1),
-                        foregroundColor: _titleColor,
-                        side: const BorderSide(color: _paperBorderColor),
+                        foregroundColor: palette.primary,
+                        side: BorderSide(color: palette.border),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -105,83 +99,86 @@ class _ReadingModePageState extends State<ReadingModePage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('关闭纯净模式'),
+                      child: const Text('返回写作'),
                     ),
                     Expanded(
                       child: Semantics(
                         header: true,
                         child: Center(
                           child: Text(
-                          '${session.projectTitle} · ${currentDocument.locationLabel}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: _titleColor,
-                            fontWeight: FontWeight.w600,
+                            '${session.projectTitle} · ${currentDocument.locationLabel}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                      ),
                     const SizedBox(width: 120),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 4),
                 Expanded(
                   child: Row(
                     children: [
                       _ReadingHotzone(
                         zoneKey: ReadingModePage.previousHotzoneKey,
                         label: previousLabel,
-                        enabled: previousLabel != '—',
+                        enabled: _canGoPrevious(),
                         onTap: _goPreviousPage,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Semantics(
                           label: '阅读内容',
                           child: Container(
                             key: ReadingModePage.pageBodyKey,
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 36,
-                            vertical: 44,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _paperColor,
-                            border: Border.all(color: _paperBorderColor),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  currentPage,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: _bodyTextColor,
-                                    height: 1.72,
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 36,
+                              vertical: 28,
+                            ),
+                            decoration: BoxDecoration(
+                              color: warmPaperSurface,
+                              border: Border.all(
+                                color: palette.border.withValues(alpha: 0.4),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentPage,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      height: 1.72,
+                                    ),
                                   ),
-                                ),
-                                if (inlineNotice != null) ...[
-                                  const SizedBox(height: 18),
-                                  _ReadingInlineNoticeCard(data: inlineNotice),
+                                  if (inlineNotice != null) ...[
+                                    const SizedBox(height: 18),
+                                    _ReadingInlineNoticeCard(
+                                      data: inlineNotice,
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                        ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 4),
                       _ReadingHotzone(
                         zoneKey: ReadingModePage.nextHotzoneKey,
                         label: nextLabel,
-                        enabled: nextLabel != '—',
+                        enabled: _canGoNext(),
                         onTap: _goNextPage,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 4),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -189,7 +186,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: _footerColor,
+                    color: const Color(0xFFEDE7DC),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -201,10 +198,10 @@ class _ReadingModePageState extends State<ReadingModePage> {
                           _pageIndicatorText(),
                           key: ReadingModePage.pageIndicatorKey,
                           style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF6E665E),
-                          fontWeight: FontWeight.w500,
+                            color: palette.secondaryText,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
                       ),
                       const Spacer(),
                       Expanded(
@@ -217,7 +214,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                               '${ReadingModePage.boundaryHintKey.value}-$footerHint',
                             ),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: _mutedTextColor,
+                              color: palette.tertiaryText,
                               fontWeight: FontWeight.w500,
                             ),
                             textAlign: TextAlign.right,
@@ -284,7 +281,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
     final pages = <String>[];
     var index = 0;
     while (index < normalized.length) {
-      var end = index + _pageCharThreshold;
+      final end = index + _pageCharThreshold;
       if (end >= normalized.length) {
         pages.add(normalized.substring(index).trim());
         break;
@@ -424,6 +421,13 @@ class _ReadingModePageState extends State<ReadingModePage> {
     return null;
   }
 
+  bool _canGoPrevious() => _pageIndex > 0 || _sceneIndex > 0;
+
+  bool _canGoNext() {
+    final doc = _documents[_sceneIndex];
+    return _pageIndex < doc.pages.length - 1 || _sceneIndex < _documents.length - 1;
+  }
+
   String _previousHotzoneLabel() {
     final currentDocument = _documents[_sceneIndex];
     final isSinglePage = currentDocument.pages.length == 1;
@@ -431,7 +435,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
     final hasPreviousScene = _sceneIndex > 0;
 
     if (isSinglePage || isFirstPage) {
-      return hasPreviousScene ? '上一章' : '—';
+      return hasPreviousScene ? '上一章' : '';
     }
     return '上一页';
   }
@@ -443,7 +447,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
     final hasNextScene = _sceneIndex < _documents.length - 1;
 
     if (isSinglePage || isLastPage) {
-      return hasNextScene ? '下一章' : '—';
+      return hasNextScene ? '下一章' : '';
     }
     return '下一页';
   }
@@ -462,11 +466,18 @@ class _ReadingHotzone extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
+  bool get _isPrevious {
+    final k = zoneKey is ValueKey<String>
+        ? (zoneKey as ValueKey<String>).value
+        : '';
+    return k.contains('previous');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SizedBox(
-      width: 52,
+      width: 36,
       child: Semantics(
         button: true,
         enabled: enabled,
@@ -475,22 +486,16 @@ class _ReadingHotzone extends StatelessWidget {
           key: zoneKey,
           behavior: HitTestBehavior.opaque,
           onTap: enabled ? onTap : null,
-          child: Container(
-            decoration: BoxDecoration(
-              color: _ReadingModePageState._canvasColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: ExcludeSemantics(
-              child: Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: _ReadingModePageState._mutedTextColor.withValues(
-                    alpha: enabled ? 1 : 0.78,
-                  ),
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
+          child: Opacity(
+            opacity: enabled ? 1.0 : 0.0,
+            child: Tooltip(
+              message: label,
+              child: Icon(
+                _isPrevious
+                    ? Icons.chevron_left_rounded
+                    : Icons.chevron_right_rounded,
+                size: 28,
+                color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -508,13 +513,14 @@ class _ReadingInlineNoticeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = desktopPalette(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _ReadingModePageState._noticeColor,
+        color: const Color(0xFFF0EBE2),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _ReadingModePageState._noticeBorderColor),
+        border: Border.all(color: palette.borderStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,17 +528,14 @@ class _ReadingInlineNoticeCard extends StatelessWidget {
           Text(
             data.title,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: _ReadingModePageState._accentColor,
+              color: palette.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             data.message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: _ReadingModePageState._titleColor,
-              height: 1.55,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
           ),
         ],
       ),

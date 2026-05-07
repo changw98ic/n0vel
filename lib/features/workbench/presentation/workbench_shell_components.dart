@@ -32,7 +32,7 @@ class _CreationGuideCard extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     final steps = [
-      _GuideStep('作品设定', true),
+      const _GuideStep('作品设定', true),
       _GuideStep('人物 / 世界观', hasCharacters && hasWorldNodes),
       _GuideStep('大纲 / 场景目标', hasSceneSummary),
       _GuideStep('本场资料', hasSceneCharacterBinding && hasSceneWorldReference),
@@ -42,72 +42,76 @@ class _CreationGuideCard extends StatelessWidget {
     final currentStep = steps[currentStageIndex.clamp(0, steps.length - 1)];
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: appPanelDecoration(context, color: palette.surface),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('创作向导', style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 4),
-                    Text(
-                      '当前建议：${currentStep.label}。先把资料看清楚，再让 AI 生成候选稿。',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+          const Icon(Icons.flag_outlined, size: 18, color: _appAccentColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('创作向导', style: theme.textTheme.titleSmall),
+                Text(
+                  '当前：${currentStep.label}',
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  TextButton(
-                    onPressed: onOpenCharacters,
-                    child: const Text('人物'),
-                  ),
-                  TextButton(
-                    onPressed: onOpenWorldbuilding,
-                    child: const Text('世界观'),
-                  ),
-                  TextButton(
-                    onPressed: onOpenOutline,
-                    child: const Text('作品资料'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var index = 0; index < steps.length; index += 1)
-                Chip(
-                  label: Text(steps[index].label),
-                  avatar: Icon(
+                for (var index = 0; index < steps.length; index += 1)
+                  Icon(
                     steps[index].done
                         ? Icons.check_circle
                         : index == currentStageIndex
                         ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                    size: 16,
+                        : Icons.circle_outlined,
+                    size: 13,
                     color: steps[index].done
-                        ? const Color(0xFF5B7A5A)
+                        ? appSuccessColor
                         : index == currentStageIndex
-                        ? const Color(0xFFB6813B)
+                        ? _appAccentColor
                         : theme.disabledColor,
+                    semanticLabel: steps[index].label,
                   ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              TextButton(
+                onPressed: onOpenCharacters,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
+                child: const Text('人物'),
+              ),
+              TextButton(
+                onPressed: onOpenWorldbuilding,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('世界观'),
+              ),
+              TextButton(
+                onPressed: onOpenOutline,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('资料'),
+              ),
             ],
           ),
         ],
@@ -153,45 +157,72 @@ class _CandidateDraftCard extends StatelessWidget {
     final preview = _candidatePreview(text);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF5B7A5A)),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: appSuccessColor),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('AI 候选稿', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Text('正文尚未被覆盖。你可以先阅读候选内容，再决定是否采纳。', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: palette.elevated,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: palette.border),
-            ),
-            child: Text(
-              preview,
-              style: theme.textTheme.bodySmall,
-              maxLines: 8,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final actions = Wrap(
+            spacing: 6,
+            runSpacing: 4,
             children: [
-              FilledButton(onPressed: onAccept, child: const Text('采纳到正文')),
-              OutlinedButton(onPressed: onRevise, child: const Text('继续修改')),
-              TextButton(onPressed: onDismiss, child: const Text('放弃候选')),
+              FilledButton(
+                onPressed: onAccept,
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('采纳到正文'),
+              ),
+              OutlinedButton(
+                onPressed: onRevise,
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('继续修改'),
+              ),
+              TextButton(
+                onPressed: onDismiss,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('放弃'),
+              ),
             ],
-          ),
-        ],
+          );
+          final summary = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('AI 候选稿', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                preview,
+                style: theme.textTheme.bodySmall,
+                maxLines: constraints.maxWidth < 520 ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [summary, const SizedBox(height: 6), actions],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: summary),
+              const SizedBox(width: 8),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
@@ -199,10 +230,10 @@ class _CandidateDraftCard extends StatelessWidget {
 
 String _candidatePreview(String text) {
   final normalized = text.trim();
-  if (normalized.length <= 900) {
+  if (normalized.length <= 240) {
     return normalized;
   }
-  return '${normalized.substring(0, 900)}...';
+  return '${normalized.substring(0, 240)}...';
 }
 
 class _ConfirmationLine extends StatelessWidget {
@@ -272,7 +303,7 @@ class _StoryGenerationRunPanel extends StatelessWidget {
         final theme = Theme.of(context);
         return Container(
           key: WorkbenchShellPage.runSnapshotPanelKey,
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: palette.elevated,
             borderRadius: BorderRadius.circular(8),
@@ -294,12 +325,11 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
                       Text(
                         snapshot.stageSummary,
                         key: WorkbenchShellPage.runSnapshotStageKey,
                         style: theme.textTheme.bodySmall,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -311,23 +341,39 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                       FilledButton(
                         key: WorkbenchShellPage.runSimulationButtonKey,
                         onPressed: canStart ? onRun : null,
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         child: Text(snapshot.hasRun ? '重新试写' : '让 AI 写这一场'),
                       ),
                       OutlinedButton(
                         key: WorkbenchShellPage.failSimulationButtonKey,
                         onPressed: canStart ? onForceFailure : null,
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         child: const Text('标记未完成'),
                       ),
                       if (isRunning)
                         OutlinedButton(
                           key: WorkbenchShellPage.cancelRunButtonKey,
                           onPressed: onCancel,
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: const Text('停止'),
                         ),
                       if (reviewIssueMessages.isNotEmpty)
                         OutlinedButton(
                           key: WorkbenchShellPage.mapReviewTasksButtonKey,
                           onPressed: () => onMapReviewTasks(snapshot),
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: const Text('转为任务'),
                         ),
                     ],
@@ -362,14 +408,14 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                 ),
               ],
               if (messages.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 for (final message in messages)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       '${message.title}：${_compactMessageBody(message.body)}',
                       style: theme.textTheme.bodySmall,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -458,35 +504,55 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final palette = desktopPalette(context);
     final foreground = isSelected
-        ? Theme.of(context).colorScheme.onPrimary
+        ? theme.colorScheme.onPrimary
         : palette.primary;
     final background = isSelected ? palette.primary : Colors.transparent;
 
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         key: buttonKey,
         borderRadius: BorderRadius.circular(10),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return isSelected
+                ? Colors.white.withValues(alpha: 0.14)
+                : palette.subtle.withValues(alpha: 0.86);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return isSelected
+                ? Colors.white.withValues(alpha: 0.08)
+                : palette.subtle.withValues(alpha: 0.56);
+          }
+          return null;
+        }),
         onTap: onTap,
         child: Container(
-          width: 48,
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          width: 52,
+          height: 52,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           decoration: BoxDecoration(
             color: background,
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? palette.borderStrong : Colors.transparent,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20, color: foreground),
-              const SizedBox(height: 4),
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(height: 2),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: foreground,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -541,6 +607,7 @@ class _ToolWindowPanel extends StatelessWidget {
     required this.onDeleteScene,
     required this.canDeleteScene,
     required this.onOpenSettings,
+    required this.onShowAiMetadata,
   });
 
   final WorkbenchToolPanel activePanel;
@@ -582,6 +649,7 @@ class _ToolWindowPanel extends StatelessWidget {
   final VoidCallback onDeleteScene;
   final bool canDeleteScene;
   final VoidCallback onOpenSettings;
+  final VoidCallback onShowAiMetadata;
 
   @override
   Widget build(BuildContext context) {
@@ -705,6 +773,14 @@ class _ToolWindowPanel extends StatelessWidget {
                               onSelectAiMode(AiToolMode.continueWriting),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: onShowAiMetadata,
+                        child: const Text('查看请求配置'),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -1157,28 +1233,16 @@ class _ToolWindowPanel extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: desktopPalette(context).elevated,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: desktopPalette(context).border),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Align(
-                    alignment: Alignment.topLeft,
+                if (activePanel == WorkbenchToolPanel.settings)
+                  AppPopover(
                     child: Text(
-                      activePanel == WorkbenchToolPanel.settings
-                          ? settingsHasPersistenceIssue &&
-                                    settingsFeedback.title != null
-                                ? '检测到配置异常，建议先进入完整设置处理后再继续使用 AI。'
-                                : '从这里快速确认主题、模型和密钥配置，再进入完整设置做细调。'
-                          : '',
+                      settingsHasPersistenceIssue &&
+                              settingsFeedback.title != null
+                          ? '检测到配置异常，建议先进入完整设置处理后再继续使用 AI。'
+                          : '从这里快速确认主题、模型和密钥配置，再进入完整设置做细调。',
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1215,6 +1279,259 @@ class _WorkbenchDialogField extends StatelessWidget {
   }
 }
 
+class _GenerationProcessSheetContent extends StatelessWidget {
+  const _GenerationProcessSheetContent({
+    required this.snapshot,
+    required this.simulation,
+    required this.fallbackStatus,
+    required this.failureMode,
+  });
+
+  final StoryGenerationRunSnapshot snapshot;
+  final AppSimulationSnapshot simulation;
+  final SimulationStatus fallbackStatus;
+  final bool failureMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final effectiveStatus = simulation.status == SimulationStatus.none
+        ? fallbackStatus
+        : simulation.status;
+    final accent = failureMode || effectiveStatus == SimulationStatus.failed
+        ? appDangerColor
+        : effectiveStatus == SimulationStatus.completed
+        ? appSuccessColor
+        : _appAccentColor;
+    final messages = snapshot.messages.isEmpty
+        ? <StoryGenerationRunMessage>[
+            StoryGenerationRunMessage(
+              title: snapshot.headline,
+              body: snapshot.stageSummary,
+              kind: StoryGenerationRunMessageKind.status,
+            ),
+          ]
+        : snapshot.messages;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accent.withValues(alpha: 0.45)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.auto_awesome_outlined, color: accent, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        snapshot.headline,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        snapshot.stageSummary.trim().isEmpty
+                            ? simulation.summary
+                            : snapshot.stageSummary,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _GenerationPill(
+                label: '状态',
+                value: _generationStatusLabel(effectiveStatus),
+                accent: accent,
+              ),
+              _GenerationPill(
+                label: '场景',
+                value: snapshot.sceneLabel.trim().isEmpty
+                    ? simulation.sceneLabel
+                    : snapshot.sceneLabel,
+                accent: _appAccentColor,
+              ),
+              if (snapshot.turnLabel.trim().isNotEmpty)
+                _GenerationPill(
+                  label: '轮次',
+                  value: snapshot.turnLabel,
+                  accent: _appAccentColor,
+                ),
+            ],
+          ),
+          if (snapshot.participants.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('参与角色', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            for (final participant in snapshot.participants)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _GenerationProcessRow(
+                  title: '${participant.name} · ${participant.role}',
+                  body: participant.statusSummary.trim().isEmpty
+                      ? participant.summary
+                      : participant.statusSummary,
+                  accent: _appAccentColor,
+                ),
+              ),
+          ],
+          const SizedBox(height: 16),
+          Text('生成记录', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          for (final message in messages)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _GenerationProcessRow(
+                title: '${_messageKindLabel(message.kind)} · ${message.title}',
+                body: message.body,
+                accent: _messageKindAccent(message.kind, accent),
+              ),
+            ),
+          if (snapshot.errorDetail.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _GenerationProcessRow(
+              title: '错误详情',
+              body: snapshot.errorDetail,
+              accent: appDangerColor,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _generationStatusLabel(SimulationStatus status) {
+    return switch (status) {
+      SimulationStatus.none => '未开始',
+      SimulationStatus.running => '生成中',
+      SimulationStatus.completed => '已完成',
+      SimulationStatus.failed => '未完成',
+    };
+  }
+
+  String _messageKindLabel(StoryGenerationRunMessageKind kind) {
+    return switch (kind) {
+      StoryGenerationRunMessageKind.status => '状态',
+      StoryGenerationRunMessageKind.director => '导演',
+      StoryGenerationRunMessageKind.roleTurn => '角色',
+      StoryGenerationRunMessageKind.beat => '节拍',
+      StoryGenerationRunMessageKind.editorial => '候选稿',
+      StoryGenerationRunMessageKind.review => '审查',
+      StoryGenerationRunMessageKind.authorFeedback => '作者反馈',
+      StoryGenerationRunMessageKind.error => '错误',
+    };
+  }
+
+  Color _messageKindAccent(StoryGenerationRunMessageKind kind, Color fallback) {
+    return switch (kind) {
+      StoryGenerationRunMessageKind.error => appDangerColor,
+      StoryGenerationRunMessageKind.review => appInfoColor,
+      StoryGenerationRunMessageKind.editorial => appSuccessColor,
+      _ => fallback,
+    };
+  }
+}
+
+class _GenerationPill extends StatelessWidget {
+  const _GenerationPill({
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  final String label;
+  final String value;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.32)),
+      ),
+      child: Text(
+        '$label：$value',
+        style: theme.textTheme.bodySmall?.copyWith(color: palette.primary),
+      ),
+    );
+  }
+}
+
+class _GenerationProcessRow extends StatelessWidget {
+  const _GenerationProcessRow({
+    required this.title,
+    required this.body,
+    required this.accent,
+  });
+
+  final String title;
+  final String body;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(
+                  body.trim().isEmpty ? '暂无记录' : body.trim(),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusBanner extends StatelessWidget {
   const _StatusBanner({
     required this.title,
@@ -1237,7 +1554,7 @@ class _StatusBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: palette.elevated,
         borderRadius: BorderRadius.circular(12),
@@ -1252,9 +1569,18 @@ class _StatusBanner extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(message, style: theme.textTheme.bodySmall),
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

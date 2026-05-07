@@ -26,8 +26,8 @@ class _ReviewTaskPageState extends State<ReviewTaskPage> {
         return DesktopShellFrame(
           header: const DesktopHeaderBar(
             titleKey: ReviewTaskPage.titleKey,
-            title: '改稿任务',
-            subtitle: '问题检查结果、修订任务和处理状态',
+            title: '改稿 · 修订清单',
+            subtitle: '作者待处理的改稿事项',
             showBackButton: true,
           ),
           body: Row(
@@ -44,13 +44,13 @@ class _ReviewTaskPageState extends State<ReviewTaskPage> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ReviewTaskPanel(store: store, title: '改稿任务队列'),
+                child: ReviewTaskPanel(store: store, title: '改稿清单'),
               ),
             ],
           ),
           statusBar: DesktopStatusStrip(
-            leftText: '${store.openCount} 个活跃任务',
-            rightText: '${store.tasks.length} 个任务已记录',
+            leftText: '${store.openCount} 个待处理事项',
+            rightText: '${store.tasks.length} 条修订记录',
           ),
         );
       },
@@ -61,21 +61,15 @@ class _ReviewTaskPageState extends State<ReviewTaskPage> {
     return buildDesktopWorkspaceMenuItems(
       selected: DesktopWorkspaceSection.reviewTasks,
       onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onProductionBoard: () =>
-          AppNavigator.push(context, AppRoutes.productionBoard),
       onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onReviewTasks: () {
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () {
         setState(() {
           _isDrawerOpen = false;
         });
       },
-      onStyle: () => AppNavigator.push(context, AppRoutes.style),
-      onScenes: () => AppNavigator.push(context, AppRoutes.scenes),
-      onCharacters: () => AppNavigator.push(context, AppRoutes.characters),
-      onWorldbuilding: () =>
-          AppNavigator.push(context, AppRoutes.worldbuilding),
-      onStoryBible: () => AppNavigator.push(context, AppRoutes.storyBible),
-      onAudit: () => AppNavigator.push(context, AppRoutes.audit),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
       onSettings: () => AppNavigator.push(context, AppRoutes.settings),
     );
   }

@@ -274,156 +274,211 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
       child: ListView(
         shrinkWrap: true,
         children: [
-          Text('模型提供方', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Text('界面模式', style: theme.textTheme.titleMedium),
+          Text('设置', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            '设置与模型密钥',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text('连接你自己的模型服务，其余写作流程保持本地运行。', style: theme.textTheme.bodySmall),
           const SizedBox(height: 8),
-          Wrap(
+          const Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
-              _ThemeButton(
-                buttonKey: SettingsShellPage.themeLightButtonKey,
-                label: '浅色',
-                selected: settings.themePreference == AppThemePreference.light,
-                onTap: () {
-                  AppSettingsScope.of(
-                    context,
-                  ).setThemePreference(AppThemePreference.light);
-                },
+              _SettingsNavPill(
+                icon: Icons.tune_outlined,
+                label: '模型连接',
+                selected: true,
               ),
-              _ThemeButton(
-                buttonKey: SettingsShellPage.themeDarkButtonKey,
-                label: '深色',
-                selected: settings.themePreference == AppThemePreference.dark,
-                onTap: () {
-                  AppSettingsScope.of(
-                    context,
-                  ).setThemePreference(AppThemePreference.dark);
-                },
-              ),
+              _SettingsNavPill(icon: Icons.speed_outlined, label: '请求节奏'),
+              _SettingsNavPill(icon: Icons.route_outlined, label: '路由'),
             ],
           ),
           const SizedBox(height: 16),
-          _FieldInputBox(label: '提供方', controller: _providerController),
-          const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '接口地址',
-            controller: _baseUrlController,
-            fieldKey: SettingsShellPage.baseUrlFieldKey,
+          _SettingsGroup(
+            title: '外观',
+            subtitle: '只影响当前界面阅读感，不改变作品内容。',
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _ThemeButton(
+                    buttonKey: SettingsShellPage.themeLightButtonKey,
+                    label: '浅色',
+                    selected:
+                        settings.themePreference == AppThemePreference.light,
+                    onTap: () {
+                      AppSettingsScope.of(
+                        context,
+                      ).setThemePreference(AppThemePreference.light);
+                    },
+                  ),
+                  _ThemeButton(
+                    buttonKey: SettingsShellPage.themeDarkButtonKey,
+                    label: '深色',
+                    selected:
+                        settings.themePreference == AppThemePreference.dark,
+                    onTap: () {
+                      AppSettingsScope.of(
+                        context,
+                      ).setThemePreference(AppThemePreference.dark);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '模型',
-            controller: _modelController,
-            fieldKey: SettingsShellPage.modelFieldKey,
+          _SettingsGroup(
+            title: '默认模型',
+            subtitle: '用于未被路由规则覆盖的写作、检查和改稿请求。',
+            children: [
+              _FieldInputBox(label: '提供方', controller: _providerController),
+              const SizedBox(height: 12),
+              _FieldInputBox(
+                label: '接口地址',
+                controller: _baseUrlController,
+                fieldKey: SettingsShellPage.baseUrlFieldKey,
+              ),
+              const SizedBox(height: 12),
+              _FieldInputBox(
+                label: '模型',
+                controller: _modelController,
+                fieldKey: SettingsShellPage.modelFieldKey,
+              ),
+              const SizedBox(height: 12),
+              _FieldInputBox(
+                label: '密钥',
+                controller: _apiKeyController,
+                fieldKey: SettingsShellPage.apiKeyFieldKey,
+                obscureText: true,
+                placeholder: '输入 API Key',
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '密钥',
-            controller: _apiKeyController,
-            fieldKey: SettingsShellPage.apiKeyFieldKey,
-            obscureText: true,
-            placeholder: '输入 API Key',
+          _SettingsGroup(
+            title: '请求节奏',
+            subtitle: '建议先保持默认值；网络较慢时再放宽等待时间。',
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 156,
+                    child: _FieldInputBox(
+                      label: '连接超时',
+                      controller: _connectTimeoutController,
+                      fieldKey: SettingsShellPage.connectTimeoutFieldKey,
+                      suffix: 'ms',
+                    ),
+                  ),
+                  SizedBox(
+                    width: 156,
+                    child: _FieldInputBox(
+                      label: '发送超时',
+                      controller: _sendTimeoutController,
+                      fieldKey: SettingsShellPage.sendTimeoutFieldKey,
+                      suffix: 'ms',
+                    ),
+                  ),
+                  SizedBox(
+                    width: 156,
+                    child: _FieldInputBox(
+                      label: '接收超时',
+                      controller: _receiveTimeoutController,
+                      fieldKey: SettingsShellPage.receiveTimeoutFieldKey,
+                      suffix: 'ms',
+                    ),
+                  ),
+                  SizedBox(
+                    width: 156,
+                    child: _FieldInputBox(
+                      label: '并发上限',
+                      controller: _maxConcurrentRequestsController,
+                      fieldKey: SettingsShellPage.maxConcurrentRequestsFieldKey,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '连接超时',
-            controller: _connectTimeoutController,
-            fieldKey: SettingsShellPage.connectTimeoutFieldKey,
-            suffix: 'ms',
-          ),
-          const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '发送超时',
-            controller: _sendTimeoutController,
-            fieldKey: SettingsShellPage.sendTimeoutFieldKey,
-            suffix: 'ms',
-          ),
-          const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '接收超时',
-            controller: _receiveTimeoutController,
-            fieldKey: SettingsShellPage.receiveTimeoutFieldKey,
-            suffix: 'ms',
-          ),
-          const SizedBox(height: 12),
-          _FieldInputBox(
-            label: '并发上限',
-            controller: _maxConcurrentRequestsController,
-            fieldKey: SettingsShellPage.maxConcurrentRequestsFieldKey,
-          ),
-          const SizedBox(height: 24),
-          Text('多提供方配置', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            '为不同的 AI 阶段指定独立的模型服务。未匹配路由时使用上方默认提供方。',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          if (settings.providerProfiles.isEmpty)
-            Text('暂无额外提供方。', style: theme.textTheme.bodySmall)
-          else ...[
-            for (final profile in settings.providerProfiles) ...[
-              _ProfileCard(
-                profile: profile,
-                onEdit: profile.id == 'primary'
-                    ? null
-                    : () => _showProfileDialog(context, existing: profile),
-                onDelete: profile.id == 'primary'
-                    ? null
-                    : () {
-                        AppSettingsScope.of(
-                          context,
-                        ).removeProviderProfile(profile.id);
-                      },
+          _SettingsGroup(
+            title: '多提供方配置',
+            subtitle: '为不同 AI 阶段指定独立服务；未匹配时使用默认模型。',
+            children: [
+              if (settings.providerProfiles.isEmpty)
+                Text('暂无额外提供方。', style: theme.textTheme.bodySmall)
+              else ...[
+                for (final profile in settings.providerProfiles) ...[
+                  _ProfileCard(
+                    profile: profile,
+                    onEdit: profile.id == 'primary'
+                        ? null
+                        : () => _showProfileDialog(context, existing: profile),
+                    onDelete: profile.id == 'primary'
+                        ? null
+                        : () {
+                            AppSettingsScope.of(
+                              context,
+                            ).removeProviderProfile(profile.id);
+                          },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+              const SizedBox(height: 4),
+              OutlinedButton(
+                key: SettingsShellPage.addProfileButtonKey,
+                onPressed: () => _showProfileDialog(context),
+                child: const Text('添加提供方'),
               ),
               const SizedBox(height: 8),
-            ],
-          ],
-          const SizedBox(height: 4),
-          OutlinedButton(
-            key: SettingsShellPage.addProfileButtonKey,
-            onPressed: () => _showProfileDialog(context),
-            child: const Text('添加提供方'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () {
-              AppSettingsScope.of(
-                context,
-              ).applySingleChapterGenerationProviderPreset();
-            },
-            child: const Text('应用单章生成路由预设'),
-          ),
-          const SizedBox(height: 24),
-          Text('路由规则', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            '将 trace 名称匹配到指定提供方。支持通配符，如 scene_review_*。',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          if (settings.requestProviderRoutes.isEmpty)
-            Text('暂无路由规则。', style: theme.textTheme.bodySmall)
-          else ...[
-            for (final route in settings.requestProviderRoutes) ...[
-              _RouteCard(
-                route: route,
-                profiles: settings.providerProfiles,
-                onDelete: () {
+              OutlinedButton(
+                onPressed: () {
                   AppSettingsScope.of(
                     context,
-                  ).removeRequestProviderRoute(route.traceNamePattern);
+                  ).applySingleChapterGenerationProviderPreset();
                 },
+                child: const Text('应用单章生成路由预设'),
               ),
-              const SizedBox(height: 8),
             ],
-          ],
-          const SizedBox(height: 4),
-          OutlinedButton(
-            key: SettingsShellPage.addRouteButtonKey,
-            onPressed: () => _showRouteDialog(context),
-            child: const Text('添加路由'),
+          ),
+          const SizedBox(height: 12),
+          _SettingsGroup(
+            title: '路由规则',
+            subtitle: '将 trace 名称匹配到指定提供方，支持 scene_review_* 这类通配符。',
+            children: [
+              if (settings.requestProviderRoutes.isEmpty)
+                Text('暂无路由规则。', style: theme.textTheme.bodySmall)
+              else ...[
+                for (final route in settings.requestProviderRoutes) ...[
+                  _RouteCard(
+                    route: route,
+                    profiles: settings.providerProfiles,
+                    onDelete: () {
+                      AppSettingsScope.of(
+                        context,
+                      ).removeRequestProviderRoute(route.traceNamePattern);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+              const SizedBox(height: 4),
+              OutlinedButton(
+                key: SettingsShellPage.addRouteButtonKey,
+                onPressed: () => _showRouteDialog(context),
+                child: const Text('添加路由'),
+              ),
+            ],
           ),
         ],
       ),
@@ -510,6 +565,11 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         children: [
           Text('说明', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
+          const _SettingsHelpNote(
+            title: '接口密钥仅保存在本地',
+            message: '如果连接失败，写作工作区仍可继续使用。切换模型只会影响下一次模拟运行。',
+          ),
+          const SizedBox(height: 12),
           Text(
             _helpHeadline(
               statusTitle: statusTitle,
@@ -533,8 +593,8 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
 
     return DesktopShellFrame(
       header: const DesktopHeaderBar(
-        title: '设置与模型密钥',
-        subtitle: '连接你自己的模型服务，其余写作流程保持本地运行',
+        title: '设置',
+        subtitle: '管理模型连接、界面偏好与高级选项',
         showBackButton: true,
       ),
       body: LayoutBuilder(
@@ -662,7 +722,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         },
       ),
       statusBar: DesktopStatusStrip(
-        leftText: statusTitle ?? '配置保存在本地 · 导出包不包含 API 密钥',
+        leftText: statusTitle ?? '配置保存在本地 · 导出包不包含接口密钥',
         rightText: settings.themePreference == AppThemePreference.dark
             ? '深色模式'
             : '浅色模式',
@@ -725,29 +785,20 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        isSelected: true,
-        onTap: () {
-          setState(() {
-            _isDrawerOpen = false;
-          });
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.settings,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+    );
   }
 
   Future<void> _showProfileDialog(
@@ -936,10 +987,11 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
   }
 
   Color _feedbackColor(AppSettingsFeedbackTone tone) {
+    final palette = desktopPalette(context);
     return switch (tone) {
-      AppSettingsFeedbackTone.info => appInfoColor,
-      AppSettingsFeedbackTone.success => appSuccessColor,
-      AppSettingsFeedbackTone.error => appDangerColor,
+      AppSettingsFeedbackTone.info => palette.info,
+      AppSettingsFeedbackTone.success => palette.success,
+      AppSettingsFeedbackTone.error => palette.danger,
     };
   }
 
@@ -1109,6 +1161,124 @@ class _FieldInputBox extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SettingsNavPill extends StatelessWidget {
+  const _SettingsNavPill({
+    required this.icon,
+    required this.label,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = desktopPalette(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected
+            ? palette.primary.withValues(alpha: 0.12)
+            : palette.elevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: selected
+              ? palette.primary.withValues(alpha: 0.42)
+              : palette.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: selected ? palette.primary : null),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: selected ? palette.primary : null,
+              fontWeight: selected ? FontWeight.w600 : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text(subtitle, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsHelpNote extends StatelessWidget {
+  const _SettingsHelpNote({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.primary.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(message, style: theme.textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }

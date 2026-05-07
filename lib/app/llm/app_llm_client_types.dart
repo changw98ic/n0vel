@@ -9,6 +9,7 @@ enum AppLlmFailureKind {
   invalidResponse,
   server,
   unsupportedPlatform,
+  insecureScheme,
 }
 
 enum AppLlmProvider { openaiCompatible, kimi, ollama, anthropic, mimo, zhipu }

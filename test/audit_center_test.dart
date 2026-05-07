@@ -38,13 +38,11 @@ void main() {
   });
 
   testWidgets('shows audit center ready state', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: AuditCenterPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: AuditCenterPage()));
 
-    expect(find.text('问题检查'), findsOneWidget);
-    expect(find.text('查看故事问题、依据与处理状态'), findsOneWidget);
-    expect(find.text('问题规则已更新'), findsOneWidget);
+    expect(find.text('改稿 · 一致性检查'), findsOneWidget);
+    expect(find.text('需要作者核对的线索与依据'), findsOneWidget);
+    expect(find.text('改稿 · 核对线索已更新'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -56,10 +54,7 @@ void main() {
 
     expect(find.text('当前项目暂无问题'), findsOneWidget);
     expect(find.text('暂无一致性问题'), findsOneWidget);
-    expect(
-      find.textContaining('当前项目没有检测到角色、规则、道具或时间线冲突'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('当前作品没有发现角色、规则、道具或时间线冲突'), findsOneWidget);
   });
 
   testWidgets('shows filter no results state', (tester) async {
@@ -79,17 +74,12 @@ void main() {
   testWidgets('shows related draft missing state', (tester) async {
     await tester.pumpWidget(
       const NovelWriterApp(
-        home: AuditCenterPage(
-          uiState: AuditCenterUiState.relatedDraftMissing,
-        ),
+        home: AuditCenterPage(uiState: AuditCenterUiState.relatedDraftMissing),
       ),
     );
 
     expect(find.text('无法定位关联草稿'), findsOneWidget);
-    expect(
-      find.textContaining('原始 SceneDraft 已被删除'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('原始场景草稿已被删除'), findsOneWidget);
     expect(find.text('返回工作台'), findsOneWidget);
     expect(find.text('重新检查'), findsOneWidget);
   });
@@ -102,10 +92,7 @@ void main() {
     );
 
     expect(find.text('跳转失败'), findsOneWidget);
-    expect(
-      find.textContaining('目标场景'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('目标场景'), findsOneWidget);
     expect(find.text('返回工作台'), findsOneWidget);
     expect(find.text('重新检查'), findsOneWidget);
   });

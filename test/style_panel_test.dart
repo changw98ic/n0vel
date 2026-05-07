@@ -46,13 +46,23 @@ void main() {
     await tester.pump();
   }
 
+  Future<void> openStyleFromProjectHub(WidgetTester tester) async {
+    if (find.byKey(ProjectListPage.menuDrawerHandleKey).evaluate().isNotEmpty) {
+      await openProjectDrawer(tester);
+      await tester.tap(find.text('作品设定'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('风格面板'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('shows style panel ready summary', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
-    expect(find.text('风格面板'), findsOneWidget);
-    expect(find.text('以问卷为主，支持 JSON 导入的风格配置'), findsOneWidget);
-    expect(find.text('生成风格配置'), findsOneWidget);
-    expect(find.text('校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0'), findsOneWidget);
+    expect(find.text('作品设定 · 风格'), findsOneWidget);
+    expect(find.text('问卷与 JSON 风格档案'), findsOneWidget);
+    expect(find.text('整理风格档案'), findsOneWidget);
+    expect(find.text('风格档案就绪 · 问卷已完成 · 支持 JSON v1.0'), findsOneWidget);
     expect(find.text('冷峻悬疑第一人称'), findsWidgets);
     expect(find.text('第三人称限知'), findsWidgets);
   });
@@ -64,7 +74,7 @@ void main() {
 
     expect(find.text('风格名称'), findsOneWidget);
     expect(find.text('问卷输入'), findsOneWidget);
-    expect(find.text('优先补全问卷字段，再生成当前项目的风格摘要。'), findsOneWidget);
+    expect(find.text('优先补全问卷字段，再整理当前作品的风格摘要。'), findsOneWidget);
 
     await tester.tap(find.byKey(StylePanelPage.jsonModeButtonKey));
     await tester.pumpAndSettle();
@@ -72,9 +82,9 @@ void main() {
     expect(find.byKey(StylePanelPage.jsonDraftFieldKey), findsOneWidget);
     expect(find.text('选择 JSON 文件'), findsOneWidget);
     expect(find.text('JSON'), findsWidgets);
-    expect(find.text('JSON 草稿'), findsOneWidget);
+    expect(find.text('JSON 风格草稿'), findsOneWidget);
     expect(
-      find.text('可直接粘贴或导入 StyleProfile JSON，导入后会保留字段校验结果。'),
+      find.text('可直接粘贴或导入 StyleProfile JSON，导入后会保留可修订的字段提示。'),
       findsOneWidget,
     );
 
@@ -107,9 +117,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp());
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-    await tester.pumpAndSettle();
+    await openStyleFromProjectHub(tester);
 
     await tester.tap(find.byKey(StylePanelPage.jsonModeButtonKey));
     await tester.pump();
@@ -121,9 +129,7 @@ void main() {
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-    await tester.pumpAndSettle();
+    await openStyleFromProjectHub(tester);
 
     expect(find.byKey(StylePanelPage.jsonDraftFieldKey), findsOneWidget);
     expect(find.text('2x'), findsOneWidget);
@@ -141,9 +147,7 @@ void main() {
     workspaceStore.createProject();
     await tester.pump();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-    await tester.pumpAndSettle();
+    await openStyleFromProjectHub(tester);
     await tester.tap(find.byKey(StylePanelPage.jsonModeButtonKey));
     await tester.pump();
     await tester.tap(find.byKey(StylePanelPage.intensityIncreaseButtonKey));
@@ -156,9 +160,7 @@ void main() {
     workspaceStore.openProject('project-yuechao');
     await tester.pump();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-    await tester.pumpAndSettle();
+    await openStyleFromProjectHub(tester);
 
     expect(find.text('风格名称'), findsOneWidget);
     expect(find.text('2x'), findsNothing);
@@ -209,7 +211,7 @@ void main() {
     );
 
     expect(find.text('未知字段已忽略'), findsOneWidget);
-    expect(find.textContaining('已忽略并继续生成'), findsOneWidget);
+    expect(find.textContaining('已略过并继续整理'), findsOneWidget);
   });
 
   testWidgets('shows missing required fields state', (tester) async {
@@ -221,7 +223,7 @@ void main() {
 
     expect(find.text('问卷缺少必填项'), findsOneWidget);
     expect(find.text('缺失必填项'), findsOneWidget);
-    expect(find.textContaining('不会生成风格配置'), findsOneWidget);
+    expect(find.textContaining('暂不整理风格档案'), findsOneWidget);
     expect(find.text('建议修正'), findsOneWidget);
   });
 

@@ -21,9 +21,10 @@ import '../../review_tasks/data/review_task_mapper.dart';
 import '../../review_tasks/data/review_task_store.dart';
 import '../../review_tasks/domain/review_task_models.dart';
 import '../../review_tasks/presentation/review_task_panel.dart';
-import '../../sandbox/presentation/sandbox_monitor_page.dart';
 
 part 'workbench_shell_components.dart';
+
+const Color _appAccentColor = Color(0xFFB6813B);
 
 enum WorkbenchUiState {
   defaultHidden,
@@ -980,6 +981,12 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             ? result.detail!
             : '无法连接到模型服务，请检查网络环境与 base_url。',
       ),
+      AppLlmFailureKind.insecureScheme => _AiRequestException(
+        title: 'AI 请求失败：接口地址不安全',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '请使用 https:// 地址；本地调试仅允许 localhost 或 127.0.0.1 使用 http://。',
+      ),
       AppLlmFailureKind.rateLimited => _AiRequestException(
         title: 'AI 请求失败：请求受限',
         message: result.detail?.trim().isNotEmpty == true
@@ -1231,12 +1238,12 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                             } catch (_) {
                               try {
                                 await draftStore.updateTextAndPersist(original);
-                                throw _AiRequestException(
+                                throw const _AiRequestException(
                                   title: 'AI 接受失败：本地保存失败',
                                   message: '版本保存失败，正文已回滚。请稍后重试。',
                                 );
                               } catch (_) {
-                                throw _AiRequestException(
+                                throw const _AiRequestException(
                                   title: 'AI 接受失败：本地保存失败',
                                   message:
                                       '版本保存失败，且正文回滚也失败。当前正文可能已部分更新，请手动确认后重试。',
@@ -1690,448 +1697,542 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         }
       },
       child: DesktopShellFrame(
-      header: DesktopBreadcrumbBar(
-        barKey: WorkbenchShellPage.breadcrumbKey,
-        breadcrumb: workspace.currentProjectBreadcrumb,
-        trailingText: '自动保存 · Markdown',
-      ),
-      body: LayoutBuilder(
-        builder: (context, layoutConstraints) {
-          final spacing = panelSpacingFor(layoutConstraints.maxWidth);
-          final compact =
-              layoutConstraints.maxWidth <
-              DesktopLayoutTokens.compactPageBreakpoint;
-          final showToolRail =
-              layoutConstraints.maxWidth >=
-              DesktopLayoutTokens.narrowBreakpoint;
-          final toolWindow = _activeToolPanel != null
-              ? Container(
-                  key: WorkbenchShellPage.toolWindowKey,
-                  width: DesktopLayoutTokens.workbenchToolWindowWidth,
-                  padding: const EdgeInsets.all(16),
-                  decoration: appPanelDecoration(context),
-                  child: _ToolWindowPanel(
-                    activePanel: _activeToolPanel!,
-                    authorFeedbackStore: authorFeedbackStore,
-                    reviewTaskStore: reviewTaskStore,
-                    scenes: workspace.scenes,
-                    currentSceneId:
-                        workspace.currentProjectOrNull?.sceneId ?? '',
-                    currentChapterId:
-                        workspace.currentSceneOrNull?.chapterLabel ?? '',
-                    currentSceneLabel:
-                        workspace.currentSceneOrNull?.displayLocation ?? '',
-                    sourceRunId: _sourceRunId(
-                      workspace.currentProjectOrNull?.id ?? '',
-                      storyRunStore.snapshot,
-                    ),
-                    sourceRunLabel: _sourceRunLabel(storyRunStore.snapshot),
-                    sceneContext: sceneContext,
-                    uiState: widget.uiState,
-                    settings: settings,
-                    settingsFeedback: settingsFeedback,
-                    settingsHasPersistenceIssue: settingsHasPersistenceIssue,
-                    canGenerateAi: canGenerateAi,
-                    isGeneratingAi: _isGeneratingAi,
-                    diagnosticReport: diagnosticReport,
-                    aiToolMode: _aiToolMode,
-                    historyEntries: AppAiHistoryScope.of(context).entries,
-                    aiPromptController: _aiPromptController,
-                    onRetrySecureStore: settingsStore.retrySecureStoreAccess,
-                    draftText: draft.text,
-                    currentSelectionPreview: currentSelectionPreview,
-                    selectionDrafts: List<_AiSelectionDraft>.unmodifiable(
-                      _aiSelections,
-                    ),
-                    onSelectAiMode: (mode) {
-                      setState(() {
-                        _aiToolMode = mode;
-                      });
-                    },
-                    onGenerateAiSuggestion: _generateAiSuggestion,
-                    onReplayAiHistory: _replayAiHistory,
-                    onDeleteAiHistoryEntry: (entry) {
-                      AppAiHistoryScope.of(context).removeEntry(entry.sequence);
-                    },
-                    onClearAiHistory: () {
-                      AppAiHistoryScope.of(context).clear();
-                    },
-                    onSyncContext: () {
-                      AppSceneContextScope.of(context).syncContext();
-                      setState(() {
-                        _showContextSyncedBanner = true;
-                      });
-                    },
-                    onSelectScene: (scene) {
-                      workspace.updateCurrentScene(
-                        sceneId: scene.id,
-                        recentLocation: scene.displayLocation,
-                      );
-                    },
-                    onCreateScene: () => _showSceneDialog(
-                      context,
-                      title: '新建场景',
-                      initialValue: '',
-                      onConfirm: workspace.createScene,
-                    ),
-                    onRenameScene: () => _showSceneDialog(
-                      context,
-                      title: '重命名场景',
-                      initialValue: workspace.currentSceneOrNull?.title ?? '',
-                      onConfirm: workspace.renameCurrentScene,
-                    ),
-                    onDeleteScene: () => _confirmDeleteScene(
-                      context,
-                      workspace.deleteCurrentScene,
-                    ),
-                    canDeleteScene: workspace.canDeleteCurrentScene,
-                    onOpenSettings: () =>
-                        _openSettingsAndRestoreAnchor(closeToolPanel: true),
-                    onAddCurrentSelection: _addCurrentSelectionFromEditor,
-                    onEditSelectionPrompt: _editSelectionPrompt,
-                    onRemoveSelection: _removeSelection,
-                  ),
-                )
-              : null;
-          final showToolRailInCompact =
-              showToolRail && !(compact && toolWindow != null && _isDrawerOpen);
-
-          final editorPane = Expanded(
-            child: Container(
-              key: WorkbenchShellPage.editorPaneKey,
-              padding: EdgeInsets.all(compact ? 8 : 16),
-              decoration: appPanelDecoration(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (statusBanner != null) ...[
-                            statusBanner,
-                            const SizedBox(height: 12),
-                          ],
-                          _CreationGuideCard(
-                            currentStageIndex: guideStageIndex,
-                            hasCharacters: workspace.characters.isNotEmpty,
-                            hasWorldNodes: workspace.worldNodes.isNotEmpty,
-                            hasSceneSummary: workspace.currentScene.summary
-                                .trim()
-                                .isNotEmpty,
-                            hasDraft: draft.text.trim().isNotEmpty,
-                            hasSceneCharacterBinding: hasSceneCharacterBinding,
-                            hasSceneWorldReference: hasSceneWorldReference,
-                            hasRun: storyRunStore.snapshot.hasRun,
-                            onOpenCharacters: () {
-                              final anchor = _captureReturnAnchor();
-                              AppNavigator.push(context, AppRoutes.characters);
-                              _restoreReturnAnchor(anchor);
-                            },
-                            onOpenWorldbuilding: () {
-                              final anchor = _captureReturnAnchor();
-                              AppNavigator.push(
-                                context,
-                                AppRoutes.worldbuilding,
-                              );
-                              _restoreReturnAnchor(anchor);
-                            },
-                            onOpenOutline: () {
-                              AppNavigator.push(context, AppRoutes.storyBible);
-                            },
+        header: DesktopBreadcrumbBar(
+          barKey: WorkbenchShellPage.breadcrumbKey,
+          breadcrumb: workspace.currentProjectBreadcrumb,
+          trailingText: '自动保存 · Markdown',
+        ),
+        body: LayoutBuilder(
+          builder: (context, layoutConstraints) {
+            final spacing = panelSpacingFor(layoutConstraints.maxWidth);
+            final compact =
+                layoutConstraints.maxWidth <
+                DesktopLayoutTokens.compactPageBreakpoint;
+            final showToolRail =
+                layoutConstraints.maxWidth >=
+                DesktopLayoutTokens.narrowBreakpoint;
+            final toolWindow = _activeToolPanel != null
+                ? Container(
+                    key: WorkbenchShellPage.toolWindowKey,
+                    width: DesktopLayoutTokens.workbenchToolWindowWidth,
+                    padding: const EdgeInsets.all(16),
+                    decoration: appPanelDecoration(context),
+                    child: _ToolWindowPanel(
+                      activePanel: _activeToolPanel!,
+                      authorFeedbackStore: authorFeedbackStore,
+                      reviewTaskStore: reviewTaskStore,
+                      scenes: workspace.scenes,
+                      currentSceneId:
+                          workspace.currentProjectOrNull?.sceneId ?? '',
+                      currentChapterId:
+                          workspace.currentSceneOrNull?.chapterLabel ?? '',
+                      currentSceneLabel:
+                          workspace.currentSceneOrNull?.displayLocation ?? '',
+                      sourceRunId: _sourceRunId(
+                        workspace.currentProjectOrNull?.id ?? '',
+                        storyRunStore.snapshot,
+                      ),
+                      sourceRunLabel: _sourceRunLabel(storyRunStore.snapshot),
+                      sceneContext: sceneContext,
+                      uiState: widget.uiState,
+                      settings: settings,
+                      settingsFeedback: settingsFeedback,
+                      settingsHasPersistenceIssue: settingsHasPersistenceIssue,
+                      canGenerateAi: canGenerateAi,
+                      isGeneratingAi: _isGeneratingAi,
+                      diagnosticReport: diagnosticReport,
+                      aiToolMode: _aiToolMode,
+                      historyEntries: AppAiHistoryScope.of(context).entries,
+                      aiPromptController: _aiPromptController,
+                      onRetrySecureStore: settingsStore.retrySecureStoreAccess,
+                      draftText: draft.text,
+                      currentSelectionPreview: currentSelectionPreview,
+                      selectionDrafts: List<_AiSelectionDraft>.unmodifiable(
+                        _aiSelections,
+                      ),
+                      onSelectAiMode: (mode) {
+                        setState(() {
+                          _aiToolMode = mode;
+                        });
+                      },
+                      onGenerateAiSuggestion: _generateAiSuggestion,
+                      onReplayAiHistory: _replayAiHistory,
+                      onDeleteAiHistoryEntry: (entry) {
+                        AppAiHistoryScope.of(
+                          context,
+                        ).removeEntry(entry.sequence);
+                      },
+                      onClearAiHistory: () {
+                        AppAiHistoryScope.of(context).clear();
+                      },
+                      onSyncContext: () {
+                        AppSceneContextScope.of(context).syncContext();
+                        setState(() {
+                          _showContextSyncedBanner = true;
+                        });
+                      },
+                      onSelectScene: (scene) {
+                        workspace.updateCurrentScene(
+                          sceneId: scene.id,
+                          recentLocation: scene.displayLocation,
+                        );
+                      },
+                      onCreateScene: () => _showSceneDialog(
+                        context,
+                        title: '新建场景',
+                        initialValue: '',
+                        onConfirm: workspace.createScene,
+                      ),
+                      onRenameScene: () => _showSceneDialog(
+                        context,
+                        title: '重命名场景',
+                        initialValue: workspace.currentSceneOrNull?.title ?? '',
+                        onConfirm: workspace.renameCurrentScene,
+                      ),
+                      onDeleteScene: () => _confirmDeleteScene(
+                        context,
+                        workspace.deleteCurrentScene,
+                      ),
+                      canDeleteScene: workspace.canDeleteCurrentScene,
+                      onOpenSettings: () =>
+                          _openSettingsAndRestoreAnchor(closeToolPanel: true),
+                      onShowAiMetadata: () {
+                        final metadata = _currentAiRequestMetadata();
+                        showAppSheet(
+                          context: context,
+                          title: 'AI 请求配置',
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('请求配置：${metadata.providerSummary}'),
+                                const SizedBox(height: 8),
+                                Text('接口：${metadata.endpointLabel}'),
+                                const SizedBox(height: 8),
+                                Text('风格约束：${metadata.styleSummary}'),
+                                const SizedBox(height: 8),
+                                Text('场景上下文：${metadata.sceneSummary}'),
+                                const SizedBox(height: 8),
+                                Text(metadata.characterSummary),
+                                const SizedBox(height: 8),
+                                Text(metadata.worldSummary),
+                                const SizedBox(height: 8),
+                                Text('模拟摘要：${metadata.simulationSummary}'),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          if (_isInteractiveDefault) ...[
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final secondaryActions = Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    OutlinedButton(
-                                      key: WorkbenchShellPage
-                                          .saveVersionButtonKey,
-                                      onPressed: () {
-                                        AppVersionScope.of(
-                                          context,
-                                        ).captureSnapshot(
-                                          label: '手动保存',
-                                          content: draft.text,
-                                        );
-                                      },
-                                      child: const Text('保存版本'),
-                                    ),
-                                    TextButton(
-                                      key: WorkbenchShellPage
-                                          .openVersionsButtonKey,
-                                      onPressed: () {
-                                        AppNavigator.push(
-                                          context,
-                                          AppRoutes.versions,
-                                        );
-                                      },
-                                      child: const Text('查看版本'),
-                                    ),
-                                  ],
-                                );
-                                final runPanel = _StoryGenerationRunPanel(
-                                  store: storyRunStore,
-                                  canRun: canRunSimulation,
-                                  dismissedCandidateText:
-                                      _dismissedCandidateText,
-                                  onRun: () async {
-                                    final confirmed = await _confirmAiSceneRun(
-                                      providerSummary: settingsStore
-                                          .generationProviderSummary(),
-                                      characterNames:
-                                          _resourceNamesForConfirmation(
-                                            linked: [
-                                              for (final character
-                                                  in linkedCharacters)
-                                                character.name,
-                                            ],
-                                            fallback: [
-                                              for (final character
-                                                  in workspace.characters)
-                                                character.name,
-                                            ],
-                                          ),
-                                      worldNames: _resourceNamesForConfirmation(
-                                        linked: [
-                                          for (final node in linkedWorldNodes)
-                                            node.title,
-                                        ],
-                                        fallback: [
-                                          for (final node
-                                              in workspace.worldNodes)
-                                            node.title,
-                                        ],
-                                      ),
-                                      sceneLabel: workspace
-                                          .currentScene
-                                          .displayLocation,
-                                      sceneSummary:
-                                          workspace.currentScene.summary,
-                                      draftWordCount: draft.text.trim().length,
-                                    );
-                                    if (!confirmed || !context.mounted) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _dismissedCandidateText = null;
-                                    });
-                                    AppSimulationScope.of(
-                                      context,
-                                    ).startSuccessfulRun(eventLog: _eventLog);
-                                    storyRunStore.runCurrentScene();
-                                  },
-                                  onForceFailure: () {
-                                    AppSimulationScope.of(
-                                      context,
-                                    ).startFailureRun(eventLog: _eventLog);
-                                    storyRunStore.runCurrentScene(
-                                      forceFailure: true,
-                                    );
-                                  },
-                                  onCancel: () {
-                                    storyRunStore.cancelCurrentRun();
-                                    AppSimulationScope.of(
-                                      context,
-                                    ).reset(eventLog: _eventLog);
-                                  },
-                                  onAcceptCandidate: _acceptAiCandidateDraft,
-                                  onReviseCandidate: _reviseAiCandidateDraft,
-                                  onDismissCandidate: (candidateText) {
-                                    setState(() {
-                                      _dismissedCandidateText = candidateText;
-                                    });
-                                  },
-                                  onMapReviewTasks: _mapReviewSnapshotToTasks,
-                                );
+                        );
+                      },
+                      onAddCurrentSelection: _addCurrentSelectionFromEditor,
+                      onEditSelectionPrompt: _editSelectionPrompt,
+                      onRemoveSelection: _removeSelection,
+                    ),
+                  )
+                : null;
+            final showToolRailInCompact =
+                showToolRail &&
+                !(compact && toolWindow != null && _isDrawerOpen);
 
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: appPanelDecoration(
-                                    context,
-                                    color: palette.surface,
-                                  ),
-                                  child: constraints.maxWidth < 420
-                                      ? Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '正文优先显示，快速操作保持低干扰。',
-                                              style: theme.textTheme.bodySmall,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            runPanel,
-                                            const SizedBox(height: 8),
-                                            secondaryActions,
-                                          ],
-                                        )
-                                      : Row(
-                                          children: [
-                                            Expanded(child: runPanel),
-                                            const SizedBox(width: 12),
-                                            Flexible(child: secondaryActions),
-                                          ],
-                                        ),
+            final editorPane = Expanded(
+              child: Container(
+                key: WorkbenchShellPage.editorPaneKey,
+                padding: EdgeInsets.all(compact ? 8 : 16),
+                decoration: appPanelDecoration(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: compact ? 180 : 210,
+                      ),
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (statusBanner != null) ...[
+                              statusBanner,
+                              const SizedBox(height: 12),
+                            ],
+                            _CreationGuideCard(
+                              currentStageIndex: guideStageIndex,
+                              hasCharacters: workspace.characters.isNotEmpty,
+                              hasWorldNodes: workspace.worldNodes.isNotEmpty,
+                              hasSceneSummary: workspace.currentScene.summary
+                                  .trim()
+                                  .isNotEmpty,
+                              hasDraft: draft.text.trim().isNotEmpty,
+                              hasSceneCharacterBinding:
+                                  hasSceneCharacterBinding,
+                              hasSceneWorldReference: hasSceneWorldReference,
+                              hasRun: storyRunStore.snapshot.hasRun,
+                              onOpenCharacters: () {
+                                final anchor = _captureReturnAnchor();
+                                AppNavigator.push(
+                                  context,
+                                  AppRoutes.characters,
+                                );
+                                _restoreReturnAnchor(anchor);
+                              },
+                              onOpenWorldbuilding: () {
+                                final anchor = _captureReturnAnchor();
+                                AppNavigator.push(
+                                  context,
+                                  AppRoutes.worldbuilding,
+                                );
+                                _restoreReturnAnchor(anchor);
+                              },
+                              onOpenOutline: () {
+                                AppNavigator.push(
+                                  context,
+                                  AppRoutes.storyBible,
                                 );
                               },
                             ),
                             const SizedBox(height: 12),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: palette.elevated,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, editorConstraints) {
-                          final showEditorHeader =
-                              editorConstraints.maxHeight >= 120;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (showEditorHeader)
-                                Container(
-                                  key:
-                                      WorkbenchShellPage.editorSurfaceHeaderKey,
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    14,
-                                    16,
-                                    12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(color: palette.border),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                            if (_isInteractiveDefault) ...[
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final secondaryActions = Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     children: [
-                                      Text(
-                                        workspace.currentProjectBreadcrumb,
-                                        style: theme.textTheme.titleMedium,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '自动保存 · Markdown',
+                                      OutlinedButton(
                                         key: WorkbenchShellPage
-                                            .editorSurfaceMetaKey,
-                                        style: theme.textTheme.bodySmall,
+                                            .saveVersionButtonKey,
+                                        onPressed: () {
+                                          AppVersionScope.of(
+                                            context,
+                                          ).captureSnapshot(
+                                            label: '手动保存',
+                                            content: draft.text,
+                                          );
+                                        },
+                                        child: const Text('保存版本'),
+                                      ),
+                                      TextButton(
+                                        key: WorkbenchShellPage
+                                            .openVersionsButtonKey,
+                                        onPressed: () {
+                                          AppNavigator.push(
+                                            context,
+                                            AppRoutes.versions,
+                                          );
+                                        },
+                                        child: const Text('查看版本'),
                                       ),
                                     ],
-                                  ),
-                                ),
-                              Expanded(
-                                child: TextField(
-                                  key: WorkbenchShellPage.editorTextFieldKey,
-                                  controller: _draftController,
-                                  focusNode: _draftFocusNode,
-                                  scrollController: _editorScrollController,
-                                  maxLines: null,
-                                  expands: true,
-                                  style: theme.textTheme.bodyMedium,
-                                  decoration: const InputDecoration(
-                                    hintText: '开始书写当前场景正文…',
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.all(16),
-                                  ),
-                                ),
+                                  );
+                                  final runPanel = _StoryGenerationRunPanel(
+                                    store: storyRunStore,
+                                    canRun: canRunSimulation,
+                                    dismissedCandidateText:
+                                        _dismissedCandidateText,
+                                    onRun: () async {
+                                      final confirmed =
+                                          await _confirmAiSceneRun(
+                                            providerSummary: settingsStore
+                                                .generationProviderSummary(),
+                                            characterNames:
+                                                _resourceNamesForConfirmation(
+                                                  linked: [
+                                                    for (final character
+                                                        in linkedCharacters)
+                                                      character.name,
+                                                  ],
+                                                  fallback: [
+                                                    for (final character
+                                                        in workspace.characters)
+                                                      character.name,
+                                                  ],
+                                                ),
+                                            worldNames:
+                                                _resourceNamesForConfirmation(
+                                                  linked: [
+                                                    for (final node
+                                                        in linkedWorldNodes)
+                                                      node.title,
+                                                  ],
+                                                  fallback: [
+                                                    for (final node
+                                                        in workspace.worldNodes)
+                                                      node.title,
+                                                  ],
+                                                ),
+                                            sceneLabel: workspace
+                                                .currentScene
+                                                .displayLocation,
+                                            sceneSummary:
+                                                workspace.currentScene.summary,
+                                            draftWordCount: draft.text
+                                                .trim()
+                                                .length,
+                                          );
+                                      if (!confirmed || !context.mounted) {
+                                        return;
+                                      }
+                                      setState(() {
+                                        _dismissedCandidateText = null;
+                                      });
+                                      AppSimulationScope.of(
+                                        context,
+                                      ).startSuccessfulRun(eventLog: _eventLog);
+                                      storyRunStore.runCurrentScene();
+                                    },
+                                    onForceFailure: () {
+                                      AppSimulationScope.of(
+                                        context,
+                                      ).startFailureRun(eventLog: _eventLog);
+                                      storyRunStore.runCurrentScene(
+                                        forceFailure: true,
+                                      );
+                                    },
+                                    onCancel: () {
+                                      storyRunStore.cancelCurrentRun();
+                                      AppSimulationScope.of(
+                                        context,
+                                      ).reset(eventLog: _eventLog);
+                                    },
+                                    onAcceptCandidate: _acceptAiCandidateDraft,
+                                    onReviseCandidate: _reviseAiCandidateDraft,
+                                    onDismissCandidate: (candidateText) {
+                                      setState(() {
+                                        _dismissedCandidateText = candidateText;
+                                      });
+                                    },
+                                    onMapReviewTasks: _mapReviewSnapshotToTasks,
+                                  );
+
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: appPanelDecoration(
+                                      context,
+                                      color: palette.surface,
+                                    ),
+                                    child: constraints.maxWidth < 420
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              runPanel,
+                                              const SizedBox(height: 8),
+                                              secondaryActions,
+                                            ],
+                                          )
+                                        : Row(
+                                            children: [
+                                              Expanded(child: runPanel),
+                                              const SizedBox(width: 12),
+                                              Flexible(child: secondaryActions),
+                                            ],
+                                          ),
+                                  );
+                                },
                               ),
+                              const SizedBox(height: 12),
                             ],
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: palette.elevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: palette.border),
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, editorConstraints) {
+                            final showEditorHeader =
+                                editorConstraints.maxHeight >= 120;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showEditorHeader)
+                                  Container(
+                                    key: WorkbenchShellPage
+                                        .editorSurfaceHeaderKey,
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: palette.border,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          workspace.currentProjectBreadcrumb,
+                                          style: theme.textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '自动保存 · Markdown',
+                                          key: WorkbenchShellPage
+                                              .editorSurfaceMetaKey,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: palette.tertiaryText,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                Expanded(
+                                  child: TextField(
+                                    key: WorkbenchShellPage.editorTextFieldKey,
+                                    controller: _draftController,
+                                    focusNode: _draftFocusNode,
+                                    scrollController: _editorScrollController,
+                                    maxLines: null,
+                                    expands: true,
+                                    style: theme.textTheme.bodyMedium,
+                                    decoration: InputDecoration(
+                                      hintText: '开始书写当前场景正文…',
+                                      hintStyle: TextStyle(
+                                        color: palette.tertiaryText,
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
+            );
 
-          final toolRail = Container(
-            key: WorkbenchShellPage.toolRailKey,
-            width: DesktopLayoutTokens.workbenchRailWidth,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: appPanelDecoration(context),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            final toolRail = Container(
+              key: WorkbenchShellPage.toolRailKey,
+              width: DesktopLayoutTokens.workbenchRailWidth,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: palette.subtle,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
+                ),
+                border: Border.all(color: palette.border),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.resourcesToolButtonKey,
+                      icon: Icons.menu_book_outlined,
+                      label: '资料',
+                      isSelected:
+                          _activeToolPanel == WorkbenchToolPanel.resources,
+                      onTap: () =>
+                          _toggleToolPanel(WorkbenchToolPanel.resources),
+                    ),
+                    const SizedBox(height: 12),
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.aiToolButtonKey,
+                      icon: Icons.auto_awesome_outlined,
+                      label: 'AI',
+                      isSelected: _activeToolPanel == WorkbenchToolPanel.ai,
+                      onTap: () => _toggleToolPanel(WorkbenchToolPanel.ai),
+                    ),
+                    const SizedBox(height: 12),
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.feedbackToolButtonKey,
+                      icon: Icons.rate_review_outlined,
+                      label: '反馈',
+                      isSelected:
+                          _activeToolPanel == WorkbenchToolPanel.feedback,
+                      onTap: () =>
+                          _toggleToolPanel(WorkbenchToolPanel.feedback),
+                    ),
+                    const SizedBox(height: 12),
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.reviewTasksToolButtonKey,
+                      icon: Icons.task_alt_outlined,
+                      label: '任务',
+                      isSelected:
+                          _activeToolPanel == WorkbenchToolPanel.reviewTasks,
+                      onTap: () =>
+                          _toggleToolPanel(WorkbenchToolPanel.reviewTasks),
+                    ),
+                    const SizedBox(height: 12),
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.settingsToolButtonKey,
+                      icon: Icons.settings_outlined,
+                      label: '设置',
+                      isSelected:
+                          _activeToolPanel == WorkbenchToolPanel.settings,
+                      onTap: () =>
+                          _toggleToolPanel(WorkbenchToolPanel.settings),
+                    ),
+                    const SizedBox(height: 12),
+                    _RailButton(
+                      buttonKey: WorkbenchShellPage.readingToolButtonKey,
+                      icon: Icons.chrome_reader_mode_outlined,
+                      label: '阅读',
+                      onTap: _openReadingMode,
+                    ),
+                  ],
+                ),
+              ),
+            );
+
+            if (compact) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.resourcesToolButtonKey,
-                    icon: Icons.menu_book_outlined,
-                    label: '资料',
-                    isSelected:
-                        _activeToolPanel == WorkbenchToolPanel.resources,
-                    onTap: () => _toggleToolPanel(WorkbenchToolPanel.resources),
+                  DesktopMenuDrawerRegion(
+                    handleKey: WorkbenchShellPage.menuDrawerHandleKey,
+                    drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
+                    title: '菜单',
+                    isOpen: _isDrawerOpen,
+                    onHandleTap: _isInteractiveDefault
+                        ? () {
+                            setState(() {
+                              _isDrawerOpen = !_isDrawerOpen;
+                            });
+                          }
+                        : null,
+                    items: _menuItems(context),
                   ),
-                  const SizedBox(height: 12),
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.aiToolButtonKey,
-                    icon: Icons.auto_awesome_outlined,
-                    label: 'AI',
-                    isSelected: _activeToolPanel == WorkbenchToolPanel.ai,
-                    onTap: () => _toggleToolPanel(WorkbenchToolPanel.ai),
-                  ),
-                  const SizedBox(height: 12),
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.feedbackToolButtonKey,
-                    icon: Icons.rate_review_outlined,
-                    label: '反馈',
-                    isSelected: _activeToolPanel == WorkbenchToolPanel.feedback,
-                    onTap: () => _toggleToolPanel(WorkbenchToolPanel.feedback),
-                  ),
-                  const SizedBox(height: 12),
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.reviewTasksToolButtonKey,
-                    icon: Icons.task_alt_outlined,
-                    label: '任务',
-                    isSelected:
-                        _activeToolPanel == WorkbenchToolPanel.reviewTasks,
-                    onTap: () =>
-                        _toggleToolPanel(WorkbenchToolPanel.reviewTasks),
-                  ),
-                  const SizedBox(height: 12),
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.settingsToolButtonKey,
-                    icon: Icons.settings_outlined,
-                    label: '设置',
-                    isSelected: _activeToolPanel == WorkbenchToolPanel.settings,
-                    onTap: () => _toggleToolPanel(WorkbenchToolPanel.settings),
-                  ),
-                  const SizedBox(height: 12),
-                  _RailButton(
-                    buttonKey: WorkbenchShellPage.readingToolButtonKey,
-                    icon: Icons.chrome_reader_mode_outlined,
-                    label: '阅读',
-                    onTap: _openReadingMode,
-                  ),
+                  SizedBox(width: spacing),
+                  if (toolWindow != null) ...[
+                    SizedBox(
+                      width: DesktopLayoutTokens.workbenchToolWindowWidth,
+                      child: toolWindow,
+                    ),
+                    SizedBox(width: spacing),
+                  ],
+                  editorPane,
+                  if (showToolRailInCompact) ...[
+                    SizedBox(width: spacing),
+                    toolRail,
+                  ],
                 ],
-              ),
-            ),
-          );
+              );
+            }
 
-          if (compact) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -2150,54 +2251,23 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                   items: _menuItems(context),
                 ),
                 SizedBox(width: spacing),
-                if (toolWindow != null) ...[
-                  SizedBox(
-                    width: DesktopLayoutTokens.workbenchToolWindowWidth,
-                    child: toolWindow,
-                  ),
-                  SizedBox(width: spacing),
-                ],
                 editorPane,
-                if (showToolRailInCompact) ...[
+                if (toolWindow != null) ...[
                   SizedBox(width: spacing),
-                  toolRail,
+                  toolWindow,
                 ],
+                SizedBox(width: spacing),
+                if (showToolRail) toolRail,
               ],
             );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DesktopMenuDrawerRegion(
-                handleKey: WorkbenchShellPage.menuDrawerHandleKey,
-                drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
-                title: '菜单',
-                isOpen: _isDrawerOpen,
-                onHandleTap: _isInteractiveDefault
-                    ? () {
-                        setState(() {
-                          _isDrawerOpen = !_isDrawerOpen;
-                        });
-                      }
-                    : null,
-                items: _menuItems(context),
-              ),
-              SizedBox(width: spacing),
-              editorPane,
-              if (toolWindow != null) ...[SizedBox(width: spacing), toolWindow],
-              SizedBox(width: spacing),
-              if (showToolRail) toolRail,
-            ],
-          );
-        },
+          },
+        ),
+        statusBar: DesktopStatusStrip(
+          stripKey: WorkbenchShellPage.statusBarKey,
+          leftText: _statusLabel(effectiveSimulationStatus),
+          rightText: _statusMetaLabel(draft.text),
+        ),
       ),
-      statusBar: DesktopStatusStrip(
-        stripKey: WorkbenchShellPage.statusBarKey,
-        leftText: _statusLabel(effectiveSimulationStatus),
-        rightText: _statusMetaLabel(draft.text),
-      ),
-    ),
     );
   }
 
@@ -2225,39 +2295,19 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
       onWorkbench: closeDrawer,
-      onStyle: () {
+      onWorkSettings: () {
         closeDrawer();
-        AppNavigator.push(context, AppRoutes.style);
+        AppNavigator.push(context, AppRoutes.workSettingsHub);
       },
-      onScenes: () {
+      onRevision: () {
+        closeDrawer();
+        AppNavigator.push(context, AppRoutes.revisionHub);
+      },
+      onReading: () {
         closeDrawer();
         AppNavigator.push(context, AppRoutes.scenes);
       },
-      onCharacters: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.characters);
-      },
-      onWorldbuilding: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.worldbuilding);
-      },
-      onStoryBible: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.storyBible);
-      },
-      onAudit: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.audit);
-      },
       onSettings: _openSettingsAndRestoreAnchor,
-      onProductionBoard: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.productionBoard);
-      },
-      onReviewTasks: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.reviewTasks);
-      },
     );
   }
 
@@ -2329,23 +2379,52 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     };
   }
 
-  void _openSandboxMonitor({
+  void _openGenerationProcessSheet({
     required SimulationStatus fallbackStatus,
     bool failureMode = false,
   }) {
     final simulationStore = AppSimulationScope.of(context);
-    final liveStatus = simulationStore.snapshot.status;
-    final hasLiveRun = liveStatus != SimulationStatus.none;
+    final runSnapshot = ServiceScope.of(
+      context,
+    ).resolve<StoryGenerationRunStore>().snapshot;
     showDialog<void>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         insetPadding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 1080,
-          height: 640,
-          child: SandboxMonitorPage(
-            failureMode: failureMode,
-            previewStatus: hasLiveRun ? null : fallbackStatus,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'AI 生成过程',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      tooltip: '关闭',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                  ],
+                ),
+                Divider(color: desktopPalette(context).border),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: _GenerationProcessSheetContent(
+                    snapshot: runSnapshot,
+                    simulation: simulationStore.snapshot,
+                    fallbackStatus: fallbackStatus,
+                    failureMode: failureMode,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2493,10 +2572,10 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       case WorkbenchUiState.simulationFailedSummary:
       case WorkbenchUiState.noSimulationYet:
         if (showContextSynced) {
-          return _StatusBanner(
+          return const _StatusBanner(
             title: '当前场景资料已刷新。',
             message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
-            accentColor: const Color(0xFF5B7A5A),
+            accentColor: appSuccessColor,
           );
         }
         if (!hasSceneCharacterBinding) {
@@ -2509,7 +2588,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               AppNavigator.push(context, AppRoutes.characters);
               _restoreReturnAnchor(anchor);
             },
-            accentColor: const Color(0xFFB6813B),
+            accentColor: _appAccentColor,
           );
         }
         if (!hasSceneWorldReference) {
@@ -2522,16 +2601,16 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               AppNavigator.push(context, AppRoutes.worldbuilding);
               _restoreReturnAnchor(anchor);
             },
-            accentColor: const Color(0xFFB6813B),
+            accentColor: _appAccentColor,
           );
         }
         switch (simulationStatus) {
           case SimulationStatus.none:
             if (widget.uiState == WorkbenchUiState.noSimulationYet) {
-              return _StatusBanner(
+              return const _StatusBanner(
                 title: '还没有 AI 试写记录。',
                 message: '你可以继续写正文，或让 AI 按当前资料试写这一场。',
-                accentColor: const Color(0xFF5C6E85),
+                accentColor: appInfoColor,
               );
             }
             if (!canGenerateAi) {
@@ -2540,7 +2619,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                 message: '请先在设置里保存可用的供应商、模型和密钥，再生成候选稿。',
                 actionLabel: '前往设置',
                 onActionTap: _openSettingsAndRestoreAnchor,
-                accentColor: const Color(0xFFB6813B),
+                accentColor: _appAccentColor,
               );
             }
             return null;
@@ -2550,9 +2629,11 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               message: '${simulation.summary} · ${simulation.stageSummary}',
               actionLabel: '查看生成过程',
               onActionTap: () {
-                _openSandboxMonitor(fallbackStatus: SimulationStatus.running);
+                _openGenerationProcessSheet(
+                  fallbackStatus: SimulationStatus.running,
+                );
               },
-              accentColor: const Color(0xFF5C6E85),
+              accentColor: appInfoColor,
             );
           case SimulationStatus.completed:
             return _StatusBanner(
@@ -2560,9 +2641,11 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               message: '${simulation.summary} · ${simulation.sceneLabel}',
               actionLabel: '查看生成过程',
               onActionTap: () {
-                _openSandboxMonitor(fallbackStatus: SimulationStatus.completed);
+                _openGenerationProcessSheet(
+                  fallbackStatus: SimulationStatus.completed,
+                );
               },
-              accentColor: const Color(0xFF5B7A5A),
+              accentColor: appSuccessColor,
             );
           case SimulationStatus.failed:
             return _StatusBanner(
@@ -2570,12 +2653,12 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               message: '${simulation.summary} · ${simulation.turnSummary}',
               actionLabel: '查看原因',
               onActionTap: () {
-                _openSandboxMonitor(
+                _openGenerationProcessSheet(
                   fallbackStatus: SimulationStatus.failed,
                   failureMode: true,
                 );
               },
-              accentColor: const Color(0xFF9A5444),
+              accentColor: appDangerColor,
             );
         }
       case WorkbenchUiState.menuDrawerOpen:
@@ -2586,7 +2669,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
           message: '请先补全 Provider 配置与 API Key，然后再发起 AI 操作。',
           actionLabel: '前往设置',
           onActionTap: _openSettingsAndRestoreAnchor,
-          accentColor: const Color(0xFF9A5444),
+          accentColor: appDangerColor,
         );
       case WorkbenchUiState.missingCharacterBinding:
         return _StatusBanner(
@@ -2596,7 +2679,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
           onActionTap: () {
             AppNavigator.push(context, AppRoutes.characters);
           },
-          accentColor: const Color(0xFFB6813B),
+          accentColor: _appAccentColor,
         );
       case WorkbenchUiState.missingCharacterReference:
         return _StatusBanner(
@@ -2606,7 +2689,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
           onActionTap: () {
             AppNavigator.push(context, AppRoutes.characters);
           },
-          accentColor: const Color(0xFFB6813B),
+          accentColor: _appAccentColor,
         );
       case WorkbenchUiState.missingWorldReference:
         return _StatusBanner(
@@ -2616,13 +2699,13 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
           onActionTap: () {
             AppNavigator.push(context, AppRoutes.worldbuilding);
           },
-          accentColor: const Color(0xFFB6813B),
+          accentColor: _appAccentColor,
         );
       case WorkbenchUiState.contextSynced:
-        return _StatusBanner(
+        return const _StatusBanner(
           title: '当前场景资料已刷新。',
           message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
-          accentColor: const Color(0xFF5B7A5A),
+          accentColor: appSuccessColor,
         );
     }
   }

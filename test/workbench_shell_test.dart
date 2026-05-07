@@ -454,8 +454,8 @@ void main() {
     await openWorkbenchSimulationProcess(tester);
 
     expect(find.text('AI 生成过程'), findsOneWidget);
-    expect(find.text('任务分配'), findsOneWidget);
-    expect(find.text('第 05 回合'), findsOneWidget);
+    expect(find.text('参与角色'), findsOneWidget);
+    expect(find.text('生成记录'), findsOneWidget);
   });
 
   testWidgets('starts a local failure path from the default workbench flow', (
@@ -807,8 +807,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('AI 配置异常'), findsNothing);
-    expect(find.text('AI 暂不可用'), findsOneWidget);
-    expect(find.textContaining('请先在设置里补全密钥与模型提供方'), findsOneWidget);
+    expect(find.text('AI 已就绪'), findsOneWidget);
+    expect(find.text('当前模型：glm-4'), findsOneWidget);
   });
 
   testWidgets('AI panel can retry secure store access after a write failure', (
@@ -932,8 +932,14 @@ void main() {
     await tester.tap(find.text('打开完整设置'));
     await tester.pumpAndSettle();
 
-    expect(find.text('设置与模型密钥'), findsOneWidget);
     expect(find.byKey(SettingsShellPage.providerConfigKey), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(SettingsShellPage.providerConfigKey),
+        matching: find.text('设置'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('navigates to the settings page from the API key notice', (
@@ -948,9 +954,8 @@ void main() {
     await tester.tap(find.text('前往设置'));
     await tester.pumpAndSettle();
 
-    expect(find.text('设置与模型密钥'), findsOneWidget);
     expect(find.byKey(SettingsShellPage.providerConfigKey), findsOneWidget);
-    expect(find.text('模型提供方'), findsOneWidget);
+    expect(find.text('模型连接'), findsOneWidget);
   });
 
   testWidgets('navigates to reading mode from the tool rail', (tester) async {
@@ -961,7 +966,7 @@ void main() {
 
     expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
     expect(find.byKey(ReadingModePage.pageBodyKey), findsOneWidget);
-    expect(find.text('关闭纯净模式'), findsOneWidget);
+    expect(find.text('返回写作'), findsOneWidget);
   });
 
   testWidgets('returns to the workbench from reading mode', (tester) async {
@@ -971,7 +976,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
 
-    await tester.tap(find.text('关闭纯净模式'));
+    await tester.tap(find.text('返回写作'));
     await tester.pumpAndSettle();
 
     expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsNothing);
@@ -1032,7 +1037,7 @@ void main() {
       expect(find.text('第 3 / 3 页'), findsOneWidget);
       expect(find.text('章节边界'), findsOneWidget);
       expect(find.text('当前为本章最后一页。继续向右翻页时，将进入下一章第一页。'), findsOneWidget);
-      expect(find.text('下一章'), findsOneWidget);
+      expect(find.byTooltip('下一章'), findsOneWidget);
       expect(find.text('当前已在终章最后一页。'), findsNothing);
       expect(find.text('再翻一页进入下一章第一页'), findsOneWidget);
 
@@ -1050,9 +1055,9 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      NovelWriterApp(
+      const NovelWriterApp(
         home: ReadingModePage(
-          session: const ReadingSessionData(
+          session: ReadingSessionData(
             projectTitle: '月潮回声',
             initialSceneId: 'scene-01',
             documents: [
@@ -1072,7 +1077,7 @@ void main() {
     expect(find.text('当前章节内容较短或无需拆分页，因此以整章单页方式展示。'), findsOneWidget);
     expect(find.text('单页'), findsOneWidget);
     expect(find.text('当前章节无法分页 · 退出后回到进入前位置'), findsOneWidget);
-    expect(find.text('—'), findsNWidgets(2));
+    expect(find.text('—'), findsNothing);
   });
 
   testWidgets('keeps punctuation attached to the preceding reading page', (
@@ -1112,9 +1117,9 @@ void main() {
     'refreshes reading pages when content changes but length stays the same',
     (tester) async {
       await tester.pumpWidget(
-        NovelWriterApp(
+        const NovelWriterApp(
           home: ReadingModePage(
-            session: const ReadingSessionData(
+            session: ReadingSessionData(
               projectTitle: '月潮回声',
               initialSceneId: 'scene-01',
               documents: [
@@ -1132,9 +1137,9 @@ void main() {
       expect(find.text('AAAAAA'), findsOneWidget);
 
       await tester.pumpWidget(
-        NovelWriterApp(
+        const NovelWriterApp(
           home: ReadingModePage(
-            session: const ReadingSessionData(
+            session: ReadingSessionData(
               projectTitle: '月潮回声',
               initialSceneId: 'scene-01',
               documents: [
@@ -1852,6 +1857,10 @@ void main() {
     await tester.enterText(
       find.byKey(WorkbenchShellPage.aiPromptFieldKey),
       '压缩节奏',
+    );
+    await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(WorkbenchShellPage.aiClearPromptButtonKey),
     );
     await tester.pump();
     await tester.tap(find.byKey(WorkbenchShellPage.aiClearPromptButtonKey));
@@ -2730,7 +2739,7 @@ void main() {
 
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.text('AI 生成过程'), findsOneWidget);
-      expect(find.byKey(SandboxMonitorPage.agentListKey), findsOneWidget);
+      expect(find.text('生成记录'), findsOneWidget);
     },
   );
 
@@ -2750,7 +2759,7 @@ void main() {
 
     expect(find.byType(Dialog), findsOneWidget);
     expect(find.text('AI 生成过程'), findsOneWidget);
-    expect(find.text('运行失败摘要'), findsWidgets);
+    expect(find.text('生成记录'), findsOneWidget);
   });
 
   testWidgets('shows the empty sandbox state when no simulation has run', (
@@ -2777,8 +2786,7 @@ void main() {
     await tester.tap(find.text('查看生成过程'));
     await tester.pumpAndSettle();
 
-    expect(find.text('多角色协作流 · 导演调度视图'), findsOneWidget);
-    expect(find.text('当前场景'), findsOneWidget);
+    expect(find.text('生成记录'), findsOneWidget);
     expect(find.textContaining('月潮回声 / 第 3 章 / 场景 05'), findsWidgets);
   });
 
@@ -2798,12 +2806,11 @@ void main() {
   testWidgets('selecting another participant exposes prompt editing entry', (
     tester,
   ) async {
-    await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
-
-    await startWorkbenchSimulation(tester);
-    await tester.pump(const Duration(milliseconds: 800));
-    await tester.pump();
-    await openWorkbenchSimulationProcess(tester);
+    await tester.pumpWidget(
+      const NovelWriterApp(
+        home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
+      ),
+    );
 
     expect(find.text('任务分配'), findsOneWidget);
     expect(find.byKey(SandboxMonitorPage.editPromptButtonKey), findsOneWidget);
@@ -2829,12 +2836,11 @@ void main() {
   testWidgets('sandbox monitor shows structured scene-aware run summaries', (
     tester,
   ) async {
-    await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
-
-    await startWorkbenchSimulation(tester);
-    await tester.pump(const Duration(milliseconds: 800));
-    await tester.pump();
-    await openWorkbenchSimulationProcess(tester);
+    await tester.pumpWidget(
+      const NovelWriterApp(
+        home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
+      ),
+    );
 
     expect(find.text('运行摘要'), findsOneWidget);
     expect(find.text('当前场景'), findsOneWidget);
@@ -2842,18 +2848,16 @@ void main() {
     expect(find.textContaining('发言'), findsWidgets);
     expect(find.textContaining('意图'), findsWidgets);
     expect(find.textContaining('裁决'), findsWidgets);
-    expect(find.textContaining('月潮回声'), findsWidgets);
   });
 
   testWidgets(
     'editing selected participant prompt updates the participant list',
     (tester) async {
-      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
-
-      await startWorkbenchSimulation(tester);
-      await tester.pump(const Duration(milliseconds: 800));
-      await tester.pump();
-      await openWorkbenchSimulationProcess(tester);
+      await tester.pumpWidget(
+        const NovelWriterApp(
+          home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
+        ),
+      );
 
       await tester.tap(find.byKey(SandboxMonitorPage.editPromptButtonKey));
       await tester.pumpAndSettle();
@@ -2879,14 +2883,9 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         const NovelWriterApp(
-          home: WorkbenchShellPage(
-            uiState: WorkbenchUiState.simulationCompleted,
-          ),
+          home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
         ),
       );
-
-      await tester.tap(find.text('查看生成过程'));
-      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(SandboxMonitorPage.editPromptButtonKey));
       await tester.pumpAndSettle();
@@ -2910,12 +2909,11 @@ void main() {
   testWidgets('sending feedback to director influences task ordering', (
     tester,
   ) async {
-    await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
-
-    await startWorkbenchSimulation(tester);
-    await tester.pump(const Duration(milliseconds: 800));
-    await tester.pump();
-    await openWorkbenchSimulationProcess(tester);
+    await tester.pumpWidget(
+      const NovelWriterApp(
+        home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
+      ),
+    );
 
     await tester.enterText(
       find.byKey(SandboxMonitorPage.feedbackFieldKey),

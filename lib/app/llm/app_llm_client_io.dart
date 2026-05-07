@@ -28,6 +28,12 @@ class _IoAppLlmClient implements AppLlmClient {
   }) async {
     final adapter = AppLlmProviderAdapters.of(request.provider);
     final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
+    if (_isInsecureScheme(request.baseUrl)) {
+      return const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.insecureScheme,
+        detail: '仅支持 HTTPS 连接。请将 base_url 改为 https:// 开头。',
+      );
+    }
     if (endpoint == null) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.network,
@@ -179,6 +185,19 @@ class _IoAppLlmClient implements AppLlmClient {
     return Uri.tryParse('$normalized$endpointPath');
   }
 
+  bool _isInsecureScheme(String baseUrl) {
+    final uri = Uri.tryParse(baseUrl.trim());
+    if (uri == null || !uri.isScheme('HTTP')) return false;
+    return !_isLocalhost(uri.host);
+  }
+
+  bool _isLocalhost(String host) {
+    return host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '::1' ||
+        host.endsWith('.localhost');
+  }
+
   String? _normalizeDetail(String body) {
     final trimmed = body.trim();
     if (trimmed.isEmpty) {
@@ -209,6 +228,12 @@ class _IoAppLlmClient implements AppLlmClient {
   Stream<String> chatStream(AppLlmChatRequest request) async* {
     final adapter = AppLlmProviderAdapters.of(request.provider);
     final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
+    if (_isInsecureScheme(request.baseUrl)) {
+      throw const AppLlmStreamException(
+        failureKind: AppLlmFailureKind.insecureScheme,
+        detail: '仅支持 HTTPS 连接。请将 base_url 改为 https:// 开头。',
+      );
+    }
     if (endpoint == null) {
       throw const AppLlmStreamException(
         failureKind: AppLlmFailureKind.network,
@@ -413,7 +438,21 @@ class _IoAppLlmClient implements AppLlmClient {
   }
 
   String _normalizeDioErrorDetail(DioException error) {
-    return error.message ?? error.toString();
+    final raw = error.message ?? error.toString();
+    return _redactApiKeys(raw);
+  }
+
+  String _redactApiKeys(String text) {
+    var result = text;
+    result = result.replaceAll(
+      RegExp(r'(Bearer\s+)\S+', caseSensitive: false),
+      r'$1[REDACTED]',
+    );
+    result = result.replaceAll(
+      RegExp(r'(sk-[a-zA-Z0-9]{4})[a-zA-Z0-9]+'),
+      r'$1...[REDACTED]',
+    );
+    return result;
   }
 }
 

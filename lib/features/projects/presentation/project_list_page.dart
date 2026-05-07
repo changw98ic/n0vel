@@ -28,7 +28,9 @@ class ProjectListPage extends StatefulWidget {
     'project-list-new-project-button',
   );
   static const searchFieldKey = ValueKey<String>('project-list-search-field');
-  static const projectNameFieldKey = ValueKey<String>('project-list-name-field');
+  static const projectNameFieldKey = ValueKey<String>(
+    'project-list-name-field',
+  );
   static const continueProjectButtonKey = ValueKey<String>(
     'project-list-continue-project-button',
   );
@@ -38,26 +40,11 @@ class ProjectListPage extends StatefulWidget {
   static const workbenchShortcutKey = ValueKey<String>(
     'project-list-shortcut-workbench',
   );
-  static const styleShortcutKey = ValueKey<String>(
-    'project-list-shortcut-style',
-  );
-  static const characterShortcutKey = ValueKey<String>(
-    'project-list-shortcut-character',
-  );
-  static const worldShortcutKey = ValueKey<String>(
-    'project-list-shortcut-world',
-  );
-  static const storyBibleShortcutKey = ValueKey<String>(
-    'project-list-shortcut-story-bible',
-  );
   static const storyBibleButtonKey = ValueKey<String>(
     'project-list-story-bible-button',
   );
-  static const auditShortcutKey = ValueKey<String>(
-    'project-list-shortcut-audit',
-  );
-  static const sceneShortcutKey = ValueKey<String>(
-    'project-list-shortcut-scene',
+  static const readingMenuButtonKey = ValueKey<String>(
+    'project-list-reading-menu-button',
   );
   static const menuDrawerHandleKey = ValueKey<String>(
     'project-list-menu-drawer-handle',
@@ -100,7 +87,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
     final now = DateTime.now().millisecondsSinceEpoch;
     const dayMs = 24 * 60 * 60 * 1000;
     return [
-      AppListFilterOption<ProjectRecord>(label: '全部项目', test: (_) => true),
+      AppListFilterOption<ProjectRecord>(label: '全部作品', test: (_) => true),
       AppListFilterOption<ProjectRecord>(
         label: '最近打开',
         test: (p) => now - p.lastOpenedAtMs < dayMs,
@@ -285,7 +272,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '最近打开的项目会自动排在前面；点击卡片时，在卡片上直接浮出操作。',
+          '最近写过的作品会自动排在前面；每张卡片都可以直接继续写作。',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         if (widget.uiState == ProjectListUiState.importFailed) ...[
@@ -324,6 +311,8 @@ class _ProjectListPageState extends State<ProjectListPage> {
                 compact: compact,
                 onCreateProject: _createProject,
                 onSelectProject: _selectProject,
+                onContinueProject: (project) =>
+                    _openWorkbench(context, project),
               );
               final detailPanel = _ProjectDetailPanel(
                 key: ProjectListPage.detailKey,
@@ -338,7 +327,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
               if (compact) {
                 return ListView(
                   children: [
-                    SizedBox(height: 304, child: detailPanel),
+                    SizedBox(height: 336, child: detailPanel),
                     const SizedBox(height: 16),
                     shelf,
                   ],
@@ -579,10 +568,6 @@ class _ProjectListPageState extends State<ProjectListPage> {
           _isDrawerOpen = false;
         });
       },
-      onImportExport: () => _openImportExport(context),
-      onProductionBoard: () {
-        AppNavigator.push(context, AppRoutes.productionBoard);
-      },
       onWorkbench: () {
         final selected = _resolveSelectedProject(
           _visibleProjects(_projects(context)),
@@ -592,41 +577,20 @@ class _ProjectListPageState extends State<ProjectListPage> {
         }
         _openWorkbench(context, selected);
       },
-      onStyle: () {
-        AppNavigator.push(context, AppRoutes.style);
+      onWorkSettings: () {
+        AppNavigator.push(context, AppRoutes.workSettingsHub);
       },
-      onScenes: () {
+      onRevision: () {
+        AppNavigator.push(context, AppRoutes.revisionHub);
+      },
+      onReading: () {
         AppNavigator.push(context, AppRoutes.scenes);
-      },
-      onCharacters: () {
-        AppNavigator.push(context, AppRoutes.characters);
-      },
-      onWorldbuilding: () {
-        AppNavigator.push(context, AppRoutes.worldbuilding);
-      },
-      onStoryBible: () {
-        final selected = _resolveSelectedProject(
-          _visibleProjects(_projects(context)),
-        );
-        if (selected == null) {
-          return;
-        }
-        _openStoryBible(context, selected);
-      },
-      onAudit: () {
-        AppNavigator.push(context, AppRoutes.audit);
       },
       onSettings: () {
         AppNavigator.push(context, AppRoutes.settings);
       },
-      importButtonKey: ProjectListPage.importButtonKey,
       workbenchButtonKey: ProjectListPage.workbenchShortcutKey,
-      styleButtonKey: ProjectListPage.styleShortcutKey,
-      sceneButtonKey: ProjectListPage.sceneShortcutKey,
-      characterButtonKey: ProjectListPage.characterShortcutKey,
-      worldButtonKey: ProjectListPage.worldShortcutKey,
-      storyBibleButtonKey: ProjectListPage.storyBibleButtonKey,
-      auditButtonKey: ProjectListPage.auditShortcutKey,
+      readingButtonKey: ProjectListPage.readingMenuButtonKey,
     );
   }
 }
@@ -656,9 +620,9 @@ class _ProjectShelfHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('项目', key: titleKey, style: theme.textTheme.headlineSmall),
+              Text('书架', key: titleKey, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
-              Text('本地优先的长篇小说创作工作区', style: theme.textTheme.bodySmall),
+              Text('选择一部作品，回到最近写作位置', style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -668,11 +632,15 @@ class _ProjectShelfHeader extends StatelessWidget {
           child: const Text('新建项目'),
         ),
         const SizedBox(width: 12),
-        OutlinedButton(onPressed: onImportProject, child: const Text('导入工程')),
+        OutlinedButton(
+          key: ProjectListPage.importButtonKey,
+          onPressed: onImportProject,
+          child: const Text('导入工程'),
+        ),
         const SizedBox(width: 12),
         DesktopSearchField(
           width: 220,
-          hintText: '搜索项目',
+          hintText: '搜索作品',
           fieldKey: ProjectListPage.searchFieldKey,
           controller: searchController,
           onChanged: onSearchChanged,
@@ -686,114 +654,83 @@ class _ProjectShelfCard extends StatelessWidget {
   const _ProjectShelfCard({
     required this.project,
     required this.isSelected,
-    this.compact = false,
-    this.featuredWidth = 360,
-    this.standardWidth = 240,
-    this.featuredHeight = 236,
-    this.standardHeight = 196,
+    required this.isPrimary,
     required this.onTap,
+    required this.onContinue,
   });
 
   final ProjectRecord project;
   final bool isSelected;
-  final bool compact;
-  final double featuredWidth;
-  final double standardWidth;
-  final double featuredHeight;
-  final double standardHeight;
+  final bool isPrimary;
   final VoidCallback onTap;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
     final palette = desktopPalette(context);
     final theme = Theme.of(context);
+    final background = isSelected
+        ? palette.elevated
+        : isPrimary
+        ? palette.subtle
+        : palette.surface;
 
-    final featured = isSelected && !compact;
-    final width = featured ? featuredWidth : standardWidth;
-    final height = featured ? featuredHeight : standardHeight;
-    final radius = featured ? 18.0 : 14.0;
-    final background = isSelected ? palette.subtle : palette.surface;
-
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(radius),
-          onTap: onTap,
-          child: Container(
-            padding: EdgeInsets.all(featured ? 20 : 16),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(
-                color: isSelected ? palette.borderStrong : palette.border,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          height: 188,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? palette.borderStrong : palette.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${project.genre}${project.tag.isNotEmpty ? ' · ${project.tag}' : ''}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: palette.secondaryText,
+                ),
               ),
-            ),
-            child: _CompactProjectCardContent(
-              project: project,
-              featured: featured,
-              theme: theme,
-            ),
+              const SizedBox(height: 8),
+              Text(
+                project.title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                project.recentLocation,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  height: 1.45,
+                  color: palette.secondaryText,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: onContinue,
+                  child: const Text('继续写作'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CompactProjectCardContent extends StatelessWidget {
-  const _CompactProjectCardContent({
-    required this.project,
-    required this.featured,
-    required this.theme,
-  });
-
-  final ProjectRecord project;
-  final bool featured;
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          featured ? '${project.tag} · ${project.genre}' : project.genre,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          project.title,
-          style: featured
-              ? theme.textTheme.headlineSmall
-              : theme.textTheme.titleMedium,
-        ),
-        if (featured) ...[
-          const SizedBox(height: 12),
-          Text(
-            project.summary,
-            style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ] else ...[
-          const SizedBox(height: 8),
-          Text(project.tag, style: theme.textTheme.bodySmall),
-        ],
-        const Spacer(),
-        Text(
-          featured
-              ? '最近位置：${project.recentLocation}'
-              : '最近：${project.recentLocation}',
-          style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
     );
   }
 }
@@ -836,38 +773,42 @@ class _ProjectDetailPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '项目概览',
+                  '作品概览',
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 12),
-                _ProjectDetailSection(
-                  title: project.title,
-                  body: '${project.genre}\n${project.summary}',
-                  bodyMaxLines: 3,
+                Text(project.title, style: theme.textTheme.titleLarge),
+                const SizedBox(height: 12),
+                Text(
+                  '${project.genre}\n${project.tag}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    height: 1.45,
+                    color: palette.secondaryText,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _ProjectDetailSection(
                   title: '最近内容',
-                  body: '${project.tag}\n${project.recentLocation}',
+                  body: project.recentLocation,
                   bodyMaxLines: 2,
                 ),
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    key: ProjectListPage.openProjectButtonKey,
-                    onPressed: onOpen,
-                    child: const Text('打开'),
+                    key: ProjectListPage.continueProjectButtonKey,
+                    onPressed: onEdit,
+                    child: const Text('继续写作'),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    key: ProjectListPage.continueProjectButtonKey,
-                    onPressed: onEdit,
+                    key: ProjectListPage.openProjectButtonKey,
+                    onPressed: onOpen,
                     child: const Text('编辑'),
                   ),
                 ),
@@ -925,7 +866,7 @@ class _CompactProjectDetailContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '项目概览',
+          '作品概览',
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -962,19 +903,24 @@ class _CompactProjectDetailContent extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            key: ProjectListPage.openProjectButtonKey,
-            onPressed: onOpen,
-            child: const Text('打开'),
+            key: ProjectListPage.continueProjectButtonKey,
+            onPressed: onEdit,
+            child: const Text('继续写作'),
           ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(onPressed: onEdit, child: const Text('编辑')),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: OutlinedButton(
-                key: ProjectListPage.continueProjectButtonKey,
-                onPressed: onEdit,
-                child: const Text('编辑'),
+                key: ProjectListPage.openProjectButtonKey,
+                onPressed: onOpen,
+                child: const Text('打开'),
               ),
             ),
             const SizedBox(width: 8),
@@ -1007,57 +953,51 @@ class _CompactProjectDetailContent extends StatelessWidget {
 }
 
 class _NewProjectShelfCard extends StatelessWidget {
-  const _NewProjectShelfCard({
-    required this.onTap,
-    this.width = 220,
-    this.height = 196,
-  });
+  const _NewProjectShelfCard({required this.onTap});
 
   final VoidCallback onTap;
-  final double width;
-  final double height;
 
   @override
   Widget build(BuildContext context) {
     final palette = desktopPalette(context);
     final theme = Theme.of(context);
 
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: palette.subtle,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: palette.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '＋',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: palette.primary,
-                    fontSize: 40,
-                  ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          height: 188,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: palette.subtle,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: palette.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '＋',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: palette.primary,
+                  fontSize: 36,
                 ),
-                const SizedBox(height: 18),
-                Text('新建项目', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 10),
-                Text(
-                  '从空白书架里直接开始，不再额外占一整块区域。',
-                  style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 14),
+              Text('新建项目', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                '从空白书架里直接开始，不再额外占一整块区域。',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  height: 1.45,
+                  color: palette.secondaryText,
                 ),
-              ],
-            ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
@@ -1107,6 +1047,7 @@ class _ProjectShelfPanel extends StatelessWidget {
     required this.compact,
     required this.onCreateProject,
     required this.onSelectProject,
+    required this.onContinueProject,
   });
 
   final List<ProjectRecord> projects;
@@ -1114,11 +1055,12 @@ class _ProjectShelfPanel extends StatelessWidget {
   final bool compact;
   final VoidCallback onCreateProject;
   final ValueChanged<ProjectRecord> onSelectProject;
+  final ValueChanged<ProjectRecord> onContinueProject;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final shelfBody = _buildShelfBody();
+    final shelfBody = _buildShelfBody(context);
 
     return Container(
       decoration: appPanelDecoration(context),
@@ -1126,7 +1068,7 @@ class _ProjectShelfPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('进行中的小说项目', style: theme.textTheme.titleMedium),
+          Text('继续写作', style: theme.textTheme.titleMedium),
           const SizedBox(height: 6),
           Text(
             '书架中共有 ${projects.length} 部作品，按最近写作进度排列。',
@@ -1140,7 +1082,7 @@ class _ProjectShelfPanel extends StatelessWidget {
               width: double.infinity,
               height: 14,
               decoration: BoxDecoration(
-                color: desktopPalette(context).elevated,
+                color: desktopPalette(context).subtle,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -1150,64 +1092,61 @@ class _ProjectShelfPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildShelfBody() {
+  Widget _buildShelfBody(BuildContext context) {
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < projects.length; i++) ...[
+            SizedBox(
+              width: double.infinity,
+              child: _ProjectShelfCard(
+                project: projects[i],
+                isSelected: projects[i] == selectedProject,
+                isPrimary: i == 0,
+                onTap: () => onSelectProject(projects[i]),
+                onContinue: () => onContinueProject(projects[i]),
+              ),
+            ),
+            if (i != projects.length - 1) const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: _NewProjectShelfCard(onTap: onCreateProject),
+          ),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final constrained = constraints.maxWidth < 980;
-        final gap = constrained ? 12.0 : 16.0;
-        final featuredWidth = constrained ? 300.0 : 360.0;
-        final standardWidth = constrained ? 200.0 : 240.0;
-        final newProjectWidth = constrained ? 176.0 : 220.0;
-        final featuredHeight = constrained ? 226.0 : 236.0;
-        final standardHeight = 200.0;
-        final shelfChildren = <Widget>[
-          for (final project in projects)
-            _ProjectShelfCard(
+        final columns = constraints.maxWidth >= 960
+            ? 3
+            : constraints.maxWidth >= 620
+            ? 2
+            : 1;
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisExtent: 188,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: projects.length + 1,
+          itemBuilder: (context, index) {
+            if (index == projects.length) {
+              return _NewProjectShelfCard(onTap: onCreateProject);
+            }
+            final project = projects[index];
+            return _ProjectShelfCard(
               project: project,
               isSelected: project == selectedProject,
-              compact: compact,
-              featuredWidth: featuredWidth,
-              standardWidth: standardWidth,
-              featuredHeight: featuredHeight,
-              standardHeight: standardHeight,
+              isPrimary: index == 0,
               onTap: () => onSelectProject(project),
-            ),
-          _NewProjectShelfCard(
-            onTap: onCreateProject,
-            width: newProjectWidth,
-            height: standardHeight,
-          ),
-        ];
-
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var index = 0; index < shelfChildren.length; index++) ...[
-                shelfChildren[index],
-                if (index != shelfChildren.length - 1) SizedBox(height: gap),
-              ],
-            ],
-          );
-        }
-
-        if (constrained) {
-          return SingleChildScrollView(
-            child: Wrap(spacing: gap, runSpacing: gap, children: shelfChildren),
-          );
-        }
-
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var index = 0; index < shelfChildren.length; index++) ...[
-                shelfChildren[index],
-                if (index != shelfChildren.length - 1) SizedBox(width: gap),
-              ],
-            ],
-          ),
+              onContinue: () => onContinueProject(project),
+            );
+          },
         );
       },
     );
@@ -1295,7 +1234,7 @@ class _ProjectFilterPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final filters = <AppListFilterOption<ProjectRecord>>[
-      AppListFilterOption(label: '全部项目', test: (_) => true),
+      AppListFilterOption(label: '全部作品', test: (_) => true),
       AppListFilterOption(
         label: '最近打开',
         test: (p) {
@@ -1308,12 +1247,18 @@ class _ProjectFilterPanel extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: desktopPalette(context).surface.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: desktopPalette(context).border.withValues(alpha: 0.55),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('视图', style: theme.textTheme.titleMedium),
+          Text('筛选书架', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 12),
           AppListFilterChipBar<ProjectRecord>(
             options: filters,

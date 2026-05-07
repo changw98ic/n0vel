@@ -4,6 +4,7 @@ import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import 'app_authoring_storage_io_support.dart';
 import 'app_workspace_storage.dart';
+import 'storage_write_verification.dart';
 import 'workspace_storage_io_helpers.dart';
 import 'workspace_storage_schema.dart';
 
@@ -215,6 +216,19 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
 
   @override
   Future<void> save(Map<String, Object?> data) async {
+    await verifyAfterWrite(
+      label: 'workspace',
+      save: (d) async => _writeToDatabase(d),
+      reload: () => load(),
+      data: data,
+    );
+  }
+
+  /// Writes [data] to the database without verification.
+  ///
+  /// Extracted as a separate method so [save] can wrap it with
+  /// write-after-verification.
+  Future<void> _writeToDatabase(Map<String, Object?> data) async {
     final database = _openDatabase();
     try {
       final projects = (data['projects'] as List<Object?>?) ?? const [];

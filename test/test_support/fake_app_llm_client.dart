@@ -41,6 +41,14 @@ class FakeAppLlmClient implements AppLlmClient {
         : request.messages.last.content;
     final host = Uri.tryParse(request.baseUrl.trim())?.host ?? request.baseUrl;
 
+    final scheme = Uri.tryParse(request.baseUrl.trim())?.scheme.toLowerCase();
+    if (scheme == 'http' && !_isLocalhost(host)) {
+      return const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.insecureScheme,
+        detail: '仅支持 HTTPS 连接。请将 base_url 改为 https:// 开头。',
+      );
+    }
+
     if (normalizedBaseUrl.contains('offline') || host.endsWith('.invalid')) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.network,
@@ -112,5 +120,12 @@ class FakeAppLlmClient implements AppLlmClient {
         detail: result.detail,
       ),
     );
+  }
+
+  static bool _isLocalhost(String host) {
+    return host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '::1' ||
+        host.endsWith('.localhost');
   }
 }

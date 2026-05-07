@@ -55,10 +55,12 @@ void main() {
   }
 
   Future<void> tapHandleBar(WidgetTester tester) async {
-    await tester.tap(find.descendant(
-      of: find.byType(DesktopHandleBar),
-      matching: find.byType(InkWell),
-    ));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DesktopHandleBar),
+        matching: find.byType(InkWell),
+      ),
+    );
     await tester.pump();
   }
 
@@ -102,13 +104,11 @@ void main() {
       'style panel renders inside DesktopShellFrame with header and status strip',
       (tester) async {
         await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: StylePanelPage()),
-        );
+        await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
         expect(find.byType(DesktopShellFrame), findsOneWidget);
         expect(find.byType(DesktopHeaderBar), findsOneWidget);
-        expect(find.text('风格面板'), findsOneWidget);
+        expect(find.text('作品设定 · 风格'), findsOneWidget);
         expect(find.byType(DesktopMenuDrawerRegion), findsOneWidget);
         expect(find.byType(DesktopStatusStrip), findsOneWidget);
       },
@@ -124,7 +124,7 @@ void main() {
 
         expect(find.byType(DesktopShellFrame), findsOneWidget);
         expect(find.byType(DesktopHeaderBar), findsOneWidget);
-        expect(find.text('设置与模型密钥'), findsOneWidget);
+        expect(find.text('设置'), findsWidgets);
         expect(find.byType(DesktopMenuDrawerRegion), findsOneWidget);
         expect(find.byType(DesktopStatusStrip), findsOneWidget);
       },
@@ -135,7 +135,7 @@ void main() {
 
   group('author navigating between project home and writing tools', () {
     testWidgets('navigates from project list to workbench', (tester) async {
-        await setDesktopSize(tester);
+      await setDesktopSize(tester);
       await tester.pumpWidget(const NovelWriterApp());
       await tester.pump();
 
@@ -146,8 +146,10 @@ void main() {
       expect(find.byKey(WorkbenchShellPage.breadcrumbKey), findsOneWidget);
     });
 
-    testWidgets('navigates back from workbench to project list', (tester) async {
-        await setDesktopSize(tester);
+    testWidgets('navigates back from workbench to project list', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
       await tester.pumpWidget(const NovelWriterApp());
       await tester.pump();
 
@@ -157,131 +159,124 @@ void main() {
       await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
       await tester.pump();
 
-      await tester.tap(find.descendant(
-        of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-        matching: find.text('书架'),
-      ));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
+          matching: find.text('书架'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(ProjectListPage.pageTitleKey), findsOneWidget);
       expect(find.byKey(ProjectListPage.shelfKey), findsOneWidget);
     });
 
-    testWidgets(
-      'navigates to style panel from project list drawer and back',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(const NovelWriterApp());
-        await tester.pump();
+    testWidgets('navigates to style panel from project list drawer and back', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pump();
 
-        await openProjectDrawer(tester);
-        await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-        await tester.pumpAndSettle();
+      await openProjectDrawer(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(ProjectListPage.menuDrawerPanelKey),
+          matching: find.text('作品设定'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('风格面板'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('风格面板'), findsOneWidget);
-        expect(find.byType(DesktopShellFrame), findsOneWidget);
+      expect(find.text('作品设定 · 风格'), findsOneWidget);
+      expect(find.byType(DesktopShellFrame), findsOneWidget);
 
-        await tester.pageBack();
-        await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(ProjectListPage.pageTitleKey), findsOneWidget);
-      },
-    );
+      expect(find.text('作品设定'), findsOneWidget);
+    });
 
-    testWidgets(
-      'navigates to settings from project list drawer',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(const NovelWriterApp());
-        await tester.pump();
+    testWidgets('navigates to settings from project list drawer', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pump();
 
-        await openProjectDrawer(tester);
-        await tester.tap(find.descendant(
+      await openProjectDrawer(tester);
+      await tester.tap(
+        find.descendant(
           of: find.byKey(ProjectListPage.menuDrawerPanelKey),
           matching: find.text('设置'),
-        ));
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('设置与模型密钥'), findsOneWidget);
-        expect(find.byType(DesktopShellFrame), findsOneWidget);
+      expect(find.text('设置'), findsWidgets);
+      expect(find.byType(DesktopShellFrame), findsOneWidget);
 
-        await tester.pageBack();
-        await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(ProjectListPage.pageTitleKey), findsOneWidget);
-      },
-    );
+      expect(find.byKey(ProjectListPage.pageTitleKey), findsOneWidget);
+    });
   });
 
   // --- User 2: Author editing a scene in the workbench with a stable global shell ---
 
   group('author editing a scene with stable global shell', () {
-    testWidgets(
-      'editor is the primary focus area with separate tool rail',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: WorkbenchShellPage()),
-        );
+    testWidgets('editor is the primary focus area with separate tool rail', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-        expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
-        expect(find.byKey(WorkbenchShellPage.toolRailKey), findsOneWidget);
-        expect(find.byKey(WorkbenchShellPage.toolWindowKey), findsNothing);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
+      expect(find.byKey(WorkbenchShellPage.toolRailKey), findsOneWidget);
+      expect(find.byKey(WorkbenchShellPage.toolWindowKey), findsNothing);
+    });
 
-    testWidgets(
-      'menu drawer open shows real panel with navigation items',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(
-            home: WorkbenchShellPage(uiState: WorkbenchUiState.menuDrawerOpen),
-          ),
-        );
+    testWidgets('menu drawer open shows real panel with navigation items', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(
+        const NovelWriterApp(
+          home: WorkbenchShellPage(uiState: WorkbenchUiState.menuDrawerOpen),
+        ),
+      );
 
-        expect(
-          find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          findsOneWidget,
-        );
-        expect(find.text('书架'), findsWidgets);
-        expect(find.text('编辑工作台'), findsWidgets);
-        expect(find.text('设置'), findsWidgets);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsOneWidget);
+      expect(find.text('书架'), findsWidgets);
+      expect(find.text('写作'), findsWidgets);
+      expect(find.text('设置'), findsWidgets);
+    });
 
-    testWidgets(
-      'toggling drawer open then closed preserves editor content',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: WorkbenchShellPage()),
-        );
+    testWidgets('toggling drawer open then closed preserves editor content', (
+      tester,
+    ) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-        await tester.enterText(
-          find.byKey(WorkbenchShellPage.editorTextFieldKey),
-          '正文内容在切换抽屉后保持不变',
-        );
-        await tester.pump();
+      await tester.enterText(
+        find.byKey(WorkbenchShellPage.editorTextFieldKey),
+        '正文内容在切换抽屉后保持不变',
+      );
+      await tester.pump();
 
-        await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
-        await tester.pump();
+      await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
+      await tester.pump();
 
-        expect(
-          find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          findsOneWidget,
-        );
+      expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsOneWidget);
 
-        await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
-        await tester.pump();
+      await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
+      await tester.pump();
 
-        expect(
-          find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          findsNothing,
-        );
-        expect(find.text('正文内容在切换抽屉后保持不变'), findsOneWidget);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsNothing);
+      expect(find.text('正文内容在切换抽屉后保持不变'), findsOneWidget);
+    });
 
     testWidgets(
       'tool window opens alongside editor without collapsing editor pane',
@@ -291,9 +286,7 @@ void main() {
           const NovelWriterApp(home: WorkbenchShellPage()),
         );
 
-        await tester.tap(
-          find.byKey(WorkbenchShellPage.resourcesToolButtonKey),
-        );
+        await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
         await tester.pump();
 
         expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
@@ -312,13 +305,15 @@ void main() {
         await tester.tap(find.byKey(WorkbenchShellPage.menuDrawerHandleKey));
         await tester.pump();
 
-        await tester.tap(find.descendant(
-          of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
-          matching: find.text('设置'),
-        ));
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
+            matching: find.text('设置'),
+          ),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('设置与模型密钥'), findsOneWidget);
+        expect(find.text('设置'), findsWidgets);
 
         await tester.pageBack();
         await tester.pumpAndSettle();
@@ -327,18 +322,13 @@ void main() {
       },
     );
 
-    testWidgets(
-      'status bar shows current editing state',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: WorkbenchShellPage()),
-        );
+    testWidgets('status bar shows current editing state', (tester) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: WorkbenchShellPage()));
 
-        expect(find.byKey(WorkbenchShellPage.statusBarKey), findsOneWidget);
-        expect(find.textContaining('写作模式'), findsOneWidget);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.statusBarKey), findsOneWidget);
+      expect(find.textContaining('写作模式'), findsOneWidget);
+    });
   });
 
   // --- User 3: Author configuring style and provider settings ---
@@ -348,9 +338,7 @@ void main() {
       'style panel shows three-column layout: input, summary, binding',
       (tester) async {
         await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: StylePanelPage()),
-        );
+        await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
         expect(find.text('风格输入'), findsOneWidget);
         expect(find.text('风格摘要'), findsOneWidget);
@@ -366,26 +354,21 @@ void main() {
           const NovelWriterApp(home: SettingsShellPage()),
         );
 
-        expect(find.text('模型提供方'), findsOneWidget);
-        expect(find.text('说明'), findsOneWidget);
+        expect(find.byKey(SettingsShellPage.providerConfigKey), findsOneWidget);
+        expect(find.text('默认模型'), findsOneWidget);
       },
     );
 
-    testWidgets(
-      'style panel drawer navigates to workbench',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: StylePanelPage()),
-        );
+    testWidgets('style panel drawer navigates to workbench', (tester) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
-        await tapHandleBar(tester);
-        await tester.tap(find.text('编辑工作台'));
-        await tester.pumpAndSettle();
+      await tapHandleBar(tester);
+      await tester.tap(find.text('写作'));
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
+    });
 
     testWidgets(
       'style panel drawer navigates back to project list via project list drawer',
@@ -395,10 +378,17 @@ void main() {
         await tester.pump();
 
         await openProjectDrawer(tester);
-        await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(ProjectListPage.menuDrawerPanelKey),
+            matching: find.text('作品设定'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('风格面板'));
         await tester.pumpAndSettle();
 
-        expect(find.text('风格面板'), findsOneWidget);
+        expect(find.text('作品设定 · 风格'), findsOneWidget);
 
         await tapHandleBar(tester);
         await tester.tap(find.text('书架'));
@@ -408,21 +398,16 @@ void main() {
       },
     );
 
-    testWidgets(
-      'settings drawer navigates to workbench',
-      (tester) async {
-        await setDesktopSize(tester);
-        await tester.pumpWidget(
-          const NovelWriterApp(home: SettingsShellPage()),
-        );
+    testWidgets('settings drawer navigates to workbench', (tester) async {
+      await setDesktopSize(tester);
+      await tester.pumpWidget(const NovelWriterApp(home: SettingsShellPage()));
 
-        await tapHandleBar(tester);
-        await tester.tap(find.text('编辑工作台'));
-        await tester.pumpAndSettle();
+      await tapHandleBar(tester);
+      await tester.tap(find.text('写作'));
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
-      },
-    );
+      expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
+    });
 
     testWidgets(
       'settings drawer navigates back to project list via project list drawer',
@@ -432,13 +417,15 @@ void main() {
         await tester.pump();
 
         await openProjectDrawer(tester);
-        await tester.tap(find.descendant(
-          of: find.byKey(ProjectListPage.menuDrawerPanelKey),
-          matching: find.text('设置'),
-        ));
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(ProjectListPage.menuDrawerPanelKey),
+            matching: find.text('设置'),
+          ),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('设置与模型密钥'), findsOneWidget);
+        expect(find.text('设置'), findsWidgets);
 
         await tapHandleBar(tester);
         await tester.tap(find.text('书架'));

@@ -73,10 +73,10 @@ void main() {
     expect(find.byKey(ProductionBoardPage.titleKey), findsOneWidget);
     expect(find.byKey(ProductionBoardPage.progressKey), findsOneWidget);
     expect(find.byKey(ProductionBoardPage.recentRunKey), findsOneWidget);
-    expect(find.text('继续生成'), findsOneWidget);
+    expect(find.text('继续写作'), findsOneWidget);
     expect(find.text('打开工作台'), findsAtLeastNWidgets(1));
-    expect(find.text('改稿任务'), findsOneWidget);
-    expect(find.text('打开改稿任务'), findsOneWidget);
+    expect(find.text('改稿清单'), findsOneWidget);
+    expect(find.text('打开改稿清单'), findsOneWidget);
     expect(find.text('作品圣经'), findsAtLeastNWidgets(1));
     expect(find.text('导出'), findsAtLeastNWidgets(1));
 

@@ -32,12 +32,9 @@ void main() {
           home: Scaffold(
             body: DesktopMenuDrawer(
               items: [
+                DesktopMenuItemData(label: '书架', onTap: () {}),
                 DesktopMenuItemData(
-                  label: '书架',
-                  onTap: () {},
-                ),
-                DesktopMenuItemData(
-                  label: '编辑工作台',
+                  label: '写作',
                   isSelected: true,
                   onTap: () {},
                 ),
@@ -52,12 +49,12 @@ void main() {
         (button) => (button.child as Text).data == '书架',
       );
       final selectedButton = buttons.firstWhere(
-        (button) => (button.child as Text).data == '编辑工作台',
+        (button) => (button.child as Text).data == '写作',
       );
 
       expect(
         idleButton.style?.backgroundColor?.resolve({}),
-        const Color(0xFF342D28),
+        Colors.transparent,
       );
       expect(
         selectedButton.style?.backgroundColor?.resolve({}),

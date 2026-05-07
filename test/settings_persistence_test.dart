@@ -53,9 +53,9 @@ void main() {
   testWidgets('shows pencil-aligned settings header copy', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: SettingsShellPage()));
 
-    expect(find.text('设置与模型密钥'), findsOneWidget);
-    expect(find.text('连接你自己的模型服务，其余写作流程保持本地运行'), findsOneWidget);
-    expect(find.text('配置保存在本地 · 导出包不包含 API 密钥'), findsOneWidget);
+    expect(find.text('设置'), findsWidgets);
+    expect(find.text('管理模型连接、界面偏好与高级选项'), findsOneWidget);
+    expect(find.text('默认模型'), findsOneWidget);
   });
 
   testWidgets('reopening settings hydrates the saved values from store', (
@@ -153,7 +153,9 @@ void main() {
     await tester.tap(find.text('打开完整设置'));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.ensureVisible(
+      find.byKey(SettingsShellPage.themeDarkButtonKey),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(SettingsShellPage.themeDarkButtonKey));
     await tester.pumpAndSettle();
@@ -368,7 +370,10 @@ void main() {
       expect(baseUrlField.controller?.text, 'https://draft.local/v1');
       expect(modelField.controller?.text, 'gpt-5.4');
       expect(apiKeyField.controller?.text, 'sk-draft-key');
-      expect(find.byKey(SettingsShellPage.retrySecureStoreButtonKey), findsOneWidget);
+      expect(
+        find.byKey(SettingsShellPage.retrySecureStoreButtonKey),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(SettingsShellPage.retrySecureStoreButtonKey));
       await tester.pumpAndSettle();

@@ -44,55 +44,63 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
         issues.where((issue) => issue.id == selectedIssueId).isNotEmpty
         ? issues.firstWhere((issue) => issue.id == selectedIssueId)
         : (issues.isEmpty ? null : issues.first);
-    final body = Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final body = Column(
       children: [
-        DesktopMenuDrawerRegion(
-          isOpen: _isDrawerOpen,
-          onHandleTap: () {
-            setState(() {
-              _isDrawerOpen = !_isDrawerOpen;
-            });
-          },
-          items: _menuItems(context),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 260,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildIssueList(
-              theme,
-              store,
-              issues,
-              store.selectedAuditIssueIndex,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
         Expanded(
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildEvidence(theme, currentIssue),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DesktopMenuDrawerRegion(
+                isOpen: _isDrawerOpen,
+                onHandleTap: () {
+                  setState(() {
+                    _isDrawerOpen = !_isDrawerOpen;
+                  });
+                },
+                items: _menuItems(context),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 260,
+                child: Container(
+                  decoration: appPanelDecoration(context),
+                  padding: const EdgeInsets.all(16),
+                  child: _buildIssueList(
+                    theme,
+                    store,
+                    issues,
+                    store.selectedAuditIssueIndex,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Container(
+                  decoration: appPanelDecoration(context),
+                  padding: const EdgeInsets.all(16),
+                  child: _buildEvidence(theme, currentIssue),
+                ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 280,
+                child: Container(
+                  decoration: appPanelDecoration(context),
+                  padding: const EdgeInsets.all(16),
+                  child: _buildActions(theme, store, currentIssue),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 280,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildActions(theme, store, currentIssue),
-          ),
-        ),
+        const SizedBox(height: 12),
+        _AuditSummaryStrip(issue: currentIssue, issueCount: issues.length),
       ],
     );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '问题检查',
-        subtitle: '查看故事问题、依据与处理状态',
+        title: '改稿 · 一致性检查',
+        subtitle: '需要作者核对的线索与依据',
         showBackButton: true,
         actions: [
           Wrap(
@@ -111,7 +119,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
       ),
       body: body,
       statusBar: DesktopStatusStrip(
-        leftText: '问题规则已更新',
+        leftText: '改稿 · 核对线索已更新',
         rightText: currentIssue?.target ?? '场景 05',
       ),
     );
@@ -187,7 +195,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
     if (widget.uiState == AuditCenterUiState.empty) {
       return const _CallToActionState(
         title: '暂无一致性问题',
-        message: '当前项目没有检测到角色、规则、道具或时间线冲突。',
+        message: '当前作品没有发现角色、规则、道具或时间线冲突。',
       );
     }
     if (_showFilterNoResults(const <AuditIssueRecord>[])) {
@@ -216,7 +224,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '无法定位关联草稿',
-              message: '原始 SceneDraft 已被删除或索引失效，因此系统无法在中间区展示对应文本片段。',
+              message: '原始场景草稿已被删除或位置失效，因此这里暂时无法展示对应文本片段。',
             ),
             const SizedBox(height: 8),
             const _InfoBlock(
@@ -238,7 +246,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '跳转失败',
-              message: '目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从问题检查直接跳回原位置。',
+              message: '目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。',
             ),
             const SizedBox(height: 8),
             const _InfoBlock(
@@ -286,7 +294,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
           const SizedBox(height: 12),
           const _InfoBlock(
             title: '处理动作',
-            message: '当前无需处理。后续运行问题检查后，问题会出现在这里。',
+            message: '当前无需处理。后续完成一致性检查后，需要核对的线索会出现在这里。',
           ),
         ],
       );
@@ -456,24 +464,20 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.audit,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 
   String _filterLabel(AuditIssueFilter filter) {
@@ -542,7 +546,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,7 +584,7 @@ class _InfoBlock extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +592,54 @@ class _InfoBlock extends StatelessWidget {
           Text(title, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
           Text(message, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuditSummaryStrip extends StatelessWidget {
+  const _AuditSummaryStrip({required this.issue, required this.issueCount});
+
+  final AuditIssueRecord? issue;
+  final int issueCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final currentIssue = issue;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.fact_check_outlined, size: 18, color: palette.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '审计中心 · 查看一致性问题、证据与处理状态',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            currentIssue == null
+                ? '当前列表 $issueCount 项'
+                : '当前证据 · ${currentIssue.target}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -634,7 +686,7 @@ class _CenteredPanelState extends StatelessWidget {
       width: double.infinity,
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       padding: const EdgeInsets.all(24),
       child: AppEmptyState(title: title, message: message),

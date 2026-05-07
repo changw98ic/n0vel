@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'app_authoring_storage_io_support.dart';
+import 'storage_write_verification.dart';
 
 /// Generic SQLite storage that persists a single JSON blob per project.
 ///
@@ -11,9 +12,9 @@ class SqliteJsonBlobStorage {
     required String dbPath,
     required String tableName,
     required String jsonColumn,
-  })  : _dbPath = dbPath,
-        _tableName = tableName,
-        _jsonColumn = jsonColumn;
+  }) : _dbPath = dbPath,
+       _tableName = tableName,
+       _jsonColumn = jsonColumn;
 
   final String _dbPath;
   final String _tableName;
@@ -39,6 +40,16 @@ class SqliteJsonBlobStorage {
   }
 
   Future<void> save(Map<String, Object?> data, {required String projectId}) {
+    return verifyAfterWrite(
+      label: '$_tableName:$projectId',
+      save: (d) async => _writeToDb(d, projectId: projectId),
+      reload: () => load(projectId: projectId),
+      data: data,
+    );
+  }
+
+  /// Writes [data] to the database without verification.
+  void _writeToDb(Map<String, Object?> data, {required String projectId}) {
     withAuthoringDb(_dbPath, (db) {
       db.execute(
         '''
@@ -58,7 +69,6 @@ class SqliteJsonBlobStorage {
         ],
       );
     });
-    return Future.value();
   }
 
   Future<void> clear({String? projectId}) {

@@ -18,6 +18,8 @@ class _ThemeColors {
     required this.success,
     required this.danger,
     required this.info,
+    required this.sidebar,
+    required this.splitHandle,
   });
 
   final Brightness brightness;
@@ -34,6 +36,8 @@ class _ThemeColors {
   final Color success;
   final Color danger;
   final Color info;
+  final Color sidebar;
+  final Color splitHandle;
 }
 
 const _lightColors = _ThemeColors(
@@ -51,6 +55,8 @@ const _lightColors = _ThemeColors(
   success: appSuccessColor,
   danger: appDangerColor,
   info: appInfoColor,
+  sidebar: Color(0xFFEFE7DB),
+  splitHandle: Color(0xFFCFC3B5),
 );
 
 const _darkColors = _ThemeColors(
@@ -68,6 +74,8 @@ const _darkColors = _ThemeColors(
   success: Color(0xFF8FB08E),
   danger: Color(0xFFC27D6D),
   info: Color(0xFF8CA0B8),
+  sidebar: Color(0xFF261F1B),
+  splitHandle: Color(0xFF4A3E36),
 );
 
 class AppTheme {
@@ -111,12 +119,17 @@ class AppTheme {
           success: c.success,
           danger: c.danger,
           info: c.info,
+          sidebar: c.sidebar,
+          splitHandle: c.splitHandle,
         ),
       ],
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.elevated,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: c.border),
@@ -137,7 +150,9 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(0, 36),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          textStyle: base.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          textStyle: base.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -157,7 +172,9 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: c.primary,
-          textStyle: base.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          textStyle: base.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       textTheme: base.textTheme.copyWith(

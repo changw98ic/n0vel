@@ -4,8 +4,8 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 
 void main() {
   group('AppLlmFailureKind', () {
-    test('has exactly 8 values', () {
-      expect(AppLlmFailureKind.values, hasLength(8));
+    test('has exactly 9 values', () {
+      expect(AppLlmFailureKind.values, hasLength(9));
     });
 
     test('contains all expected variants', () {
@@ -18,6 +18,7 @@ void main() {
         AppLlmFailureKind.invalidResponse,
         AppLlmFailureKind.server,
         AppLlmFailureKind.unsupportedPlatform,
+        AppLlmFailureKind.insecureScheme,
       };
       expect(Set<AppLlmFailureKind>.from(AppLlmFailureKind.values), expected);
     });

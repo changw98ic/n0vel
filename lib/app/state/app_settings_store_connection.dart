@@ -49,6 +49,15 @@ AppSettingsConnectionTestState connectionStateFromChatResult({
             ? result.detail
             : '无法连接到 $host。请检查网络环境、代理或接口可达性。',
       );
+    case AppLlmFailureKind.insecureScheme:
+      return AppSettingsConnectionTestState(
+        status: AppSettingsConnectionTestStatus.error,
+        outcome: AppSettingsConnectionTestOutcome.networkError,
+        title: '连接测试失败：接口地址不安全',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail
+            : '请使用 https:// 地址；本地调试仅允许 localhost 或 127.0.0.1 使用 http://。',
+      );
     case AppLlmFailureKind.rateLimited:
       return AppSettingsConnectionTestState(
         status: AppSettingsConnectionTestStatus.error,

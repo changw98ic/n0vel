@@ -70,8 +70,8 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
         return DesktopShellFrame(
           header: DesktopHeaderBar(
             titleKey: ProductionBoardPage.titleKey,
-            title: 'Production Board',
-            subtitle: '${snapshot.projectTitle} · 项目生产闭环',
+            title: '写作进度',
+            subtitle: '${snapshot.projectTitle} · 草稿、改稿与导出',
             showBackButton: true,
           ),
           body: LayoutBuilder(
@@ -129,7 +129,7 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
           statusBar: DesktopStatusStrip(
             leftText:
                 '进度 ${snapshot.completedScenes}/${snapshot.totalScenes} 场景',
-            rightText: '最近运行：${snapshot.recentRun.statusLabel}',
+            rightText: '最近写作：${snapshot.recentRun.statusLabel}',
           ),
         );
       },
@@ -140,20 +140,15 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
     return buildDesktopWorkspaceMenuItems(
       selected: DesktopWorkspaceSection.productionBoard,
       onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onProductionBoard: () {
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () {
         setState(() {
           _isDrawerOpen = false;
         });
       },
-      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onReviewTasks: () => AppNavigator.push(context, AppRoutes.reviewTasks),
-      onStyle: () => AppNavigator.push(context, AppRoutes.style),
-      onScenes: () => AppNavigator.push(context, AppRoutes.scenes),
-      onCharacters: () => AppNavigator.push(context, AppRoutes.characters),
-      onWorldbuilding: () =>
-          AppNavigator.push(context, AppRoutes.worldbuilding),
-      onStoryBible: () => AppNavigator.push(context, AppRoutes.storyBible),
-      onAudit: () => AppNavigator.push(context, AppRoutes.audit),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
       onSettings: () => AppNavigator.push(context, AppRoutes.settings),
     );
   }
@@ -258,7 +253,7 @@ class _ProgressPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('生产进度', style: theme.textTheme.titleMedium)),
+              Expanded(child: Text('写作进度', style: theme.textTheme.titleMedium)),
               Text('$percent%', style: theme.textTheme.titleMedium),
             ],
           ),
@@ -386,23 +381,23 @@ class _LoopHandoffPanel extends StatelessWidget {
               children: [
                 _LoopHandoffCard(
                   icon: Icons.play_circle_outline,
-                  title: '继续写作 / 生成',
+                  title: '继续写作',
                   countLabel: '${snapshot.notStartedScenes} 个未开始场景',
                   body: snapshot.notStartedScenes == 0
                       ? '没有未开始场景；可回到工作台继续编辑或重跑需要处理的场景。'
-                      : '从工作台打开运行面板，选择场景后继续生成。',
+                      : '从工作台选择场景，继续生成或手工修订。',
                   actionLabel: '打开工作台',
                   onPressed: onOpenWorkbench,
                 ),
                 _LoopHandoffCard(
                   icon: Icons.fact_check_outlined,
-                  title: '改稿任务',
+                  title: '改稿清单',
                   countLabel:
-                      '$activeReviewTaskCount 个活跃任务 · ${snapshot.reviewQueueScenes} 个看板审查项',
+                      '$activeReviewTaskCount 个待处理事项 · ${snapshot.reviewQueueScenes} 个待核对场景',
                   body: activeReviewTaskCount == 0
-                      ? '改稿任务 已接入全局任务队列；可从工作台审查消息转为任务。'
-                      : '打开任务队列，处理问题检查结果、修订项和忽略项。',
-                  actionLabel: '打开改稿任务',
+                      ? '改稿清单会收纳工作台里的审查消息和修订提醒。'
+                      : '打开改稿清单，处理问题检查结果、修订项和忽略项。',
+                  actionLabel: '打开改稿清单',
                   onPressed: onOpenReviewTasks,
                 ),
                 _LoopHandoffCard(
@@ -430,8 +425,8 @@ class _LoopHandoffPanel extends StatelessWidget {
                   countLabel:
                       '${snapshot.completedScenes}/${snapshot.totalScenes} 场景已通过',
                   body: snapshot.totalScenes == 0
-                      ? '项目还没有可导出的场景；导出页可查看当前工程包状态。'
-                      : '完成生成、问题检查和反馈处理后，导出当前项目工程包。',
+                      ? '项目还没有可导出的场景；导出页可查看当前作品资料。'
+                      : '完成草稿、问题检查和反馈处理后，导出当前作品资料。',
                   actionLabel: '打开导出',
                   onPressed: onOpenExport,
                 ),
@@ -657,7 +652,7 @@ class _RecentRunCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
-          Text('最近运行', style: theme.textTheme.titleMedium),
+          Text('最近写作', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(run.statusLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),

@@ -34,7 +34,10 @@ void main() {
     await tester.ensureVisible(find.byKey(ProjectListPage.newProjectButtonKey));
     await tester.tap(find.byKey(ProjectListPage.newProjectButtonKey));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(ProjectListPage.projectNameFieldKey), name);
+    await tester.enterText(
+      find.byKey(ProjectListPage.projectNameFieldKey),
+      name,
+    );
     await tester.tap(find.text('创建'));
     await tester.pumpAndSettle();
   }
@@ -103,15 +106,15 @@ void main() {
     expect(find.byKey(ProjectListPage.pageTitleKey), findsOneWidget);
     expect(find.byKey(ProjectListPage.shelfKey), findsOneWidget);
     expect(find.byKey(ProjectListPage.footerKey), findsOneWidget);
-    expect(find.text('项目'), findsWidgets);
-    expect(find.text('本地优先的长篇小说创作工作区'), findsOneWidget);
-    expect(find.text('进行中的小说项目'), findsOneWidget);
+    expect(find.text('书架'), findsWidgets);
+    expect(find.text('选择一部作品，回到最近写作位置'), findsOneWidget);
+    expect(find.text('继续写作'), findsWidgets);
     expect(find.text('书架中共有 3 部作品，按最近写作进度排列。'), findsOneWidget);
-    expect(find.text('项目概览'), findsOneWidget);
+    expect(find.text('作品概览'), findsOneWidget);
     expect(find.text('最近内容'), findsOneWidget);
     expect(find.text('新建项目'), findsWidgets);
     expect(find.text('导入工程'), findsWidgets);
-    expect(find.text('全部项目'), findsOneWidget);
+    expect(find.text('全部作品'), findsOneWidget);
     expect(find.text('最近打开'), findsWidgets);
     expect(find.text('进行中'), findsOneWidget);
   });
@@ -429,39 +432,26 @@ void main() {
     expect(find.textContaining('角色、世界观、风格、版本'), findsOneWidget);
   });
 
-  testWidgets(
-    'opens style, character, world, and audit modules from project list',
-    (tester) async {
-      await tester.pumpWidget(const NovelWriterApp());
-      await tester.pump();
+  testWidgets('opens the work settings and revision hubs from project list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const NovelWriterApp());
+    await tester.pump();
 
-      await openProjectDrawer(tester);
-      await tester.tap(find.byKey(ProjectListPage.styleShortcutKey));
-      await tester.pumpAndSettle();
-      expect(find.text('风格面板'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
+    await openProjectDrawer(tester);
+    await tester.tap(find.text('作品设定'));
+    await tester.pumpAndSettle();
+    expect(find.text('作品圣经摘要'), findsOneWidget);
+    expect(find.text('角色库'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
-      await openProjectDrawer(tester);
-      await tester.tap(find.byKey(ProjectListPage.characterShortcutKey));
-      await tester.pumpAndSettle();
-      expect(find.text('角色库'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-
-      await openProjectDrawer(tester);
-      await tester.tap(find.byKey(ProjectListPage.worldShortcutKey));
-      await tester.pumpAndSettle();
-      expect(find.text('世界观'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-
-      await openProjectDrawer(tester);
-      await tester.tap(find.byKey(ProjectListPage.auditShortcutKey));
-      await tester.pumpAndSettle();
-      expect(find.text('问题检查'), findsOneWidget);
-    },
-  );
+    await openProjectDrawer(tester);
+    await tester.tap(find.text('改稿'));
+    await tester.pumpAndSettle();
+    expect(find.text('问题数量'), findsOneWidget);
+    expect(find.text('问题检查'), findsOneWidget);
+  });
 
   testWidgets('shows project list empty state', (tester) async {
     await tester.pumpWidget(
@@ -558,42 +548,43 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('deletes a project after confirmation and removes it from shelf', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const NovelWriterApp());
-    await tester.pump();
+  testWidgets(
+    'deletes a project after confirmation and removes it from shelf',
+    (tester) async {
+      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pump();
 
-    // The default shelf has 3 projects: 月潮回声, 盐港档案, 灰烬天气
-    expect(find.text('月潮回声'), findsWidgets);
+      // The default shelf has 3 projects: 月潮回声, 盐港档案, 灰烬天气
+      expect(find.text('月潮回声'), findsWidgets);
 
-    // Tap the delete button in the detail panel for the selected project
-    final deleteButton = find.descendant(
-      of: find.byKey(ProjectListPage.detailKey),
-      matching: find.widgetWithText(OutlinedButton, '删除'),
-    );
-    await tester.ensureVisible(deleteButton);
-    await tester.tap(deleteButton, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      // Tap the delete button in the detail panel for the selected project
+      final deleteButton = find.descendant(
+        of: find.byKey(ProjectListPage.detailKey),
+        matching: find.widgetWithText(OutlinedButton, '删除'),
+      );
+      await tester.ensureVisible(deleteButton);
+      await tester.tap(deleteButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    // Confirmation dialog appears
-    expect(find.text('确认删除项目'), findsOneWidget);
-    expect(find.text('删除对象'), findsOneWidget);
-    expect(find.text('删除说明'), findsOneWidget);
+      // Confirmation dialog appears
+      expect(find.text('确认删除项目'), findsOneWidget);
+      expect(find.text('删除对象'), findsOneWidget);
+      expect(find.text('删除说明'), findsOneWidget);
 
-    // Confirm deletion by tapping the "删除" button in the dialog actions
-    await tester.tap(find.text('删除').last);
-    await tester.pumpAndSettle();
+      // Confirm deletion by tapping the "删除" button in the dialog actions
+      await tester.tap(find.text('删除').last);
+      await tester.pumpAndSettle();
 
-    // The project should no longer appear in the shelf cards
-    expect(find.text('月潮回声'), findsNothing);
+      // The project should no longer appear in the shelf cards
+      expect(find.text('月潮回声'), findsNothing);
 
-    // The shelf should now show only the remaining 2 projects
-    final workspaceStore = AppWorkspaceScope.of(
-      tester.element(find.byType(ProjectListPage)),
-    );
-    expect(workspaceStore.projects.length, 2);
-  });
+      // The shelf should now show only the remaining 2 projects
+      final workspaceStore = AppWorkspaceScope.of(
+        tester.element(find.byType(ProjectListPage)),
+      );
+      expect(workspaceStore.projects.length, 2);
+    },
+  );
 
   testWidgets('canceling delete dialog keeps the project on the shelf', (
     tester,

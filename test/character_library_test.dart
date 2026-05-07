@@ -39,14 +39,12 @@ void main() {
   });
 
   testWidgets('shows character library ready state', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
 
-    expect(find.text('角色库'), findsOneWidget);
-    expect(find.text('维护人物信息、心理参数与引用场景'), findsOneWidget);
+    expect(find.text('作品设定 · 角色库'), findsOneWidget);
+    expect(find.text('人物资料与引用关系'), findsOneWidget);
     expect(find.text('新建角色'), findsOneWidget);
-    expect(find.text('人物资料已保存'), findsOneWidget);
+    expect(find.text('作品设定 · 人物资料已保存'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -58,10 +56,7 @@ void main() {
 
     expect(find.text('当前项目无角色'), findsOneWidget);
     expect(find.text('创建第一个角色'), findsOneWidget);
-    expect(
-      find.textContaining('先建立主要人物'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('先建立主要人物'), findsOneWidget);
   });
 
   testWidgets('shows search no results state', (tester) async {
@@ -89,14 +84,8 @@ void main() {
     );
 
     expect(find.text('缺少必填字段'), findsOneWidget);
-    expect(
-      find.textContaining('当前人物还没有名字'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('缺少姓名时，系统不会生成角色摘要'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('当前人物还没有名字'), findsOneWidget);
+    expect(find.textContaining('缺少姓名时，暂不整理角色摘要'), findsOneWidget);
   });
 
   testWidgets('shows delete referenced confirm overlay', (tester) async {
@@ -117,9 +106,7 @@ void main() {
   testWidgets('ready state shows character list with default characters', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -135,9 +122,7 @@ void main() {
   testWidgets('ready state shows editable fields for selected character', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -153,9 +138,7 @@ void main() {
   });
 
   testWidgets('ready state shows summary panel', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -171,9 +154,7 @@ void main() {
   // ---------------------------------------------------------------------------
 
   testWidgets('creates a new character with all fields', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -244,9 +225,7 @@ void main() {
   });
 
   testWidgets('edits an existing character name', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -266,9 +245,7 @@ void main() {
     // Now clear the name field and enter a new name.
     // The default project created by createProject clones default characters,
     // so the ID is not the stable 'character-liuxi'. Find it from the store.
-    final liuXi = workspaceStore.characters.firstWhere(
-      (c) => c.name == '柳溪',
-    );
+    final liuXi = workspaceStore.characters.firstWhere((c) => c.name == '柳溪');
     final nameFieldKey = ValueKey<String>(
       '${CharacterLibraryPage.nameFieldKey.value}-${liuXi.id}',
     );
@@ -283,9 +260,7 @@ void main() {
   });
 
   testWidgets('filters characters by search query', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: CharacterLibraryPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
     );
@@ -311,10 +286,7 @@ void main() {
     expect(find.text('傅行舟'), findsNothing);
 
     // Clear the search to restore all characters.
-    await tester.enterText(
-      find.byKey(CharacterLibraryPage.searchFieldKey),
-      '',
-    );
+    await tester.enterText(find.byKey(CharacterLibraryPage.searchFieldKey), '');
     await tester.pump();
 
     expect(find.text('柳溪'), findsWidgets);
@@ -341,14 +313,8 @@ void main() {
 
     // Verify the warning card appears with expected messages.
     expect(find.text('缺少必填字段'), findsOneWidget);
-    expect(
-      find.textContaining('当前人物还没有名字'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('缺少姓名时，系统不会生成角色摘要'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('当前人物还没有名字'), findsOneWidget);
+    expect(find.textContaining('缺少姓名时，暂不整理角色摘要'), findsOneWidget);
 
     // The detail panel should still show editable fields when a character
     // is present, but with the warning card above them.

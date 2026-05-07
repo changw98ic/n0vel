@@ -16,6 +16,8 @@ abstract final class AppRoutes {
   static const String productionBoard = 'production_board';
   static const String reviewTasks = 'review_tasks';
   static const String versions = 'versions';
+  static const String workSettingsHub = 'work_settings_hub';
+  static const String revisionHub = 'revision_hub';
   static const String reading = 'reading';
   static const String sandbox = 'sandbox';
 }

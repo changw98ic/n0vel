@@ -4,18 +4,18 @@
 
 - 本测试集只覆盖作者端 AI 辅助创作的真实端到端链路。
 - 不覆盖登录、注册、登出、权限找回、多账号切换等账号能力。
-- 不测试新增大模型供应商、provider 配置页新增、删除或编辑供应商能力。
+- 不测试任意自定义新增大模型供应商；只覆盖应用内置的 `单章生成路由预设` 应用、展示和非密钥内容编辑入口。
 - 不允许让 AI 填写、读取、展示、复制、导出或输出任何 API Key。
 - 不在提示词、正文、角色、世界观、风格、场景、审核中心或导出文件中输入真实 API Key。
-- provider 只验证系统已预置 provider 在真实创作链路中可用，且只观察可用、不可用、失败恢复等状态。
+- provider 验证包含两类：普通 AI 续写 provider 可用性；单章生成多供应商路由预设（GLM 默认兜底、Kimi 导演/角色回合、MiMo 节拍/编辑/评审/质量）在设置页和真实创作链路中可见、可保存、可恢复。
 - 所有 AI 生成类用例均以真实 provider 返回内容为准，不使用 mock 响应作为通过依据。
 
 ## 2. 通用前置条件
 
 - 测试环境已启动，作者端可访问。
-- 系统中已存在至少一个已预置且可用的 AI provider。
+- 系统中已存在至少一个已预置且可用的 AI provider；单章生成多供应商测试需环境具备或可预置 `智谱 GLM`、`Ollama Cloud Kimi`、`Xiaomi MiMo` 三类 provider 配置。
 - 浏览器未登录态不影响进入作者端，或测试环境默认进入作者端。
-- 测试过程中不打开开发者配置页录入 API Key。
+- 测试过程中不打开开发者配置页录入 API Key；设置页只验证 provider/profile/route 可见性和密钥字段安全表现，不记录、不截图、不导出任何真实 API Key。
 - 测试项目名统一使用 `AI 辅助创作 E2E 测试项目`。
 - 测试正文统一使用中文，不包含敏感凭据。
 
@@ -289,18 +289,18 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 覆盖点 | provider 可用性、边界 |
-| 前置条件 | 系统有预置 provider |
+| 覆盖点 | provider 可用性、单章生成路由预设边界 |
+| 前置条件 | 系统有预置 provider；如执行单章生成路由联动，需先完成 TC-026 |
 | 执行状态 | 已执行 |
 | 执行结果 | 通过 |
 | 执行日期 | 2026-05-06 |
 | 执行人 | Codex + Computer Use |
 | 执行环境 | macOS Flutter desktop debug (`flutter run -d macos`) |
 | 缺陷记录 | 无。AI 面板显示 `AI 已就绪`、当前模型 `kimi-k2.6`，未要求输入 API Key，续写生成成功。 |
-| 操作步骤与事件预期 | 1. 打开 AI 生成面板。<br>2. 点击 provider 下拉框，预期仅展示已预置 provider 或默认 provider。<br>3. 选择一个可用 provider。<br>4. 点击 `继续写作` 或 `生成`。<br>5. 等待返回成功或可解释的失败提示。 |
-| 页面预期 | 不出现新增 provider 按钮作为测试入口；不出现 API Key 输入框；provider 状态可辨识。 |
-| 状态/数据预期 | 成功时记录 provider 可用；失败时记录 provider 调用失败但不泄露凭据。 |
-| 失败判定 | 页面要求用户输入 API Key；AI 输出疑似密钥；新增供应商配置被引导为必要步骤；provider 失败无提示。 |
+| 操作步骤与事件预期 | 1. 打开 AI 生成面板。<br>2. 点击 provider 下拉框，预期展示默认 provider 或已预置 provider。<br>3. 如已应用单章生成路由预设，确认默认/兜底 provider 为 `智谱 GLM · glm-5.1`，并可在设置页看到 `ollama-kimi` 与 `mimo`。<br>4. 选择一个可用 provider。<br>5. 点击 `继续写作` 或 `生成`。<br>6. 等待返回成功或可解释的失败提示。 |
+| 页面预期 | 普通 AI 续写不把新增 provider 作为必填入口；不出现明文 API Key 输入框；provider 状态可辨识。 |
+| 状态/数据预期 | 成功时记录 provider 可用；失败时记录 provider 调用失败但不泄露凭据；单章生成路由预设存在时，未命中 trace 应回落到 GLM 默认配置。 |
+| 失败判定 | 页面要求用户输入或展示明文 API Key；AI 输出疑似密钥；单章生成路由预设应用后默认 provider 不是 GLM；provider 失败无提示。 |
 
 ### TC-017 审核中心检查 AI 生成内容
 
@@ -455,10 +455,45 @@
 | 状态/数据预期 | 项目数据完整串联；AI 内容符合角色、世界观、风格、场景约束；导出内容等于当前已保存正文。 |
 | 失败判定 | 任一模块阻断主链路；AI 无法使用预置 provider；采纳内容未进入审核或导出；出现 API Key 读取、填写或输出要求。 |
 
+### TC-026 设置页应用单章生成多供应商路由预设
+
+| 字段 | 内容 |
+| --- | --- |
+| 覆盖点 | 设置页、多提供方配置、单章生成路由预设、GLM/Kimi/MiMo 分工 |
+| 前置条件 | 打开作者端；设置页可访问；测试环境允许查看 provider profile 与 route 配置；不记录任何真实 API Key |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 未记录 |
+| 操作步骤与事件预期 | 1. 点击 `设置` 入口，预期进入模型提供方配置页。<br>2. 定位到 `多提供方配置` 区块，点击 `应用单章生成路由预设`。<br>3. 观察默认模型提供方区块，预期 provider 为 `智谱 GLM`，接口地址为 `https://open.bigmodel.cn/api/paas/v4`，模型为 `glm-5.1`。<br>4. 观察 provider profile 列表，预期出现 `ollama-kimi`，提供方为 `Ollama Cloud`，模型为 `kimi-k2.6`，接口地址为 `https://ollama.com/v1`。<br>5. 观察 provider profile 列表，预期出现 `mimo`，提供方为 `Xiaomi MiMo`，模型为 `mimo-v2.5-pro`，接口地址为 `https://token-plan-cn.xiaomimimo.com/v1`。<br>6. 点击 `ollama-kimi` 的编辑按钮，预期打开编辑弹窗；`标识` 只读，provider、接口地址、模型、密钥字段可见；关闭弹窗，不记录密钥值。<br>7. 点击 `mimo` 的编辑按钮，预期打开编辑弹窗；`标识` 只读，provider、接口地址、模型、密钥字段可见；关闭弹窗，不记录密钥值。<br>8. 定位到 `路由规则` 区块，逐条检查 Kimi 路由：`scene_director_polish -> ollama-kimi`、`scene_roleplay_turn -> ollama-kimi`、`scene_roleplay_arbitrate -> ollama-kimi`。<br>9. 逐条检查 MiMo 路由：`scene_beat_resolve -> mimo`、`scene_editorial -> mimo`、`language_polish -> mimo`、`scene_combined_review -> mimo`、`scene_review_* -> mimo`、`scene_quality_scoring -> mimo`。<br>10. 离开设置页再返回设置页，预期 provider profiles 与 routes 仍存在。 |
+| 页面预期 | 设置页清晰区分默认 provider、额外 provider profile 和 route；预设按钮可重复点击且不会生成重复 profile 或重复 route；非默认 profile 可编辑；默认 `primary` 不能删除。 |
+| 状态/数据预期 | 默认/兜底 provider 为 GLM；Kimi 只负责导演规划与角色回合/仲裁 trace；MiMo 负责节拍解析、编辑成文、润色、综合评审、评审修复通配和质量评分 trace；已有同名 profile 的 API Key 不应被清空；API Key 不应出现在列表、报告、导出或 AI 输出中。 |
+| 失败判定 | 点击预设后缺少 GLM 默认配置；缺少 `ollama-kimi` 或 `mimo`；任一 trace 路由缺失或指向错误 provider；重复点击生成重复路由；编辑弹窗明文暴露 API Key；离开设置页后配置丢失。 |
+
+### TC-027 单章生成真实链路与多供应商路由验证
+
+| 字段 | 内容 |
+| --- | --- |
+| 覆盖点 | 单章/单场景生成真实链路、`ChapterGenerationOrchestrator`、生成过程面板、GLM/Kimi/MiMo trace 路由、候选稿采纳 |
+| 前置条件 | 已完成 TC-026；GLM、Kimi、MiMo 三类 provider 均具备真实可用凭据；测试项目中至少有一个角色、一个世界观设定、一个当前场景；当前场景必须有明确章节/场景大纲或场景目标，不能停留在 `等待补充场景目标、冲突和收束条件。` 这类占位文案；正文上下文可以为空；不记录任何真实 API Key |
+| 执行状态 | 未执行 |
+| 执行结果 | 未记录 |
+| 执行日期 | 未记录 |
+| 执行人 | 未记录 |
+| 执行环境 | 未记录 |
+| 缺陷记录 | 未记录 |
+| 操作步骤与事件预期 | 1. 打开 `AI 辅助创作 E2E 测试项目`，进入正文工作台。<br>2. 确认当前场景已设置，例如 `钟楼地下三层`，且出场角色、世界观资料和章节/场景大纲或场景目标可在工作台看到；如正文为空，记录为 `空正文生成` 场景。<br>3. 点击生成过程卡片中的 `让 AI 写这一场`，预期弹出 `确认让 AI 写这一场` 对话框。<br>4. 在确认弹窗中检查 `将使用` provider 摘要，预期显示 GLM 默认 provider 或单章生成路由预设摘要，且不展示任何 API Key；检查 `场景目标` 不为空且不是占位文案；检查 `当前正文` 可以为 `0 字符`。<br>5. 点击 `确认生成候选稿`，预期生成过程卡片进入运行中状态，按钮禁用或显示 `停止`。<br>6. 等待生成过程更新，预期依次或近似依次出现导演规划、角色回合、节拍整理、编辑成文、评审/质量相关过程记录。<br>7. 点击 `查看生成过程`，预期打开 `AI 生成过程` 页面或面板，能看到本次运行摘要和高价值过程消息。<br>8. 对照 UI 可见过程、应用日志、trace 文件或控制台 provider 记录中的任一可追溯证据，确认 `scene_director_polish`、`scene_roleplay_turn`、`scene_roleplay_arbitrate` 使用 `ollama-kimi`；确认 `scene_beat_resolve`、`scene_editorial`、`language_polish`、`scene_combined_review`、`scene_review_*`、`scene_quality_scoring` 使用 `mimo`；未命中上述 trace 的请求回落到 GLM。<br>9. 返回工作台，等待候选稿生成完成，预期出现 `候选稿已生成` 或同等完成提示，并展示候选正文。<br>10. 点击采纳候选稿，预期正文更新为候选内容，生成过程记录仍可查看。<br>11. 打开版本或审核入口，预期可基于采纳后的正文创建版本或生成审核任务。 |
+| 页面预期 | 生成过程不会直接覆盖正文；运行中有明确状态和停止入口；完成后有候选稿、采纳入口和过程回看入口；过程页不展示密钥或原始 secret。 |
+| 状态/数据预期 | 单章生成使用真实 provider 完成；生成结果包含可读正文；角色、世界观、场景目标被反映在候选稿中；采纳后正文、生成过程、版本/审核来源保持一致；provider trace 可从 UI、日志、trace 文件或控制台记录追溯，且与 TC-026 中的 9 条路由一致。 |
+| 失败判定 | 点击 `让 AI 写这一场` 无反应；确认弹窗要求输入或展示 API Key；所有 trace 都由同一个 provider 处理；Kimi/MiMo 路由未命中；生成完成但没有候选稿；候选稿自动覆盖正文；采纳后正文、过程记录或版本/审核来源不一致；生成失败无可恢复提示。 |
+
 ## 5. 通过标准
 
 - 所有用例均可在无登录测试边界内执行。
 - 所有 AI 生成用例均使用已预置 provider 完成真实调用或展示可恢复失败。
+- 单章生成多供应商预设应用后，默认兜底为 `智谱 GLM · glm-5.1`，Kimi/MiMo provider profiles 与 9 条 trace 路由均可在设置页持久化查看，并能通过 UI、日志、trace 文件或控制台记录追溯真实单章/单场景生成链路中的 trace 命中。
 - 页面不要求作者填写 API Key，不读取或输出 API Key。
 - 正文、角色、世界观、风格、场景、版本、审核、导出之间的数据一致。
 - 生成失败、生成中切页、未保存正文切页均有明确保护或恢复路径。

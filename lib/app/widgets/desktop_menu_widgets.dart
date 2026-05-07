@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_split_handle.dart';
 import 'desktop_theme.dart';
 
 class DesktopHandleBar extends StatelessWidget {
@@ -10,58 +11,17 @@ class DesktopHandleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final handle = SizedBox(
+    final handle = AppSplitHandle(
       key: handleKey,
-      width: 20,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          width: 20,
-          height: 72,
-          decoration: BoxDecoration(
-            color: palette.subtle,
-            border: Border.all(color: palette.border),
-            borderRadius: const BorderRadius.horizontal(
-              right: Radius.circular(10),
-            ),
-          ),
-          child: Center(
-            child: Container(
-              width: 12,
-              height: 36,
-              decoration: BoxDecoration(
-                color: palette.surface,
-                border: Border.all(color: palette.border),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(
-                Icons.drag_indicator,
-                size: 14,
-                color: palette.secondaryText,
-              ),
-            ),
-          ),
-        ),
-      ),
+      onTap: onTap,
+      height: 48,
+      semanticLabel: onTap != null ? '切换侧边菜单' : null,
     );
 
     if (onTap == null) {
       return ExcludeSemantics(child: handle);
     }
-
-    return Semantics(
-      button: true,
-      label: '切换侧边菜单',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: ExcludeSemantics(child: handle),
-        ),
-      ),
-    );
+    return handle;
   }
 }
 
@@ -92,99 +52,62 @@ enum DesktopWorkspaceSection {
   storyBible,
   audit,
   settings,
+  workSettingsHub,
+  revisionHub,
 }
 
 List<DesktopMenuItemData> buildDesktopWorkspaceMenuItems({
   required DesktopWorkspaceSection selected,
   required VoidCallback onShelf,
   required VoidCallback onWorkbench,
-  required VoidCallback onStyle,
-  required VoidCallback onScenes,
-  required VoidCallback onCharacters,
-  required VoidCallback onWorldbuilding,
-  required VoidCallback onAudit,
+  required VoidCallback onWorkSettings,
+  required VoidCallback onRevision,
+  required VoidCallback onReading,
   required VoidCallback onSettings,
-  VoidCallback? onImportExport,
-  VoidCallback? onProductionBoard,
-  VoidCallback? onReviewTasks,
-  VoidCallback? onStoryBible,
-  Key? importButtonKey,
   Key? workbenchButtonKey,
-  Key? styleButtonKey,
-  Key? sceneButtonKey,
-  Key? characterButtonKey,
-  Key? worldButtonKey,
-  Key? storyBibleButtonKey,
-  Key? auditButtonKey,
+  Key? readingButtonKey,
 }) {
+  final workSettingsSelected =
+      selected == DesktopWorkspaceSection.workSettingsHub ||
+      selected == DesktopWorkspaceSection.characters ||
+      selected == DesktopWorkspaceSection.worldbuilding ||
+      selected == DesktopWorkspaceSection.style ||
+      selected == DesktopWorkspaceSection.storyBible;
+
+  final revisionSelected =
+      selected == DesktopWorkspaceSection.revisionHub ||
+      selected == DesktopWorkspaceSection.audit ||
+      selected == DesktopWorkspaceSection.reviewTasks ||
+      selected == DesktopWorkspaceSection.productionBoard;
+
   return [
     DesktopMenuItemData(
       label: '书架',
       isSelected: selected == DesktopWorkspaceSection.shelf,
       onTap: onShelf,
     ),
-    if (onImportExport != null)
-      DesktopMenuItemData(
-        label: '导入工程',
-        buttonKey: importButtonKey,
-        isSelected: selected == DesktopWorkspaceSection.importExport,
-        onTap: onImportExport,
-      ),
     DesktopMenuItemData(
-      label: '编辑工作台',
+      label: '写作',
       buttonKey: workbenchButtonKey,
       isSelected: selected == DesktopWorkspaceSection.workbench,
       onTap: onWorkbench,
     ),
     DesktopMenuItemData(
-      label: '风格面板',
-      buttonKey: styleButtonKey,
-      isSelected: selected == DesktopWorkspaceSection.style,
-      onTap: onStyle,
+      label: '作品设定',
+      isSelected: workSettingsSelected,
+      onTap: onWorkSettings,
     ),
     DesktopMenuItemData(
-      label: '场景管理',
-      buttonKey: sceneButtonKey,
+      label: '改稿',
+      isSelected: revisionSelected,
+      onTap: onRevision,
+    ),
+    DesktopMenuItemData(
+      label: '阅读',
+      buttonKey: readingButtonKey,
       isSelected: selected == DesktopWorkspaceSection.scenes,
-      onTap: onScenes,
+      onTap: onReading,
     ),
-    DesktopMenuItemData(
-      label: '角色库',
-      buttonKey: characterButtonKey,
-      isSelected: selected == DesktopWorkspaceSection.characters,
-      onTap: onCharacters,
-    ),
-    DesktopMenuItemData(
-      label: '世界观',
-      buttonKey: worldButtonKey,
-      isSelected: selected == DesktopWorkspaceSection.worldbuilding,
-      onTap: onWorldbuilding,
-    ),
-    if (onStoryBible != null)
-      DesktopMenuItemData(
-        label: '作品圣经',
-        buttonKey: storyBibleButtonKey,
-        isSelected: selected == DesktopWorkspaceSection.storyBible,
-        onTap: onStoryBible,
-      ),
-    DesktopMenuItemData(
-      label: '问题检查',
-      buttonKey: auditButtonKey,
-      isSelected: selected == DesktopWorkspaceSection.audit,
-      onTap: onAudit,
-    ),
-    if (onProductionBoard != null)
-      DesktopMenuItemData(
-        label: '生产看板',
-        isSelected: selected == DesktopWorkspaceSection.productionBoard,
-        onTap: onProductionBoard,
-      ),
-    if (onReviewTasks != null)
-      DesktopMenuItemData(
-        label: '改稿任务',
-        isSelected: selected == DesktopWorkspaceSection.reviewTasks,
-        onTap: onReviewTasks,
-      ),
     DesktopMenuItemData(
       label: '设置',
       isSelected: selected == DesktopWorkspaceSection.settings,
@@ -235,48 +158,55 @@ class DesktopMenuDrawer extends StatelessWidget {
                           key: item.buttonKey,
                           onPressed: item.onTap,
                           style: ButtonStyle(
+                            alignment: Alignment.centerLeft,
                             minimumSize: WidgetStateProperty.all(Size.zero),
                             padding: WidgetStateProperty.all(
                               const EdgeInsets.symmetric(
                                 horizontal: 12,
-                                vertical: 10,
+                                vertical: 9,
                               ),
                             ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: WidgetStateProperty.all(
-                              item.isSelected
-                                  ? palette.subtle
-                                  : palette.elevated,
-                            ),
+                            backgroundColor: WidgetStateProperty.resolveWith((
+                              states,
+                            ) {
+                              if (item.isSelected) {
+                                return palette.subtle;
+                              }
+                              if (states.contains(WidgetState.pressed)) {
+                                return palette.subtle.withValues(alpha: 0.76);
+                              }
+                              if (states.contains(WidgetState.hovered)) {
+                                return palette.subtle.withValues(alpha: 0.42);
+                              }
+                              return Colors.transparent;
+                            }),
                             foregroundColor: WidgetStateProperty.all(
                               item.isSelected
                                   ? theme.colorScheme.onSurface
-                                  : theme.textTheme.bodySmall?.color,
+                                  : palette.secondaryText,
                             ),
-                            overlayColor: WidgetStateProperty.resolveWith((
-                              states,
-                            ) {
-                              if (states.contains(WidgetState.pressed)) {
-                                return palette.subtle;
-                              }
-                              if (states.contains(WidgetState.hovered)) {
-                                return palette.elevated;
-                              }
-                              return null;
-                            }),
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ),
                             textStyle: WidgetStateProperty.all(
                               theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: item.isSelected
-                                    ? FontWeight.w600
+                                    ? FontWeight.w700
                                     : FontWeight.w500,
                               ),
                             ),
-                            side: WidgetStateProperty.all(
-                              BorderSide(color: palette.border),
-                            ),
+                            side: WidgetStateProperty.resolveWith((states) {
+                              if (item.isSelected) {
+                                return BorderSide(color: palette.border);
+                              }
+                              return const BorderSide(
+                                color: Colors.transparent,
+                              );
+                            }),
                             shape: WidgetStateProperty.all(
                               RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(7),
                               ),
                             ),
                           ),

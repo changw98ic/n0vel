@@ -308,10 +308,10 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                       key: SceneManagementPage.deleteSceneButtonKey,
                       onPressed: store.canDeleteCurrentScene
                           ? () => confirmDeleteScene(
-                                context,
-                                sceneTitle: currentScene.title,
-                                onConfirm: store.deleteCurrentScene,
-                              )
+                              context,
+                              sceneTitle: currentScene.title,
+                              onConfirm: store.deleteCurrentScene,
+                            )
                           : null,
                       child: const Text('删除场景'),
                     ),
@@ -365,23 +365,19 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.scenes,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () =>
+          AppNavigator.push(context, AppRoutes.workSettingsHub),
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 }

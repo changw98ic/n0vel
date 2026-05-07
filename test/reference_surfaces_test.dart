@@ -46,10 +46,24 @@ void main() {
     await tester.pump();
   }
 
+  Future<void> openProjectHubItem(
+    WidgetTester tester, {
+    required String hubLabel,
+    required String itemLabel,
+  }) async {
+    if (find.byKey(ProjectListPage.menuDrawerHandleKey).evaluate().isNotEmpty) {
+      await openProjectDrawer(tester);
+      await tester.tap(find.text(hubLabel));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text(itemLabel));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('shows character library ready state', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
 
-    expect(find.text('角色库'), findsOneWidget);
+    expect(find.text('作品设定 · 角色库'), findsOneWidget);
     expect(find.text('柳溪'), findsWidgets);
     expect(find.textContaining('引用摘要'), findsWidgets);
   });
@@ -90,17 +104,13 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp());
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.characterShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '角色库');
     await tester.tap(find.byKey(CharacterLibraryPage.newCharacterButtonKey));
     await tester.pump();
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.characterShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '角色库');
 
     expect(find.text('新角色 4'), findsWidgets);
   });
@@ -114,9 +124,7 @@ void main() {
     workspaceStore.createProject();
     await tester.pump();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.characterShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '角色库');
     await tester.tap(find.byKey(CharacterLibraryPage.newCharacterButtonKey));
     await tester.pump();
     expect(find.text('新角色 4'), findsWidgets);
@@ -127,9 +135,7 @@ void main() {
     workspaceStore.openProject('project-yuechao');
     await tester.pump();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.characterShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '角色库');
 
     expect(find.text('新角色 4'), findsNothing);
     expect(find.text('柳溪'), findsWidgets);
@@ -183,10 +189,10 @@ void main() {
 
     expect(find.text('缺少必填字段'), findsOneWidget);
     expect(
-      find.text('当前人物还没有名字，因此这次不会保存到人物资料，也不会刷新写作工作台的人物摘要。'),
+      find.text('当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。'),
       findsOneWidget,
     );
-    expect(find.text('缺少姓名时，系统不会生成角色摘要，也不会同步到写作工作台。'), findsOneWidget);
+    expect(find.text('缺少姓名时，暂不整理角色摘要，也不会同步到写作工作台。'), findsOneWidget);
   });
 
   testWidgets('shows character library delete referenced confirm', (
@@ -209,7 +215,7 @@ void main() {
   testWidgets('shows worldbuilding ready state', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
 
-    expect(find.text('世界观'), findsOneWidget);
+    expect(find.text('作品设定 · 世界观'), findsOneWidget);
     expect(find.text('旧港规则'), findsWidgets);
   });
 
@@ -249,19 +255,24 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp());
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.worldShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '世界观');
     await tester.tap(find.byKey(WorldbuildingPage.newNodeButtonKey));
     await tester.pump();
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.worldShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '世界观');
 
     expect(find.text('新节点 4'), findsWidgets);
+  });
+
+  testWidgets('project settings hub opens story bible', (tester) async {
+    await tester.pumpWidget(const NovelWriterApp());
+
+    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '作品圣经');
+
+    expect(find.byKey(StoryBiblePage.factsKey), findsOneWidget);
+    expect(find.byKey(StoryBiblePage.statusKey), findsOneWidget);
   });
 
   testWidgets('shows worldbuilding empty and filter states', (tester) async {
@@ -297,8 +308,8 @@ void main() {
       ),
     );
     expect(find.text('缺少必填类型'), findsOneWidget);
-    expect(find.text('当前节点尚未指定类型，因此本轮不会写入世界观索引，也不会同步规则引用。'), findsOneWidget);
-    expect(find.text('节点类型缺失时，系统不会将该节点纳入规则摘要或引用索引。'), findsOneWidget);
+    expect(find.text('当前素材尚未指定类型，因此本轮暂不写入世界观索引，也不会同步规则引用。'), findsOneWidget);
+    expect(find.text('类型缺失时，暂不把这条素材纳入规则摘要或引用索引。'), findsOneWidget);
 
     await tester.pumpWidget(
       const NovelWriterApp(
@@ -315,7 +326,7 @@ void main() {
   testWidgets('shows audit center ready state', (tester) async {
     await tester.pumpWidget(const NovelWriterApp(home: AuditCenterPage()));
 
-    expect(find.text('问题检查'), findsOneWidget);
+    expect(find.text('改稿 · 一致性检查'), findsOneWidget);
     expect(find.textContaining('角色动机冲突'), findsOneWidget);
   });
 
@@ -352,9 +363,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp());
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.auditShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '改稿', itemLabel: '问题检查');
 
     await tester.tap(find.byKey(AuditCenterPage.warehouseIssueKey));
     await tester.pump();
@@ -364,12 +373,28 @@ void main() {
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
 
-    await openProjectDrawer(tester);
-    await tester.tap(find.byKey(ProjectListPage.auditShortcutKey));
-    await tester.pumpAndSettle();
+    await openProjectHubItem(tester, hubLabel: '改稿', itemLabel: '问题检查');
 
     expect(find.textContaining('仓库层数认知与旧港地图不一致'), findsOneWidget);
     expect(find.textContaining('已标记为已处理'), findsWidgets);
+  });
+
+  testWidgets('revision hub opens review tasks', (tester) async {
+    await tester.pumpWidget(const NovelWriterApp());
+
+    await openProjectHubItem(tester, hubLabel: '改稿', itemLabel: '改稿任务');
+
+    expect(find.byKey(ReviewTaskPage.titleKey), findsOneWidget);
+    expect(find.text('改稿清单'), findsOneWidget);
+  });
+
+  testWidgets('revision hub opens production board', (tester) async {
+    await tester.pumpWidget(const NovelWriterApp());
+
+    await openProjectHubItem(tester, hubLabel: '改稿', itemLabel: '生产看板');
+
+    expect(find.byKey(ProductionBoardPage.titleKey), findsOneWidget);
+    expect(find.byKey(ProductionBoardPage.progressKey), findsOneWidget);
   });
 
   testWidgets('shows audit center empty and filter states', (tester) async {
@@ -380,8 +405,8 @@ void main() {
     );
     expect(find.text('当前项目暂无问题'), findsOneWidget);
     expect(find.text('暂无一致性问题'), findsOneWidget);
-    expect(find.text('当前项目没有检测到角色、规则、道具或时间线冲突。'), findsOneWidget);
-    expect(find.text('当前无需处理。后续运行问题检查后，问题会出现在这里。'), findsOneWidget);
+    expect(find.text('当前作品没有发现角色、规则、道具或时间线冲突。'), findsOneWidget);
+    expect(find.text('当前无需处理。后续完成一致性检查后，需要核对的线索会出现在这里。'), findsOneWidget);
 
     await tester.pumpWidget(
       const NovelWriterApp(
@@ -405,10 +430,7 @@ void main() {
       ),
     );
     expect(find.text('无法定位关联草稿'), findsOneWidget);
-    expect(
-      find.text('原始 SceneDraft 已被删除或索引失效，因此系统无法在中间区展示对应文本片段。'),
-      findsOneWidget,
-    );
+    expect(find.text('原始场景草稿已被删除或位置失效，因此这里暂时无法展示对应文本片段。'), findsOneWidget);
     expect(find.text('建议动作'), findsOneWidget);
     expect(find.text('重新检查'), findsOneWidget);
     expect(find.text('当前限制'), findsOneWidget);
@@ -420,7 +442,7 @@ void main() {
     );
     expect(find.text('跳转失败'), findsOneWidget);
     expect(
-      find.text('目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从问题检查直接跳回原位置。'),
+      find.text('目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。'),
       findsOneWidget,
     );
     expect(find.text('建议动作'), findsOneWidget);

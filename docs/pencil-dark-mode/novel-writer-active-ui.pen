@@ -6,7 +6,7 @@
       "id": "nXod8",
       "x": 0,
       "y": 0,
-      "name": "Project List",
+      "name": "书架",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -314,7 +314,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -369,7 +369,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -424,7 +424,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -630,7 +630,7 @@
       "id": "YTrUo",
       "x": 3200,
       "y": 0,
-      "name": "Sandbox Monitor",
+      "name": "模拟监控",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -705,7 +705,7 @@
                               "id": "98TES",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -715,7 +715,7 @@
                               "id": "RY92w",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -870,7 +870,7 @@
                   "id": "2CVzx",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -1068,7 +1068,7 @@
                               "type": "text",
                               "id": "QK1HW",
                               "fill": "#2E2925",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -1710,7 +1710,7 @@
                   "type": "text",
                   "id": "F6J0M",
                   "fill": "#6E665E",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -1809,7 +1809,7 @@
       "id": "ff8vo",
       "x": 4800,
       "y": 0,
-      "name": "Style Panel",
+      "name": "风格面板",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -1975,7 +1975,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -2059,7 +2059,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -2393,7 +2393,7 @@
       "id": "DnwrZ",
       "x": 6400,
       "y": 0,
-      "name": "Settings & BYOK",
+      "name": "设置与自带密钥",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -2700,7 +2700,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                  "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -2734,7 +2734,7 @@
               "id": "KPljK",
               "name": "setFooterText",
               "fill": "#6E665E",
-              "content": "配置保存在本地 · 导出包不包含 API 密钥",
+              "content": "配置保存在本地 · 导出包不包含 接口密钥",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -2816,7 +2816,7 @@
       "id": "9gEi3",
       "x": 8000,
       "y": 0,
-      "name": "UI Foundation",
+      "name": "UI 基础规范",
       "width": 1440,
       "height": 1280,
       "fill": "#F6F0E6",
@@ -2847,7 +2847,7 @@
               "id": "CBl2k",
               "name": "ufSubtitle",
               "fill": "#6E665E",
-              "content": "Foundations · Components · States · Warm Linen desktop system",
+              "content": "基础 / 组件 / 状态 / 暖亚麻桌面系统",
               "fontFamily": "Inter",
               "fontSize": 13,
               "fontWeight": "500"
@@ -2884,7 +2884,7 @@
                   "id": "TvR5y",
                   "name": "ufTokensTitle",
                   "fill": "#2E2925",
-                  "content": "色彩与 Token",
+                  "content": "色彩与设计令牌",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -2931,7 +2931,7 @@
                               "id": "1Lzgc",
                               "name": "row1aTx",
                               "fill": "#2E2925",
-                              "content": "Canvas  #F6F0E6",
+                              "content": "画布色  #F6F0E6",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -2965,7 +2965,7 @@
                               "id": "bQPcl",
                               "name": "row1bTx",
                               "fill": "#2E2925",
-                              "content": "Surface  #FBF7F1",
+                              "content": "表面色  #FBF7F1",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -3003,7 +3003,7 @@
                               "id": "uVp7E",
                               "name": "row2aTx",
                               "fill": "#2E2925",
-                              "content": "Text  #2E2925",
+                              "content": "文本色  #2E2925",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -3032,7 +3032,7 @@
                               "id": "1ROAl",
                               "name": "row2bTx",
                               "fill": "#2E2925",
-                              "content": "Muted  #6E665E",
+                              "content": "弱化色  #6E665E",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -3070,7 +3070,7 @@
                               "id": "YrRye",
                               "name": "row3aTx",
                               "fill": "#2E2925",
-                              "content": "Accent  #51624D",
+                              "content": "强调色  #51624D",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -3099,7 +3099,7 @@
                               "id": "nN5zQ",
                               "name": "row3bTx",
                               "fill": "#2E2925",
-                              "content": "Border  #D8CDC0",
+                              "content": "边框色  #D8CDC0",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -3184,7 +3184,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "正文 Body 15/24 · Geist 适用于编辑器和长说明。",
+                      "content": "正文 15/24 · Geist 适用于编辑器和长说明。",
                       "lineHeight": 1.6,
                       "fontFamily": "Geist",
                       "fontSize": 15,
@@ -3197,7 +3197,7 @@
                       "fill": "#6E665E",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "说明 Caption 12/18 · Inter 用于辅助信息和状态。",
+                      "content": "说明文字 12/18 · Inter 用于辅助信息和状态。",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -3247,7 +3247,7 @@
                       "id": "l1ZE5",
                       "name": "buttonsLabel",
                       "fill": "#6E665E",
-                      "content": "Buttons",
+                      "content": "按钮",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -3330,7 +3330,7 @@
                       "id": "vuxpX",
                       "name": "inputsLabel",
                       "fill": "#6E665E",
-                      "content": "Inputs",
+                      "content": "输入框",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -3389,7 +3389,7 @@
                       "id": "YuPff",
                       "name": "cardsLabel",
                       "fill": "#6E665E",
-                      "content": "Cards",
+                      "content": "卡片",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -3502,7 +3502,7 @@
                       "id": "ATHcz",
                       "name": "menuSecLabel",
                       "fill": "#6E665E",
-                      "content": "Shell / Menu",
+                      "content": "外壳 / 菜单",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -3606,7 +3606,7 @@
                               "id": "AloFJ",
                               "name": "menuExpandedItem2",
                               "fill": "#6E665E",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "500"
@@ -3675,7 +3675,7 @@
                           "id": "c7qox",
                           "name": "stateBtnLabel",
                           "fill": "#6E665E",
-                          "content": "Buttons",
+                          "content": "按钮",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -3694,7 +3694,7 @@
                               "name": "stateBtnDef",
                               "descendants": {
                                 "wFfXm": {
-                                  "content": "Default"
+                                  "content": "默认"
                                 }
                               }
                             },
@@ -3705,7 +3705,7 @@
                               "name": "stateBtnAct",
                               "descendants": {
                                 "lbsr7": {
-                                  "content": "Active"
+                                  "content": "激活"
                                 }
                               }
                             },
@@ -3717,7 +3717,7 @@
                               "name": "stateBtnDis",
                               "descendants": {
                                 "wFfXm": {
-                                  "content": "Disabled"
+                                  "content": "禁用"
                                 }
                               }
                             }
@@ -3732,7 +3732,7 @@
                       "fill": "#6E665E",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Inputs follow the same pattern: default, focus, filled, error, disabled.",
+                      "content": "输入框沿用同一套状态：默认、聚焦、已填写、错误、禁用。",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -3763,7 +3763,7 @@
                   "id": "S25hK",
                   "name": "ufNavTitle",
                   "fill": "#2E2925",
-                  "content": "Navigation",
+                  "content": "导航",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -3850,7 +3850,7 @@
                   "id": "f1JZc",
                   "name": "ufDataTitle",
                   "fill": "#2E2925",
-                  "content": "Rows",
+                  "content": "行",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -3952,7 +3952,7 @@
       "id": "47nGt",
       "x": 1600,
       "y": 0,
-      "name": "Writing Workbench",
+      "name": "写作工作台",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -4071,7 +4071,7 @@
                           "id": "6PtOr",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -4081,7 +4081,7 @@
                           "id": "fCFRI",
                           "name": "editorMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -4265,7 +4265,7 @@
               "id": "lg1ZI",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -4289,7 +4289,7 @@
       "id": "WT5mH",
       "x": 15024,
       "y": 0,
-      "name": "Writing Workbench / Default Hidden",
+      "name": "写作工作台 / 默认隐藏",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -4408,7 +4408,7 @@
                           "id": "eyQI7",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -4418,7 +4418,7 @@
                           "id": "ts4Or",
                           "name": "editorMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -4573,7 +4573,7 @@
               "id": "veXZM",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -4583,7 +4583,7 @@
               "id": "QoqHh",
               "name": "statusMeta",
               "fill": "#91887D",
-              "content": "自动保存 · Markdown · 1,284 字",
+              "content": "自动保存 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -4597,7 +4597,7 @@
       "id": "aBO8C",
       "x": 16384,
       "y": 0,
-      "name": "Writing Workbench / Resources Open",
+      "name": "写作工作台 / 资料展开",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -4711,7 +4711,7 @@
                           "id": "br1EM",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -4721,7 +4721,7 @@
                           "id": "Zrfrn",
                           "name": "resMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -4785,7 +4785,7 @@
                       "id": "isvII",
                       "name": "navMeta",
                       "fill": "#91887D",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -4816,7 +4816,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯"
+                      "content": "场景 05 · 雨夜审讯"
                     }
                   }
                 },
@@ -5023,7 +5023,7 @@
               "id": "t9tDZ",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5033,7 +5033,7 @@
               "id": "jon1w",
               "name": "resFootMeta",
               "fill": "#91887D",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5047,7 +5047,7 @@
       "id": "XBhIG",
       "x": 17744,
       "y": 0,
-      "name": "Writing Workbench / AI Selected Tool",
+      "name": "写作工作台 / 已选择 AI 工具",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -5161,7 +5161,7 @@
                           "id": "ODnLm",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -5171,7 +5171,7 @@
                           "id": "DM1uW",
                           "name": "aiMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -5592,7 +5592,7 @@
               "id": "2tBbo",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5602,7 +5602,7 @@
               "id": "EnjaE",
               "name": "aiFootMeta",
               "fill": "#91887D",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5616,7 +5616,7 @@
       "id": "AMlNT",
       "x": 19104,
       "y": 0,
-      "name": "Writing Workbench / AI Tool Picker Open",
+      "name": "写作工作台 / AI 工具选择器展开",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -5730,7 +5730,7 @@
                           "id": "g9qDx",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -5740,7 +5740,7 @@
                           "id": "zi5nY",
                           "name": "aiMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -6424,7 +6424,7 @@
               "id": "eYyJF",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -6434,7 +6434,7 @@
               "id": "ByKU0",
               "name": "aiFootMeta",
               "fill": "#91887D",
-              "content": "AI 展开 · Markdown · 1,284 字",
+              "content": "AI 展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -6448,7 +6448,7 @@
       "id": "i2PgM",
       "x": 20544,
       "y": 0,
-      "name": "Writing Workbench / Menu Drawer Open",
+      "name": "写作工作台 / 菜单抽屉展开",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -6562,7 +6562,7 @@
                   "name": "drawerChap",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Dashboard"
+                      "content": "仪表盘"
                     }
                   }
                 },
@@ -6627,7 +6627,7 @@
                       "id": "hdhat",
                       "name": "editorTitle",
                       "fill": "#2E2925",
-                      "content": "Lunaris / 第三章 / Scene 05",
+                      "content": "Lunaris / 第三章 / 场景 05",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -6637,7 +6637,7 @@
                       "id": "U64t0",
                       "name": "editorMeta",
                       "fill": "#91887D",
-                      "content": "自动保存 · Markdown",
+                      "content": "自动保存 · 标记文本",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "500"
@@ -6821,7 +6821,7 @@
               "id": "zjNrp",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -6845,7 +6845,7 @@
       "id": "Ym6ea",
       "x": 21984,
       "y": 0,
-      "name": "Chapter Versions / Recent Five",
+      "name": "章节版本 / 最近五个",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -7188,7 +7188,7 @@
                       "id": "qha8h",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -7489,7 +7489,7 @@
               "id": "snsZq",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -7513,7 +7513,7 @@
       "id": "GD63C",
       "x": 23424,
       "y": 0,
-      "name": "Reading Mode / Pure Reader",
+      "name": "阅读模式 / 纯净阅读",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -7715,7 +7715,7 @@
       "id": "XYBaG",
       "x": 24864,
       "y": 0,
-      "name": "AI Revision Confirmation / Batch Review",
+      "name": "AI 修订确认 / 批量审阅",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -8038,7 +8038,7 @@
       "id": "4KVQe",
       "x": 26304,
       "y": 0,
-      "name": "Character Library",
+      "name": "角色库",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -8330,7 +8330,7 @@
                   "name": "charFear",
                   "descendants": {
                     "QC1sj": {
-                      "content": "Fear"
+                      "content": "恐惧"
                     },
                     "qZ1bN": {
                       "content": "失去对真相的控制"
@@ -8345,7 +8345,7 @@
                   "name": "charNeed",
                   "descendants": {
                     "QC1sj": {
-                      "content": "Need"
+                      "content": "需求"
                     },
                     "qZ1bN": {
                       "content": "确认账本与钥匙线索"
@@ -8397,7 +8397,7 @@
                       "content": "引用场景"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05"
+                      "content": "场景 05"
                     }
                   }
                 }
@@ -8412,7 +8412,7 @@
       "id": "dH2Mr",
       "x": 27904,
       "y": 0,
-      "name": "Worldbuilding",
+      "name": "世界观",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -8750,7 +8750,7 @@
                       "content": "引用场景"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05"
+                      "content": "场景 05"
                     }
                   }
                 }
@@ -8765,7 +8765,7 @@
       "id": "p8Lkt",
       "x": 29504,
       "y": 0,
-      "name": "Audit Center",
+      "name": "审计中心",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -9040,7 +9040,7 @@
                       "content": "关联场景"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05"
+                      "content": "场景 05"
                     }
                   }
                 }
@@ -9120,7 +9120,7 @@
       "id": "z0mJ1",
       "x": 31104,
       "y": 0,
-      "name": "Project Import Export",
+      "name": "工程导入导出",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -9381,7 +9381,7 @@
                   "name": "manifestRow",
                   "descendants": {
                     "LRWgX": {
-                      "content": "manifest"
+                      "content": "清单文件"
                     },
                     "Pa6iW": {
                       "content": "schema v1"
@@ -9441,7 +9441,7 @@
       "id": "kJVPV",
       "x": 32704,
       "y": 0,
-      "name": "Project Import Export / Overwrite Confirm",
+      "name": "工程导入导出 / 覆盖确认",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -9714,7 +9714,7 @@
                       "name": "manifestRow",
                       "descendants": {
                         "LRWgX": {
-                          "content": "manifest"
+                          "content": "清单文件"
                         },
                         "Pa6iW": {
                           "content": "schema v1"
@@ -9890,7 +9890,7 @@
       "id": "YqiXr",
       "x": 34304,
       "y": 0,
-      "name": "Project Import Export / Invalid Package",
+      "name": "工程导入导出 / 无效工程包",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -10163,7 +10163,7 @@
                       "name": "manifestRow",
                       "descendants": {
                         "LRWgX": {
-                          "content": "manifest"
+                          "content": "清单文件"
                         },
                         "Pa6iW": {
                           "content": "schema v1"
@@ -10330,7 +10330,7 @@
       "id": "XkB5L",
       "x": 35904,
       "y": 0,
-      "name": "AI Revision Confirmation / Three Blocks",
+      "name": "AI 修订确认 / 三个修改块",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -10559,7 +10559,7 @@
       "id": "PUmdJ",
       "x": 37264,
       "y": 0,
-      "name": "Chapter Versions / History AI Expanded",
+      "name": "章节版本 / 历史 AI 变更展开",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -11096,7 +11096,7 @@
               "id": "UhCzl",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -11120,7 +11120,7 @@
       "id": "Cz57s",
       "x": 38704,
       "y": 0,
-      "name": "Reading Mode / Chapter Boundary",
+      "name": "阅读模式 / 章节边界",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -11360,7 +11360,7 @@
       "id": "bAyGg",
       "x": 40144,
       "y": 0,
-      "name": "Audit Center / Empty",
+      "name": "审计中心 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -11672,7 +11672,7 @@
       "id": "MS3Oh",
       "x": 41744,
       "y": 0,
-      "name": "Project List / Empty",
+      "name": "书架 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -12072,7 +12072,7 @@
       "id": "qpmBd",
       "x": 43344,
       "y": 0,
-      "name": "Character Library / Empty",
+      "name": "角色库 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -12296,7 +12296,7 @@
                   "fill": "#6E665E",
                   "textGrowth": "fixed-width",
                   "width": 420,
-                  "content": "先建立主要人物，再为其填写角色定位、Fear、Need 和引用场景。",
+                  "content": "先建立主要人物，再为其填写角色定位、恐惧、需求 和引用场景。",
                   "lineHeight": 1.55,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -12362,7 +12362,7 @@
       "id": "5HcpF",
       "x": 44944,
       "y": 0,
-      "name": "Worldbuilding / Empty",
+      "name": "世界观 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -12619,7 +12619,7 @@
                   "fill": "#91887D",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "建议优先录入地点与规则，再在写作工作台中关联到具体章节与 Scene。",
+                  "content": "建议优先录入地点与规则，再在写作工作台中关联到具体章节与 场景。",
                   "lineHeight": 1.5,
                   "fontFamily": "Inter",
                   "fontSize": 12,
@@ -12636,7 +12636,7 @@
       "id": "ABdeI",
       "x": 46544,
       "y": 0,
-      "name": "Style Panel / JSON Error",
+      "name": "风格面板 / JSON 校验错误",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -12814,7 +12814,7 @@
                               "name": "modeJ",
                               "descendants": {
                                 "nOBnP": {
-                                  "content": "JSON"
+                                  "content": "结构化草稿"
                                 }
                               }
                             }
@@ -12898,7 +12898,7 @@
                           "name": "jsonPath",
                           "descendants": {
                             "QC1sj": {
-                              "content": "StyleProfile JSON"
+                              "content": "风格配置 JSON"
                             },
                             "qZ1bN": {
                               "content": "/styles/cold-suspense.json"
@@ -13273,7 +13273,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "错误 1：缺少必填字段 version\n错误 2：rhythm_profile 值不受支持\n\n当前选择的 StyleProfile JSON 不符合 MVP 支持的字段约定，系统不会生成风格配置。请修正 JSON 后重新导入。",
+              "content": "错误 1：缺少必填字段 version\n错误 2：rhythm_profile 值不受支持\n\n当前选择的风格配置 JSON 不符合 MVP 支持的字段约定，系统不会生成风格配置。请修正 JSON 后重新导入。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -13320,7 +13320,7 @@
       "id": "URbAX",
       "x": 48144,
       "y": 0,
-      "name": "Settings / Connection Failed",
+      "name": "设置 / 连接失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -13639,7 +13639,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -13673,7 +13673,7 @@
                   "id": "6LVmR",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -13796,7 +13796,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：超时\n请求：OpenAI-compatible / gpt-5.4-mini\n\n系统未保存这次失败结果，也不会影响现有写作项目。请检查 base_url、api_key 或网络状态后重试。",
+              "content": "状态：超时\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n系统未保存这次失败结果，也不会影响现有写作项目。请检查 base_url、api_key 或网络状态后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -13843,7 +13843,7 @@
       "id": "v82se",
       "x": 49744,
       "y": 0,
-      "name": "Chapter Versions / Single Version",
+      "name": "章节版本 / 单版本",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -14022,7 +14022,7 @@
                       "id": "m3tAs",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -14324,7 +14324,7 @@
               "id": "FNKIK",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -14348,7 +14348,7 @@
       "id": "fBn5z",
       "x": 51104,
       "y": 0,
-      "name": "Simulation Monitor / Empty",
+      "name": "模拟监控 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -14479,7 +14479,7 @@
                               "id": "Q1RU4",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Lunaris / 第三章 / Scene 05",
+                              "content": "Lunaris / 第三章 / 场景 05",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -14489,7 +14489,7 @@
                               "id": "YigPo",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -14673,7 +14673,7 @@
                   "id": "I6A4M",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -14738,7 +14738,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "当前章节还没有运行过 SimulationRun，因此暂时没有多 agent 输出可查看。请先在写作工作台发起一次模拟。",
+              "content": "当前章节还没有运行过 模拟运行，因此暂时没有多智能体 输出可查看。请先在写作工作台发起一次模拟。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -14774,7 +14774,7 @@
       "id": "hs0KX",
       "x": 46544,
       "y": 0,
-      "name": "Style Panel / Empty",
+      "name": "风格面板 / 空状态",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -14976,7 +14976,7 @@
                           "type": "text",
                           "id": "y47rX",
                           "fill": "#2E2925",
-                          "content": "JSON",
+                          "content": "结构化草稿",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "500"
@@ -15152,7 +15152,7 @@
       "id": "WwWEh",
       "x": 54304,
       "y": 0,
-      "name": "Settings / Unconfigured",
+      "name": "设置 / 未配置",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -15437,7 +15437,7 @@
                   "fill": "#91887D",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。未完成配置前，不会影响其他本地写作功能。",
+                  "content": "接口密钥仅保存在本地。未完成配置前，不会影响其他本地写作功能。",
                   "lineHeight": 1.5,
                   "fontFamily": "Inter",
                   "fontSize": 12,
@@ -15481,7 +15481,7 @@
       "id": "bRkQL",
       "x": 55904,
       "y": 0,
-      "name": "Character Library / Delete Referenced Confirm",
+      "name": "角色库 / 删除被引用项确认",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -15785,7 +15785,7 @@
                       "name": "charFear",
                       "descendants": {
                         "QC1sj": {
-                          "content": "Fear"
+                          "content": "恐惧"
                         },
                         "qZ1bN": {
                           "content": "失去对真相的控制"
@@ -15800,7 +15800,7 @@
                       "name": "charNeed",
                       "descendants": {
                         "QC1sj": {
-                          "content": "Need"
+                          "content": "需求"
                         },
                         "qZ1bN": {
                           "content": "确认账本与钥匙线索"
@@ -15852,7 +15852,7 @@
                           "content": "引用场景"
                         },
                         "Pa6iW": {
-                          "content": "Scene 05"
+                          "content": "场景 05"
                         }
                       }
                     }
@@ -15908,7 +15908,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "角色“林岳”仍被 Scene 05 引用。继续删除会导致相关场景失去角色绑定。\n\n建议先回到工作台或角色库移除引用，再执行删除。",
+              "content": "角色“林岳”仍被 场景 05 引用。继续删除会导致相关场景失去角色绑定。\n\n建议先回到工作台或角色库移除引用，再执行删除。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -15925,7 +15925,7 @@
                   "content": "引用场景"
                 },
                 "Pa6iW": {
-                  "content": "Scene 05"
+                  "content": "场景 05"
                 }
               }
             },
@@ -15970,7 +15970,7 @@
       "id": "CQycp",
       "x": 57504,
       "y": 0,
-      "name": "Worldbuilding / Delete Parent Confirm",
+      "name": "世界观 / 删除父节点确认",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -16320,7 +16320,7 @@
                           "content": "引用场景"
                         },
                         "Pa6iW": {
-                          "content": "Scene 05"
+                          "content": "场景 05"
                         }
                       }
                     }
@@ -16438,7 +16438,7 @@
       "id": "O5g2A",
       "x": 59104,
       "y": 0,
-      "name": "Project Import Export / No Exportable Project",
+      "name": "工程导入导出 / 无可导出项目",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -16721,7 +16721,7 @@
       "id": "hroTw",
       "x": 60704,
       "y": 0,
-      "name": "Settings / Invalid Base URL",
+      "name": "设置 / 接口地址无效",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -17040,7 +17040,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -17074,7 +17074,7 @@
                   "id": "Dqrie",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -17244,7 +17244,7 @@
       "id": "UbuvO",
       "x": 60704,
       "y": 0,
-      "name": "Project List / Search No Results",
+      "name": "书架 / 搜索无结果",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -17489,7 +17489,7 @@
       "id": "az4YP",
       "x": 62304,
       "y": 0,
-      "name": "Project List / Search No Results",
+      "name": "书架 / 搜索无结果",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -17964,7 +17964,7 @@
       "id": "fjUbH",
       "x": 62304,
       "y": 0,
-      "name": "Style Panel / Max Profiles Reached",
+      "name": "风格面板 / 风格配置达上限",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -18166,7 +18166,7 @@
                           "type": "text",
                           "id": "ukoep",
                           "fill": "#2E2925",
-                          "content": "JSON",
+                          "content": "结构化草稿",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "500"
@@ -18342,7 +18342,7 @@
       "id": "9izFv",
       "x": 63904,
       "y": 0,
-      "name": "Settings / Missing API Key",
+      "name": "设置 / 缺少接口密钥",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -18513,7 +18513,7 @@
       "id": "6yJaH",
       "x": 65504,
       "y": 0,
-      "name": "Settings / Missing API Key",
+      "name": "设置 / 缺少接口密钥",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -18656,7 +18656,7 @@
                   "id": "ZLY0I",
                   "name": "settingsEmptyLeftNote",
                   "fill": "#6E665E",
-                  "content": "已填写接口地址与模型，但缺少 API Key",
+                  "content": "已填写接口地址与模型，但缺少接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -18732,7 +18732,7 @@
                   "id": "2qwzy",
                   "name": "settingsEmptyCenterTitle",
                   "fill": "#2E2925",
-                  "content": "缺少 API Key",
+                  "content": "缺少接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 20,
                   "fontWeight": "600"
@@ -18744,7 +18744,7 @@
                   "fill": "#6E665E",
                   "textGrowth": "fixed-width",
                   "width": 360,
-                  "content": "当前 base_url 和模型已就绪，但未填写 API Key，因此禁止测试连接。",
+                  "content": "当前 base_url 和模型已就绪，但未填写接口密钥，因此禁止测试连接。",
                   "lineHeight": 1.55,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -18798,7 +18798,7 @@
                   "fill": "#91887D",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。未完成配置前，不会影响其他本地写作功能。",
+                  "content": "接口密钥仅保存在本地。未完成配置前，不会影响其他本地写作功能。",
                   "lineHeight": 1.5,
                   "fontFamily": "Inter",
                   "fontSize": 12,
@@ -18828,7 +18828,7 @@
               "id": "HJF46",
               "name": "settingsEmptyFooterText",
               "fill": "#6E665E",
-              "content": "缺少 API Key · 补全后才可测试连接",
+              "content": "缺少接口密钥 · 补全后才可测试连接",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -18842,7 +18842,7 @@
       "id": "tosI5",
       "x": 9600,
       "y": 0,
-      "name": "Style Panel / Scene Override Notice",
+      "name": "风格面板 / 场景覆盖提示",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -19008,7 +19008,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -19092,7 +19092,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -19300,7 +19300,7 @@
                   "fill": "#6E665E",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "当前：Scene 05 已启用场景级风格覆盖，优先于项目级配置。",
+                  "content": "当前：场景 05 已启用场景级风格覆盖，优先于项目级配置。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 13,
@@ -19426,7 +19426,7 @@
       "id": "sqxPi",
       "x": 52704,
       "y": 0,
-      "name": "Project Import Export / Minor Version Warning",
+      "name": "工程导入导出 / 次版本警告",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -19747,7 +19747,7 @@
       "id": "tfAqU",
       "x": 67044,
       "y": 0,
-      "name": "Character Library / Search No Results",
+      "name": "角色库 / 搜索无结果",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -20191,7 +20191,7 @@
       "id": "mMbsG",
       "x": 68584,
       "y": 0,
-      "name": "Worldbuilding / Filter No Results",
+      "name": "世界观 / 筛选无结果",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -20657,7 +20657,7 @@
       "id": "55YHH",
       "x": 70124,
       "y": 0,
-      "name": "Audit Center / Filter No Results",
+      "name": "审计中心 / 筛选无结果",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -21102,7 +21102,7 @@
       "id": "nJ1Vf",
       "x": 71664,
       "y": 0,
-      "name": "Project Import Export / Major Version Blocked",
+      "name": "工程导入导出 / 主版本阻断",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -21569,7 +21569,7 @@
       "id": "YwhiQ",
       "x": 11140,
       "y": 0,
-      "name": "Settings / Unsupported Model",
+      "name": "设置 / 不支持的模型",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -22168,7 +22168,7 @@
       "id": "rQbOu",
       "x": 73204,
       "y": 0,
-      "name": "AI Revision Confirmation / All Excluded",
+      "name": "AI 修订确认 / 全部排除",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -22398,7 +22398,7 @@
       "id": "mDkBH",
       "x": 74584,
       "y": 0,
-      "name": "Reading Mode / Previous Chapter Boundary",
+      "name": "阅读模式 / 上一章边界",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -22638,7 +22638,7 @@
       "id": "GtV8t",
       "x": 12680,
       "y": 0,
-      "name": "Simulation Monitor / Failed",
+      "name": "模拟监控 / 失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -22713,7 +22713,7 @@
                               "id": "DtMnt",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -22723,7 +22723,7 @@
                               "id": "R3KJI",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -22878,7 +22878,7 @@
                   "id": "cXphU",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -22949,7 +22949,7 @@
                   "id": "smsPQ",
                   "name": "modalMeta",
                   "fill": "#91887D",
-                  "content": "多 Agent 输出查看器 · 本轮失败",
+                  "content": "多智能体 输出查看器 · 本轮失败",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -22986,7 +22986,7 @@
                       "id": "LGt7J",
                       "name": "modalTurnsTitle",
                       "fill": "#2E2925",
-                      "content": "Agent",
+                      "content": "智能体",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -22999,7 +22999,7 @@
                       "name": "modalTurn1",
                       "descendants": {
                         "QZQwW": {
-                          "content": "导演 Agent"
+                          "content": "导演智能体"
                         }
                       }
                     },
@@ -23018,7 +23018,7 @@
                       "descendants": {
                         "QZQwW": {
                           "fill": "#FFFDFC",
-                          "content": "叙述 Agent"
+                          "content": "叙述智能体"
                         }
                       }
                     },
@@ -23030,7 +23030,7 @@
                       "name": "agent3",
                       "descendants": {
                         "QZQwW": {
-                          "content": "状态机 Agent"
+                          "content": "状态机智能体"
                         }
                       }
                     }
@@ -23090,7 +23090,7 @@
                           "type": "text",
                           "id": "LnORV",
                           "fill": "#2E2925",
-                          "content": "叙述 Agent · 输出组装阶段",
+                          "content": "叙述智能体 · 输出组装阶段",
                           "fontFamily": "Geist",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -23127,7 +23127,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "角色上下文缺少当前场景所需的关系锚点，叙述 Agent 无法安全生成连续改写结果，因此系统已中止本轮 SimulationRun。",
+                          "content": "角色上下文缺少当前场景所需的关系锚点，叙述智能体 无法安全生成连续改写结果，因此系统已中止本轮 模拟运行。",
                           "lineHeight": 1.5,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -23265,7 +23265,7 @@
                           "id": "iBSMY",
                           "name": "tableRowLeft",
                           "fill": "#2E2925",
-                          "content": "失败 Agent",
+                          "content": "失败智能体",
                           "fontFamily": "Geist",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -23275,7 +23275,7 @@
                           "id": "XMU6L",
                           "name": "tableRowRight",
                           "fill": "#6E665E",
-                          "content": "叙述 Agent",
+                          "content": "叙述智能体",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -23364,7 +23364,7 @@
       "id": "xY5Bh",
       "x": 75964,
       "y": 0,
-      "name": "Chapter Versions / Oldest Pending Eviction",
+      "name": "章节版本 / 最旧版本待剔除",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -23707,7 +23707,7 @@
                       "id": "I28f0",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -24008,7 +24008,7 @@
               "id": "2GP5H",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -24032,7 +24032,7 @@
       "id": "JJh0t",
       "x": 77344,
       "y": 0,
-      "name": "Simulation Monitor / Agent No Output",
+      "name": "模拟监控 / 智能体无输出",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -24107,7 +24107,7 @@
                               "id": "ZOQXS",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -24117,7 +24117,7 @@
                               "id": "PEDBX",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -24272,7 +24272,7 @@
                   "id": "YueRW",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -24343,7 +24343,7 @@
                   "id": "YMkd1",
                   "name": "modalMeta",
                   "fill": "#91887D",
-                  "content": "多 Agent 输出查看器 · 某 Agent 无输出",
+                  "content": "多智能体 输出查看器 · 某智能体 无输出",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -24380,7 +24380,7 @@
                       "id": "ofEOh",
                       "name": "modalTurnsTitle",
                       "fill": "#2E2925",
-                      "content": "Agent",
+                      "content": "智能体",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -24393,7 +24393,7 @@
                       "name": "modalTurn1",
                       "descendants": {
                         "QZQwW": {
-                          "content": "导演 Agent"
+                          "content": "导演智能体"
                         }
                       }
                     },
@@ -24412,7 +24412,7 @@
                       "descendants": {
                         "QZQwW": {
                           "fill": "#FFFDFC",
-                          "content": "叙述 Agent"
+                          "content": "叙述智能体"
                         }
                       }
                     },
@@ -24424,7 +24424,7 @@
                       "name": "agent3",
                       "descendants": {
                         "QZQwW": {
-                          "content": "状态机 Agent"
+                          "content": "状态机智能体"
                         }
                       }
                     }
@@ -24451,7 +24451,7 @@
                       "type": "text",
                       "id": "GWSHw",
                       "fill": "#2E2925",
-                      "content": "当前 Agent 暂无输出",
+                      "content": "当前智能体 暂无输出",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -24475,7 +24475,7 @@
                           "type": "text",
                           "id": "h7Xa6",
                           "fill": "#6E665E",
-                          "content": "Agent 状态",
+                          "content": "智能体状态",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -24484,7 +24484,7 @@
                           "type": "text",
                           "id": "FY91Z",
                           "fill": "#2E2925",
-                          "content": "叙述 Agent 尚未产出可展示内容",
+                          "content": "叙述智能体 尚未产出可展示内容",
                           "fontFamily": "Geist",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -24521,7 +24521,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "当前轮次仍在等待导演 Agent 的裁决，或该 Agent 在本轮被判定为无需发言。",
+                          "content": "当前轮次仍在等待导演智能体 的裁决，或该智能体 在本轮被判定为无需发言。",
                           "lineHeight": 1.5,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -24559,7 +24559,7 @@
                           "fill": "#6E665E",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "可切换到其他 Agent 查看本轮输出，或等待下一步裁决完成后再回来查看。",
+                          "content": "可切换到其他智能体 查看本轮输出，或等待下一步裁决完成后再回来查看。",
                           "lineHeight": 1.4,
                           "fontFamily": "Inter",
                           "fontSize": 12,
@@ -24659,7 +24659,7 @@
                           "id": "iTTc2",
                           "name": "tableRowLeft",
                           "fill": "#2E2925",
-                          "content": "活跃 Agent",
+                          "content": "活跃智能体",
                           "fontFamily": "Geist",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -24706,7 +24706,7 @@
                           "fill": "#6E665E",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "空输出不代表失败，只表示该 Agent 本轮暂时没有可展示结果。",
+                          "content": "空输出不代表失败，只表示该智能体 本轮暂时没有可展示结果。",
                           "lineHeight": 1.4,
                           "fontFamily": "Inter",
                           "fontSize": 12,
@@ -24731,7 +24731,7 @@
                   "id": "rud8h",
                   "name": "modalFootNote",
                   "fill": "#6E665E",
-                  "content": "可切换到其他 Agent 查看输出，或等待本轮继续推进。",
+                  "content": "可切换到其他智能体 查看输出，或等待本轮继续推进。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -24758,7 +24758,7 @@
       "id": "o6hOU",
       "x": 78884,
       "y": 0,
-      "name": "Writing Workbench / Missing Character Binding",
+      "name": "写作工作台 / 缺少角色绑定",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -24877,7 +24877,7 @@
                           "id": "PebrE",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -24925,7 +24925,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "正文仍可继续编辑，但当前已禁用运行模拟。请先到资料侧栏补充角色绑定，再重新发起 SimulationRun。",
+                          "content": "正文仍可继续编辑，但当前已禁用运行模拟。请先到资料侧栏补充角色绑定，再重新发起 模拟运行。",
                           "lineHeight": 1.5,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -25110,7 +25110,7 @@
               "id": "50Fc2",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -25134,7 +25134,7 @@
       "id": "FPMUS",
       "x": 80424,
       "y": 0,
-      "name": "Writing Workbench / AI Modify Failed",
+      "name": "写作工作台 / AI 改写失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -25254,7 +25254,7 @@
                           "type": "text",
                           "id": "xo8m3",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -25263,7 +25263,7 @@
                           "type": "text",
                           "id": "9gk6d",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -25653,7 +25653,7 @@
               "id": "TKJZ7",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -25677,7 +25677,7 @@
       "id": "qW9NX",
       "x": 81964,
       "y": 0,
-      "name": "Project List / Database Read Failed",
+      "name": "书架 / 数据库读取失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -26077,7 +26077,7 @@
       "id": "XEwpS",
       "x": 83504,
       "y": 0,
-      "name": "Chapter Versions / Restore Failed",
+      "name": "章节版本 / 恢复失败",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -26420,7 +26420,7 @@
                       "id": "IP2nd",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -26863,7 +26863,7 @@
               "id": "dAyXl",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -26887,7 +26887,7 @@
       "id": "ToU7Z",
       "x": 84884,
       "y": 0,
-      "name": "Style Panel / Validation Failed",
+      "name": "风格面板 / 校验失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -27053,7 +27053,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -27137,7 +27137,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -27205,7 +27205,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "当前风格输入之间存在冲突：‘极低描写密度’与‘高情绪强度’无法同时满足既定节奏规则，因此本轮未生成 StyleProfile。",
+                      "content": "当前风格输入之间存在冲突：‘极低描写密度’与‘高情绪强度’无法同时满足既定节奏规则，因此本轮未生成 风格配置。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -27281,7 +27281,7 @@
                       "fill": "#6E665E",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "当前项目与场景绑定保持不变，本轮不会生成新的 StyleProfile。",
+                      "content": "当前项目与场景绑定保持不变，本轮不会生成新的风格配置。",
                       "lineHeight": 1.4,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -27430,7 +27430,7 @@
               "id": "ghFEI",
               "name": "spFooterText",
               "fill": "#6E665E",
-              "content": "风格校验失败 · 未生成新的 StyleProfile · 请调整输入后重试",
+              "content": "风格校验失败 · 未生成新的风格配置 · 请调整输入后重试",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -27500,7 +27500,7 @@
       "id": "25jQz",
       "x": 86424,
       "y": 0,
-      "name": "Audit Center / Related Draft Missing",
+      "name": "审计中心 / 关联草稿缺失",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -27814,7 +27814,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "原始 SceneDraft 已被删除或索引失效，因此系统无法在中间区展示对应文本片段。",
+                      "content": "原始 场景草稿 已被删除或索引失效，因此系统无法在中间区展示对应文本片段。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -27987,7 +27987,7 @@
       "id": "bJvYY",
       "x": 87964,
       "y": 0,
-      "name": "Worldbuilding / Missing Type",
+      "name": "世界观 / 缺少类型",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -28498,7 +28498,7 @@
       "id": "3sKz3",
       "x": 89504,
       "y": 0,
-      "name": "Style Panel / Missing Required Fields",
+      "name": "风格面板 / 缺少必填字段",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -28664,7 +28664,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -28755,7 +28755,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -28822,7 +28822,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "体裁标签至少需要填写 1 项，因此当前问卷暂时无法生成新的 StyleProfile。",
+                      "content": "体裁标签至少需要填写 1 项，因此当前问卷暂时无法生成新的风格配置。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -29009,7 +29009,7 @@
               "id": "Hf2uL",
               "name": "spFooterText",
               "fill": "#6E665E",
-              "content": "问卷缺少必填项 · 未生成新的 StyleProfile · 请补全后重试",
+              "content": "问卷缺少必填项 · 未生成新的风格配置 · 请补全后重试",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -29079,7 +29079,7 @@
       "id": "WGzHM",
       "x": 91044,
       "y": 0,
-      "name": "Reading Mode / Single Page",
+      "name": "阅读模式 / 单页",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -29319,7 +29319,7 @@
       "id": "BskXB",
       "x": 92424,
       "y": 0,
-      "name": "Audit Center / Jump Failed",
+      "name": "审计中心 / 跳转失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -29633,7 +29633,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从审计中心直接跳回原位置。",
+                      "content": "目标场景 `场景 05` 已被删除、重命名，或当前索引已失效，因此无法从审计中心直接跳回原位置。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -29806,7 +29806,7 @@
       "id": "ATuaL",
       "x": 93964,
       "y": 0,
-      "name": "Reading Mode / No Previous Chapter",
+      "name": "阅读模式 / 无上一章",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -30044,7 +30044,7 @@
       "id": "y6Ufy",
       "x": 95344,
       "y": 0,
-      "name": "Writing Workbench / API Key Missing",
+      "name": "写作工作台 / 缺少接口密钥",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -30164,7 +30164,7 @@
                           "type": "text",
                           "id": "0DaYe",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -30173,7 +30173,7 @@
                           "type": "text",
                           "id": "8LP7p",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -30226,7 +30226,7 @@
                       "type": "text",
                       "id": "lXhxk",
                       "fill": "#2E2925",
-                      "content": "需要先配置 API Key",
+                      "content": "需要先配置接口密钥",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "600"
@@ -30259,7 +30259,7 @@
                           "type": "text",
                           "id": "IAhei",
                           "fill": "#2E2925",
-                          "content": "当前 AI 操作缺少可用的 API Key",
+                          "content": "当前 AI 操作缺少可用的接口密钥",
                           "fontFamily": "Geist",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -30334,7 +30334,7 @@
                           "fill": "#6E665E",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "请先前往设置与 BYOK 补全 API Key，保存后再返回工作台继续使用 AI 功能。",
+                          "content": "请先前往设置与自带密钥，补全接口密钥，保存后再返回工作台继续使用 AI 功能。",
                           "lineHeight": 1.4,
                           "fontFamily": "Inter",
                           "fontSize": 12,
@@ -30563,7 +30563,7 @@
               "id": "JmCZV",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -30573,7 +30573,7 @@
               "id": "2Ov4Z",
               "name": "statusMeta",
               "fill": "#91887D",
-              "content": "写作模式 · AI 功能不可用，需先配置 API Key · 1,284 字",
+              "content": "写作模式 · AI 功能不可用，需先配置接口密钥 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -30587,7 +30587,7 @@
       "id": "cqffu",
       "x": 96884,
       "y": 0,
-      "name": "Reading Mode / No Next Chapter",
+      "name": "阅读模式 / 无下一章",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -30827,7 +30827,7 @@
       "id": "6iQPW",
       "x": 98264,
       "y": 0,
-      "name": "Style Panel / Unsupported JSON Version",
+      "name": "风格面板 / 不支持的 JSON 版本",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -31005,7 +31005,7 @@
                               "name": "modeJ",
                               "descendants": {
                                 "nOBnP": {
-                                  "content": "JSON"
+                                  "content": "结构化草稿"
                                 }
                               }
                             }
@@ -31089,7 +31089,7 @@
                           "name": "jsonPath",
                           "descendants": {
                             "QC1sj": {
-                              "content": "StyleProfile JSON"
+                              "content": "风格配置 JSON"
                             },
                             "qZ1bN": {
                               "content": "/styles/cold-suspense.json"
@@ -31464,7 +31464,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "当前文件声明的 `version` 为 `2.0`，而 MVP 仅支持 `1.0`。\n\n该 JSON 文件结构本身可被读取，但由于版本主号不兼容，系统已阻止导入，也不会生成新的 StyleProfile。\n\n请在来源工具中导出 `version: 1.0` 的配置，或手动降级字段后重新导入。",
+              "content": "当前文件声明的 `version` 为 `2.0`，而 MVP 仅支持 `1.0`。\n\n该 JSON 文件结构本身可被读取，但由于版本主号不兼容，系统已阻止导入，也不会生成新的风格配置。\n\n请在来源工具中导出 `version: 1.0` 的配置，或手动降级字段后重新导入。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -31511,7 +31511,7 @@
       "id": "X4Udf",
       "x": 99804,
       "y": 0,
-      "name": "Project List / Import Failed",
+      "name": "书架 / 导入失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -31819,7 +31819,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -31874,7 +31874,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -31929,7 +31929,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -32135,7 +32135,7 @@
       "id": "zlKdA",
       "x": 101344,
       "y": 0,
-      "name": "Character Library / Missing Required Fields",
+      "name": "角色库 / 缺少必填字段",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -32524,7 +32524,7 @@
                       "id": "Jn6oh",
                       "name": "inputFieldLabel",
                       "fill": "#6E665E",
-                      "content": "Fear",
+                      "content": "恐惧",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "500"
@@ -32562,7 +32562,7 @@
                       "id": "iivqB",
                       "name": "inputFieldLabel",
                       "fill": "#6E665E",
-                      "content": "Need",
+                      "content": "需求",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "500"
@@ -32690,7 +32690,7 @@
       "id": "01wqz",
       "x": 102884,
       "y": 0,
-      "name": "Project List / Delete Confirm",
+      "name": "书架 / 删除确认",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -32998,7 +32998,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -33053,7 +33053,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -33108,7 +33108,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -33496,7 +33496,7 @@
       "id": "bPxYh",
       "x": 104424,
       "y": 0,
-      "name": "Style Panel / Unknown Fields Ignored",
+      "name": "风格面板 / 未知字段已忽略",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -33662,7 +33662,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -33746,7 +33746,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -33814,7 +33814,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "已忽略 2 个未知字段：`mood_shift`、`voice_bias`。其余合法字段已成功生成 StyleProfile。",
+                      "content": "已忽略 2 个未知字段：`mood_shift`、`voice_bias`。其余合法字段已成功生成风格配置。",
                       "lineHeight": 1.45,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -34234,7 +34234,7 @@
       "id": "NVC2a",
       "x": 105964,
       "y": 0,
-      "name": "Settings / Missing Model",
+      "name": "设置 / 缺少模型",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -34539,7 +34539,7 @@
                           "id": "PgmKi",
                           "name": "tableRowRight",
                           "fill": "#6E665E",
-                          "content": "model",
+                          "content": "模型",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -34779,7 +34779,7 @@
       "id": "ea0WQ",
       "x": 107504,
       "y": 0,
-      "name": "Writing Workbench / No Simulation Yet",
+      "name": "写作工作台 / 尚无模拟",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -34897,7 +34897,7 @@
                           "type": "text",
                           "id": "FgkdZ",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -34906,7 +34906,7 @@
                           "type": "text",
                           "id": "0iOz9",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -34943,7 +34943,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "当前章节还没有可查看的 SimulationRun，因此不会展示模拟过程弹窗。你可以先继续编辑正文，或在补全资料后发起一次运行模拟。",
+                          "content": "当前章节还没有可查看的 模拟运行，因此不会展示模拟过程弹窗。你可以先继续编辑正文，或在补全资料后发起一次运行模拟。",
                           "lineHeight": 1.5,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -35128,7 +35128,7 @@
               "id": "YOemS",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -35138,7 +35138,7 @@
               "id": "LmXZb",
               "name": "statusMeta",
               "fill": "#91887D",
-              "content": "写作模式 · 尚无可查看的 SimulationRun · 1,284 字",
+              "content": "写作模式 · 尚无可查看的 模拟运行 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -35152,7 +35152,7 @@
       "id": "go6Qc",
       "x": 109044,
       "y": 0,
-      "name": "Writing Workbench / Overlapping Selections",
+      "name": "写作工作台 / 选区重叠",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -35272,7 +35272,7 @@
                           "type": "text",
                           "id": "szEQL",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -35281,7 +35281,7 @@
                           "type": "text",
                           "id": "HRMnK",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -35671,7 +35671,7 @@
               "id": "XZjl3",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -35695,7 +35695,7 @@
       "id": "f4cfp",
       "x": 110584,
       "y": 0,
-      "name": "Project Import Export / Missing Manifest",
+      "name": "工程导入导出 / 缺少清单文件",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -35968,7 +35968,7 @@
                       "name": "manifestRow",
                       "descendants": {
                         "LRWgX": {
-                          "content": "manifest"
+                          "content": "清单文件"
                         },
                         "Pa6iW": {
                           "content": "schema v1"
@@ -36135,7 +36135,7 @@
       "id": "8JkLW",
       "x": 112124,
       "y": 0,
-      "name": "AI Revision Confirmation / Restore Excluded Block",
+      "name": "AI 修订确认 / 恢复已排除块",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -36398,7 +36398,7 @@
       "id": "pblhy",
       "x": 113504,
       "y": 0,
-      "name": "Chapter Versions / Restore Success",
+      "name": "章节版本 / 恢复成功",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -36741,7 +36741,7 @@
                       "id": "YXHH2",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -37043,7 +37043,7 @@
               "id": "KqIo7",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -37067,7 +37067,7 @@
       "id": "O5wWx",
       "x": 114884,
       "y": 0,
-      "name": "Writing Workbench / Simulation Completed",
+      "name": "写作工作台 / 模拟完成",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -37184,7 +37184,7 @@
                           "type": "text",
                           "id": "2QJQL",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -37193,7 +37193,7 @@
                           "type": "text",
                           "id": "MhSmR",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -37238,7 +37238,7 @@
                               "fill": "#2E2925",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
-                              "content": "导演 Agent、叙述 Agent 与状态机 Agent 已完成本轮裁决。你可以先查看模拟过程，再决定是否继续改写正文。",
+                              "content": "导演智能体、叙述智能体 与状态机智能体 已完成本轮裁决。你可以先查看模拟过程，再决定是否继续改写正文。",
                               "lineHeight": 1.45,
                               "fontFamily": "Geist",
                               "fontSize": 14,
@@ -37445,7 +37445,7 @@
               "id": "UXU3T",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -37469,7 +37469,7 @@
       "id": "dSehn",
       "x": 116424,
       "y": 0,
-      "name": "Writing Workbench / Simulation Failed Summary",
+      "name": "写作工作台 / 模拟失败摘要",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -37586,7 +37586,7 @@
                           "type": "text",
                           "id": "BHx9J",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -37595,7 +37595,7 @@
                           "type": "text",
                           "id": "GxdO1",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -37640,7 +37640,7 @@
                               "fill": "#2E2925",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
-                              "content": "叙述 Agent 在输出组装阶段中止，本轮未改写正文。你可以查看失败详情，或补充资料后重新运行模拟。",
+                              "content": "叙述智能体 在输出组装阶段中止，本轮未改写正文。你可以查看失败详情，或补充资料后重新运行模拟。",
                               "lineHeight": 1.45,
                               "fontFamily": "Geist",
                               "fontSize": 14,
@@ -37847,7 +37847,7 @@
               "id": "YtldJ",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -37871,7 +37871,7 @@
       "id": "aYhVV",
       "x": 117964,
       "y": 0,
-      "name": "Project Import Export / Import Success",
+      "name": "工程导入导出 / 导入成功",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -38359,7 +38359,7 @@
       "id": "HcPSf",
       "x": 119504,
       "y": 0,
-      "name": "Settings / Save Success",
+      "name": "设置 / 保存成功",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -38613,7 +38613,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "新的 Provider 配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
+                          "content": "新的提供方配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -38887,7 +38887,7 @@
       "id": "6RjjP",
       "x": 121044,
       "y": 0,
-      "name": "Writing Workbench / Context Synced",
+      "name": "写作工作台 / 上下文已同步",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -39004,7 +39004,7 @@
                           "type": "text",
                           "id": "eU6Ex",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -39013,7 +39013,7 @@
                           "type": "text",
                           "id": "GFsf0",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -39265,7 +39265,7 @@
               "id": "B75ob",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -39289,7 +39289,7 @@
       "id": "rr4J7",
       "x": 122584,
       "y": 0,
-      "name": "Chapter Versions / Pending Save Before Eviction",
+      "name": "章节版本 / 剔除前待保存",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -39632,7 +39632,7 @@
                       "id": "QCMgr",
                       "name": "mainTitle",
                       "fill": "#2E2925",
-                      "content": "Scene 05 · 当前章节正文",
+                      "content": "场景 05 · 当前章节正文",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -39933,7 +39933,7 @@
               "id": "WYIMT",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -39957,7 +39957,7 @@
       "id": "Fekvk",
       "x": 123964,
       "y": 0,
-      "name": "Simulation Monitor / Phase Refresh",
+      "name": "模拟监控 / 阶段刷新",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -40032,7 +40032,7 @@
                               "id": "k6HNK",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -40042,7 +40042,7 @@
                               "id": "nZ3KZ",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -40197,7 +40197,7 @@
                   "id": "v4xot",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -40268,7 +40268,7 @@
                   "id": "qPobx",
                   "name": "modalMeta",
                   "fill": "#91887D",
-                  "content": "多 Agent 输出查看器 · 分阶段刷新",
+                  "content": "多智能体 输出查看器 · 分阶段刷新",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -40305,7 +40305,7 @@
                       "id": "yikWa",
                       "name": "modalTurnsTitle",
                       "fill": "#2E2925",
-                      "content": "Agent",
+                      "content": "智能体",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -40324,7 +40324,7 @@
                       "name": "modalTurn1",
                       "descendants": {
                         "QZQwW": {
-                          "content": "导演 Agent"
+                          "content": "导演智能体"
                         }
                       }
                     },
@@ -40342,7 +40342,7 @@
                       "name": "modalTurn2",
                       "descendants": {
                         "QZQwW": {
-                          "content": "叙述 Agent",
+                          "content": "叙述智能体",
                           "fill": "#FFFDFC"
                         }
                       }
@@ -40361,7 +40361,7 @@
                       "name": "agent3",
                       "descendants": {
                         "QZQwW": {
-                          "content": "状态机 Agent"
+                          "content": "状态机智能体"
                         }
                       }
                     }
@@ -40406,7 +40406,7 @@
                           "type": "text",
                           "id": "ohOKM",
                           "fill": "#6E665E",
-                          "content": "导演 Agent",
+                          "content": "导演智能体",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -40417,7 +40417,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "判断当前场景张力不足，要求叙述 Agent 提前暴露玻璃杯异常。",
+                          "content": "判断当前场景张力不足，要求叙述智能体 提前暴露玻璃杯异常。",
                           "lineHeight": 1.4,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -40444,7 +40444,7 @@
                           "type": "text",
                           "id": "tb3On",
                           "fill": "#51624D",
-                          "content": "叙述 Agent 正在刷新本阶段输出",
+                          "content": "叙述智能体 正在刷新本阶段输出",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -40485,7 +40485,7 @@
                           "type": "text",
                           "id": "iQZuB",
                           "fill": "#6E665E",
-                          "content": "状态机 Agent",
+                          "content": "状态机智能体",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -40496,7 +40496,7 @@
                           "fill": "#6E665E",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "等待叙述 Agent 完成本阶段后再刷新。",
+                          "content": "等待叙述智能体 完成本阶段后再刷新。",
                           "lineHeight": 1.4,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -40556,7 +40556,7 @@
                       "name": "extraState",
                       "descendants": {
                         "LRWgX": {
-                          "content": "活跃 Agent"
+                          "content": "活跃智能体"
                         },
                         "Pa6iW": {
                           "content": "1 完成 / 1 进行中 / 1 待开始"
@@ -40607,7 +40607,7 @@
       "id": "XrBiQ",
       "x": 125504,
       "y": 0,
-      "name": "Project Import Export / Overwrite Success",
+      "name": "工程导入导出 / 覆盖成功",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -41095,7 +41095,7 @@
       "id": "yRdSE",
       "x": 127044,
       "y": 0,
-      "name": "Settings / Unauthorized",
+      "name": "设置 / 鉴权失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -41414,7 +41414,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -41448,7 +41448,7 @@
                   "id": "h6xs3",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -41571,7 +41571,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：401 / 403\n请求：OpenAI-compatible / gpt-5.4-mini\n\n提供方已拒绝当前凭证。系统未保存这次失败结果，也不会影响现有写作项目。请检查 API Key、组织权限或账号状态后重试。",
+              "content": "状态：401 / 403\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n提供方已拒绝当前凭证。系统未保存这次失败结果，也不会影响现有写作项目。请检查接口密钥、组织权限或账号状态后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -41618,7 +41618,7 @@
       "id": "1KpPn",
       "x": 128584,
       "y": 0,
-      "name": "Settings / Provider Model Not Found",
+      "name": "设置 / 提供方模型不存在",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -41937,7 +41937,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -41971,7 +41971,7 @@
                   "id": "nqt9j",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -42094,7 +42094,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：404 / model_not_found\n请求：OpenAI-compatible / gpt-5.4-mini\n\n提供方未找到当前配置的模型标识。系统未保存这次失败结果，也不会影响现有写作项目。请确认模型名拼写，或改用可用模型后重试。",
+              "content": "状态：404 / model_not_found\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n提供方未找到当前配置的模型标识。系统未保存这次失败结果，也不会影响现有写作项目。请确认模型名拼写，或改用可用模型后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -42141,7 +42141,7 @@
       "id": "BtJNK",
       "x": 130124,
       "y": 0,
-      "name": "Settings / Network Error",
+      "name": "设置 / 网络错误",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -42460,7 +42460,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -42494,7 +42494,7 @@
                   "id": "VU784",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -42617,7 +42617,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：DNS / 网络错误\n请求：OpenAI-compatible / gpt-5.4-mini\n\n系统无法连接到配置的接口地址，可能是 DNS 解析失败、代理不可达或本地网络异常。请检查网络环境后重试。",
+              "content": "状态：DNS / 网络错误\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n系统无法连接到配置的接口地址，可能是 DNS 解析失败、代理不可达或本地网络异常。请检查网络环境后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -42664,7 +42664,7 @@
       "id": "WmFpE",
       "x": 131664,
       "y": 0,
-      "name": "Writing Workbench / Missing Character Reference",
+      "name": "写作工作台 / 角色引用缺失",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -42781,7 +42781,7 @@
                           "type": "text",
                           "id": "WSPzI",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -42790,7 +42790,7 @@
                           "type": "text",
                           "id": "MUXcr",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -43042,7 +43042,7 @@
               "id": "Khb8G",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -43066,7 +43066,7 @@
       "id": "uHxFC",
       "x": 133204,
       "y": 0,
-      "name": "Chapter Versions / Expanded State Remembered",
+      "name": "章节版本 / 展开状态已记忆",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -43603,7 +43603,7 @@
               "id": "dLDyx",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -43627,7 +43627,7 @@
       "id": "emCHR",
       "x": 134584,
       "y": 0,
-      "name": "Writing Workbench / Missing World Reference",
+      "name": "写作工作台 / 世界观引用缺失",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -43744,7 +43744,7 @@
                           "type": "text",
                           "id": "7Gkzi",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -43753,7 +43753,7 @@
                           "type": "text",
                           "id": "Lf1E4",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -44005,7 +44005,7 @@
               "id": "7mf8k",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -44029,7 +44029,7 @@
       "id": "gJBOY",
       "x": 0,
       "y": 1500,
-      "name": "Project List / Dark",
+      "name": "书架 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221D1A",
@@ -44351,7 +44351,7 @@
                           "fill": "#D2C6B7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -44406,7 +44406,7 @@
                           "fill": "#D2C6B7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -44461,7 +44461,7 @@
                           "fill": "#D2C6B7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -44669,7 +44669,7 @@
       "id": "gMffe",
       "x": 1600,
       "y": 1500,
-      "name": "Writing Workbench / Dark",
+      "name": "写作工作台 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221D1A",
@@ -44788,7 +44788,7 @@
                           "id": "YmpcH",
                           "name": "editorTitle",
                           "fill": "#F1E9DE",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -44798,7 +44798,7 @@
                           "id": "gNIKt",
                           "name": "editorMeta",
                           "fill": "#A99C8E",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -44982,7 +44982,7 @@
               "id": "rIwYG",
               "name": "statusPath",
               "fill": "#D2C6B7",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -45006,7 +45006,7 @@
       "id": "d7FLn",
       "x": 3200,
       "y": 1500,
-      "name": "Sandbox Monitor / Dark",
+      "name": "模拟监控 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221D1A",
@@ -45081,7 +45081,7 @@
                               "id": "lAFY6",
                               "name": "editorTitle",
                               "fill": "#D2C6B7",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -45091,7 +45091,7 @@
                               "id": "OHu7L",
                               "name": "editorMeta",
                               "fill": "#A99C8E",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -45246,7 +45246,7 @@
                   "id": "nJBnf",
                   "name": "statusPath",
                   "fill": "#D2C6B7",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -45445,7 +45445,7 @@
                               "type": "text",
                               "id": "4zP4b",
                               "fill": "#F1E9DE",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -46088,7 +46088,7 @@
                   "type": "text",
                   "id": "6lCve",
                   "fill": "#d2c6b7",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -46187,7 +46187,7 @@
       "id": "nqeUC",
       "x": 4800,
       "y": 1500,
-      "name": "Style Panel / Dark",
+      "name": "风格面板 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221D1A",
@@ -46367,7 +46367,7 @@
                           "descendants": {
                             "nOBnP": {
                               "fill": "#F1E9DE",
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -46490,7 +46490,7 @@
                       "descendants": {
                         "QC1sj": {
                           "fill": "#A99C8E",
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "fill": "#F1E9DE",
@@ -46888,7 +46888,7 @@
       "id": "cNUe2",
       "x": 6400,
       "y": 1500,
-      "name": "Settings & BYOK / Dark",
+      "name": "设置与自带密钥 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221D1A",
@@ -47268,7 +47268,7 @@
                   "fill": "#D2C6B7",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                  "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -47302,7 +47302,7 @@
               "id": "fSoRI",
               "name": "setFooterText",
               "fill": "#A99C8E",
-              "content": "配置保存在本地 · 导出包不包含 API 密钥",
+              "content": "配置保存在本地 · 导出包不包含 接口密钥",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -47386,7 +47386,7 @@
       "id": "gVwFC",
       "x": 8000,
       "y": 1500,
-      "name": "UI Foundation / Dark",
+      "name": "UI 基础规范 / 暗色",
       "width": 1440,
       "height": 1280,
       "fill": "#221D1A",
@@ -47417,7 +47417,7 @@
               "id": "53y2Z",
               "name": "ufSubtitle",
               "fill": "#D2C6B7",
-              "content": "Foundations · Components · States · Warm Linen dark desktop system",
+              "content": "基础 / 组件 / 状态 / 暖亚麻暗色桌面系统",
               "fontFamily": "Inter",
               "fontSize": 13,
               "fontWeight": "500"
@@ -47454,7 +47454,7 @@
                   "id": "b7BHw",
                   "name": "ufTokensTitle",
                   "fill": "#F1E9DE",
-                  "content": "色彩与 Token",
+                  "content": "色彩与设计令牌",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -47501,7 +47501,7 @@
                               "id": "r23YG",
                               "name": "row1aTx",
                               "fill": "#F1E9DE",
-                              "content": "Canvas  #221D1A",
+                              "content": "画布色  #221D1A",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47535,7 +47535,7 @@
                               "id": "WaSTh",
                               "name": "row1bTx",
                               "fill": "#F1E9DE",
-                              "content": "Surface  #2B2521",
+                              "content": "表面色  #2B2521",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47573,7 +47573,7 @@
                               "id": "LX0T2",
                               "name": "row2aTx",
                               "fill": "#F1E9DE",
-                              "content": "Text  #F1E9DE",
+                              "content": "文本色  #F1E9DE",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47602,7 +47602,7 @@
                               "id": "HQsn7",
                               "name": "row2bTx",
                               "fill": "#F1E9DE",
-                              "content": "Muted  #D2C6B7",
+                              "content": "弱化色  #D2C6B7",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47640,7 +47640,7 @@
                               "id": "eiDAC",
                               "name": "row3aTx",
                               "fill": "#F1E9DE",
-                              "content": "Accent  #91A78A",
+                              "content": "强调色  #91A78A",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47669,7 +47669,7 @@
                               "id": "dk65v",
                               "name": "row3bTx",
                               "fill": "#F1E9DE",
-                              "content": "Border  #564A41",
+                              "content": "边框色  #564A41",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -47754,7 +47754,7 @@
                       "fill": "#F1E9DE",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "正文 Body 15/24 · Geist 适用于编辑器和长说明。",
+                      "content": "正文 15/24 · Geist 适用于编辑器和长说明。",
                       "lineHeight": 1.6,
                       "fontFamily": "Geist",
                       "fontSize": 15,
@@ -47767,7 +47767,7 @@
                       "fill": "#D2C6B7",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "说明 Caption 12/18 · Inter 用于辅助信息和状态。",
+                      "content": "说明文字 12/18 · Inter 用于辅助信息和状态。",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -47817,7 +47817,7 @@
                       "id": "Nmfql",
                       "name": "buttonsLabel",
                       "fill": "#A99C8E",
-                      "content": "Buttons",
+                      "content": "按钮",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -47874,7 +47874,7 @@
                       "id": "LeiiP",
                       "name": "inputsLabel",
                       "fill": "#A99C8E",
-                      "content": "Inputs",
+                      "content": "输入框",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -47913,7 +47913,7 @@
                       "id": "awx66",
                       "name": "cardsLabel",
                       "fill": "#A99C8E",
-                      "content": "Cards",
+                      "content": "卡片",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -47980,7 +47980,7 @@
                       "id": "1Mvxm",
                       "name": "menuSecLabel",
                       "fill": "#A99C8E",
-                      "content": "Shell / Menu",
+                      "content": "外壳 / 菜单",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -48084,7 +48084,7 @@
                               "id": "Co5X6",
                               "name": "menuExpandedItem2",
                               "fill": "#D2C6B7",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "500"
@@ -48153,7 +48153,7 @@
                           "id": "2Eu6L",
                           "name": "stateBtnLabel",
                           "fill": "#A99C8E",
-                          "content": "Buttons",
+                          "content": "按钮",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -48179,7 +48179,7 @@
                               "descendants": {
                                 "wFfXm": {
                                   "fill": "#F1E9DE",
-                                  "content": "Default"
+                                  "content": "默认"
                                 }
                               }
                             },
@@ -48192,7 +48192,7 @@
                               "descendants": {
                                 "lbsr7": {
                                   "fill": "#221D1A",
-                                  "content": "Active"
+                                  "content": "激活"
                                 }
                               }
                             },
@@ -48211,7 +48211,7 @@
                               "descendants": {
                                 "wFfXm": {
                                   "fill": "#F1E9DE",
-                                  "content": "Disabled"
+                                  "content": "禁用"
                                 }
                               }
                             }
@@ -48226,7 +48226,7 @@
                       "fill": "#D2C6B7",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Inputs follow the same pattern: default, focus, filled, error, disabled.",
+                      "content": "输入框沿用同一套状态：默认、聚焦、已填写、错误、禁用。",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -48257,7 +48257,7 @@
                   "id": "Redly",
                   "name": "ufNavTitle",
                   "fill": "#F1E9DE",
-                  "content": "Navigation",
+                  "content": "导航",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -48317,7 +48317,7 @@
                   "id": "9o2Cq",
                   "name": "ufDataTitle",
                   "fill": "#F1E9DE",
-                  "content": "Rows",
+                  "content": "行",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -48371,7 +48371,7 @@
       "id": "OhqnP",
       "x": 136144,
       "y": 0,
-      "name": "Project List / Sparse Shelf Concept",
+      "name": "书架 / 留白书架概念",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -48685,7 +48685,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -48740,7 +48740,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -48795,7 +48795,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -49501,7 +49501,7 @@
       "id": "OIogW",
       "x": 137704,
       "y": 0,
-      "name": "Project List / Sparse Shelf Concept / Dark",
+      "name": "书架 / 留白书架概念 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -49829,7 +49829,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -49884,7 +49884,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -49939,7 +49939,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -50656,7 +50656,7 @@
       "id": "PIRts",
       "x": 139944,
       "y": 0,
-      "name": "Scene Management",
+      "name": "场景管理",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -51030,7 +51030,7 @@
       "id": "aI0tb",
       "x": 141544,
       "y": 0,
-      "name": "Scene Management / Create Scene",
+      "name": "场景管理 / 新建场景",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -51506,7 +51506,7 @@
       "id": "GKvUk",
       "x": 143144,
       "y": 0,
-      "name": "Scene Management / Rename Scene",
+      "name": "场景管理 / 重命名场景",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -51982,7 +51982,7 @@
       "id": "fhYDR",
       "x": 144744,
       "y": 0,
-      "name": "Scene Management / Delete Scene Confirm",
+      "name": "场景管理 / 删除场景确认",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -52538,7 +52538,7 @@
       "id": "nl6rr",
       "x": 146344,
       "y": 0,
-      "name": "Scene Management / Edit Chapter Label",
+      "name": "场景管理 / 编辑章节标签",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -53014,7 +53014,7 @@
       "id": "h4puH",
       "x": 147944,
       "y": 0,
-      "name": "Scene Management / Edit Summary",
+      "name": "场景管理 / 编辑摘要",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -53516,7 +53516,7 @@
       "id": "cObbS",
       "x": 149544,
       "y": 0,
-      "name": "Global Shell / Settings File Read Failed",
+      "name": "全局框架 / 设置文件读取失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -53897,7 +53897,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -53952,7 +53952,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -54007,7 +54007,7 @@
                           "fill": "#514943",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -54213,7 +54213,7 @@
       "id": "a0Ywa",
       "x": 151144,
       "y": 0,
-      "name": "Settings / File Read Failed",
+      "name": "设置 / 文件读取失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -54532,7 +54532,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -54566,7 +54566,7 @@
                   "id": "hcrAp",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -54689,7 +54689,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_read_failed\n诊断：settings.json is unreadable\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
+              "content": "类别：settings_file_read_failed\n诊断：settings.json 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -54736,7 +54736,7 @@
       "id": "oyTF3",
       "x": 152744,
       "y": 0,
-      "name": "Settings / File Write Failed",
+      "name": "设置 / 文件写入失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -55055,7 +55055,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -55089,7 +55089,7 @@
                   "id": "qza25",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -55212,7 +55212,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_write_failed\n诊断：settings.json write denied\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
+              "content": "类别：settings_file_write_failed\n诊断：settings.json 写入被拒绝\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -55259,7 +55259,7 @@
       "id": "sOHyn",
       "x": 154344,
       "y": 0,
-      "name": "Settings / Retry Read Success",
+      "name": "设置 / 重试读取成功",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -55513,7 +55513,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "新的 Provider 配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
+                          "content": "新的提供方配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -55787,7 +55787,7 @@
       "id": "AGfYb",
       "x": 155944,
       "y": 0,
-      "name": "Settings / Retry Write Success",
+      "name": "设置 / 重试写入成功",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -56041,7 +56041,7 @@
                           "fill": "#2E2925",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "新的 Provider 配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
+                          "content": "新的提供方配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -56315,7 +56315,7 @@
       "id": "9Ukuf",
       "x": 157544,
       "y": 0,
-      "name": "Settings / Connection Timeout",
+      "name": "设置 / 连接超时",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -56634,7 +56634,7 @@
                       "fill": "#2E2925",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -56668,7 +56668,7 @@
                   "id": "9cOuV",
                   "name": "setFooterText",
                   "fill": "#6E665E",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -56791,7 +56791,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：timeout\n请求：OpenAI-compatible / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
+              "content": "状态：timeout\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -56838,7 +56838,7 @@
       "id": "d3GpN",
       "x": 139944,
       "y": 1500,
-      "name": "Scene Management / Dark",
+      "name": "场景管理 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -57275,7 +57275,7 @@
       "id": "1gawm",
       "x": 141544,
       "y": 1500,
-      "name": "Scene Management / Create Scene / Dark",
+      "name": "场景管理 / 新建场景 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -57829,7 +57829,7 @@
       "id": "Wjux2",
       "x": 143144,
       "y": 1500,
-      "name": "Scene Management / Rename Scene / Dark",
+      "name": "场景管理 / 重命名场景 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -58383,7 +58383,7 @@
       "id": "HzUVW",
       "x": 144744,
       "y": 1500,
-      "name": "Scene Management / Delete Scene Confirm / Dark",
+      "name": "场景管理 / 删除场景确认 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -59002,7 +59002,7 @@
       "id": "cnVw7",
       "x": 146344,
       "y": 1500,
-      "name": "Scene Management / Edit Chapter Label / Dark",
+      "name": "场景管理 / 编辑章节标签 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -59556,7 +59556,7 @@
       "id": "4WJJo",
       "x": 147944,
       "y": 1500,
-      "name": "Scene Management / Edit Summary / Dark",
+      "name": "场景管理 / 编辑摘要 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -60128,7 +60128,7 @@
       "id": "0TEna",
       "x": 149544,
       "y": 1500,
-      "name": "Global Shell / Settings File Read Failed / Dark",
+      "name": "全局框架 / 设置文件读取失败 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -60530,7 +60530,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 03 章 / Scene 05\n证人房间对峙",
+                          "content": "最近：第 03 章 / 场景 05\n证人房间对峙",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -60585,7 +60585,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 01 卷 / Scene 12\n仓库夜谈",
+                          "content": "最近：第 01 卷 / 场景 12\n仓库夜谈",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -60640,7 +60640,7 @@
                           "fill": "#d2c6b7",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "最近：第 02 章 / Scene 03\n站台告别",
+                          "content": "最近：第 02 章 / 场景 03\n站台告别",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 13,
@@ -60846,7 +60846,7 @@
       "id": "fpqP8",
       "x": 151144,
       "y": 1500,
-      "name": "Settings / File Read Failed / Dark",
+      "name": "设置 / 文件读取失败 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -61236,7 +61236,7 @@
                       "fill": "#f1e9de",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -61270,7 +61270,7 @@
                   "id": "5stAy",
                   "name": "setFooterText",
                   "fill": "#a99c8e",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -61393,7 +61393,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_read_failed\n诊断：settings.json is unreadable\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
+              "content": "类别：settings_file_read_failed\n诊断：settings.json 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -61447,7 +61447,7 @@
       "id": "O2KNT",
       "x": 152744,
       "y": 1500,
-      "name": "Settings / File Write Failed / Dark",
+      "name": "设置 / 文件写入失败 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -61837,7 +61837,7 @@
                       "fill": "#f1e9de",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -61871,7 +61871,7 @@
                   "id": "6YFCB",
                   "name": "setFooterText",
                   "fill": "#a99c8e",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -61994,7 +61994,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_write_failed\n诊断：settings.json write denied\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
+              "content": "类别：settings_file_write_failed\n诊断：settings.json 写入被拒绝\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -62048,7 +62048,7 @@
       "id": "23RSP",
       "x": 154344,
       "y": 1500,
-      "name": "Settings / Retry Read Success / Dark",
+      "name": "设置 / 重试读取成功 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -62349,7 +62349,7 @@
                           "fill": "#f1e9de",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "新的 Provider 配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
+                          "content": "新的提供方配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -62623,7 +62623,7 @@
       "id": "PfRrt",
       "x": 155944,
       "y": 1500,
-      "name": "Settings / Retry Write Success / Dark",
+      "name": "设置 / 重试写入成功 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -62924,7 +62924,7 @@
                           "fill": "#f1e9de",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "新的 Provider 配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
+                          "content": "新的提供方配置将从下一次 AI 请求开始生效。当前已打开的工作台仍保持当前输入内容，但不会自动重放上一条失败请求。",
                           "lineHeight": 1.45,
                           "fontFamily": "Geist",
                           "fontSize": 14,
@@ -63198,7 +63198,7 @@
       "id": "LRExZ",
       "x": 157544,
       "y": 1500,
-      "name": "Settings / Connection Timeout / Dark",
+      "name": "设置 / 连接超时 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -63588,7 +63588,7 @@
                       "fill": "#f1e9de",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                      "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                       "lineHeight": 1.5,
                       "fontFamily": "Geist",
                       "fontSize": 14,
@@ -63622,7 +63622,7 @@
                   "id": "YC2pl",
                   "name": "setFooterText",
                   "fill": "#a99c8e",
-                  "content": "配置保存在本地 · 导出包不包含 API 密钥",
+                  "content": "配置保存在本地 · 导出包不包含 接口密钥",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -63745,7 +63745,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：timeout\n请求：OpenAI-compatible / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
+              "content": "状态：timeout\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -63799,7 +63799,7 @@
       "id": "NqgGR",
       "x": 159144,
       "y": 0,
-      "name": "Writing Workbench / AI Settings Read Failed",
+      "name": "写作工作台 / AI 设置读取失败",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -63913,7 +63913,7 @@
                           "id": "iJIdx",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -63923,7 +63923,7 @@
                           "id": "jSqKH",
                           "name": "aiMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -64344,7 +64344,7 @@
               "id": "FtMQ7",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -64354,7 +64354,7 @@
               "id": "pyLEC",
               "name": "aiFootMeta",
               "fill": "#91887D",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -64577,7 +64577,7 @@
       "id": "jbGIZ",
       "x": 160744,
       "y": 0,
-      "name": "Writing Workbench / AI Settings Write Failed",
+      "name": "写作工作台 / AI 设置写入失败",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -64691,7 +64691,7 @@
                           "id": "KGNeX",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -64701,7 +64701,7 @@
                           "id": "jlQdy",
                           "name": "aiMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -65122,7 +65122,7 @@
               "id": "wEHJr",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -65132,7 +65132,7 @@
               "id": "CHhtR",
               "name": "aiFootMeta",
               "fill": "#91887D",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -65243,7 +65243,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "settings.json write denied。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
+                  "content": "settings.json 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -65355,7 +65355,7 @@
       "id": "aZupZ",
       "x": 162344,
       "y": 0,
-      "name": "Writing Workbench / AI Ready After Recovery",
+      "name": "写作工作台 / 恢复后 AI 就绪",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -65510,7 +65510,7 @@
                           "id": "14gvC",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -65520,7 +65520,7 @@
                           "id": "YE9ve",
                           "name": "aiMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -65941,7 +65941,7 @@
               "id": "Br1Cl",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -65951,7 +65951,7 @@
               "id": "AleRb",
               "name": "aiFootMeta",
               "fill": "#91887D",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -65965,7 +65965,7 @@
       "id": "IhizR",
       "x": 163944,
       "y": 0,
-      "name": "Writing Workbench / Create Scene Dialog",
+      "name": "写作工作台 / 新建场景弹窗",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -66079,7 +66079,7 @@
                           "id": "jDqjK",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -66089,7 +66089,7 @@
                           "id": "tPizG",
                           "name": "resMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -66153,7 +66153,7 @@
                       "id": "O0A3F",
                       "name": "navMeta",
                       "fill": "#91887D",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -66184,7 +66184,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯"
+                      "content": "场景 05 · 雨夜审讯"
                     }
                   }
                 },
@@ -66391,7 +66391,7 @@
               "id": "70a2x",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -66401,7 +66401,7 @@
               "id": "ekabO",
               "name": "resFootMeta",
               "fill": "#91887D",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -66517,7 +66517,7 @@
       "id": "VCoJM",
       "x": 165544,
       "y": 0,
-      "name": "Writing Workbench / Rename Scene Dialog",
+      "name": "写作工作台 / 重命名场景弹窗",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -66631,7 +66631,7 @@
                           "id": "n4Lg3",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -66641,7 +66641,7 @@
                           "id": "j1QGZ",
                           "name": "resMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -66705,7 +66705,7 @@
                       "id": "CYPsI",
                       "name": "navMeta",
                       "fill": "#91887D",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -66736,7 +66736,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯"
+                      "content": "场景 05 · 雨夜审讯"
                     }
                   }
                 },
@@ -66943,7 +66943,7 @@
               "id": "nYfDE",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -66953,7 +66953,7 @@
               "id": "5R95y",
               "name": "resFootMeta",
               "fill": "#91887D",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -67069,7 +67069,7 @@
       "id": "ttVz8",
       "x": 167144,
       "y": 0,
-      "name": "Writing Workbench / Delete Scene Confirm",
+      "name": "写作工作台 / 删除场景确认",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -67183,7 +67183,7 @@
                           "id": "Q112q",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -67193,7 +67193,7 @@
                           "id": "LqILe",
                           "name": "resMeta",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -67257,7 +67257,7 @@
                       "id": "PHiH2",
                       "name": "navMeta",
                       "fill": "#91887D",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -67288,7 +67288,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯"
+                      "content": "场景 05 · 雨夜审讯"
                     }
                   }
                 },
@@ -67495,7 +67495,7 @@
               "id": "ZHYkP",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -67505,7 +67505,7 @@
               "id": "2H1Ly",
               "name": "resFootMeta",
               "fill": "#91887D",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -67701,7 +67701,7 @@
       "id": "zEinB",
       "x": 159144,
       "y": 1500,
-      "name": "Writing Workbench / AI Settings Read Failed / Dark",
+      "name": "写作工作台 / AI 设置读取失败 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -67815,7 +67815,7 @@
                           "id": "97Skk",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -67825,7 +67825,7 @@
                           "id": "9UlBx",
                           "name": "aiMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -68246,7 +68246,7 @@
               "id": "SMkBq",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -68256,7 +68256,7 @@
               "id": "HIK5k",
               "name": "aiFootMeta",
               "fill": "#a99c8e",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -68479,7 +68479,7 @@
       "id": "U92jw",
       "x": 160744,
       "y": 1500,
-      "name": "Writing Workbench / AI Settings Write Failed / Dark",
+      "name": "写作工作台 / AI 设置写入失败 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -68593,7 +68593,7 @@
                           "id": "AnFH6",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -68603,7 +68603,7 @@
                           "id": "nzf1o",
                           "name": "aiMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -69024,7 +69024,7 @@
               "id": "vQzyZ",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69034,7 +69034,7 @@
               "id": "r272t",
               "name": "aiFootMeta",
               "fill": "#a99c8e",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69145,7 +69145,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "settings.json write denied。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
+                  "content": "settings.json 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -69257,7 +69257,7 @@
       "id": "wAiOX",
       "x": 162344,
       "y": 1500,
-      "name": "Writing Workbench / AI Ready After Recovery / Dark",
+      "name": "写作工作台 / 恢复后 AI 就绪 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -69412,7 +69412,7 @@
                           "id": "MED93",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -69422,7 +69422,7 @@
                           "id": "ZN7qy",
                           "name": "aiMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -69843,7 +69843,7 @@
               "id": "5tb8M",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69853,7 +69853,7 @@
               "id": "2a8V6",
               "name": "aiFootMeta",
               "fill": "#a99c8e",
-              "content": "AI 已选工具 · Markdown · 1,284 字",
+              "content": "AI 已选工具 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69867,7 +69867,7 @@
       "id": "Wves1",
       "x": 163944,
       "y": 1500,
-      "name": "Writing Workbench / Create Scene Dialog / Dark",
+      "name": "写作工作台 / 新建场景弹窗 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -69981,7 +69981,7 @@
                           "id": "cFK5g",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -69991,7 +69991,7 @@
                           "id": "EYYvh",
                           "name": "resMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -70055,7 +70055,7 @@
                       "id": "s9rpz",
                       "name": "navMeta",
                       "fill": "#a99c8e",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -70086,7 +70086,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯",
+                      "content": "场景 05 · 雨夜审讯",
                       "fill": "#f1e9de"
                     }
                   }
@@ -70329,7 +70329,7 @@
               "id": "mviKk",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -70339,7 +70339,7 @@
               "id": "0D9SZ",
               "name": "resFootMeta",
               "fill": "#a99c8e",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -70470,7 +70470,7 @@
       "id": "wjCFR",
       "x": 165544,
       "y": 1500,
-      "name": "Writing Workbench / Rename Scene Dialog / Dark",
+      "name": "写作工作台 / 重命名场景弹窗 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -70584,7 +70584,7 @@
                           "id": "yYzAn",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -70594,7 +70594,7 @@
                           "id": "YQJqT",
                           "name": "resMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -70658,7 +70658,7 @@
                       "id": "ryzLV",
                       "name": "navMeta",
                       "fill": "#a99c8e",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -70689,7 +70689,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯",
+                      "content": "场景 05 · 雨夜审讯",
                       "fill": "#f1e9de"
                     }
                   }
@@ -70932,7 +70932,7 @@
               "id": "7yYpi",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -70942,7 +70942,7 @@
               "id": "eboal",
               "name": "resFootMeta",
               "fill": "#a99c8e",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -71073,7 +71073,7 @@
       "id": "9EUv4",
       "x": 167144,
       "y": 1500,
-      "name": "Writing Workbench / Delete Scene Confirm / Dark",
+      "name": "写作工作台 / 删除场景确认 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -71187,7 +71187,7 @@
                           "id": "5zLDm",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -71197,7 +71197,7 @@
                           "id": "a053D",
                           "name": "resMeta",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -71261,7 +71261,7 @@
                       "id": "yoqbm",
                       "name": "navMeta",
                       "fill": "#a99c8e",
-                      "content": "Tool Window",
+                      "content": "工具窗口",
                       "fontFamily": "Inter",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -71292,7 +71292,7 @@
                   "name": "outlineScene",
                   "descendants": {
                     "QZQwW": {
-                      "content": "Scene 05 · 雨夜审讯",
+                      "content": "场景 05 · 雨夜审讯",
                       "fill": "#f1e9de"
                     }
                   }
@@ -71535,7 +71535,7 @@
               "id": "f4ocG",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -71545,7 +71545,7 @@
               "id": "sLbH4",
               "name": "resFootMeta",
               "fill": "#a99c8e",
-              "content": "资料展开 · Markdown · 1,284 字",
+              "content": "资料展开 · 标记文本 · 1,284 字",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -71741,7 +71741,7 @@
       "id": "VT3Da",
       "x": 168744,
       "y": 0,
-      "name": "AI Revision Confirmation / Continue Mode",
+      "name": "AI 修订确认 / 继续模式",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -72064,7 +72064,7 @@
       "id": "eOH82",
       "x": 170344,
       "y": 0,
-      "name": "Writing Workbench / AI Accept Failed",
+      "name": "写作工作台 / AI 接受失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -72184,7 +72184,7 @@
                           "type": "text",
                           "id": "vHRTa",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -72193,7 +72193,7 @@
                           "type": "text",
                           "id": "1nWAF",
                           "fill": "#91887D",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -72583,7 +72583,7 @@
               "id": "oTy7O",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -72607,7 +72607,7 @@
       "id": "uZkEL",
       "x": 171944,
       "y": 0,
-      "name": "Style Panel / JSON Mode",
+      "name": "风格面板 / 结构化草稿模式",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -72773,7 +72773,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -72857,7 +72857,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -73191,7 +73191,7 @@
       "id": "6TNF5",
       "x": 173544,
       "y": 0,
-      "name": "Style Panel / Project Default Bound",
+      "name": "风格面板 / 已绑定项目默认风格",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -73357,7 +73357,7 @@
                           "name": "modeJ",
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON"
+                              "content": "结构化草稿"
                             }
                           }
                         }
@@ -73441,7 +73441,7 @@
                       "name": "jsonPath",
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON"
+                          "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
                           "content": "/styles/cold-suspense.json"
@@ -73775,7 +73775,7 @@
       "id": "THj8i",
       "x": 175144,
       "y": 0,
-      "name": "Audit Center / Resolved Feedback",
+      "name": "审计中心 / 已处理反馈",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -74050,7 +74050,7 @@
                       "content": "关联场景"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05"
+                      "content": "场景 05"
                     }
                   }
                 }
@@ -74130,7 +74130,7 @@
       "id": "IfzpB",
       "x": 176744,
       "y": 0,
-      "name": "Audit Center / Ignore Feedback",
+      "name": "审计中心 / 忽略反馈",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -74405,7 +74405,7 @@
                       "content": "关联场景"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05"
+                      "content": "场景 05"
                     }
                   }
                 }
@@ -74485,7 +74485,7 @@
       "id": "VK4F1",
       "x": 178344,
       "y": 0,
-      "name": "Simulation Monitor / Edit Prompt",
+      "name": "模拟监控 / 编辑提示词",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -74560,7 +74560,7 @@
                               "id": "lPoJZ",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -74570,7 +74570,7 @@
                               "id": "iQJcz",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -74725,7 +74725,7 @@
                   "id": "vmrr9",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -74923,7 +74923,7 @@
                               "type": "text",
                               "id": "1c4EV",
                               "fill": "#2E2925",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -75565,7 +75565,7 @@
                   "type": "text",
                   "id": "rEFvi",
                   "fill": "#6E665E",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -75681,7 +75681,7 @@
               "id": "3jdjJ",
               "name": "simEditTitleM",
               "fill": "#2E2925",
-              "content": "编辑认知 Prompt",
+              "content": "编辑认知 提示词",
               "fontFamily": "Inter",
               "fontSize": 18,
               "fontWeight": "600"
@@ -75693,7 +75693,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "修改后的 Prompt 会先反馈给导演，再影响下一轮参与方的任务拆分与优先顺序。",
+              "content": "修改后的 提示词 会先反馈给导演，再影响下一轮参与方的任务拆分与优先顺序。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -75720,7 +75720,7 @@
                   "id": "rHHck",
                   "name": "simEditLabelM",
                   "fill": "#6E665E",
-                  "content": "认知 Prompt",
+                  "content": "认知 提示词",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -75781,7 +75781,7 @@
       "id": "ma61v",
       "x": 179944,
       "y": 0,
-      "name": "Simulation Monitor / Director Feedback Applied",
+      "name": "模拟监控 / 导演反馈已应用",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -75856,7 +75856,7 @@
                               "id": "XWv5V",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -75866,7 +75866,7 @@
                               "id": "1Ng9C",
                               "name": "editorMeta",
                               "fill": "#91887D",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -76021,7 +76021,7 @@
                   "id": "HclxJ",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -76219,7 +76219,7 @@
                               "type": "text",
                               "id": "WoVly",
                               "fill": "#2E2925",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -76861,7 +76861,7 @@
                   "type": "text",
                   "id": "pyoUM",
                   "fill": "#6E665E",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -77004,7 +77004,7 @@
       "id": "GLk16",
       "x": 168744,
       "y": 1500,
-      "name": "AI Revision Confirmation / Continue Mode / Dark",
+      "name": "AI 修订确认 / 继续模式 / 暗色",
       "width": 1280,
       "height": 900,
       "fill": "#221d1a",
@@ -77348,7 +77348,7 @@
       "id": "XhEGm",
       "x": 170344,
       "y": 1500,
-      "name": "Writing Workbench / AI Accept Failed / Dark",
+      "name": "写作工作台 / AI 接受失败 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -77468,7 +77468,7 @@
                           "type": "text",
                           "id": "eu7cR",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / Scene 05",
+                          "content": "Lunaris / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -77477,7 +77477,7 @@
                           "type": "text",
                           "id": "rshF4",
                           "fill": "#a99c8e",
-                          "content": "自动保存 · Markdown",
+                          "content": "自动保存 · 标记文本",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "500"
@@ -77867,7 +77867,7 @@
               "id": "G1PTe",
               "name": "statusPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / Scene 05",
+              "content": "Lunaris / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -77891,7 +77891,7 @@
       "id": "HURTB",
       "x": 171944,
       "y": 1500,
-      "name": "Style Panel / JSON Mode / Dark",
+      "name": "风格面板 / 结构化草稿模式 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -78070,7 +78070,7 @@
                           },
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON",
+                              "content": "结构化草稿",
                               "fill": "#f1e9de"
                             }
                           }
@@ -78193,7 +78193,7 @@
                       },
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON",
+                          "content": "风格配置 JSON",
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
@@ -78590,7 +78590,7 @@
       "id": "hK7Ud",
       "x": 173544,
       "y": 1500,
-      "name": "Style Panel / Project Default Bound / Dark",
+      "name": "风格面板 / 已绑定项目默认风格 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -78769,7 +78769,7 @@
                           },
                           "descendants": {
                             "nOBnP": {
-                              "content": "JSON",
+                              "content": "结构化草稿",
                               "fill": "#f1e9de"
                             }
                           }
@@ -78892,7 +78892,7 @@
                       },
                       "descendants": {
                         "QC1sj": {
-                          "content": "StyleProfile JSON",
+                          "content": "风格配置 JSON",
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
@@ -79289,7 +79289,7 @@
       "id": "PSDTH",
       "x": 175144,
       "y": 1500,
-      "name": "Audit Center / Resolved Feedback / Dark",
+      "name": "审计中心 / 已处理反馈 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -79615,7 +79615,7 @@
                       "fill": "#f1e9de"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05",
+                      "content": "场景 05",
                       "fill": "#a99c8e"
                     }
                   }
@@ -79710,7 +79710,7 @@
       "id": "Hqgfj",
       "x": 176744,
       "y": 1500,
-      "name": "Audit Center / Ignore Feedback / Dark",
+      "name": "审计中心 / 忽略反馈 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -80036,7 +80036,7 @@
                       "fill": "#f1e9de"
                     },
                     "Pa6iW": {
-                      "content": "Scene 05",
+                      "content": "场景 05",
                       "fill": "#a99c8e"
                     }
                   }
@@ -80131,7 +80131,7 @@
       "id": "SVryJ",
       "x": 178344,
       "y": 1500,
-      "name": "Simulation Monitor / Edit Prompt / Dark",
+      "name": "模拟监控 / 编辑提示词 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -80206,7 +80206,7 @@
                               "id": "2FdjP",
                               "name": "editorTitle",
                               "fill": "#f1e9de",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -80216,7 +80216,7 @@
                               "id": "ksTTR",
                               "name": "editorMeta",
                               "fill": "#a99c8e",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -80371,7 +80371,7 @@
                   "id": "v774f",
                   "name": "statusPath",
                   "fill": "#a99c8e",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -80569,7 +80569,7 @@
                               "type": "text",
                               "id": "nDMgk",
                               "fill": "#f1e9de",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -81211,7 +81211,7 @@
                   "type": "text",
                   "id": "Ktnnp",
                   "fill": "#a99c8e",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -81327,7 +81327,7 @@
               "id": "P4Iag",
               "name": "simEditTitleM",
               "fill": "#f1e9de",
-              "content": "编辑认知 Prompt",
+              "content": "编辑认知 提示词",
               "fontFamily": "Inter",
               "fontSize": 18,
               "fontWeight": "600"
@@ -81339,7 +81339,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "修改后的 Prompt 会先反馈给导演，再影响下一轮参与方的任务拆分与优先顺序。",
+              "content": "修改后的 提示词 会先反馈给导演，再影响下一轮参与方的任务拆分与优先顺序。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -81366,7 +81366,7 @@
                   "id": "WWG3I",
                   "name": "simEditLabelM",
                   "fill": "#a99c8e",
-                  "content": "认知 Prompt",
+                  "content": "认知 提示词",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -81434,7 +81434,7 @@
       "id": "RRIRw",
       "x": 179944,
       "y": 1500,
-      "name": "Simulation Monitor / Director Feedback Applied / Dark",
+      "name": "模拟监控 / 导演反馈已应用 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -81509,7 +81509,7 @@
                               "id": "uoov6",
                               "name": "editorTitle",
                               "fill": "#f1e9de",
-                              "content": "Scene 05 · 雨夜审讯",
+                              "content": "场景 05 · 雨夜审讯",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -81519,7 +81519,7 @@
                               "id": "97B4l",
                               "name": "editorMeta",
                               "fill": "#a99c8e",
-                              "content": "自动保存 · Markdown",
+                              "content": "自动保存 · 标记文本",
                               "fontFamily": "Inter",
                               "fontSize": 12,
                               "fontWeight": "500"
@@ -81674,7 +81674,7 @@
                   "id": "9swhH",
                   "name": "statusPath",
                   "fill": "#a99c8e",
-                  "content": "Lunaris / 第三章 / Scene 05",
+                  "content": "Lunaris / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -81872,7 +81872,7 @@
                               "type": "text",
                               "id": "XZltl",
                               "fill": "#f1e9de",
-                              "content": "编辑认知 Prompt",
+                              "content": "编辑认知 提示词",
                               "fontFamily": "Inter",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -82514,7 +82514,7 @@
                   "type": "text",
                   "id": "R12WE",
                   "fill": "#a99c8e",
-                  "content": "在线列表里的认知 Prompt 可随时编辑，修改会先反馈给导演。",
+                  "content": "在线列表里的认知 提示词 可随时编辑，修改会先反馈给导演。",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -82657,7 +82657,7 @@
       "id": "SGKvq",
       "x": 181544,
       "y": 0,
-      "name": "Global Shell / Settings File Write Failed",
+      "name": "全局框架 / 设置文件写入失败",
       "width": 1440,
       "height": 1024,
       "fill": "#F6F0E6",
@@ -83037,7 +83037,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                  "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -83071,7 +83071,7 @@
               "id": "BqTM0",
               "name": "setFooterText",
               "fill": "#6E665E",
-              "content": "配置保存在本地 · 导出包不包含 API 密钥",
+              "content": "配置保存在本地 · 导出包不包含 接口密钥",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -83153,7 +83153,7 @@
       "id": "cnTHD",
       "x": 181544,
       "y": 1500,
-      "name": "Global Shell / Settings File Write Failed / Dark",
+      "name": "全局框架 / 设置文件写入失败 / 暗色",
       "width": 1440,
       "height": 1024,
       "fill": "#221d1a",
@@ -83611,7 +83611,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "API 密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
+                  "content": "接口密钥仅保存在本地。\n\n如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次模拟运行。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -83645,7 +83645,7 @@
               "id": "fcyqq",
               "name": "setFooterText",
               "fill": "#a99c8e",
-              "content": "配置保存在本地 · 导出包不包含 API 密钥",
+              "content": "配置保存在本地 · 导出包不包含 接口密钥",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"

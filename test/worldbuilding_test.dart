@@ -39,14 +39,12 @@ void main() {
   });
 
   testWidgets('shows worldbuilding ready state', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
 
-    expect(find.text('世界观'), findsOneWidget);
-    expect(find.text('维护地点、组织、规则与引用关系'), findsOneWidget);
+    expect(find.text('作品设定 · 世界观'), findsOneWidget);
+    expect(find.text('地点、组织与规则设定'), findsOneWidget);
     expect(find.text('新建节点'), findsOneWidget);
-    expect(find.text('世界观资料已保存'), findsOneWidget);
+    expect(find.text('作品设定 · 世界观资料已保存'), findsOneWidget);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -58,18 +56,13 @@ void main() {
 
     expect(find.text('当前项目没有世界观节点'), findsOneWidget);
     expect(find.text('创建第一个世界观节点'), findsOneWidget);
-    expect(
-      find.textContaining('先建立地点、组织或关键物件'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('先建立地点、组织或关键物件'), findsOneWidget);
   });
 
   testWidgets('shows filter no results state', (tester) async {
     await tester.pumpWidget(
       const NovelWriterApp(
-        home: WorldbuildingPage(
-          uiState: WorldbuildingUiState.filterNoResults,
-        ),
+        home: WorldbuildingPage(uiState: WorldbuildingUiState.filterNoResults),
       ),
     );
 
@@ -82,21 +75,13 @@ void main() {
   testWidgets('shows missing type state', (tester) async {
     await tester.pumpWidget(
       const NovelWriterApp(
-        home: WorldbuildingPage(
-          uiState: WorldbuildingUiState.missingType,
-        ),
+        home: WorldbuildingPage(uiState: WorldbuildingUiState.missingType),
       ),
     );
 
     expect(find.text('缺少必填类型'), findsOneWidget);
-    expect(
-      find.textContaining('当前节点尚未指定类型'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('节点类型缺失时，系统不会将该节点纳入规则摘要'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('当前素材尚未指定类型'), findsOneWidget);
+    expect(find.textContaining('类型缺失时，暂不把这条素材纳入规则摘要'), findsOneWidget);
   });
 
   testWidgets('shows delete parent confirm overlay', (tester) async {
@@ -114,12 +99,8 @@ void main() {
     expect(find.text('查看影响后再删'), findsOneWidget);
   });
 
-  testWidgets('ready state shows node list with default nodes', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+  testWidgets('ready state shows node list with default nodes', (tester) async {
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(WorldbuildingPage)),
     );
@@ -135,9 +116,7 @@ void main() {
   testWidgets('ready state shows editable fields for selected node', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(WorldbuildingPage)),
     );
@@ -153,9 +132,7 @@ void main() {
   });
 
   testWidgets('ready state shows rules panel', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(WorldbuildingPage)),
     );
@@ -170,9 +147,7 @@ void main() {
   testWidgets('creates a new worldbuilding node with all fields', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(WorldbuildingPage)),
     );
@@ -250,9 +225,7 @@ void main() {
   });
 
   testWidgets('filters nodes by search query', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(home: WorldbuildingPage()),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: WorldbuildingPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(WorldbuildingPage)),
     );
@@ -287,21 +260,13 @@ void main() {
   testWidgets('shows warning when type field is empty', (tester) async {
     await tester.pumpWidget(
       const NovelWriterApp(
-        home: WorldbuildingPage(
-          uiState: WorldbuildingUiState.missingType,
-        ),
+        home: WorldbuildingPage(uiState: WorldbuildingUiState.missingType),
       ),
     );
 
     // The missing-type state shows a warning card.
     expect(find.text('缺少必填类型'), findsOneWidget);
-    expect(
-      find.textContaining('当前节点尚未指定类型'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('节点类型缺失时，系统不会将该节点纳入规则摘要'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('当前素材尚未指定类型'), findsOneWidget);
+    expect(find.textContaining('类型缺失时，暂不把这条素材纳入规则摘要'), findsOneWidget);
   });
 }

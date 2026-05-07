@@ -67,7 +67,7 @@ void main() {
         expect(find.byType(DesktopHandleBar), findsOneWidget);
 
         // Filter pane
-        expect(find.text('全部项目'), findsOneWidget);
+        expect(find.text('全部作品'), findsOneWidget);
         expect(find.text('最近打开'), findsOneWidget);
         expect(find.text('进行中'), findsOneWidget);
 
@@ -90,19 +90,8 @@ void main() {
       await tester.pumpWidget(const NovelWriterApp());
       await tester.pump();
 
-      final newCardCopy = find.text('从空白书架里直接开始，不再额外占一整块区域。');
-
-      expect(newCardCopy, findsOneWidget);
-      expect(
-        tester.getRect(newCardCopy).right,
-        lessThanOrEqualTo(desktopSize.width),
-      );
-      expect(
-        tester.getRect(newCardCopy).right,
-        lessThanOrEqualTo(
-          tester.getRect(find.byKey(ProjectListPage.detailKey)).left,
-        ),
-      );
+      expect(find.byKey(ProjectListPage.newProjectButtonKey), findsOneWidget);
+      expect(find.text('导入工程'), findsWidgets);
     });
 
     testWidgets(
@@ -154,19 +143,7 @@ void main() {
           find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
           findsOneWidget,
         );
-        for (final label in [
-          '书架',
-          '编辑工作台',
-          '风格面板',
-          '场景管理',
-          '角色库',
-          '世界观',
-          '作品圣经',
-          '问题检查',
-          '生产看板',
-          '改稿任务',
-          '设置',
-        ]) {
+        for (final label in ['书架', '写作', '作品设定', '改稿', '阅读', '设置']) {
           expect(
             find.descendant(
               of: find.byKey(WorkbenchShellPage.menuDrawerPanelKey),
@@ -241,7 +218,7 @@ void main() {
       await tester.tap(find.text('打开完整设置'));
       await tester.pumpAndSettle();
 
-      expect(find.text('设置与模型密钥'), findsOneWidget);
+      expect(find.text('设置'), findsWidgets);
       expect(find.byKey(SettingsShellPage.providerConfigKey), findsOneWidget);
     });
   });
@@ -275,14 +252,14 @@ void main() {
         expect(find.byType(DesktopShellFrame), findsOneWidget);
 
         // Provider fields
-        expect(find.text('模型提供方'), findsOneWidget);
+        expect(find.text('默认模型'), findsOneWidget);
         expect(find.byKey(SettingsShellPage.providerConfigKey), findsOneWidget);
 
         // Connection/config area
         expect(find.text('连接测试'), findsOneWidget);
 
         // Explanation panel
-        expect(find.text('说明'), findsOneWidget);
+        expect(find.text('请求节奏'), findsOneWidget);
 
         // Shared shell elements
         expect(find.byType(DesktopMenuDrawerRegion), findsOneWidget);

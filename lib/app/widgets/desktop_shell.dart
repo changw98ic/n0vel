@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import '../state/app_settings_store.dart';
 import 'desktop_theme.dart';
 
+export 'app_popover.dart';
+export 'app_sheet.dart';
+export 'app_split_handle.dart';
 export 'desktop_header_widgets.dart';
 export 'desktop_menu_widgets.dart';
 export 'desktop_status_modal.dart';

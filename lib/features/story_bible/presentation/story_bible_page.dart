@@ -46,8 +46,8 @@ class _StoryBiblePageState extends State<StoryBiblePage> {
 
         return DesktopShellFrame(
           header: DesktopHeaderBar(
-            title: '作品圣经',
-            subtitle: '${bible.projectTitle} · 聚合已有项目事实',
+            title: '作品设定 · 设定集',
+            subtitle: '${bible.projectTitle} · 汇拢设定事实',
             showBackButton: true,
           ),
           body: Row(
@@ -69,8 +69,8 @@ class _StoryBiblePageState extends State<StoryBiblePage> {
             ],
           ),
           statusBar: DesktopStatusStrip(
-            leftText: '已聚合 ${bible.factCount} 条设定事实',
-            rightText: '已整理作品资料与问题数量',
+            leftText: '已汇拢 ${bible.factCount} 条设定事实',
+            rightText: '作品资料与待核对项已整理',
           ),
         );
       },
@@ -81,20 +81,14 @@ class _StoryBiblePageState extends State<StoryBiblePage> {
     return buildDesktopWorkspaceMenuItems(
       selected: DesktopWorkspaceSection.storyBible,
       onShelf: () => Navigator.of(context).pop(),
-      onProductionBoard: () =>
-          AppNavigator.push(context, AppRoutes.productionBoard),
       onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onStyle: () => AppNavigator.push(context, AppRoutes.style),
-      onScenes: () => AppNavigator.push(context, AppRoutes.scenes),
-      onCharacters: () => AppNavigator.push(context, AppRoutes.characters),
-      onWorldbuilding: () =>
-          AppNavigator.push(context, AppRoutes.worldbuilding),
-      onStoryBible: () {
+      onWorkSettings: () {
         setState(() {
           _isDrawerOpen = false;
         });
       },
-      onAudit: () => AppNavigator.push(context, AppRoutes.audit),
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
       onSettings: () => AppNavigator.push(context, AppRoutes.settings),
     );
   }
@@ -170,7 +164,7 @@ class _StoryBibleSectionCard extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: palette.subtle,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: palette.border),
               ),

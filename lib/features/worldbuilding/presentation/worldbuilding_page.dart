@@ -117,10 +117,16 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '世界观',
-        subtitle: '维护地点、组织、规则与引用关系',
+        title: '作品设定 · 世界观',
+        subtitle: '地点、组织与规则设定',
         showBackButton: true,
         actions: [
+          OutlinedButton(
+            onPressed: current == null
+                ? null
+                : () => _appendRulePrompt(store, current),
+            child: const Text('新增规则'),
+          ),
           FilledButton(
             key: WorldbuildingPage.newNodeButtonKey,
             onPressed: () => _createNode(store),
@@ -141,7 +147,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         ],
       ),
       statusBar: const DesktopStatusStrip(
-        leftText: '世界观资料已保存',
+        leftText: '作品设定 · 世界观资料已保存',
         rightText: '场景 05',
       ),
     );
@@ -187,7 +193,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('世界观树'),
+        const Text('世界观树'),
         const SizedBox(height: 8),
         DesktopSearchField(
           fieldKey: WorldbuildingPage.searchFieldKey,
@@ -262,7 +268,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
             const SizedBox(height: 12),
             const _StateCard(
               title: '缺少必填类型',
-              message: '当前节点尚未指定类型，因此本轮不会写入世界观索引，也不会同步规则引用。',
+              message: '当前素材尚未指定类型，因此本轮暂不写入世界观索引，也不会同步规则引用。',
               accent: Color(0xFF51624D),
             ),
             if (current != null) ...[
@@ -336,6 +342,16 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
   List<WorldNodeRecord> _nodes(BuildContext context) =>
       AppWorkspaceScope.of(context).worldNodes;
 
+  void _appendRulePrompt(AppWorkspaceStore store, WorldNodeRecord current) {
+    final nextRule = current.ruleSummary.trim().isEmpty
+        ? '新增规则：'
+        : '${current.ruleSummary.trim()}\n新增规则：';
+    setState(() {
+      store.updateWorldNode(nodeId: current.id, ruleSummary: nextRule);
+      AppSceneContextScope.of(context).syncContext();
+    });
+  }
+
   Widget _buildRules(
     ThemeData theme,
     AppWorkspaceStore store,
@@ -369,10 +385,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const _InfoBlock(
-            title: '规则摘要',
-            message: '节点类型缺失时，系统不会将该节点纳入规则摘要或引用索引。',
-          ),
+          const _InfoBlock(title: '规则摘要', message: '类型缺失时，暂不把这条素材纳入规则摘要或引用索引。'),
         ],
       );
     }
@@ -381,10 +394,22 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            '把地点、组织和规则绑定回具体场景，写作时就能直接看到限制条件。',
+            style: theme.textTheme.bodySmall,
+          ),
           const SizedBox(height: 12),
           if (current == null)
             const AppEmptyState(title: '暂无规则摘要', message: '请先搜索或新建一个节点。')
           else ...[
+            _InfoBlock(
+              title: '引用场景',
+              message: current.linkedSceneIds.isEmpty
+                  ? '暂未绑定场景，可在下方选择相关章节。'
+                  : '已绑定 ${current.linkedSceneIds.length} 个场景，规则会同步到写作工作台。',
+            ),
+            const SizedBox(height: 8),
             _EditableTextField(
               fieldKey: ValueKey<String>(
                 'worldbuilding-rule-field-${current.id}',
@@ -435,8 +460,15 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
   }
 
   Widget _buildNodeFields(AppWorkspaceStore store, WorldNodeRecord current) {
-    void onFieldChanged(String nodeId, {String? title, String? location,
-        String? type, String? detail, String? summary, String? ruleSummary}) {
+    void onFieldChanged(
+      String nodeId, {
+      String? title,
+      String? location,
+      String? type,
+      String? detail,
+      String? summary,
+      String? ruleSummary,
+    }) {
       store.updateWorldNode(
         nodeId: nodeId,
         title: title,
@@ -458,8 +490,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           ),
           label: '节点名称',
           initialValue: current.title,
-          onChanged: (value) =>
-              onFieldChanged(current.id, title: value),
+          onChanged: (value) => onFieldChanged(current.id, title: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -468,8 +499,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           ),
           label: '所在区域',
           initialValue: current.location,
-          onChanged: (value) =>
-              onFieldChanged(current.id, location: value),
+          onChanged: (value) => onFieldChanged(current.id, location: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -478,8 +508,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           ),
           label: '类型',
           initialValue: current.type,
-          onChanged: (value) =>
-              onFieldChanged(current.id, type: value),
+          onChanged: (value) => onFieldChanged(current.id, type: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -489,8 +518,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           label: '附属信息',
           initialValue: current.detail,
           maxLines: 3,
-          onChanged: (value) =>
-              onFieldChanged(current.id, detail: value),
+          onChanged: (value) => onFieldChanged(current.id, detail: value),
         ),
         const SizedBox(height: 8),
         _EditableTextField(
@@ -500,32 +528,26 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           label: '节点摘要',
           initialValue: current.summary,
           maxLines: 3,
-          onChanged: (value) =>
-              onFieldChanged(current.id, summary: value),
+          onChanged: (value) => onFieldChanged(current.id, summary: value),
         ),
       ],
     );
   }
 
   List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return [
-      DesktopMenuItemData(
-        label: '书架',
-        onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
-      DesktopMenuItemData(
-        label: '编辑工作台',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.workbench);
-        },
-      ),
-      DesktopMenuItemData(
-        label: '设置',
-        onTap: () {
-          AppNavigator.push(context, AppRoutes.settings);
-        },
-      ),
-    ];
+    return buildDesktopWorkspaceMenuItems(
+      selected: DesktopWorkspaceSection.worldbuilding,
+      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
+      onWorkSettings: () {
+        setState(() {
+          _isDrawerOpen = false;
+        });
+      },
+      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
+      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
+      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
+    );
   }
 }
 
@@ -578,7 +600,7 @@ class _InfoBlock extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,9 +661,9 @@ class _StateCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent),
+        border: Border.all(color: desktopPalette(context).borderStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,7 +726,7 @@ class _CenteredPanelState extends StatelessWidget {
       width: double.infinity,
       decoration: appPanelDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).subtle,
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -742,7 +764,7 @@ class _WorldDeleteOverlay extends StatelessWidget {
           decoration: BoxDecoration(
             color: desktopPalette(context).surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFB7AA9A)),
+            border: Border.all(color: desktopPalette(context).borderStrong),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

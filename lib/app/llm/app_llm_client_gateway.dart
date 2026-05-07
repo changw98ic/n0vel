@@ -151,6 +151,7 @@ class AppLlmClientGateway implements AppLlmClient {
       case AppLlmFailureKind.modelNotFound:
       case AppLlmFailureKind.invalidResponse:
       case AppLlmFailureKind.unsupportedPlatform:
+      case AppLlmFailureKind.insecureScheme:
       case null:
         return false;
     }
