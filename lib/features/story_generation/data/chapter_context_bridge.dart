@@ -5,6 +5,7 @@ import '../domain/outline_plan_models.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'story_memory_storage.dart';
+import 'chapter_summarizer.dart';
 
 /// Scope ID used to identify chapter summary entries in storage.
 const String _chapterSummaryScopeId = '__chapter_summaries';
@@ -83,13 +84,13 @@ class TransitionSummary {
 
   @override
   int get hashCode => Object.hash(
-        transitionId,
-        kind,
-        fromSceneId,
-        toSceneId,
-        summary,
-        isResolved,
-      );
+    transitionId,
+    kind,
+    fromSceneId,
+    toSceneId,
+    summary,
+    isResolved,
+  );
 }
 
 /// A cognition change for a character across chapter boundaries.
@@ -133,12 +134,12 @@ class CognitionDelta {
   };
 
   static CognitionDelta fromJson(Map<Object?, Object?> json) => CognitionDelta(
-        characterId: json['characterId']?.toString() ?? '',
-        characterName: json['characterName']?.toString() ?? '',
-        kind: json['kind']?.toString() ?? '',
-        description: json['description']?.toString() ?? '',
-        sourceSceneId: json['sourceSceneId']?.toString() ?? '',
-      );
+    characterId: json['characterId']?.toString() ?? '',
+    characterName: json['characterName']?.toString() ?? '',
+    kind: json['kind']?.toString() ?? '',
+    description: json['description']?.toString() ?? '',
+    sourceSceneId: json['sourceSceneId']?.toString() ?? '',
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -152,13 +153,8 @@ class CognitionDelta {
           sourceSceneId == other.sourceSceneId;
 
   @override
-  int get hashCode => Object.hash(
-        characterId,
-        characterName,
-        kind,
-        description,
-        sourceSceneId,
-      );
+  int get hashCode =>
+      Object.hash(characterId, characterName, kind, description, sourceSceneId);
 }
 
 /// Structured exit state of a completed chapter for continuity bridging.
@@ -201,9 +197,7 @@ class ChapterExitState {
   Map<String, Object?> toJson() => {
     'chapterId': chapterId,
     'chapterTitle': chapterTitle,
-    'outgoingTransitions': [
-      for (final t in outgoingTransitions) t.toJson(),
-    ],
+    'outgoingTransitions': [for (final t in outgoingTransitions) t.toJson()],
     'unresolvedThreads': unresolvedThreads,
     'unresolvedCognitionDeltas': [
       for (final d in unresolvedCognitionDeltas) d.toJson(),
@@ -217,8 +211,9 @@ class ChapterExitState {
         chapterTitle: json['chapterTitle']?.toString() ?? '',
         outgoingTransitions: _parseTransitionList(json['outgoingTransitions']),
         unresolvedThreads: _parseStringList(json['unresolvedThreads']),
-        unresolvedCognitionDeltas:
-            _parseCognitionDeltaList(json['unresolvedCognitionDeltas']),
+        unresolvedCognitionDeltas: _parseCognitionDeltaList(
+          json['unresolvedCognitionDeltas'],
+        ),
         metadata: json['metadata'] is Map
             ? Map<String, Object?>.from(json['metadata'] as Map)
             : const {},
@@ -272,10 +267,7 @@ class ChapterHandoffPayload {
             ? ChapterExitState.fromJson(
                 Map<Object?, Object?>.from(json['exitState'] as Map),
               )
-            : const ChapterExitState(
-                chapterId: '',
-                chapterTitle: '',
-              ),
+            : const ChapterExitState(chapterId: '', chapterTitle: ''),
         entryValidation: json['entryValidation'] is Map
             ? ChapterEntryValidation.fromJson(
                 Map<Object?, Object?>.from(json['entryValidation'] as Map),
@@ -322,9 +314,13 @@ List<String> _parseStringList(Object? raw) {
 /// level and loads context from previous chapters to maintain narrative
 /// continuity across chapter boundaries.
 class ChapterContextBridge implements ChapterContextBridgeService {
-  ChapterContextBridge({required this.storage});
+  ChapterContextBridge({required this.storage, this.summarizer});
 
   final StoryMemoryStorage storage;
+
+  /// Optional LLM-based summarizer. When set, [summarizeFromOutputs] will
+  /// attempt LLM summarization first and fall back to structural logic.
+  final ChapterSummarizer? summarizer;
 
   @override
   Future<void> saveChapterSummary(
@@ -332,10 +328,9 @@ class ChapterContextBridge implements ChapterContextBridgeService {
     ChapterSummary summary,
   ) async {
     final existing = await loadChapterSummaries(projectId);
-    final updated = existing
-        .where((s) => s.chapterId != summary.chapterId)
-        .toList()
-      ..add(summary);
+    final updated =
+        existing.where((s) => s.chapterId != summary.chapterId).toList()
+          ..add(summary);
 
     final sources = updated
         .map(
@@ -355,9 +350,7 @@ class ChapterContextBridge implements ChapterContextBridgeService {
   }
 
   @override
-  Future<List<ChapterSummary>> loadChapterSummaries(
-    String projectId,
-  ) async {
+  Future<List<ChapterSummary>> loadChapterSummaries(String projectId) async {
     final sources = await storage.loadSources(projectId);
     final summaries = <ChapterSummary>[];
 
@@ -398,7 +391,9 @@ class ChapterContextBridge implements ChapterContextBridgeService {
       }
 
       if (output.review.decision != SceneReviewDecision.pass) {
-        threads.add('${output.brief.sceneTitle}: review=${output.review.decision.name}');
+        threads.add(
+          '${output.brief.sceneTitle}: review=${output.review.decision.name}',
+        );
       }
     }
 
@@ -413,6 +408,28 @@ class ChapterContextBridge implements ChapterContextBridgeService {
     );
   }
 
+  /// Attempts LLM-based summarization. Returns null on failure,
+  /// in which case the caller should fall back to [summarizeFromOutputs].
+  Future<ChapterSummary?> summarizeFromOutputsAsync({
+    required String chapterId,
+    required String chapterTitle,
+    required List<SceneRuntimeOutput> outputs,
+    int? nowMs,
+  }) async {
+    if (summarizer == null) return null;
+
+    final summaries = await loadChapterSummaries(chapterId);
+    final previousSummary = summaries.isNotEmpty ? summaries.last : null;
+
+    return summarizer!.summarizeChapter(
+      chapterId: chapterId,
+      chapterTitle: chapterTitle,
+      outputs: outputs,
+      previousSummary: previousSummary,
+      nowMs: nowMs,
+    );
+  }
+
   @override
   Future<CrossChapterContext> buildCrossChapterContext({
     required String projectId,
@@ -421,19 +438,18 @@ class ChapterContextBridge implements ChapterContextBridgeService {
   }) async {
     final summaries = await loadChapterSummaries(projectId);
 
-    final previousSummaries = summaries
-        .where((s) => s.chapterId != currentChapterId)
-        .toList()
-      ..sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
+    final previousSummaries =
+        summaries.where((s) => s.chapterId != currentChapterId).toList()
+          ..sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
 
-    final selectedSummaries =
-        previousSummaries.take(maxPreviousChapters).toList();
+    final selectedSummaries = previousSummaries
+        .take(maxPreviousChapters)
+        .toList();
 
     final thoughts = <ThoughtAtom>[];
     for (final summary in selectedSummaries) {
       try {
-        final chapterThoughts =
-            await storage.loadThoughts(summary.chapterId);
+        final chapterThoughts = await storage.loadThoughts(summary.chapterId);
         thoughts.addAll(
           chapterThoughts
               .where((t) => t.confidence >= 0.7 && t.abstractionLevel >= 1.5)
@@ -461,8 +477,21 @@ class ChapterContextBridge implements ChapterContextBridgeService {
 
     final summaryEntries = <String>[];
     for (final s in context.previousSummaries) {
-      summaryEntries
-          .add('[前章概要] ${s.chapterTitle}: ${s.plotProgress}');
+      summaryEntries.add('[前章概要] ${s.chapterTitle}: ${s.plotProgress}');
+      if (s.isLlmGenerated) {
+        if (s.emotionalArcs.isNotEmpty) {
+          summaryEntries.add('[前章情感] $s.chapterTitle: ${s.emotionalArcs}');
+        }
+        if (s.worldStateChanges.isNotEmpty) {
+          summaryEntries.add('[前章世界观] $s.chapterTitle: ${s.worldStateChanges}');
+        }
+        if (s.foreshadowingStatus.isNotEmpty) {
+          summaryEntries.add('[前章伏笔] $s.chapterTitle: ${s.foreshadowingStatus}');
+        }
+        if (s.keyRevelations.isNotEmpty) {
+          summaryEntries.add('[前章揭示] $s.chapterTitle: ${s.keyRevelations}');
+        }
+      }
     }
 
     final thoughtEntries = <String>[];
@@ -506,18 +535,20 @@ class ChapterContextBridge implements ChapterContextBridgeService {
       final desc = t.kind == 'time_skip'
           ? '时间跳转'
           : t.kind == 'flashback'
-              ? '闪回'
-              : t.kind == 'exit'
-                  ? '退出场景'
-                  : '进入场景';
-      transitionSummaries.add(TransitionSummary(
-        transitionId: t.id,
-        kind: t.kind,
-        fromSceneId: t.fromSceneId,
-        toSceneId: t.toSceneId,
-        summary: '${t.fromSceneId} -> ${t.toSceneId} ($desc)',
-        isResolved: false,
-      ));
+          ? '闪回'
+          : t.kind == 'exit'
+          ? '退出场景'
+          : '进入场景';
+      transitionSummaries.add(
+        TransitionSummary(
+          transitionId: t.id,
+          kind: t.kind,
+          fromSceneId: t.fromSceneId,
+          toSceneId: t.toSceneId,
+          summary: '${t.fromSceneId} -> ${t.toSceneId} ($desc)',
+          isResolved: false,
+        ),
+      );
     }
 
     return ChapterExitState(

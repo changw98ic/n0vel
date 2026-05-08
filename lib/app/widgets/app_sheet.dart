@@ -32,12 +32,22 @@ class AppSheet extends StatelessWidget {
         width: safeWidth,
         height: double.infinity,
         decoration: BoxDecoration(
-          color: palette.elevated,
+          color: Color.alphaBlend(
+            palette.subtle.withValues(alpha: 0.18),
+            palette.surface,
+          ),
           border: Border(left: BorderSide(color: palette.border)),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(14),
             bottomLeft: Radius.circular(14),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 24,
+              offset: const Offset(-8, 0),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -91,7 +101,7 @@ Future<T?> showAppSheet<T>({
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    barrierLabel: 'Sheet',
+    barrierLabel: '关闭侧栏',
     barrierColor: Colors.black26,
     transitionDuration: const Duration(milliseconds: 250),
     transitionBuilder: (context, animation, secondaryAnimation, page) {

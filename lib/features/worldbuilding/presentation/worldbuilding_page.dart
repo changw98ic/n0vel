@@ -148,7 +148,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
       ),
       statusBar: const DesktopStatusStrip(
         leftText: '作品设定 · 世界观资料已保存',
-        rightText: '场景 05',
+        rightText: '第 3 章',
       ),
     );
   }
@@ -406,7 +406,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
             _InfoBlock(
               title: '引用场景',
               message: current.linkedSceneIds.isEmpty
-                  ? '暂未绑定场景，可在下方选择相关章节。'
+                  ? '暂未绑定场景，可在下方选择相关场景。'
                   : '已绑定 ${current.linkedSceneIds.length} 个场景，规则会同步到写作工作台。',
             ),
             const SizedBox(height: 8),

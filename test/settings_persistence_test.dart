@@ -190,7 +190,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('设置保存失败'), findsWidgets);
-    expect(find.textContaining('未能持久化到 settings.json'), findsWidgets);
+    expect(find.textContaining('本次修改未能保存'), findsWidgets);
     expect(find.textContaining('诊断：settings.json write denied'), findsWidgets);
   });
 
@@ -228,7 +228,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('设置文件读取失败'), findsWidgets);
-    expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+    expect(find.textContaining('无法读取本地配置文件'), findsWidgets);
     expect(
       find.textContaining('诊断：settings.json contains invalid legacy data'),
       findsWidgets,
@@ -244,7 +244,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('设置文件读取失败'), findsWidgets);
-    expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+    expect(find.textContaining('无法读取本地配置文件'), findsWidgets);
     expect(find.textContaining('诊断：settings.json is unreadable'), findsWidgets);
   });
 
@@ -321,7 +321,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('设置文件读取失败'), findsWidgets);
-      expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+      expect(find.textContaining('无法读取本地配置文件'), findsWidgets);
       final baseUrlField = tester.widget<TextField>(
         find.byKey(SettingsShellPage.baseUrlFieldKey),
       );
@@ -641,7 +641,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('连接测试失败：连接超时'), findsWidgets);
-    expect(find.textContaining('timeout'), findsWidgets);
+    expect(find.textContaining('等待时间'), findsWidgets);
   });
 
   test(

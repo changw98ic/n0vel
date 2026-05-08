@@ -120,7 +120,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
       body: body,
       statusBar: DesktopStatusStrip(
         leftText: '改稿 · 核对线索已更新',
-        rightText: currentIssue?.target ?? '场景 05',
+        rightText: currentIssue?.target ?? '第 3 章',
       ),
     );
   }
@@ -229,7 +229,7 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '建议动作',
-              message: '可返回工作台检查当前章节正文，或重新检查以刷新最新依据。',
+              message: '可返回工作台检查当前场景正文，或重新检查以刷新最新依据。',
             ),
           ],
         ),
@@ -246,12 +246,12 @@ class _AuditCenterPageState extends State<AuditCenterPage> {
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '跳转失败',
-              message: '目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。',
+              message: '目标场景已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。',
             ),
             const SizedBox(height: 8),
             const _InfoBlock(
               title: '建议动作',
-              message: '可返回工作台手动定位当前章节，或重新检查以刷新最新场景位置。',
+              message: '可返回工作台手动定位当前场景，或重新检查以刷新最新场景位置。',
             ),
           ],
         ),

@@ -6,6 +6,7 @@ import '../../../app/state/app_workspace_store.dart';
 import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/state/story_generation_store.dart';
 import '../../../app/state/story_outline_store.dart';
+import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
@@ -82,8 +83,6 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
                 scrollable: !compact,
                 onOpenWorkbench: () =>
                     AppNavigator.push(context, AppRoutes.workbench),
-                onOpenStoryBible: () =>
-                    AppNavigator.push(context, AppRoutes.storyBible),
                 onOpenExport: () =>
                     AppNavigator.push(context, AppRoutes.importExport),
                 onOpenReviewTasks: () =>
@@ -110,16 +109,20 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
                     },
                     items: _menuItems(context),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppDesignTokens.space16),
                   if (compact)
                     Expanded(
                       child: ListView(
-                        children: [main, const SizedBox(height: 16), side],
+                        children: [
+                          main,
+                          const SizedBox(height: AppDesignTokens.space16),
+                          side,
+                        ],
                       ),
                     )
                   else ...[
                     Expanded(child: main),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppDesignTokens.space16),
                     SizedBox(width: 340, child: side),
                   ],
                 ],
@@ -128,7 +131,7 @@ class _ProductionBoardPageState extends State<ProductionBoardPage> {
           ),
           statusBar: DesktopStatusStrip(
             leftText:
-                '进度 ${snapshot.completedScenes}/${snapshot.totalScenes} 场景',
+                '进度 ${snapshot.completedScenes}/${snapshot.totalScenes} 章节',
             rightText: '最近写作：${snapshot.recentRun.statusLabel}',
           ),
         );
@@ -159,7 +162,6 @@ class _ProductionBoardMain extends StatelessWidget {
     required this.snapshot,
     required this.scrollable,
     required this.onOpenWorkbench,
-    required this.onOpenStoryBible,
     required this.onOpenExport,
     required this.onOpenReviewTasks,
     required this.activeFeedbackCount,
@@ -169,7 +171,6 @@ class _ProductionBoardMain extends StatelessWidget {
   final ProductionBoardSnapshot snapshot;
   final bool scrollable;
   final VoidCallback onOpenWorkbench;
-  final VoidCallback onOpenStoryBible;
   final VoidCallback onOpenExport;
   final VoidCallback onOpenReviewTasks;
   final int activeFeedbackCount;
@@ -181,7 +182,7 @@ class _ProductionBoardMain extends StatelessWidget {
 
     return Container(
       decoration: appPanelDecoration(context),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDesignTokens.space16),
       child: scrollable
           ? ListView(key: ProductionBoardPage.progressKey, children: children)
           : Column(
@@ -204,28 +205,26 @@ class _ProductionBoardMain extends StatelessWidget {
             : snapshot.projectSummary,
         style: theme.textTheme.bodyMedium,
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppDesignTokens.space16),
       _ProgressPanel(
         snapshot: snapshot,
         percent: (snapshot.completionRatio * 100).round(),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppDesignTokens.space16),
       _ActionStrip(
         onOpenWorkbench: onOpenWorkbench,
-        onOpenStoryBible: onOpenStoryBible,
         onOpenExport: onOpenExport,
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppDesignTokens.space16),
       _LoopHandoffPanel(
         snapshot: snapshot,
         activeFeedbackCount: activeFeedbackCount,
         activeReviewTaskCount: activeReviewTaskCount,
         onOpenWorkbench: onOpenWorkbench,
         onOpenReviewTasks: onOpenReviewTasks,
-        onOpenStoryBible: onOpenStoryBible,
         onOpenExport: onOpenExport,
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppDesignTokens.space16),
       _LaneBoard(snapshot: snapshot),
     ];
   }
@@ -242,10 +241,10 @@ class _ProgressPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: BoxDecoration(
         color: palette.subtle,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -257,15 +256,15 @@ class _ProgressPanel extends StatelessWidget {
               Text('$percent%', style: theme.textTheme.titleMedium),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppDesignTokens.space8),
           LinearProgressIndicator(value: snapshot.completionRatio),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _MetricChip(label: '章节', value: '${snapshot.totalChapters}'),
-              _MetricChip(label: '场景', value: '${snapshot.totalScenes}'),
+              _MetricChip(label: '章节块', value: '${snapshot.totalScenes}'),
               _MetricChip(label: '已通过', value: '${snapshot.completedScenes}'),
               _MetricChip(label: '进行中', value: '${snapshot.inFlightScenes}'),
               _MetricChip(label: '需处理', value: '${snapshot.needsWorkScenes}'),
@@ -288,10 +287,13 @@ class _MetricChip extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignTokens.space8,
+        vertical: AppDesignTokens.space8,
+      ),
       decoration: BoxDecoration(
         color: palette.elevated,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
         border: Border.all(color: palette.border),
       ),
       child: Text('$label $value', style: theme.textTheme.bodySmall),
@@ -302,12 +304,10 @@ class _MetricChip extends StatelessWidget {
 class _ActionStrip extends StatelessWidget {
   const _ActionStrip({
     required this.onOpenWorkbench,
-    required this.onOpenStoryBible,
     required this.onOpenExport,
   });
 
   final VoidCallback onOpenWorkbench;
-  final VoidCallback onOpenStoryBible;
   final VoidCallback onOpenExport;
 
   @override
@@ -327,11 +327,6 @@ class _ActionStrip extends StatelessWidget {
           label: const Text('打开工作台'),
         ),
         OutlinedButton.icon(
-          onPressed: onOpenStoryBible,
-          icon: const Icon(Icons.menu_book_outlined, size: 18),
-          label: const Text('作品圣经'),
-        ),
-        OutlinedButton.icon(
           onPressed: onOpenExport,
           icon: const Icon(Icons.ios_share_outlined, size: 18),
           label: const Text('导出'),
@@ -348,7 +343,6 @@ class _LoopHandoffPanel extends StatelessWidget {
     required this.activeReviewTaskCount,
     required this.onOpenWorkbench,
     required this.onOpenReviewTasks,
-    required this.onOpenStoryBible,
     required this.onOpenExport,
   });
 
@@ -357,7 +351,6 @@ class _LoopHandoffPanel extends StatelessWidget {
   final int activeReviewTaskCount;
   final VoidCallback onOpenWorkbench;
   final VoidCallback onOpenReviewTasks;
-  final VoidCallback onOpenStoryBible;
   final VoidCallback onOpenExport;
 
   @override
@@ -367,7 +360,7 @@ class _LoopHandoffPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('闭环下一步', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppDesignTokens.space8),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth < 720 ? 1 : 2;
@@ -382,10 +375,10 @@ class _LoopHandoffPanel extends StatelessWidget {
                 _LoopHandoffCard(
                   icon: Icons.play_circle_outline,
                   title: '继续写作',
-                  countLabel: '${snapshot.notStartedScenes} 个未开始场景',
+                  countLabel: '${snapshot.notStartedScenes} 个未开始章节',
                   body: snapshot.notStartedScenes == 0
-                      ? '没有未开始场景；可回到工作台继续编辑或重跑需要处理的场景。'
-                      : '从工作台选择场景，继续生成或手工修订。',
+                      ? '没有未开始章节；可回到工作台继续编辑或重跑需要处理的章节。'
+                      : '从工作台选择章节，继续生成或手工修订。',
                   actionLabel: '打开工作台',
                   onPressed: onOpenWorkbench,
                 ),
@@ -393,7 +386,7 @@ class _LoopHandoffPanel extends StatelessWidget {
                   icon: Icons.fact_check_outlined,
                   title: '改稿清单',
                   countLabel:
-                      '$activeReviewTaskCount 个待处理事项 · ${snapshot.reviewQueueScenes} 个待核对场景',
+                      '$activeReviewTaskCount 个待处理事项 · ${snapshot.reviewQueueScenes} 个待核对章节',
                   body: activeReviewTaskCount == 0
                       ? '改稿清单会收纳工作台里的审查消息和修订提醒。'
                       : '打开改稿清单，处理问题检查结果、修订项和忽略项。',
@@ -411,21 +404,12 @@ class _LoopHandoffPanel extends StatelessWidget {
                   onPressed: onOpenWorkbench,
                 ),
                 _LoopHandoffCard(
-                  icon: Icons.menu_book_outlined,
-                  title: '作品圣经',
-                  countLabel:
-                      '${snapshot.totalChapters} 章 / ${snapshot.totalScenes} 场景',
-                  body: '核对作品素材、章节和场景资料，再回到工作台继续写。',
-                  actionLabel: '打开作品圣经',
-                  onPressed: onOpenStoryBible,
-                ),
-                _LoopHandoffCard(
                   icon: Icons.ios_share_outlined,
                   title: '导出',
                   countLabel:
-                      '${snapshot.completedScenes}/${snapshot.totalScenes} 场景已通过',
+                      '${snapshot.completedScenes}/${snapshot.totalScenes} 章节已通过',
                   body: snapshot.totalScenes == 0
-                      ? '项目还没有可导出的场景；导出页可查看当前作品资料。'
+                      ? '项目还没有可导出的章节；导出页可查看当前作品资料。'
                       : '完成草稿、问题检查和反馈处理后，导出当前作品资料。',
                   actionLabel: '打开导出',
                   onPressed: onOpenExport,
@@ -461,10 +445,10 @@ class _LoopHandoffCard extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: BoxDecoration(
         color: palette.elevated,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -477,9 +461,9 @@ class _LoopHandoffCard extends StatelessWidget {
               Expanded(child: Text(title, style: theme.textTheme.titleSmall)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppDesignTokens.space4),
           Text(countLabel, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppDesignTokens.space4),
           Expanded(
             child: Text(
               body,
@@ -491,7 +475,7 @@ class _LoopHandoffCard extends StatelessWidget {
             ),
           ),
           if (actionLabel != null && onPressed != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDesignTokens.space8),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
@@ -517,8 +501,8 @@ class _LaneBoard extends StatelessWidget {
       key: ProductionBoardPage.lanesKey,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('场景状态', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 10),
+        Text('章节状态', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppDesignTokens.space8),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth < 760 ? 1 : 2;
@@ -552,10 +536,10 @@ class _LaneColumn extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: BoxDecoration(
         color: palette.elevated,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -572,13 +556,14 @@ class _LaneColumn extends StatelessWidget {
               Text('${scenes.length}', style: theme.textTheme.bodySmall),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Expanded(
             child: scenes.isEmpty
-                ? Text('暂无场景', style: theme.textTheme.bodySmall)
+                ? Text('暂无章节', style: theme.textTheme.bodySmall)
                 : ListView.separated(
                     itemCount: scenes.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppDesignTokens.space4),
                     itemBuilder: (context, index) {
                       final scene = scenes[index];
                       return Text(
@@ -618,7 +603,7 @@ class _ProductionBoardSide extends StatelessWidget {
       return Column(
         children: [
           SizedBox(height: 240, child: _RecentRunCard(run: snapshot.recentRun)),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDesignTokens.space16),
           SizedBox(
             height: 320,
             child: _ChapterList(chapters: snapshot.chapters),
@@ -630,7 +615,7 @@ class _ProductionBoardSide extends StatelessWidget {
     return Column(
       children: [
         Expanded(child: _RecentRunCard(run: snapshot.recentRun)),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDesignTokens.space16),
         Expanded(child: _ChapterList(chapters: snapshot.chapters)),
       ],
     );
@@ -649,24 +634,24 @@ class _RecentRunCard extends StatelessWidget {
       key: ProductionBoardPage.recentRunKey,
       width: double.infinity,
       decoration: appPanelDecoration(context),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDesignTokens.space16),
       child: ListView(
         children: [
           Text('最近写作', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Text(run.statusLabel, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Text(run.headline, style: theme.textTheme.bodyMedium),
           if (run.sceneLabel.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: AppDesignTokens.space4),
             Text(run.sceneLabel, style: theme.textTheme.bodySmall),
           ],
           if (run.stageSummary.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: AppDesignTokens.space4),
             Text(run.stageSummary, style: theme.textTheme.bodySmall),
           ],
           if (run.summary.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppDesignTokens.space8),
             Text(run.summary, style: theme.textTheme.bodyMedium),
           ],
         ],
@@ -685,15 +670,16 @@ class _ChapterList extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: appPanelDecoration(context),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDesignTokens.space16),
       child: chapters.isEmpty
           ? const AppEmptyState(
               title: '暂无章节',
-              message: '创建场景或导入大纲后，章节进度会显示在这里。',
+              message: '创建章节或导入大纲后，章节进度会显示在这里。',
             )
           : ListView.separated(
               itemCount: chapters.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppDesignTokens.space8),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Text('章节进度', style: theme.textTheme.titleMedium);
@@ -716,10 +702,10 @@ class _ChapterTile extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: BoxDecoration(
         color: palette.subtle,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -728,7 +714,7 @@ class _ChapterTile extends StatelessWidget {
           Text(chapter.title, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
-            '${chapter.statusLabel} · ${chapter.completedScenes}/${chapter.totalScenes} 场景',
+            '${chapter.statusLabel} · ${chapter.completedScenes}/${chapter.totalScenes} 章节',
             style: theme.textTheme.bodySmall,
           ),
         ],

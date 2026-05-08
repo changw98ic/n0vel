@@ -31,13 +31,13 @@ class _IoAppLlmClient implements AppLlmClient {
     if (_isInsecureScheme(request.baseUrl)) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.insecureScheme,
-        detail: '仅支持 HTTPS 连接。请将 base_url 改为 https:// 开头。',
+        detail: '仅支持 HTTPS 连接。请将接口地址改为 https:// 开头。',
       );
     }
     if (endpoint == null) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.network,
-        detail: 'base_url 无法解析为有效地址。',
+        detail: '接口地址无法解析为有效地址。',
       );
     }
 
@@ -231,13 +231,13 @@ class _IoAppLlmClient implements AppLlmClient {
     if (_isInsecureScheme(request.baseUrl)) {
       throw const AppLlmStreamException(
         failureKind: AppLlmFailureKind.insecureScheme,
-        detail: '仅支持 HTTPS 连接。请将 base_url 改为 https:// 开头。',
+        detail: '仅支持 HTTPS 连接。请将接口地址改为 https:// 开头。',
       );
     }
     if (endpoint == null) {
       throw const AppLlmStreamException(
         failureKind: AppLlmFailureKind.network,
-        detail: 'base_url 无法解析为有效地址。',
+        detail: '接口地址无法解析为有效地址。',
       );
     }
 
@@ -443,16 +443,77 @@ class _IoAppLlmClient implements AppLlmClient {
   }
 
   String _redactApiKeys(String text) {
-    var result = text;
-    result = result.replaceAll(
-      RegExp(r'(Bearer\s+)\S+', caseSensitive: false),
-      r'$1[REDACTED]',
-    );
-    result = result.replaceAll(
-      RegExp(r'(sk-[a-zA-Z0-9]{4})[a-zA-Z0-9]+'),
-      r'$1...[REDACTED]',
-    );
-    return result;
+    return _redactSkTokens(_redactBearerTokens(text));
+  }
+
+  String _redactBearerTokens(String text) {
+    final lower = text.toLowerCase();
+    final buffer = StringBuffer();
+    var index = 0;
+    while (index < text.length) {
+      final bearerIndex = lower.indexOf('bearer', index);
+      if (bearerIndex == -1) {
+        buffer.write(text.substring(index));
+        break;
+      }
+      buffer.write(text.substring(index, bearerIndex));
+      var tokenStart = bearerIndex + 'bearer'.length;
+      if (tokenStart >= text.length || !_isWhitespace(text.codeUnitAt(tokenStart))) {
+        buffer.write(text[bearerIndex]);
+        index = bearerIndex + 1;
+        continue;
+      }
+      while (tokenStart < text.length && _isWhitespace(text.codeUnitAt(tokenStart))) {
+        tokenStart += 1;
+      }
+      var tokenEnd = tokenStart;
+      while (tokenEnd < text.length && !_isWhitespace(text.codeUnitAt(tokenEnd))) {
+        tokenEnd += 1;
+      }
+      buffer
+        ..write(text.substring(bearerIndex, tokenStart))
+        ..write('[REDACTED]');
+      index = tokenEnd;
+    }
+    return buffer.toString();
+  }
+
+  String _redactSkTokens(String text) {
+    final buffer = StringBuffer();
+    var index = 0;
+    while (index < text.length) {
+      final tokenIndex = text.indexOf('sk-', index);
+      if (tokenIndex == -1) {
+        buffer.write(text.substring(index));
+        break;
+      }
+      buffer.write(text.substring(index, tokenIndex));
+      var tokenEnd = tokenIndex + 3;
+      while (tokenEnd < text.length && _isAlphaNumeric(text.codeUnitAt(tokenEnd))) {
+        tokenEnd += 1;
+      }
+      final token = text.substring(tokenIndex, tokenEnd);
+      if (token.length > 7) {
+        buffer.write('${token.substring(0, 7)}...[REDACTED]');
+      } else {
+        buffer.write(token);
+      }
+      index = tokenEnd;
+    }
+    return buffer.toString();
+  }
+
+  bool _isWhitespace(int codeUnit) {
+    return codeUnit == 0x20 ||
+        codeUnit == 0x09 ||
+        codeUnit == 0x0A ||
+        codeUnit == 0x0D;
+  }
+
+  bool _isAlphaNumeric(int codeUnit) {
+    return (codeUnit >= 0x30 && codeUnit <= 0x39) ||
+        (codeUnit >= 0x41 && codeUnit <= 0x5A) ||
+        (codeUnit >= 0x61 && codeUnit <= 0x7A);
   }
 }
 

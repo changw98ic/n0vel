@@ -7,7 +7,7 @@ MVP 固定边界如下：
 - Windows 优先
 - 本地优先
 - 无后端依赖
-- BYOK
+- 自带密钥
 - Markdown 编辑器
 - 单场景模拟
 - 叙述重写
@@ -33,9 +33,9 @@ MVP 还必须满足一条交互原则：
 - [MVP 架构图](/Users/chengwen/dev/novel-wirter/docs/mvp/mvp-architecture.md)
 - [MVP 核心流程与状态流转](/Users/chengwen/dev/novel-wirter/docs/mvp/mvp-core-flows.md)
 - [UI 设计稿标准与偏好](/Users/chengwen/dev/novel-wirter/docs/mvp/ui-design-standards.md)
-- [Frame / State Coverage](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
-- [Frame / State Coverage (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
-- [Canonical Frame Map (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
+- [画面状态覆盖](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
+- [画面状态覆盖 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
+- [标准画面映射 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
 - [MVP 文档清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/doc-manifest.json)
 - [Legacy Frame 审计](/Users/chengwen/dev/novel-wirter/docs/mvp/legacy-frame-audit.md)
 - [MVP 行为缺口审计](/Users/chengwen/dev/novel-wirter/docs/mvp/behavior-gap-audit.md)
@@ -43,8 +43,8 @@ MVP 还必须满足一条交互原则：
 - [MVP 实现交接稿 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.json)
 - [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md)
 - [MVP 里程碑验收清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.json)
-- [MVP 运行时 Smoke Test 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
-- [MVP 运行时 Smoke Test 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
+- [MVP 运行时 冒烟测试 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
+- [MVP 运行时 冒烟测试 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
 - [MVP 追踪矩阵](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.md)
 - [MVP 追踪矩阵 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.json)
 - [MVP 设计交付完成度](/Users/chengwen/dev/novel-wirter/docs/mvp/release-readiness.md)
@@ -65,7 +65,7 @@ MVP 还必须满足一条交互原则：
 - [PRD 07 审计中心页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-07-audit-center.md)
 - [PRD 08 版本历史页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-08-version-history.md)
 - [PRD 09 工程导入导出页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-09-project-import-export.md)
-- [PRD 10 设置与 BYOK 页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-10-settings-byok.md)
+- [PRD 10 设置与 自带密钥 页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-10-settings-byok.md)
 - [PRD 11 纯净阅读态](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-11-reading-mode.md)
 
 ## 统一术语
@@ -84,18 +84,18 @@ MVP 还必须满足一条交互原则：
 - `SceneDraft`
 - `Character`
 - `WorldNode`
-- `StyleProfile`
-- `StyleProfileJson`
+- `风格档案`
+- `风格档案 JSON`
 - `SimulationRun`
 - `InteractionLog`
 - `WorldStateSnapshot`
-- `LlmProviderConfig`
+- `Llm模型服务Config`
 - `ProjectExportPackage`
 
 文档中统一使用以下 MVP 接口边界：
 
 - `AppLlmClient`
-- `AppLlmProviderAdapters`
+- `AppLlm模型服务Adapters`
 - `AppWorkspaceStore` style normalization
 - `ChapterGenerationOrchestrator`
 - `SceneRoleplayRuntime`
@@ -104,12 +104,12 @@ MVP 还必须满足一条交互原则：
 
 ## 风格配置入口
 
-MVP 中 `StyleProfile` 只允许通过以下两种方式创建：
+MVP 中 `风格档案` 只允许通过以下两种方式创建：
 
 - `风格问卷`
-  - 作者通过结构化问卷填写风格偏好，由系统生成 `StyleProfile`
-- `StyleProfile JSON`
-  - 作者导入符合约定字段的 JSON 文件，由系统校验后生成 `StyleProfile`
+  - 作者通过结构化问卷填写风格偏好，由系统生成 `风格档案`
+- `风格档案 JSON`
+  - 作者导入符合约定字段的 JSON 文件，由系统校验后生成 `风格档案`
 
 MVP 中不支持以下风格入口：
 
@@ -171,7 +171,7 @@ python docs/mvp/validate_mvp_docs.py
 
 如需按运行时路径做联调，参考：
 
-- [MVP 运行时 Smoke Test 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
+- [MVP 运行时 冒烟测试 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
 - [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md)
 
 ## 作者交互权基线

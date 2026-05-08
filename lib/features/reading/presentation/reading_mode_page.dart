@@ -106,7 +106,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                         header: true,
                         child: Center(
                           child: Text(
-                            '${session.projectTitle} · ${currentDocument.locationLabel}',
+                            '${session.projectTitle} · ${chapterLocationLabel(currentDocument.locationLabel)}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -120,6 +120,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                 const SizedBox(height: 4),
                 Expanded(
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _ReadingHotzone(
                         zoneKey: ReadingModePage.previousHotzoneKey,
@@ -262,7 +263,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
       documents: [
         ReadingSceneDocument(
           sceneId: workspace.currentProject.sceneId,
-          locationLabel: workspace.currentProject.recentLocation,
+          locationLabel: workspace.currentProject.displayRecentLocation,
           text: draft.text,
         ),
       ],
@@ -425,7 +426,8 @@ class _ReadingModePageState extends State<ReadingModePage> {
 
   bool _canGoNext() {
     final doc = _documents[_sceneIndex];
-    return _pageIndex < doc.pages.length - 1 || _sceneIndex < _documents.length - 1;
+    return _pageIndex < doc.pages.length - 1 ||
+        _sceneIndex < _documents.length - 1;
   }
 
   String _previousHotzoneLabel() {

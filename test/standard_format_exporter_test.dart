@@ -27,7 +27,7 @@ void main() {
         title: '月潮回声',
         genre: '悬疑 / 8.7 万字',
         summary: '证人房间对峙的故事。',
-        recentLocation: '第 1 章 / 场景 01',
+        recentLocation: '第 1 章',
         lastOpenedAtMs: 1700000000000,
       ),
       characters: const [
@@ -44,7 +44,7 @@ void main() {
       scenes: const [
         SceneRecord(
           id: 'scene-01',
-          chapterLabel: '第 1 章 / 场景 01',
+          chapterLabel: '第 1 章',
           title: '仓库雨夜',
           summary: '柳溪在仓库外等待线人。',
         ),
@@ -118,8 +118,8 @@ void main() {
         buildInput(),
         StandardExportFormat.markdown,
       );
-      expect(result, contains('## 场景'));
-      expect(result, contains('第 1 章 / 场景 01 · 仓库雨夜'));
+      expect(result, contains('## 章节'));
+      expect(result, contains('第 1 章 · 仓库雨夜'));
       expect(result, contains('柳溪在仓库外等待线人。'));
     });
 
@@ -197,7 +197,7 @@ void main() {
       expect(result, contains('# 空项目'));
       expect(result, isNot(contains('## 角色')));
       expect(result, isNot(contains('## 世界观')));
-      expect(result, isNot(contains('## 场景')));
+      expect(result, isNot(contains('## 章节')));
       expect(result, isNot(contains('## 正文')));
       expect(result, isNot(contains('## 版本历史')));
       expect(result, isNot(contains('## 大纲')));
@@ -246,7 +246,7 @@ void main() {
       expect(result, contains('雨停在仓库门前。'));
       expect(result, isNot(contains('## 角色')));
       expect(result, isNot(contains('## 世界观')));
-      expect(result, isNot(contains('## 场景')));
+      expect(result, isNot(contains('## 章节')));
       expect(result, isNot(contains('## 版本历史')));
       expect(result, isNot(contains('柳溪到达盐港。')));
       expect(result, isNot(contains('废弃的货运码头。')));
@@ -352,8 +352,8 @@ void main() {
             scenes: [
               StoryOutlineSceneSnapshot(
                 id: 'sc-1',
-                title: '场景一',
-                summary: '场景摘要',
+                title: '章节一',
+                summary: '章节摘要',
               ),
             ],
           ),
@@ -365,7 +365,7 @@ void main() {
       );
       expect(result, contains('========== 大纲 =========='));
       expect(result, contains('第一章'));
-      expect(result, contains('  - 场景一: 场景摘要'));
+      expect(result, contains('  - 章节一: 章节摘要'));
     });
 
     test('includes draft text', () {
@@ -516,6 +516,112 @@ void main() {
       );
       final md = exporter.export(input, StandardExportFormat.markdown);
       expect(md, contains('### 新节点'));
+    });
+  });
+
+  // ===========================================================================
+  // HTML
+  // ===========================================================================
+
+  group('HTML export', () {
+    test('produces valid HTML document', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<!DOCTYPE html>'));
+      expect(result, contains('</html>'));
+      expect(result, contains('<title>月潮回声</title>'));
+      expect(result, contains('<h1>月潮回声</h1>'));
+    });
+
+    test('includes project metadata', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<strong>类型:</strong>'));
+      expect(result, contains('悬疑 / 8.7 万字'));
+      expect(result, contains('证人房间对峙的故事'));
+    });
+
+    test('includes character section', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<h2>角色</h2>'));
+      expect(result, contains('<h3>柳溪</h3>'));
+      expect(result, contains('<strong>角色:</strong> 调查记者'));
+    });
+
+    test('includes world nodes section', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<h2>世界观</h2>'));
+      expect(result, contains('<h3>盐港码头</h3>'));
+    });
+
+    test('includes scenes section', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<h2>章节</h2>'));
+    });
+
+    test('includes draft text as paragraphs', () {
+      final result = exporter.export(buildInput(), StandardExportFormat.html);
+      expect(result, contains('<h2>正文</h2>'));
+      expect(result, contains('<p>这是正文内容。</p>'));
+    });
+
+    test('escapes HTML special characters', () {
+      final input = StandardExportInput(
+        project: const ProjectRecord(
+          id: 'p1',
+          sceneId: 's1',
+          title: 'A <B> "C" & D',
+          genre: '',
+          summary: '',
+          recentLocation: '',
+          lastOpenedAtMs: 0,
+        ),
+        characters: const [],
+        scenes: const [],
+        worldNodes: const [],
+      );
+      final result = exporter.export(input, StandardExportFormat.html);
+      expect(result, contains('A &lt;B&gt; &quot;C&quot; &amp; D'));
+    });
+
+    test('manuscript mode includes word count and TOC', () {
+      final outline = StoryOutlineSnapshot(
+        projectId: 'project-test',
+        chapters: [
+          StoryOutlineChapterSnapshot(id: 'ch-1', title: '第一章', summary: ''),
+          StoryOutlineChapterSnapshot(id: 'ch-2', title: '第二章', summary: ''),
+        ],
+      );
+      final result = exporter.export(
+        buildInput(outline: outline, mode: StandardExportMode.manuscript),
+        StandardExportFormat.html,
+        mode: StandardExportMode.manuscript,
+      );
+      expect(result, contains('<h2>目录</h2>'));
+      expect(result, contains('<li>第一章</li>'));
+      expect(result, contains('<li>第二章</li>'));
+      expect(result, contains('字数:'));
+      expect(result, contains('<h2>正文</h2>'));
+    });
+
+    test('omits sections when data is empty', () {
+      final input = StandardExportInput(
+        project: const ProjectRecord(
+          id: 'p1',
+          sceneId: 's1',
+          title: '空项目',
+          genre: '',
+          summary: '',
+          recentLocation: '',
+          lastOpenedAtMs: 0,
+        ),
+        characters: const [],
+        scenes: const [],
+        worldNodes: const [],
+      );
+      final result = exporter.export(input, StandardExportFormat.html);
+      expect(result, isNot(contains('<h2>角色</h2>')));
+      expect(result, isNot(contains('<h2>世界观</h2>')));
+      expect(result, isNot(contains('<h2>章节</h2>')));
+      expect(result, isNot(contains('<h2>正文</h2>')));
     });
   });
 }

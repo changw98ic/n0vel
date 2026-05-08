@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_design_tokens.dart';
 import 'desktop_shell.dart';
 
 class AppDialogField extends StatelessWidget {
@@ -12,7 +13,7 @@ class AppDialogField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: appPanelDecoration(
         context,
         color: desktopPalette(context).elevated,
@@ -40,6 +41,7 @@ Future<bool> showAppConfirmDialog({
 }) {
   return showDialog<bool>(
     context: context,
+    barrierLabel: '关闭',
     builder: (dialogContext) {
       return DesktopModalDialog(
         title: title,
@@ -75,6 +77,7 @@ Future<String?> showAppTextInputDialog({
   final controller = TextEditingController(text: initialValue);
   return showDialog<String>(
     context: context,
+    barrierLabel: '关闭',
     builder: (dialogContext) {
       return DesktopModalDialog(
         title: title,
@@ -110,6 +113,7 @@ Future<void> showAppMessageDialog({
 }) {
   return showDialog<void>(
     context: context,
+    barrierLabel: '关闭',
     builder: (dialogContext) {
       return DesktopModalDialog(
         title: title,

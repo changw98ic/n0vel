@@ -1,3 +1,6 @@
+import '../../domain/scene_location_parts.dart';
+export '../../domain/scene_location_parts.dart';
+
 enum StyleInputMode { questionnaire, json }
 
 enum StyleWorkflowState {
@@ -118,6 +121,11 @@ class ProjectRecord {
   final String recentLocation;
   final int lastOpenedAtMs;
 
+  String get displayRecentLocation {
+    final trimmed = recentLocation.trim();
+    return trimmed.isEmpty ? '' : trimmed;
+  }
+
   String get tag => _projectTagFor(lastOpenedAtMs);
 
   ProjectRecord copyWith({
@@ -178,7 +186,24 @@ class SceneRecord {
   final String title;
   final String summary;
 
-  String get displayLocation => '$chapterLabel · $title';
+  SceneLocationParts get locationParts =>
+      SceneLocationParts.fromLabel(displayChapterLabel);
+
+  String get chapterOnlyLabel => locationParts.chapterLabel;
+
+  String get displayChapterLabel {
+    final trimmed = chapterLabel.trim();
+    return trimmed.isEmpty ? '第 1 章 / 场景 01' : trimmed;
+  }
+
+  String get displayLocation {
+    final label = displayChapterLabel;
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      return label;
+    }
+    return '$label · $trimmedTitle';
+  }
 
   Map<String, Object?> toJson() {
     return {
@@ -194,7 +219,7 @@ class SceneRecord {
       id: json['id']?.toString() ?? generateSceneId(),
       chapterLabel: json['chapterLabel']?.toString() ?? '第 1 章 / 场景 01',
       title: json['title']?.toString() ?? '等待命名',
-      summary: json['summary']?.toString() ?? '等待补充场景目标、冲突和收束条件。',
+      summary: json['summary']?.toString() ?? '等待补充目标、冲突和收束条件。',
     );
   }
 }

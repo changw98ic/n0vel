@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_design_tokens.dart';
 import 'desktop_theme.dart';
 
 class DesktopStatusStrip extends StatelessWidget {
@@ -24,7 +25,9 @@ class DesktopStatusStrip extends StatelessWidget {
         child: Container(
           key: stripKey,
           height: 30,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignTokens.space16,
+          ),
           decoration: appPanelDecoration(context),
           child: Row(
             children: [
@@ -67,10 +70,13 @@ class DesktopModalDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppDesignTokens.space24,
+        vertical: AppDesignTokens.space24,
+      ),
       child: Container(
         width: width,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppDesignTokens.space20),
         decoration: appModalDecoration(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -81,12 +87,12 @@ class DesktopModalDialog extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
             ),
             if (description != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDesignTokens.space12),
               Text(description!, style: theme.textTheme.bodyMedium),
             ],
-            const SizedBox(height: 16),
-            body,
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDesignTokens.space16),
+            Flexible(child: body),
+            const SizedBox(height: AppDesignTokens.space16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [Wrap(spacing: 10, runSpacing: 10, children: actions)],

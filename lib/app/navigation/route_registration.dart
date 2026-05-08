@@ -10,7 +10,6 @@ import '../../features/sandbox/presentation/sandbox_monitor_page.dart';
 import '../../features/scenes/presentation/scene_management_page.dart';
 import '../../features/settings/presentation/settings_shell_page.dart';
 import '../../features/style/presentation/style_panel_page.dart';
-import '../../features/story_bible/presentation/story_bible_page.dart';
 import '../../features/versions/presentation/version_history_page.dart';
 import '../../features/work_settings/presentation/work_settings_hub_page.dart';
 import '../../features/workbench/presentation/workbench_shell_page.dart';
@@ -46,10 +45,6 @@ void registerAppRoutes() {
   AppNavigator.register(
     AppRoutes.style,
     (context, _) => const StylePanelPage(),
-  );
-  AppNavigator.register(
-    AppRoutes.storyBible,
-    (context, _) => const StoryBiblePage(),
   );
   AppNavigator.register(
     AppRoutes.audit,

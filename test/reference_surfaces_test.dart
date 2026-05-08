@@ -207,7 +207,7 @@ void main() {
     );
 
     expect(find.text('删除被引用角色？'), findsOneWidget);
-    expect(find.textContaining('仍被 Scene 05 引用'), findsOneWidget);
+    expect(find.textContaining('仍被 第 3 章 / 场景'), findsOneWidget);
     expect(find.text('引用场景'), findsWidgets);
     expect(find.text('查看引用后再删'), findsOneWidget);
   });
@@ -264,15 +264,6 @@ void main() {
     await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '世界观');
 
     expect(find.text('新节点 4'), findsWidgets);
-  });
-
-  testWidgets('project settings hub opens story bible', (tester) async {
-    await tester.pumpWidget(const NovelWriterApp());
-
-    await openProjectHubItem(tester, hubLabel: '作品设定', itemLabel: '作品圣经');
-
-    expect(find.byKey(StoryBiblePage.factsKey), findsOneWidget);
-    expect(find.byKey(StoryBiblePage.statusKey), findsOneWidget);
   });
 
   testWidgets('shows worldbuilding empty and filter states', (tester) async {
@@ -442,7 +433,7 @@ void main() {
     );
     expect(find.text('跳转失败'), findsOneWidget);
     expect(
-      find.text('目标场景 `Scene 05` 已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。'),
+      find.text('目标场景已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。'),
       findsOneWidget,
     );
     expect(find.text('建议动作'), findsOneWidget);

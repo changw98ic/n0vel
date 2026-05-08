@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'desktop_shell.dart';
 
-BoxDecoration prototypePanelDecoration(
-  BuildContext context, {
-  Color? color,
-}) {
+BoxDecoration prototypePanelDecoration(BuildContext context, {Color? color}) {
   final palette = desktopPalette(context);
   return BoxDecoration(
     color: color ?? palette.surface,
@@ -15,11 +12,7 @@ BoxDecoration prototypePanelDecoration(
 }
 
 class PrototypeHeaderBar extends StatelessWidget {
-  const PrototypeHeaderBar({
-    super.key,
-    required this.title,
-    this.titleKey,
-  });
+  const PrototypeHeaderBar({super.key, required this.title, this.titleKey});
 
   final String title;
   final Key? titleKey;
@@ -56,9 +49,9 @@ class PrototypeHandleBar extends StatelessWidget {
       ),
       child: Center(
         child: Icon(
-          Icons.drag_indicator,
-          size: 18,
-          color: desktopPalette(context).secondaryText,
+          Icons.more_vert_rounded,
+          size: 14,
+          color: desktopPalette(context).tertiaryText,
         ),
       ),
     );

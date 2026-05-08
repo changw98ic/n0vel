@@ -18,7 +18,7 @@
 前置数据：
 
 - 无现有项目依赖
-- 设置页中的 `LlmProviderConfig` 可以为空
+- 设置页中的 `Llm模型服务Config` 可以为空
 
 核心步骤：
 
@@ -89,40 +89,40 @@
 触发条件：
 
 - 作者在风格面板页点击“填写风格问卷”
-- 作者在风格面板页点击“导入 StyleProfile JSON”
+- 作者在风格面板页点击“导入 风格档案 JSON”
 - 作者在写作工作台右侧功能区点击“绑定风格”
 
 前置数据：
 
 - 已存在 `NovelProject`
 - 作者已准备好风格偏好
-- 若选择 JSON 导入，则本地存在合法的 `StyleProfile JSON` 文件
+- 若选择 JSON 导入，则本地存在合法的 `风格档案 JSON` 文件
 
 核心步骤：
 
 1. 作者选择“问卷模式”或“JSON 模式”。
 2. 问卷模式下，作者填写体裁、叙事视角、句长倾向、对白密度、描写密度、情绪强度、禁忌表达等字段。
-3. JSON 模式下，作者选择本地 `StyleProfile JSON` 文件。
+3. JSON 模式下，作者选择本地 `风格档案 JSON` 文件。
 4. `AppWorkspaceStore` 的风格状态逻辑对问卷答案或 JSON 数据进行校验与归一化。
-5. 系统生成 `StyleProfile` 预览。
+5. 系统生成 `风格档案` 预览。
 6. 作者选择风格强度：轻度、中度或强。
-7. 作者将 `StyleProfile` 绑定到项目或当前场景。
+7. 作者将 `风格档案` 绑定到项目或当前场景。
 8. 系统保存风格摘要并刷新写作工作台提示上下文。
 
 状态变化：
 
 - 风格面板状态：`ready -> running -> success`
-- `StyleProfile`：从不存在变为 `ready`
+- `风格档案`：从不存在变为 `ready`
 - 场景上下文：附加风格约束片段
 
 输出结果：
 
-- 一个已保存的 `StyleProfile`
+- 一个已保存的 `风格档案`
 - 项目级或场景级风格绑定
 
 失败 / 异常处理：
 
-- 问卷缺少必填项时阻止生成 `StyleProfile`
+- 问卷缺少必填项时阻止生成 `风格档案`
 - JSON 不合法或缺少必填字段时直接拒绝
 - JSON 中 `language` 与项目语言冲突时弹出警告，但允许继续
 - JSON 中超出支持范围的字段会被忽略，并在结果区提示
@@ -138,7 +138,7 @@ stateDiagram-v2
     filling_form --> validating: 提交问卷
     selecting_json --> validating: 读取 JSON 成功
     selecting_json --> error: JSON 不可读
-    validating --> preview_ready: 生成 StyleProfile
+    validating --> preview_ready: 生成 风格档案
     validating --> error: 校验失败
     preview_ready --> bound_to_project: 绑定到项目
     preview_ready --> bound_to_scene: 绑定到场景
@@ -159,15 +159,15 @@ stateDiagram-v2
 
 - 已存在 `Scene`
 - 当前场景已绑定参与角色
-- 可选：已绑定 `StyleProfile`
-- 可选：设置页已填入有效的 `LlmProviderConfig`
+- 可选：已绑定 `风格档案`
+- 可选：设置页已填入有效的 `Llm模型服务Config`
 
 核心步骤：
 
-1. 写作工作台通过 `AppWorkspaceStore`、`AppDraftStore`、`StoryGenerationStore` 读取 `Scene`、`Character`、`WorldNode`、`StyleProfile`、最近 `SceneDraft`。
+1. 写作工作台通过 `AppWorkspaceStore`、`AppDraftStore`、`StoryGenerationStore` 读取 `Scene`、`Character`、`WorldNode`、`风格档案`、最近 `SceneDraft`。
 2. `StoryGenerationRunStore` 为当前场景创建 scene-scope run snapshot，并组装 `SceneBrief`。
 3. `ChapterGenerationOrchestrator` 组装场景上下文、角色输入包、记忆检索和 RAG 上下文。
-4. `SceneRoleplayRuntime` 通过 `AppLlmClient` / `AppLlmProviderAdapters` 调用外部模型端点，生成角色回合、公开动作、对白、内心和记忆提案。
+4. `SceneRoleplayRuntime` 通过 `AppLlmClient` / `AppLlm模型服务Adapters` 调用外部模型端点，生成角色回合、公开动作、对白、内心和记忆提案。
 5. `SceneStateResolver` 与 `SceneReviewCoordinator` 解析回合事实、审查正文与契约完成度，并把状态摘要写回 `StoryGenerationRunSnapshot`。
 6. 达到回合上限、场景目标、质量门通过或作者手动中止时，模拟结束。
 7. `SceneEditorialGenerator` / `ScenePolishPass` 读取回合、裁定事实与检索胶囊，调用模型生成或润色新的 `SceneDraft`。
@@ -191,7 +191,7 @@ stateDiagram-v2
 失败 / 异常处理：
 
 - 缺少参与角色时禁止启动模拟
-- API Key 未配置时跳转设置页
+- 密钥 未配置时跳转设置页
 - 模型调用失败时保留已生成日志，不生成正文
 - 状态机裁决失败时把失败原因写入日志并继续下一回合
 - 作者手动中止时保留已完成回合并允许直接叙述重写
@@ -214,12 +214,12 @@ sequenceDiagram
     participant Style as AppWorkspaceStore style state
     participant RunStore as StoryGenerationRunStore
     participant Orchestrator as ChapterGenerationOrchestrator
-    participant Llm as AppLlmClient / AppLlmProviderAdapters
+    participant Llm as AppLlmClient / AppLlm模型服务Adapters
     participant Runtime as SceneRoleplayRuntime / SceneStateResolver
     participant Editorial as SceneEditorialGenerator / Review
 
     Author->>Workbench: 点击“运行模拟”
-    Workbench->>Stores: 读取 Scene / Character / WorldNode / SceneDraft / StyleProfile
+    Workbench->>Stores: 读取 Scene / Character / WorldNode / SceneDraft / 风格档案
     Stores->>SQLite: 读取 project-scoped records
     Workbench->>Style: 组装风格约束
     Style-->>Workbench: 风格片段

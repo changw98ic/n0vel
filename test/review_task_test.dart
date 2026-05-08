@@ -131,7 +131,7 @@ void main() {
   });
 
   group('ReviewTaskPanel', () {
-    testWidgets('groups tasks and changes status from the menu', (
+    testWidgets('groups tasks and changes status from the status dialog', (
       tester,
     ) async {
       final store = ReviewTaskStore(
@@ -153,8 +153,10 @@ void main() {
       expect(find.text('Open (1)'), findsOneWidget);
       expect(find.text('Resolved (1)'), findsOneWidget);
 
-      await tester.tap(find.byType(PopupMenuButton<ReviewTaskStatus>).first);
+      await tester.tap(find.text('Open').first);
       await tester.pumpAndSettle();
+      expect(find.text('调整任务状态'), findsOneWidget);
+
       await tester.tap(find.text('In progress').last);
       await tester.pumpAndSettle();
 

@@ -54,10 +54,10 @@ void main() {
     await tester.tap(find.text('阅读'));
     await tester.pumpAndSettle();
 
-    expect(find.text('场景管理'), findsOneWidget);
+    expect(find.text('章节管理'), findsOneWidget);
     expect(find.text('证人房间对峙'), findsWidgets);
     expect(find.text('第 3 章'), findsWidgets);
-    expect(find.text('共 2 个场景'), findsOneWidget);
+    expect(find.text('共 2 个章节'), findsOneWidget);
   });
 
   testWidgets('renders pencil-aligned scene detail fields and action summary', (
@@ -65,13 +65,13 @@ void main() {
   ) async {
     await tester.pumpWidget(const NovelWriterApp(home: SceneManagementPage()));
 
-    expect(find.text('场景详情'), findsOneWidget);
-    expect(find.text('场景标题'), findsOneWidget);
+    expect(find.text('章节详情'), findsOneWidget);
+    expect(find.text('章节标题'), findsOneWidget);
     expect(find.text('章节标签'), findsWidgets);
-    expect(find.text('场景摘要'), findsOneWidget);
+    expect(find.text('章节摘要'), findsOneWidget);
     expect(find.text('最近修改'), findsOneWidget);
-    expect(find.text('第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
-    expect(find.text('场景操作'), findsOneWidget);
+    expect(find.text('第 3 章 · 证人房间对峙'), findsOneWidget);
+    expect(find.text('章节操作'), findsOneWidget);
     expect(find.textContaining('新建、重命名、编辑章节标签'), findsOneWidget);
   });
 
@@ -81,8 +81,8 @@ void main() {
     await tester.tap(find.byKey(SceneManagementPage.newSceneButtonKey));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建后会出现在当前项目的场景列表中，并立即可在工作台中继续写作。'), findsOneWidget);
-    expect(find.text('场景标题'), findsWidgets);
+    expect(find.text('创建后会出现在当前项目的章节列表中，并立即可在工作台中继续写作。'), findsOneWidget);
+    expect(find.text('章节标题'), findsWidgets);
 
     await tester.enterText(
       find.byKey(SceneManagementPage.sceneTitleFieldKey),
@@ -92,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('天台交锋'), findsWidgets);
-    expect(find.text('第 3 章 / 场景 06'), findsWidgets);
+    expect(find.text('第 4 章'), findsWidgets);
   });
 
   testWidgets('renames the selected scene from the scene manager', (
@@ -125,7 +125,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('删除后会从当前项目的场景列表中移除，工作台会自动切换到相邻场景，并同步刷新相关引用摘要。'),
+      find.text('删除后会从当前项目的章节列表中移除，工作台会自动切换到相邻章节，并同步刷新相关引用摘要。'),
       findsOneWidget,
     );
 
@@ -147,8 +147,8 @@ void main() {
     await tester.tap(find.byKey(SceneManagementPage.moveSceneUpButtonKey));
     await tester.pumpAndSettle();
 
-    final first = tester.getTopLeft(find.text('第 3 章 / 场景 05 · 证人房间对峙')).dy;
-    final second = tester.getTopLeft(find.text('第 3 章 / 场景 03 · 雨夜码头')).dy;
+    final first = tester.getTopLeft(find.text('第 3 章 · 证人房间对峙')).dy;
+    final second = tester.getTopLeft(find.text('第 3 章 · 雨夜码头')).dy;
     expect(first, lessThan(second));
   });
 
@@ -159,12 +159,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(SceneManagementPage.chapterLabelFieldKey),
-      '第 4 章 / 场景 01',
+      '第 4 章',
     );
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
-    expect(find.text('第 4 章 / 场景 01'), findsWidgets);
+    expect(find.text('第 4 章'), findsWidgets);
     expect(find.text('第 4 章'), findsWidgets);
   });
 
@@ -175,11 +175,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(SceneManagementPage.sceneSummaryFieldKey),
-      '这是更新后的场景摘要。',
+      '这是更新后的章节摘要。',
     );
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
-    expect(find.text('这是更新后的场景摘要。'), findsWidgets);
+    expect(find.text('这是更新后的章节摘要。'), findsWidgets);
   });
 }

@@ -476,7 +476,8 @@ void main() {
               polishCalls++;
               if (polishCalls == 1) {
                 return const AppLlmChatResult.success(
-                  text: '柳溪猛地抬头，死死盯住岳刃。她心中一紧，眼眶一热，喉头一紧，不由得心中暗叹。岳刃嘴角微微上扬，又露出一抹苦笑。任务，完成了。',
+                  text:
+                      '柳溪猛地抬头，死死盯住岳刃。她心中一紧，眼眶一热，喉头一紧，不由得心中暗叹。岳刃嘴角微微上扬，又露出一抹苦笑。任务，完成了。',
                 );
               }
               expect(userPrompt, contains('上一轮残留问题'));
@@ -544,7 +545,8 @@ void main() {
             if (userPrompt.contains('任务：language_polish')) {
               polishCalls++;
               return const AppLlmChatResult.success(
-                text: '柳溪猛地抬头，死死盯住岳刃，无形的手仿佛按住雨夜。她心中一紧，眼眶一热，喉头一紧，不由得心中暗叹。岳刃嘴角微微上扬，又露出一抹苦笑。任务，完成了。',
+                text:
+                    '柳溪猛地抬头，死死盯住岳刃，无形的手仿佛按住雨夜。她心中一紧，眼眶一热，喉头一紧，不由得心中暗叹。岳刃嘴角微微上扬，又露出一抹苦笑。任务，完成了。',
               );
             }
 

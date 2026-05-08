@@ -31,14 +31,12 @@ class AppSceneContextSnapshot {
 }
 
 class AppSceneContextStore extends AppProjectScopedStore {
-  AppSceneContextStore({
-    AppSceneContextStorage? storage,
-    super.workspaceStore,
-  }) : _storage =
-           storage ??
-           debugStorageOverride ??
-           createDefaultAppSceneContextStorage(),
-       super(fallbackProjectId: _defaultSceneScopeId) {
+  AppSceneContextStore({AppSceneContextStorage? storage, super.workspaceStore})
+    : _storage =
+          storage ??
+          debugStorageOverride ??
+          createDefaultAppSceneContextStorage(),
+      super(fallbackProjectId: _defaultSceneScopeId) {
     _snapshot = _snapshotForScope(activeProjectId);
     onRestore();
   }
@@ -61,11 +59,10 @@ class AppSceneContextStore extends AppProjectScopedStore {
         worldSummary: '',
       ),
       _ => AppSceneContextSnapshot(
-        sceneSummary: '当前场景：${_currentProject().recentLocation}',
-        characterSummary:
-            '角色摘要：${_currentCharacter().name} · 已重新同步',
-        worldSummary:
-            '世界观摘要：${_currentWorldNode().title} · 已刷新',
+        sceneSummary:
+            '当前章节：${chapterLocationLabel(_currentProject().displayRecentLocation)}',
+        characterSummary: '角色摘要：${_currentCharacter().name} · 已重新同步',
+        worldSummary: '世界观摘要：${_currentWorldNode().title} · 已刷新',
       ),
     };
     _snapshotsByProjectId[activeProjectId] = nextSnapshot;
@@ -135,7 +132,8 @@ class AppSceneContextStore extends AppProjectScopedStore {
           worldSummary: _defaultWorldSummary,
         ),
         _ => AppSceneContextSnapshot(
-          sceneSummary: '当前场景：${_currentProject().recentLocation} · 等待同步',
+          sceneSummary:
+              '当前章节：${chapterLocationLabel(_currentProject().displayRecentLocation)} · 等待同步',
           characterSummary:
               '角色摘要：${_currentCharacter().name} · ${_currentCharacter().role}',
           worldSummary:

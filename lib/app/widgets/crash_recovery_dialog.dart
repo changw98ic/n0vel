@@ -15,6 +15,7 @@ Future<bool> showCrashRecoveryDialog(
 
   final result = await showDialog<bool>(
     context: context,
+    barrierLabel: '关闭',
     barrierDismissible: false,
     builder: (dialogContext) {
       return DesktopModalDialog(

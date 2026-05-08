@@ -203,13 +203,13 @@ const defaultAuditIssues = <AuditIssueRecord>[
     id: 'audit-warehouse-floor',
     title: '误把仓库当一层',
     evidence: '仓库层数认知与旧港地图不一致，可能导致后续追逐段空间关系错位。',
-    target: '场景 04',
+    target: '场景 99',
   ),
   AuditIssueRecord(
     id: 'audit-timeline-gap',
     title: '时间线跳跃',
     evidence: '同一小时内出现了两次不可能同时成立的行动记录。',
-    target: '场景 06',
+    target: '场景 04',
   ),
 ];
 
@@ -371,7 +371,7 @@ List<SceneRecord> defaultScenesForProject(ProjectRecord project) {
           id: project.sceneId,
           chapterLabel: chapterLabelFromRecentLocation(project.recentLocation),
           title: sceneTitleFromRecentLocation(project.recentLocation),
-          summary: '等待补充场景目标、冲突和收束条件。',
+          summary: '等待补充章节目标、冲突和收束条件。',
         ),
       ];
   }
@@ -391,7 +391,8 @@ List<ProjectRecord> sortProjects(List<ProjectRecord> projects) {
 
 String chapterLabelFromRecentLocation(String recentLocation) {
   final parts = recentLocation.split('·');
-  return parts.first.trim();
+  final label = parts.first.trim();
+  return label.isEmpty ? '第 1 章 / 场景 01' : label;
 }
 
 String sceneTitleFromRecentLocation(String recentLocation) {
@@ -406,18 +407,13 @@ String nextSceneChapterLabel(List<SceneRecord> scenes) {
   if (scenes.isEmpty) {
     return '第 1 章 / 场景 01';
   }
-  final chapterPrefix = scenes.last.chapterLabel.split('/').first.trim();
-  final sceneNumbers = scenes
-      .map(
-        (scene) =>
-            RegExp(r'场景\s*(\d+)').firstMatch(scene.chapterLabel)?.group(1),
-      )
-      .whereType<String>()
-      .map(int.parse);
-  final nextNumber = sceneNumbers.isEmpty
-      ? 1
-      : sceneNumbers.reduce((a, b) => a > b ? a : b) + 1;
-  return '$chapterPrefix / 场景 ${nextNumber.toString().padLeft(2, '0')}';
+  final chapterNumbers = scenes
+      .map((scene) => scene.locationParts.chapterNumber)
+      .whereType<int>();
+  final nextNumber = chapterNumbers.isEmpty
+      ? scenes.length + 1
+      : chapterNumbers.reduce((a, b) => a > b ? a : b) + 1;
+  return '第 $nextNumber 章 / 场景 01';
 }
 
 String normalizeOptionalText(String? value, {required String fallback}) {
@@ -622,7 +618,7 @@ StyleValidationResult validateStyleProfileJson(Map<String, Object?> jsonData) {
     state: ignored.isNotEmpty
         ? StyleWorkflowState.unknownFieldsIgnored
         : StyleWorkflowState.ready,
-    message: ignored.isNotEmpty ? '配置导入成功，未知字段已忽略。' : '配置导入成功，可直接绑定到项目或场景。',
+    message: ignored.isNotEmpty ? '配置导入成功，未知字段已忽略。' : '配置导入成功，可直接绑定到项目或章节。',
     warningMessages: warnings,
     profileJson: profileJson,
   );

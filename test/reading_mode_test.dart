@@ -47,7 +47,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: '她推开仓库门，雨水顺着袖口滴进掌心。',
               ),
             ],
@@ -59,7 +59,7 @@ void main() {
 
     expect(find.byKey(ReadingModePage.pageBodyKey), findsOneWidget);
     expect(find.text('她推开仓库门，雨水顺着袖口滴进掌心。'), findsOneWidget);
-    expect(find.text('月潮回声 · 第 1 章 / 场景 01 · 风暴前夜'), findsOneWidget);
+    expect(find.text('月潮回声 · 第 1 章 · 风暴前夜'), findsOneWidget);
     expect(find.text('返回写作'), findsOneWidget);
     expect(find.text('单页'), findsOneWidget);
   });
@@ -74,7 +74,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: '测试关闭',
               ),
             ],
@@ -109,7 +109,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: longText,
               ),
             ],
@@ -141,7 +141,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: longText,
               ),
             ],

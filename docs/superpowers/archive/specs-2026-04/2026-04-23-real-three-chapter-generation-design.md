@@ -248,7 +248,7 @@
 推荐结构：
 
 - `inputs/`
-  - `world_bible.md`
+  - `world_settings.md`
   - `character_profiles.md`
   - `three_chapter_outline.md`
 - `runtime/`

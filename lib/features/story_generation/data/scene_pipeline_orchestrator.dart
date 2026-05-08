@@ -68,14 +68,14 @@ class ReplanRouter {
       case SceneReviewDecision.pass:
         return ReplanOutcome(
           route: ReplanRoute.pass,
-          message: 'Scene passed review.',
+          message: 'Scene draft passed review.',
           updatedRoundState: currentRoundState,
         );
 
       case SceneReviewDecision.rewriteProse:
         return ReplanOutcome(
           route: ReplanRoute.rewrite,
-          message: 'Scene needs prose rewrite.',
+          message: 'Scene draft needs prose rewrite.',
           updatedRoundState: currentRoundState,
         );
 

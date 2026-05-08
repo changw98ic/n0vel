@@ -6,15 +6,15 @@
 
 ### 需对齐的 frame
 
-- `Writing Workbench` → `47nGt`
-- `Writing Workbench / Default Hidden` → `WT5mH`
-- `Writing Workbench / Menu Drawer Open` → `i2PgM`
+- `写作工作台` → `47nGt`
+- `写作工作台 / 默认隐藏` → `WT5mH`
+- `写作工作台 / 导航抽屉打开` → `i2PgM`
 - `Project List / Responsive Shelf Fit` → `Z0073`
-- `Writing Workbench / Full Drawer Navigation` → `Z0134`
-- `Writing Workbench / API Key Missing` → `y6Ufy`
-- `Writing Workbench / Missing Character Binding` → `o6hOU`
-- `Writing Workbench / Missing Character Reference` → `WmFpE`
-- `Writing Workbench / Missing World Reference` → `emCHR`
+- `写作工作台 / 完整导航抽屉` → `Z0134`
+- `写作工作台 / 缺少密钥` → `y6Ufy`
+- `写作工作台 / 缺少角色绑定` → `o6hOU`
+- `写作工作台 / 角色引用缺失` → `WmFpE`
+- `写作工作台 / 世界观引用缺失` → `emCHR`
 
 ### 验收项
 
@@ -24,16 +24,16 @@
 - 顶部使用 `breadcrumb` 表达项目结构，不把项目结构塞回 `menu drawer`
 - 右侧工具条只承载工作工具，不承担全局导航
 - 工作台阻断态都保留正文上下文，不跳转独立页面
-- `API Key Missing`、角色引用失效、世界观引用失效都能在工作台内就地提示
+- `缺少密钥`、角色引用失效、世界观引用失效都能在工作台内就地提示
 
 ## M2 AI 修改流
 
 ### 需对齐的 frame
 
-- `Writing Workbench / AI Selected Tool` → `XBhIG`
-- `Writing Workbench / AI Tool Picker Open` → `AMlNT`
-- `Writing Workbench / Overlapping Selections` → `go6Qc`
-- `Writing Workbench / AI Modify Failed` → `FPMUS`
+- `写作工作台 / AI 工具已选择` → `XBhIG`
+- `写作工作台 / AI 工具选择打开` → `AMlNT`
+- `写作工作台 / 选择范围重叠` → `go6Qc`
+- `写作工作台 / AI 修改失败` → `FPMUS`
 - `AI Revision Confirmation / Batch Review` → `XYBaG`
 - `AI Revision Confirmation / Three Blocks` → `XkB5L`
 - `AI Revision Confirmation / All Excluded` → `rQbOu`
@@ -82,7 +82,7 @@
 ### 需对齐的 frame
 
 - `Sandbox Monitor` → `YTrUo`
-- `Simulation Monitor / Empty` → `fBn5z`
+- `Simulation Monitor / 空状态` → `fBn5z`
 - `Simulation Monitor / Agent No Output` → `JJh0t`
 - `Simulation Monitor / Failed` → `GtV8t`
 - `Simulation Monitor / Phase Refresh` → `Fekvk`
@@ -114,27 +114,27 @@
 
 ### 需对齐的 frame
 
-- `Settings & BYOK` → `DnwrZ`
-- `Settings / Unconfigured` → `WwWEh`
-- `Settings / Missing API Key` → `6yJaH`
-- `Settings / Missing Model` → `NVC2a`
-- `Settings / Invalid Base URL` → `hroTw`
-- `Settings / Unsupported Model` → `YwhiQ`
-- `Settings / Connection Failed` → `URbAX`
-- `Settings / Unauthorized` → `yRdSE`
-- `Settings / Provider Model Not Found` → `1KpPn`
-- `Settings / Network Error` → `BtJNK`
-- `Settings / Save Success` → `HcPSf`
+- `设置与自带密钥` → `DnwrZ`
+- `设置 / 未配置` → `WwWEh`
+- `设置 / 缺少密钥` → `6yJaH`
+- `设置 / 缺少模型` → `NVC2a`
+- `设置 / 接口地址无效` → `hroTw`
+- `设置 / 模型不受支持` → `YwhiQ`
+- `设置 / 连接失败` → `URbAX`
+- `设置 / 鉴权失败` → `yRdSE`
+- `设置 / 模型服务缺少模型` → `1KpPn`
+- `设置 / 网络错误` → `BtJNK`
+- `设置 / 保存成功` → `HcPSf`
 - `Character Library` / `Worldbuilding` / `Audit Center` 及其关键状态
-- `Story Bible / Aggregated Facts` → `Z0240`
+- `设定摘要 / 聚合事实` → `Z0240`
 
 ### 验收项
 
 - 设置保存成功后，新配置只对下一次 AI 请求生效
 - 已失败请求不会自动重试
-- `401/403`、`404 model_not_found`、`DNS/网络错误` 要映射成不同错误态
+- `401/403`、`404 模型_not_found`、`DNS/网络错误` 要映射成不同错误态
 - 角色与世界观保存成功后，工作台相关摘要立即刷新
-- `Story Bible` 聚合事实视图能展示资料汇总，并标记受失效引用影响的事实
+- `设定摘要` 聚合事实视图能展示资料汇总，并标记受失效引用影响的事实
 - 必填字段缺失时，高亮缺失字段并阻止索引写入
 - 删除被引用资料后，工作台必须出现失效引用提示
 

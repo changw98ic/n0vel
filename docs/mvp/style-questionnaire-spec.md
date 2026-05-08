@@ -1,13 +1,13 @@
 # 风格问卷规格说明
 
-本文档用于把 MVP 的“风格问卷”细化成可直接开发的字段表、问卷分支逻辑、校验规则和 `StyleProfile` 映射规则。
+本文档用于把 MVP 的“风格问卷”细化成可直接开发的字段表、问卷分支逻辑、校验规则和 `风格档案` 映射规则。
 
 适用范围：
 
 - MVP
 - 中文写作
 - 本地客户端
-- 问卷模式创建 `StyleProfile`
+- 问卷模式创建 `风格档案`
 
 不适用范围：
 
@@ -26,8 +26,8 @@
 
 风格问卷的输出固定为：
 
-- 一个可预览的 `StyleProfile`
-- 一个可序列化的 `StyleProfileJson`
+- 一个可预览的 `风格档案`
+- 一个可序列化的 `风格档案 JSON`
 
 ## 2. 问卷结构
 
@@ -44,7 +44,7 @@
 
 - 单页分组折叠表单
 - 必填字段实时校验
-- 右侧实时预览 `StyleProfile`
+- 右侧实时预览 `风格档案`
 
 ## 3. 字段表
 
@@ -71,7 +71,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `sentence_length_preference` | 句长偏好 | enum | 是 | `short` / `short_medium` / `balanced` / `medium_long` | `balanced` | `sentence_length_preference` |
 | `rhythm_profile` | 节奏轮廓 | enum | 是 | `tight` / `balanced` / `slow_burn` | `balanced` | `rhythm_profile` |
-| `lexical_density` | 词汇浓度 | enum | 否 | `plain` / `balanced` / `dense` | `balanced` | 预览辅助字段，不单独落 `StyleProfile` |
+| `lexical_density` | 词汇浓度 | enum | 否 | `plain` / `balanced` / `dense` | `balanced` | 预览辅助字段，不单独落 `风格档案` |
 | `metaphor_intensity` | 比喻密度 | enum | 否 | `low` / `medium` / `high` | `low` | 预览辅助字段 |
 
 ### 3.4 对话与描写
@@ -131,7 +131,7 @@
    - 展开附加字段 `suspense_release_rate`
    - 类型：enum
    - 可选值：`slow` / `balanced` / `fast`
-   - 仅用于预览与提示组装，不进入 `StyleProfileJson 1.0` 必填字段
+   - 仅用于预览与提示组装，不进入 `风格档案 JSON 1.0` 必填字段
 
 3. 当 `genre_tags` 包含 `言情`
    - 展开附加字段 `relationship_tension`
@@ -158,7 +158,7 @@
 
 ### 5.1 阻断型校验
 
-以下条件不满足时，禁止生成 `StyleProfile`：
+以下条件不满足时，禁止生成 `风格档案`：
 
 - `profile_name` 为空
 - `genre_tags` 数量为 0
@@ -182,20 +182,20 @@
 
 ### 5.3 自动归一化
 
-以下字段在写入 `StyleProfile` 前需要归一化：
+以下字段在写入 `风格档案` 前需要归一化：
 
 - 空白字符串去除首尾空格
 - 多选项去重
 - 自定义禁忌表达去除空值
 - `tone_keywords` 超过 5 项时保留前 5 项
 
-## 6. StyleProfile 映射逻辑
+## 6. 风格档案 映射逻辑
 
-问卷并不是所有字段都直接落到 `StyleProfile`，MVP 采用“核心字段入库，辅助字段用于提示拼装”的策略。
+问卷并不是所有字段都直接落到 `风格档案`，MVP 采用“核心字段入库，辅助字段用于提示拼装”的策略。
 
 ### 6.1 直接映射字段
 
-| 问卷字段 | StyleProfile 字段 |
+| 问卷字段 | 风格档案 字段 |
 | --- | --- |
 | `profile_name` | `name` |
 | `language` | `language` |
@@ -224,11 +224,11 @@
 - `dialogue_style`
 - `description_focus`
 
-这些字段不要求进入 `StyleProfileJson 1.0` 的固定 schema，但可以被客户端内部预览和提示拼装逻辑消费。
+这些字段不要求进入 `风格档案 JSON 1.0` 的固定 schema，但可以被客户端内部预览和提示拼装逻辑消费。
 
 ## 7. 问卷到 JSON 的转换
 
-问卷提交后，客户端要生成一份规范化的 `StyleProfileJson`。
+问卷提交后，客户端要生成一份规范化的 `风格档案 JSON`。
 
 最小输出示例：
 
@@ -266,18 +266,18 @@
 - 每个区块标题旁显示“是否已完成”
 - 顶部固定一个完成度进度条
 - 问卷右侧实时展示风格摘要卡
-- 提交按钮文案固定为：`生成 StyleProfile`
+- 提交按钮文案固定为：`生成 风格档案`
 
 ### 8.3 草稿机制
 
 - 问卷未提交前，允许保存在本地临时状态
 - 切出页面返回后恢复上次未提交内容
-- 只有点击 `生成 StyleProfile` 后才创建正式风格配置
+- 只有点击 `生成 风格档案` 后才创建正式风格配置
 
 ## 9. 验收标准
 
 - 作者在 3 分钟内能完成一份基础风格问卷
-- 未填写必填项时，不会生成 `StyleProfile`
+- 未填写必填项时，不会生成 `风格档案`
 - 分支字段只在满足条件时出现
-- 问卷生成的 `StyleProfileJson` 可被风格面板页重新导入
+- 问卷生成的 `风格档案 JSON` 可被风格面板页重新导入
 - 问卷生成的风格配置可直接绑定到项目或场景

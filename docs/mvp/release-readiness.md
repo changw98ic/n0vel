@@ -17,10 +17,10 @@
 - 当前 `.pen` 画布顶层节点：`151`
 - 核心页面已具备：
   - `Project List`
-  - `Writing Workbench`
+  - `写作工作台`
   - `Sandbox Monitor`
-  - `Style Panel`
-  - `Settings & BYOK`
+  - `风格面板`
+  - `设置与自带密钥`
   - `Character Library`
   - `Worldbuilding`
   - `Audit Center`
@@ -33,9 +33,9 @@
 - 页面级 PRD：`12` 份
 - 已补齐的交接 / 校验文档包括：
   - [MVP 文档集总览 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/README.json)
-  - [Frame / State Coverage](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
-  - [Frame / State Coverage (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
-  - [Canonical Frame Map (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
+  - [画面状态覆盖](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
+  - [画面状态覆盖 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
+  - [标准画面映射 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
   - [MVP 文档清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/doc-manifest.json)
   - [Legacy Frame 审计](/Users/chengwen/dev/novel-wirter/docs/mvp/legacy-frame-audit.md)
   - [MVP 行为缺口审计](/Users/chengwen/dev/novel-wirter/docs/mvp/behavior-gap-audit.md)
@@ -43,8 +43,8 @@
   - [MVP 实现交接稿 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.json)
   - [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md)
   - [MVP 里程碑验收清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.json)
-  - [MVP 运行时 Smoke Test 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
-  - [MVP 运行时 Smoke Test 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
+  - [MVP 运行时 冒烟测试 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
+  - [MVP 运行时 冒烟测试 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
   - [MVP 按角色开始](/Users/chengwen/dev/novel-wirter/docs/mvp/start-here-by-role.md)
   - [MVP 按角色开始 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/start-here-by-role.json)
   - [MVP 追踪矩阵](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.md)

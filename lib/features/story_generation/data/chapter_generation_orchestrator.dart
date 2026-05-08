@@ -4,6 +4,7 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'dynamic_role_agent_runner.dart';
 import 'retrieval_controller.dart';
 import 'scene_cast_resolver.dart';
+import 'scene_context_models.dart';
 import 'scene_context_assembler.dart';
 import 'scene_director_orchestrator.dart';
 import 'scene_editorial_generator.dart';
@@ -19,6 +20,9 @@ import 'character_memory_store.dart';
 import 'scene_roleplay_session_models.dart';
 import 'scene_runtime_models.dart'
     show ResolvedBeat, SceneState, SceneStateDelta, SceneStateDeltaKind;
+import 'character_consistency_verifier.dart';
+import 'knowledge_visibility_filter.dart';
+import 'narrative_arc_prompt_builder.dart';
 import 'scene_state_resolver.dart';
 import 'story_context_cache.dart';
 import 'story_prompt_templates.dart';
@@ -51,6 +55,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     RagOrchestrator? ragOrchestrator,
     StoryContextCache? contextCache,
     ChapterContextBridgeService? chapterContextBridge,
+    CharacterConsistencyVerifier? consistencyVerifier,
   }) : _settingsStore = settingsStore,
        _castResolver = castResolver ?? SceneCastResolver(),
        _directorOrchestrator =
@@ -84,6 +89,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
        _ragOrchestrator = ragOrchestrator,
        _contextCache = contextCache,
        _chapterContextBridge = chapterContextBridge,
+       _consistencyVerifier = consistencyVerifier,
        _retrievalController = const RetrievalController();
 
   final int maxProseRetries;
@@ -113,8 +119,10 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   final RagOrchestrator? _ragOrchestrator;
   final StoryContextCache? _contextCache;
   final ChapterContextBridgeService? _chapterContextBridge;
+  final CharacterConsistencyVerifier? _consistencyVerifier;
   final RetrievalController _retrievalController;
   final NarrativeArcTracker _narrativeArcTracker = NarrativeArcTracker();
+  final NarrativeArcPromptBuilder _arcPromptBuilder = NarrativeArcPromptBuilder();
   NarrativeArcState _narrativeArc = NarrativeArcState();
   DirectorMemory _directorMemory = DirectorMemory();
 
@@ -261,12 +269,28 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
 
     while (true) {
       final resolvedCast = _castResolver.resolve(currentBrief);
+
+      // Pre-generation consistency check: inject warnings into director context
+      String? consistencyConstraints;
+      if (_consistencyVerifier != null) {
+        final preCheck = await _consistencyVerifier.preGenerationCheck(
+          brief: currentBrief,
+          cast: resolvedCast,
+          allFacts: _extractKnowledgeFacts(currentBrief),
+          policies: _extractDisclosurePolicies(currentBrief),
+        );
+        if (preCheck.hasWarnings || preCheck.hasBlockingIssues) {
+          consistencyConstraints = preCheck.toPromptText();
+        }
+      }
+
       statusCallback?.call(
         '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · director',
       );
       final directorContext = _composeDirectorContext(
         memoryContext: _directorMemory.toPromptText(),
         ragContext: ragContext?.formattedContext,
+        consistencyConstraints: consistencyConstraints,
       );
       final director = await _directorOrchestrator.run(
         brief: currentBrief,
@@ -378,6 +402,42 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
               retrievalPack: retrievalPack,
               onStatus: statusCallback,
             );
+
+        // Post-generation character consistency check
+        if (_consistencyVerifier != null &&
+            review.decision == SceneReviewDecision.pass) {
+          final consistencyReport = await _consistencyVerifier
+              .postGenerationCheck(
+            brief: currentBrief,
+            director: director,
+            roleOutputs: roleOutputs,
+            prose: prose,
+            cast: resolvedCast,
+          );
+          if (consistencyReport.hasBlockingIssues) {
+            statusCallback?.call(
+              '场景 ${currentBrief.sceneId} · consistency check failed -> replan',
+            );
+            _directorMemory = _directorMemory.incorporate(
+              SceneReviewDigest(
+                sceneId: currentBrief.sceneId,
+                decision: SceneReviewDecision.replanScene,
+                issues: consistencyReport.toPromptText().split('\n'),
+                strengths: const [],
+                proseAttempts: attempt,
+              ),
+            );
+            if (sceneReplanCount < maxSceneReplanRetries) {
+              sceneReplanCount += 1;
+              currentBrief = _briefWithReplanFeedback(
+                brief: currentBrief,
+                review: review,
+                replanRound: sceneReplanCount,
+              );
+              break;
+            }
+          }
+        }
 
         _directorMemory = _directorMemory
             .incorporate(
@@ -565,7 +625,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       rawText: '决定：REWRITE_PROSE\n原因：$reason',
       categories: const [SceneReviewCategory.prose],
     );
-    final consistency = SceneReviewPassResult(
+    final consistency = const SceneReviewPassResult(
       status: SceneReviewStatus.pass,
       reason: '',
       rawText: '决定：PASS\n原因：长度检查前未进入一致性审查。',
@@ -625,13 +685,24 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     );
   }
 
-  String? _composeDirectorContext({String? memoryContext, String? ragContext}) {
+  String? _composeDirectorContext({
+    String? memoryContext,
+    String? ragContext,
+    String? consistencyConstraints,
+  }) {
     final parts = <String>[];
     if (memoryContext != null && memoryContext.isNotEmpty) {
       parts.add(memoryContext);
     }
     if (ragContext != null && ragContext.isNotEmpty) {
       parts.add(ragContext);
+    }
+    if (consistencyConstraints != null && consistencyConstraints.isNotEmpty) {
+      parts.add(consistencyConstraints);
+    }
+    final arcContext = _arcPromptBuilder.buildArcContext(_narrativeArc);
+    if (arcContext != null) {
+      parts.add(arcContext);
     }
     if (parts.isEmpty) return null;
     return parts.join('\n');
@@ -964,5 +1035,29 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     } on Object {
       return null;
     }
+  }
+
+  List<KnowledgeFact> _extractKnowledgeFacts(SceneBrief brief) {
+    return [
+      for (final atom in brief.knowledgeAtoms)
+        KnowledgeFact(
+          factId: atom.id,
+          content: atom.content,
+          isPublic: atom.visibility == KnowledgeVisibility.publicObservable,
+        ),
+    ];
+  }
+
+  List<DisclosurePolicy> _extractDisclosurePolicies(SceneBrief brief) {
+    final policies = <DisclosurePolicy>[];
+    for (final atom in brief.knowledgeAtoms) {
+      if (atom.visibility != KnowledgeVisibility.publicObservable &&
+          atom.ownerScope.isNotEmpty) {
+        policies.add(
+          DisclosurePolicy(factId: atom.id, knownBy: {atom.ownerScope}),
+        );
+      }
+    }
+    return policies;
   }
 }

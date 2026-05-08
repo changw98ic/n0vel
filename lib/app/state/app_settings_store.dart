@@ -267,6 +267,7 @@ class AppSettingsSnapshot {
     this.providerProfiles = const [],
     this.requestProviderRoutes = const [],
     this.promptLanguage = PromptLanguage.zh,
+    this.embeddingModel,
   }) : _timeout = timeout,
        _timeoutMs = timeoutMs;
 
@@ -283,6 +284,10 @@ class AppSettingsSnapshot {
   final List<AppLlmProviderProfile> providerProfiles;
   final List<AppLlmRequestProviderRoute> requestProviderRoutes;
   final PromptLanguage promptLanguage;
+
+  /// Optional embedding model name (e.g. "text-embedding-3-small").
+  /// When non-null, enables local semantic search via the embedding API.
+  final String? embeddingModel;
 
   AppLlmTimeoutConfig get timeout =>
       _timeout ?? AppLlmTimeoutConfig.uniform(_timeoutMs);
@@ -302,6 +307,7 @@ class AppSettingsSnapshot {
     List<AppLlmProviderProfile>? providerProfiles,
     List<AppLlmRequestProviderRoute>? requestProviderRoutes,
     PromptLanguage? promptLanguage,
+    String? embeddingModel,
   }) {
     return AppSettingsSnapshot(
       providerName: providerName ?? this.providerName,
@@ -318,6 +324,7 @@ class AppSettingsSnapshot {
       requestProviderRoutes:
           requestProviderRoutes ?? this.requestProviderRoutes,
       promptLanguage: promptLanguage ?? this.promptLanguage,
+      embeddingModel: embeddingModel ?? this.embeddingModel,
     );
   }
 
@@ -352,6 +359,7 @@ class AppSettingsSnapshot {
         for (final route in requestProviderRoutes) route.toJson(),
       ],
       'promptLanguage': promptLanguage.name,
+      if (embeddingModel != null) 'embeddingModel': embeddingModel,
     };
   }
 
@@ -405,6 +413,7 @@ class AppSettingsSnapshot {
       ),
       requestProviderRoutes: requestProviderRoutes,
       promptLanguage: promptLanguage,
+      embeddingModel: json['embeddingModel'] as String?,
     );
   }
 }
@@ -932,17 +941,25 @@ class AppSettingsStore extends ChangeNotifier {
   }
 
   String _inferLlmTraceName(List<AppLlmChatMessage> messages) {
-    final taskPattern = RegExp(r'^(任务|任务类型)[:：]\s*(.+)$');
     for (final message in messages.reversed) {
       for (final rawLine in message.content.split('\n')) {
-        final match = taskPattern.firstMatch(rawLine.trim());
-        final value = match?.group(2)?.trim();
+        final value = _extractLlmTaskLineValue(rawLine);
         if (value != null && value.isNotEmpty) {
           return value;
         }
       }
     }
     return 'ai_completion';
+  }
+
+  String? _extractLlmTaskLineValue(String rawLine) {
+    final line = rawLine.trim();
+    for (final prefix in const ['任务类型', '任务']) {
+      if (line.startsWith('$prefix:') || line.startsWith('$prefix：')) {
+        return line.substring(prefix.length + 1).trim();
+      }
+    }
+    return null;
   }
 
   bool _shouldCoolDownLlmRequestPool(AppLlmChatResult result) {
@@ -1074,7 +1091,7 @@ class AppSettingsStore extends ChangeNotifier {
   }) {
     final primary = AppLlmProviderProfile(
       id: 'primary',
-      providerName: providerName.trim().isEmpty ? '默认提供方' : providerName.trim(),
+      providerName: providerName.trim().isEmpty ? '默认模型服务' : providerName.trim(),
       baseUrl: baseUrl.trim(),
       model: model.trim(),
       apiKey: apiKey,
@@ -1250,7 +1267,7 @@ class AppSettingsStore extends ChangeNotifier {
         _activePersistenceDetail = null;
         _feedback = const AppSettingsFeedback(
           title: '配置已重新保存',
-          message: 'settings.json 已更新。',
+          message: '本地配置文件已更新。',
           tone: AppSettingsFeedbackTone.success,
         );
       } else {
@@ -1296,7 +1313,7 @@ class AppSettingsStore extends ChangeNotifier {
       _activePersistenceDetail = null;
       _feedback = const AppSettingsFeedback(
         title: '配置已重新加载',
-        message: 'settings.json 已重新读取，当前配置已同步。',
+        message: '本地配置文件已重新读取，当前配置已同步。',
         tone: AppSettingsFeedbackTone.success,
       );
     } else {
@@ -1367,7 +1384,7 @@ class AppSettingsStore extends ChangeNotifier {
     if (result.issue == AppSettingsPersistenceIssue.none) {
       _feedback = const AppSettingsFeedback(
         title: '配置已重新保存',
-        message: 'settings.json 已更新。',
+        message: '本地配置文件已更新。',
         tone: AppSettingsFeedbackTone.success,
       );
     } else {
@@ -1516,7 +1533,7 @@ class AppSettingsStore extends ChangeNotifier {
           tone: AppSettingsFeedbackTone.error,
         );
       case AppSettingsPersistenceIssue.fileWriteFailed:
-        _activePersistenceSummary = '设置文件写入失败，本次修改未能持久化到 settings.json。';
+        _activePersistenceSummary = '本地配置文件写入失败，本次修改未能保存。';
         return AppSettingsFeedback(
           title: '设置保存失败',
           message: _withDetail(_activePersistenceSummary!, result.detail),
@@ -1536,14 +1553,14 @@ class AppSettingsStore extends ChangeNotifier {
         _activePersistenceSummary = null;
         return const AppSettingsFeedback();
       case AppSettingsPersistenceIssue.fileReadFailed:
-        _activePersistenceSummary = '无法读取 settings.json，请检查文件内容是否损坏。';
+        _activePersistenceSummary = '无法读取本地配置文件，请检查文件内容是否损坏。';
         return AppSettingsFeedback(
           title: '设置文件读取失败',
           message: _withDetail(_activePersistenceSummary!, detail),
           tone: AppSettingsFeedbackTone.error,
         );
       case AppSettingsPersistenceIssue.fileWriteFailed:
-        _activePersistenceSummary = '无法写入 settings.json，请检查磁盘或目录权限。';
+        _activePersistenceSummary = '无法写入本地配置文件，请检查磁盘或目录权限。';
         return AppSettingsFeedback(
           title: '设置文件写入失败',
           message: _withDetail(_activePersistenceSummary!, detail),
@@ -1616,10 +1633,10 @@ class AppSettingsStore extends ChangeNotifier {
     final allowsEmptyApiKey = _isLocalCompatibleEndpoint(baseUrl);
     if (apiKey.trim().isEmpty && !allowsEmptyApiKey) {
       return AppSettingsFeedback(
-        title: forConnectionTest ? '测试连接前请先填写 API Key' : '请先填写 API Key',
+        title: forConnectionTest ? '测试连接前请先填写密钥' : '请先填写密钥',
         message: forConnectionTest
             ? '补全密钥后才能发起最小化连接测试。'
-            : 'base_url 与 model 可以保留当前值，但保存前必须补全密钥。',
+            : '接口地址与模型名称可以保留当前值，但保存前必须补全密钥。',
         tone: AppSettingsFeedbackTone.error,
       );
     }
@@ -1631,17 +1648,17 @@ class AppSettingsStore extends ChangeNotifier {
         uri.hasAuthority;
     if (!hasValidBaseUrl) {
       return AppSettingsFeedback(
-        title: '请输入有效的 base_url',
+        title: '请输入有效的接口地址',
         message: forConnectionTest
             ? '修正接口地址后再测试连接。'
-            : 'base_url 需要是完整的 http 或 https 地址。',
+            : '接口地址需要是完整的 http 或 https 地址。',
         tone: AppSettingsFeedbackTone.error,
       );
     }
 
     if (model.trim().isEmpty) {
       return AppSettingsFeedback(
-        title: '请先填写 model',
+        title: '请先填写模型名称',
         message: forConnectionTest ? '填写模型名称后再测试连接。' : '保存配置前需要补全模型名称。',
         tone: AppSettingsFeedbackTone.error,
       );
@@ -1725,14 +1742,14 @@ class AppSettingsStore extends ChangeNotifier {
           status: AppSettingsConnectionTestStatus.error,
           outcome: AppSettingsConnectionTestOutcome.unauthorized,
           title: '连接测试失败：鉴权失败',
-          message: '401 / 403：请检查 API Key、组织权限或账号状态。',
+          message: '401 / 403：请检查密钥、组织权限或账号状态。',
         );
       case AppLlmFailureKind.timeout:
         return const AppSettingsConnectionTestState(
           status: AppSettingsConnectionTestStatus.error,
           outcome: AppSettingsConnectionTestOutcome.timeout,
           title: '连接测试失败：连接超时',
-          message: '最小化请求超时，请检查接口响应时间或调大 timeout_ms。',
+          message: '最小化请求超时，请检查接口响应时间或调大等待时间。',
         );
       case AppLlmFailureKind.modelNotFound:
         return AppSettingsConnectionTestState(

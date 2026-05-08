@@ -71,20 +71,20 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
 
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '场景管理',
-        subtitle: '维护当前项目的场景列表、标题与顺序',
+        title: '章节管理',
+        subtitle: '维护当前项目的章节列表、标题与顺序',
         showBackButton: true,
         actions: [
           FilledButton(
             key: SceneManagementPage.newSceneButtonKey,
             onPressed: () => showSceneDialog(
               context,
-              title: '新建场景',
+              title: '新建章节',
               initialValue: '',
               onConfirm: store.createScene,
               fieldKey: SceneManagementPage.sceneTitleFieldKey,
             ),
-            child: const Text('新建场景'),
+            child: const Text('新建章节'),
           ),
         ],
       ),
@@ -111,7 +111,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                 children: [
                   DesktopSearchField(
                     controller: _searchController,
-                    hintText: '搜索场景',
+                    hintText: '搜索章节',
                     onChanged: (_) => setState(() {}),
                     width: double.infinity,
                   ),
@@ -119,8 +119,8 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                   Expanded(
                     child: scenes.isEmpty
                         ? const AppEmptyState(
-                            title: '没有匹配场景',
-                            message: '换个关键词，或新建一个场景。',
+                            title: '没有匹配章节',
+                            message: '换个关键词，或新建一个章节。',
                           )
                         : ListView.separated(
                             itemCount: groupedScenes.length,
@@ -140,7 +140,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '共 ${group.scenes.length} 个场景',
+                                    '共 ${group.scenes.length} 个章节',
                                     style: theme.textTheme.bodySmall,
                                   ),
                                   const SizedBox(height: 8),
@@ -149,7 +149,9 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                                       key: scene.id == 'scene-03-rainy-dock'
                                           ? SceneManagementPage.rainyDockKey
                                           : null,
-                                      label: scene.displayLocation,
+                                      label: chapterLocationLabel(
+                                        scene.displayLocation,
+                                      ),
                                       selected: scene.id == currentScene.id,
                                       onPressed: () {
                                         store.updateCurrentScene(
@@ -178,17 +180,17 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('场景详情', style: theme.textTheme.titleMedium),
+                    Text('章节详情', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 12),
-                    SceneDetailField(label: '场景标题', value: currentScene.title),
+                    SceneDetailField(label: '章节标题', value: currentScene.title),
                     const SizedBox(height: 12),
                     SceneDetailField(
                       label: '章节标签',
-                      value: currentScene.chapterLabel,
+                      value: chapterLabelOnly(currentScene.chapterLabel),
                     ),
                     const SizedBox(height: 12),
                     SceneDetailField(
-                      label: '场景摘要',
+                      label: '章节摘要',
                       value: currentScene.summary,
                       multiline: true,
                     ),
@@ -212,7 +214,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('场景操作', style: theme.textTheme.titleMedium),
+                    Text('章节操作', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
@@ -247,12 +249,12 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                       key: SceneManagementPage.renameSceneButtonKey,
                       onPressed: () => showSceneDialog(
                         context,
-                        title: '重命名场景',
+                        title: '重命名章节',
                         initialValue: currentScene.title,
                         onConfirm: store.renameCurrentScene,
                         fieldKey: SceneManagementPage.sceneTitleFieldKey,
                       ),
-                      child: const Text('重命名场景'),
+                      child: const Text('重命名章节'),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton(
@@ -262,7 +264,9 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                       key: SceneManagementPage.chapterLabelButtonKey,
                       onPressed: () => showChapterDialog(
                         context,
-                        initialValue: currentScene.chapterLabel,
+                        initialValue: chapterLabelOnly(
+                          currentScene.chapterLabel,
+                        ),
                         onConfirm: store.updateCurrentSceneChapterLabel,
                         fieldKey: SceneManagementPage.chapterLabelFieldKey,
                       ),
@@ -280,7 +284,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                         onConfirm: store.updateCurrentSceneSummary,
                         fieldKey: SceneManagementPage.sceneSummaryFieldKey,
                       ),
-                      child: const Text('编辑场景摘要'),
+                      child: const Text('编辑章节摘要'),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton(
@@ -289,7 +293,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                       ),
                       key: SceneManagementPage.moveSceneUpButtonKey,
                       onPressed: store.moveCurrentSceneUp,
-                      child: const Text('上移场景'),
+                      child: const Text('上移章节'),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton(
@@ -298,7 +302,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                       ),
                       key: SceneManagementPage.moveSceneDownButtonKey,
                       onPressed: store.moveCurrentSceneDown,
-                      child: const Text('下移场景'),
+                      child: const Text('下移章节'),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton(
@@ -313,7 +317,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
                               onConfirm: store.deleteCurrentScene,
                             )
                           : null,
-                      child: const Text('删除场景'),
+                      child: const Text('删除章节'),
                     ),
                   ],
                 ),
@@ -323,8 +327,8 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
         ],
       ),
       statusBar: DesktopStatusStrip(
-        leftText: '当前项目共 ${store.scenes.length} 个场景',
-        rightText: currentScene.chapterLabel,
+        leftText: '当前项目共 ${store.scenes.length} 个章节',
+        rightText: chapterLabelOnly(currentScene.displayChapterLabel),
       ),
     );
   }
@@ -348,7 +352,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
     final orderedLabels = <String>[];
     final grouped = <String, List<SceneRecord>>{};
     for (final scene in scenes) {
-      final chapterLabel = scene.chapterLabel.split('/').first.trim();
+      final chapterLabel = scene.chapterOnlyLabel;
       if (!grouped.containsKey(chapterLabel)) {
         orderedLabels.add(chapterLabel);
         grouped[chapterLabel] = <SceneRecord>[];

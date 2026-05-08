@@ -287,12 +287,12 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
     await statusReporter.update(
       phase: 'writing-inputs',
       detail: cachedOutline != null
-          ? 'Writing world bible and character profiles; reusing cached outline.'
-          : 'Writing resonance world bible and character profiles, then generating the outline.',
+          ? '写入世界观资料与角色档案；复用缓存大纲。'
+          : '写入共振世界观资料与角色档案，然后生成大纲。',
     );
     await recorder.recordReport(
-      relativePath: 'inputs/world_bible.md',
-      content: _worldBibleMarkdown(),
+      relativePath: 'inputs/world_settings.md',
+      content: _worldSettingsMarkdown(),
     );
     await recorder.recordReport(
       relativePath: 'inputs/character_profiles.md',
@@ -442,7 +442,7 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
       aiHistoryStore.addEntry(
         mode: '真实正文生成',
         prompt:
-            '${chapter.title} generated from outline, world bible, '
+            '${chapter.title} generated from outline, world settings, '
             'characters, and ${simulationSession.messages.length} '
             'real multi-agent messages.',
       );
@@ -1151,10 +1151,10 @@ const List<_ValidationChapter> _validationChapters = [
 ];
 
 // ---------------------------------------------------------------------------
-// World bible & character profiles
+// World settings & character profiles
 // ---------------------------------------------------------------------------
 
-String _worldBibleMarkdown() {
+String _worldSettingsMarkdown() {
   return [
     '# 世界设定：无声的共振层',
     '',
@@ -1222,7 +1222,7 @@ String _realOutlinePrompt(List<_ValidationChapter> chapters) {
     '- 声效描写必须具体可感（频率数值、音色、物理感受）。',
     '',
     '世界观：',
-    _worldBibleMarkdown(),
+    _worldSettingsMarkdown(),
     '',
     '角色：',
     _characterProfilesMarkdown(chapters),

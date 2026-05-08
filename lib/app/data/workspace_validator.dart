@@ -56,7 +56,7 @@ List<ValidationIssue> validateProjectRecord(ProjectRecord project) {
       const ValidationIssue(
         severity: ValidationSeverity.error,
         field: 'ProjectRecord.sceneId',
-        message: '项目当前场景 ID 不能为空。',
+        message: '项目当前章节 ID 不能为空。',
       ),
     );
   }
@@ -88,7 +88,7 @@ List<ValidationIssue> validateSceneRecord(SceneRecord scene) {
       const ValidationIssue(
         severity: ValidationSeverity.error,
         field: 'SceneRecord.id',
-        message: '场景 ID 不能为空。',
+        message: '章节 ID 不能为空。',
       ),
     );
   }
@@ -97,7 +97,7 @@ List<ValidationIssue> validateSceneRecord(SceneRecord scene) {
       const ValidationIssue(
         severity: ValidationSeverity.warning,
         field: 'SceneRecord.title',
-        message: '场景标题为空。',
+        message: '章节标题为空。',
       ),
     );
   }
@@ -212,7 +212,7 @@ List<ValidationIssue> _validateSceneReferences({
         ValidationIssue(
           severity: ValidationSeverity.warning,
           field: 'scenes[$projectId]',
-          message: '场景 ID 重复：${scene.id}。',
+          message: '章节 ID 重复：${scene.id}。',
         ),
       );
     }
@@ -225,7 +225,7 @@ List<ValidationIssue> _validateSceneReferences({
           ValidationIssue(
             severity: ValidationSeverity.warning,
             field: 'CharacterRecord(${character.id}).linkedSceneIds',
-            message: '角色「${character.name}」引用了不存在的场景 $sceneId。',
+            message: '角色「${character.name}」引用了不存在的章节 $sceneId。',
           ),
         );
       }
@@ -239,7 +239,7 @@ List<ValidationIssue> _validateSceneReferences({
           ValidationIssue(
             severity: ValidationSeverity.warning,
             field: 'WorldNodeRecord(${node.id}).linkedSceneIds',
-            message: '世界节点「${node.title}」引用了不存在的场景 $sceneId。',
+            message: '世界节点「${node.title}」引用了不存在的章节 $sceneId。',
           ),
         );
       }
@@ -330,7 +330,7 @@ WorkspaceValidationResult validateWorkspaceData(WorkspaceData data) {
         ValidationIssue(
           severity: ValidationSeverity.warning,
           field: 'ProjectRecord(${project.id}).sceneId',
-          message: '项目当前场景 ${project.sceneId} 不存在于场景列表中。',
+          message: '项目当前章节 ${project.sceneId} 不存在于章节列表中。',
         ),
       );
     }
@@ -370,7 +370,7 @@ WorkspaceValidationResult validateWorkspaceData(WorkspaceData data) {
         ValidationIssue(
           severity: ValidationSeverity.warning,
           field: 'WorkspaceData.scenesByProjectId',
-          message: '场景数据引用了不存在的项目 $projectId。',
+          message: '章节数据引用了不存在的项目 $projectId。',
         ),
       );
     }

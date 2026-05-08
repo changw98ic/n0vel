@@ -1,3 +1,8 @@
+import 'package:sqlite3/sqlite3.dart';
+
+import '../../features/story_generation/data/story_embedding_provider.dart';
+import 'local_rag_search.dart';
+import 'local_rag_storage.dart';
 import 'openviking_client.dart';
 import 'openviking_models.dart';
 import 'rag_config.dart';
@@ -15,23 +20,83 @@ class RagSceneContext {
   bool get isEmpty => results.isEmpty;
 }
 
-/// Orchestrates data synchronization with OpenViking RAG server
-/// and retrieval of context for scene generation.
+/// Abstract interface for RAG operations.
 ///
-/// Works as a complementary layer to the existing KnowledgeToolRegistry:
-/// RAG provides macro semantic context, tools give precise structured data.
-class RagOrchestrator {
-  RagOrchestrator({
+/// Implementations may use a remote server (OpenViking) or local storage (FTS5).
+abstract interface class RagService {
+  Future<void> syncProject({
+    required String projectId,
+    required List<String> characterProfiles,
+    required List<String> outlineBeats,
+    required List<String> worldFacts,
+    List<String> chapterContents = const [],
+  });
+
+  Future<RagSceneContext> retrieveForScene({
+    required String projectId,
+    required String sceneTitle,
+    required String sceneSummary,
+    List<String> castNames = const [],
+    List<String> worldNodeIds = const [],
+  });
+
+  Future<void> pushChapter({
+    required String projectId,
+    required int chapterIndex,
+    required String content,
+  });
+}
+
+/// Orchestrates RAG operations with pluggable backends.
+///
+/// Use [RagOrchestrator.remote] for the legacy OpenViking server backend,
+/// or [RagOrchestrator.local] for the on-device SQLite FTS5 backend.
+class RagOrchestrator implements RagService {
+  RagOrchestrator._remote({OpenVikingClient? client, required RagConfig config})
+    : _mode = _BackendMode.remote,
+      _remoteClient = client ?? OpenVikingClient(config: config),
+      _localStorage = null,
+      _localSearch = null;
+
+  RagOrchestrator._local({
+    required LocalRagStorage storage,
+    LocalRagSearchEngine? search,
+  }) : _mode = _BackendMode.local,
+       _remoteClient = null,
+       _localStorage = storage,
+       _localSearch = search ?? LocalRagSearchEngine(storage: storage);
+
+  /// Creates a remote (OpenViking) backend.
+  factory RagOrchestrator.remote({
     OpenVikingClient? client,
     RagConfig config = const RagConfig(),
-  }) : _client = client ?? OpenVikingClient(config: config);
+  }) {
+    return RagOrchestrator._remote(client: client, config: config);
+  }
 
-  final OpenVikingClient _client;
+  /// Creates a local (SQLite FTS5) backend.
+  factory RagOrchestrator.local({
+    required Database db,
+    StoryEmbeddingProvider? embeddingProvider,
+    LocalRagSearchConfig? searchConfig,
+  }) {
+    final storage = LocalRagStorage(db: db);
+    final search = LocalRagSearchEngine(
+      storage: storage,
+      embeddingProvider: embeddingProvider,
+      config: searchConfig ?? const LocalRagSearchConfig(),
+    );
+    return RagOrchestrator._local(storage: storage, search: search);
+  }
 
-  /// Syncs project materials to OpenViking under `viking://resources/{projectId}/`.
-  ///
-  /// Creates directory structure and pushes character profiles, outline beats,
-  /// world facts, and completed chapters.
+  final _BackendMode _mode;
+  final OpenVikingClient? _remoteClient;
+  final LocalRagStorage? _localStorage;
+  final LocalRagSearchEngine? _localSearch;
+
+  // ── RagService interface ──────────────────────────────────────────
+
+  @override
   Future<void> syncProject({
     required String projectId,
     required List<String> characterProfiles,
@@ -39,42 +104,27 @@ class RagOrchestrator {
     required List<String> worldFacts,
     List<String> chapterContents = const [],
   }) async {
-    await _ensureDir('$projectId/characters');
-    await _ensureDir('$projectId/outlines');
-    await _ensureDir('$projectId/worldbuilding');
-    await _ensureDir('$projectId/chapters');
-
-    await _pushItems(
-      projectId,
-      'characters',
-      'char',
-      characterProfiles,
-    );
-    await _pushItems(
-      projectId,
-      'outlines',
-      'beat',
-      outlineBeats,
-    );
-    await _pushItems(
-      projectId,
-      'worldbuilding',
-      'fact',
-      worldFacts,
-    );
-    await _pushItems(
-      projectId,
-      'chapters',
-      'chapter',
-      chapterContents,
-    );
+    switch (_mode) {
+      case _BackendMode.remote:
+        await _remoteSyncProject(
+          projectId: projectId,
+          characterProfiles: characterProfiles,
+          outlineBeats: outlineBeats,
+          worldFacts: worldFacts,
+          chapterContents: chapterContents,
+        );
+      case _BackendMode.local:
+        await _localSyncProject(
+          projectId: projectId,
+          characterProfiles: characterProfiles,
+          outlineBeats: outlineBeats,
+          worldFacts: worldFacts,
+          chapterContents: chapterContents,
+        );
+    }
   }
 
-  /// Retrieves RAG context for a specific scene.
-  ///
-  /// Queries for scene-specific, character, and world-building context.
-  /// Returns a [RagSceneContext] with formatted output ready for prompt injection.
-  /// Failures are non-blocking: returns empty context on error.
+  @override
   Future<RagSceneContext> retrieveForScene({
     required String projectId,
     required String sceneTitle,
@@ -82,6 +132,83 @@ class RagOrchestrator {
     List<String> castNames = const [],
     List<String> worldNodeIds = const [],
   }) async {
+    switch (_mode) {
+      case _BackendMode.remote:
+        return _remoteRetrieveForScene(
+          projectId: projectId,
+          sceneTitle: sceneTitle,
+          sceneSummary: sceneSummary,
+          castNames: castNames,
+          worldNodeIds: worldNodeIds,
+        );
+      case _BackendMode.local:
+        return _localRetrieveForScene(
+          projectId: projectId,
+          sceneTitle: sceneTitle,
+          sceneSummary: sceneSummary,
+          castNames: castNames,
+          worldNodeIds: worldNodeIds,
+        );
+    }
+  }
+
+  @override
+  Future<void> pushChapter({
+    required String projectId,
+    required int chapterIndex,
+    required String content,
+  }) async {
+    switch (_mode) {
+      case _BackendMode.remote:
+        await _remoteClient!.addResource(
+          path: '$projectId/chapters/chapter_$chapterIndex.md',
+          content: content,
+        );
+      case _BackendMode.local:
+        await _localStorage!.indexDocument(
+          projectId: projectId,
+          path: '$projectId/chapters/chapter_$chapterIndex.md',
+          content: content,
+          category: 'chapters',
+        );
+    }
+  }
+
+  // ── Remote (OpenViking) implementation ─────────────────────────────
+
+  Future<void> _remoteSyncProject({
+    required String projectId,
+    required List<String> characterProfiles,
+    required List<String> outlineBeats,
+    required List<String> worldFacts,
+    List<String> chapterContents = const [],
+  }) async {
+    final client = _remoteClient!;
+    await _ensureDir(client, '$projectId/characters');
+    await _ensureDir(client, '$projectId/outlines');
+    await _ensureDir(client, '$projectId/worldbuilding');
+    await _ensureDir(client, '$projectId/chapters');
+
+    await _pushItems(
+      client,
+      projectId,
+      'characters',
+      'char',
+      characterProfiles,
+    );
+    await _pushItems(client, projectId, 'outlines', 'beat', outlineBeats);
+    await _pushItems(client, projectId, 'worldbuilding', 'fact', worldFacts);
+    await _pushItems(client, projectId, 'chapters', 'chapter', chapterContents);
+  }
+
+  Future<RagSceneContext> _remoteRetrieveForScene({
+    required String projectId,
+    required String sceneTitle,
+    required String sceneSummary,
+    List<String> castNames = const [],
+    List<String> worldNodeIds = const [],
+  }) async {
+    final client = _remoteClient!;
     final queries = <String>[
       '$sceneTitle $sceneSummary',
       if (castNames.isNotEmpty) '${castNames.join(' ')} 角色关系 性格',
@@ -91,20 +218,16 @@ class RagOrchestrator {
     final allResults = <OpenVikingSearchResult>[];
     for (final query in queries) {
       try {
-        final response = await _client.find(
-          query: query,
-          pathPrefix: projectId,
-        );
+        final response = await client.find(query: query, pathPrefix: projectId);
         allResults.addAll(response.results);
       } on Object {
         continue;
       }
     }
 
-    final deduped = _deduplicate(allResults);
+    final deduped = _remoteDeduplicate(allResults);
     deduped.sort((a, b) => b.score.compareTo(a.score));
-
-    final selected = _trimToBudget(deduped, _client.config.tokenBudget);
+    final selected = _remoteTrimToBudget(deduped, client.config.tokenBudget);
 
     return RagSceneContext(
       results: selected,
@@ -112,63 +235,107 @@ class RagOrchestrator {
     );
   }
 
-  /// Pushes a single chapter content update (incremental sync).
-  Future<void> pushChapter({
+  // ── Local (SQLite FTS5) implementation ─────────────────────────────
+
+  Future<void> _localSyncProject({
     required String projectId,
-    required int chapterIndex,
-    required String content,
+    required List<String> characterProfiles,
+    required List<String> outlineBeats,
+    required List<String> worldFacts,
+    List<String> chapterContents = const [],
   }) async {
-    await _client.addResource(
-      path: '$projectId/chapters/chapter_$chapterIndex.md',
-      content: content,
-    );
-  }
+    final storage = _localStorage!;
+    await storage.clearProject(projectId);
 
-  Future<void> _ensureDir(String path) async {
-    try {
-      await _client.mkdir(path);
-    } on Object {
-      // Directory may already exist
+    for (var i = 0; i < characterProfiles.length; i++) {
+      await storage.indexDocument(
+        projectId: projectId,
+        path: '$projectId/characters/char_$i.md',
+        content: characterProfiles[i],
+        category: 'characters',
+      );
     }
-  }
-
-  Future<void> _pushItems(
-    String projectId,
-    String subdir,
-    String prefix,
-    List<String> items,
-  ) async {
-    for (var i = 0; i < items.length; i++) {
-      await _client.addResource(
-        path: '$projectId/$subdir/${prefix}_$i.md',
-        content: items[i],
+    for (var i = 0; i < outlineBeats.length; i++) {
+      await storage.indexDocument(
+        projectId: projectId,
+        path: '$projectId/outlines/beat_$i.md',
+        content: outlineBeats[i],
+        category: 'outlines',
+      );
+    }
+    for (var i = 0; i < worldFacts.length; i++) {
+      await storage.indexDocument(
+        projectId: projectId,
+        path: '$projectId/worldbuilding/fact_$i.md',
+        content: worldFacts[i],
+        category: 'worldbuilding',
+      );
+    }
+    for (var i = 0; i < chapterContents.length; i++) {
+      await storage.indexDocument(
+        projectId: projectId,
+        path: '$projectId/chapters/chapter_$i.md',
+        content: chapterContents[i],
+        category: 'chapters',
       );
     }
   }
 
-  List<OpenVikingSearchResult> _deduplicate(
-    List<OpenVikingSearchResult> results,
-  ) {
-    final seen = <String>{};
-    return [
-      for (final r in results)
-        if (seen.add(r.path)) r,
+  Future<RagSceneContext> _localRetrieveForScene({
+    required String projectId,
+    required String sceneTitle,
+    required String sceneSummary,
+    List<String> castNames = const [],
+    List<String> worldNodeIds = const [],
+  }) async {
+    final search = _localSearch!;
+    final queries = <String>[
+      '$sceneTitle $sceneSummary',
+      if (castNames.isNotEmpty) '${castNames.join(' ')} 角色关系 性格',
+      if (worldNodeIds.isNotEmpty) '${worldNodeIds.join(' ')} 世界观 规则',
     ];
+
+    final allResults = <LocalRagSearchResult>[];
+    for (final query in queries) {
+      try {
+        final results = await search.search(
+          projectId: projectId,
+          query: query,
+          limit: 10,
+        );
+        allResults.addAll(results);
+      } on Object {
+        continue;
+      }
+    }
+
+    // Deduplicate by path
+    final seen = <String>{};
+    final deduped = <LocalRagSearchResult>[];
+    for (final r in allResults) {
+      if (seen.add(r.path)) deduped.add(r);
+    }
+    deduped.sort((a, b) => b.score.compareTo(a.score));
+
+    // Convert to OpenVikingSearchResult for compatibility
+    final converted = deduped
+        .map(
+          (r) => OpenVikingSearchResult(
+            path: r.path,
+            content: r.content,
+            score: r.score,
+            metadata: r.metadata,
+          ),
+        )
+        .toList();
+
+    return RagSceneContext(
+      results: converted,
+      formattedContext: _formatContext(converted),
+    );
   }
 
-  List<OpenVikingSearchResult> _trimToBudget(
-    List<OpenVikingSearchResult> results,
-    int budget,
-  ) {
-    final selected = <OpenVikingSearchResult>[];
-    var charCount = 0;
-    for (final r in results) {
-      if (charCount + r.content.length > budget) break;
-      selected.add(r);
-      charCount += r.content.length;
-    }
-    return selected;
-  }
+  // ── Shared helpers ─────────────────────────────────────────────────
 
   String _formatContext(List<OpenVikingSearchResult> results) {
     if (results.isEmpty) return '';
@@ -181,4 +348,55 @@ class RagOrchestrator {
     }
     return buffer.toString();
   }
+
+  // ── Remote-only helpers ────────────────────────────────────────────
+
+  Future<void> _ensureDir(OpenVikingClient client, String path) async {
+    try {
+      await client.mkdir(path);
+    } on Object {
+      // Directory may already exist
+    }
+  }
+
+  Future<void> _pushItems(
+    OpenVikingClient client,
+    String projectId,
+    String subdir,
+    String prefix,
+    List<String> items,
+  ) async {
+    for (var i = 0; i < items.length; i++) {
+      await client.addResource(
+        path: '$projectId/$subdir/${prefix}_$i.md',
+        content: items[i],
+      );
+    }
+  }
+
+  List<OpenVikingSearchResult> _remoteDeduplicate(
+    List<OpenVikingSearchResult> results,
+  ) {
+    final seen = <String>{};
+    return [
+      for (final r in results)
+        if (seen.add(r.path)) r,
+    ];
+  }
+
+  List<OpenVikingSearchResult> _remoteTrimToBudget(
+    List<OpenVikingSearchResult> results,
+    int budget,
+  ) {
+    final selected = <OpenVikingSearchResult>[];
+    var charCount = 0;
+    for (final r in results) {
+      if (charCount + r.content.length > budget) break;
+      selected.add(r);
+      charCount += r.content.length;
+    }
+    return selected;
+  }
 }
+
+enum _BackendMode { remote, local }

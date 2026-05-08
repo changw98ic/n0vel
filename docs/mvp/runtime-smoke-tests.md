@@ -1,4 +1,4 @@
-# MVP 运行时 Smoke Test 清单
+# MVP 运行时 冒烟测试 清单
 
 本文档用于在实现阶段或联调阶段，快速验证这套 MVP 是否已经具备“可用”的主流程行为。
 
@@ -17,11 +17,11 @@
 
 ### 相关 frame
 
-- `47nGt` `Writing Workbench`
-- `WT5mH` `Writing Workbench / Default Hidden`
-- `i2PgM` `Writing Workbench / Menu Drawer Open`
+- `47nGt` `写作工作台`
+- `WT5mH` `写作工作台 / 默认隐藏`
+- `i2PgM` `写作工作台 / 导航抽屉打开`
 - `Z0073` `Project List / Responsive Shelf Fit`
-- `Z0134` `Writing Workbench / Full Drawer Navigation`
+- `Z0134` `写作工作台 / 完整导航抽屉`
 
 ### 相关文档
 
@@ -31,7 +31,7 @@
 ### 前置
 
 - 本地已有至少一个项目
-- 可进入 `Writing Workbench`
+- 可进入 `写作工作台`
 
 ### 检查步骤
 
@@ -64,7 +64,7 @@
 
 ### 相关 frame
 
-- `go6Qc` `Writing Workbench / Overlapping Selections`
+- `go6Qc` `写作工作台 / 选择范围重叠`
 
 ### 相关文档
 
@@ -82,7 +82,7 @@
 ### 通过标准
 
 - 请求不发出
-- 出现 `Writing Workbench / Overlapping Selections`
+- 出现 `写作工作台 / 选择范围重叠`
 - 正文不改动
 
 ### 执行记录
@@ -141,8 +141,8 @@
 
 ### 相关 frame
 
-- `ea0WQ` `Writing Workbench / No Simulation Yet`
-- `fBn5z` `Simulation Monitor / Empty`
+- `ea0WQ` `写作工作台 / 暂无模拟`
+- `fBn5z` `Simulation Monitor / 空状态`
 
 ### 相关文档
 
@@ -178,7 +178,7 @@
 
 ### 相关 frame
 
-- `O5wWx` `Writing Workbench / Simulation Completed`
+- `O5wWx` `写作工作台 / 模拟完成`
 - `YTrUo` `Sandbox Monitor`
 - `Z0340` `Production Board / Progress Loop`
 
@@ -221,7 +221,7 @@
 
 ### 相关 frame
 
-- `dSehn` `Writing Workbench / Simulation Failed Summary`
+- `dSehn` `写作工作台 / 模拟失败摘要`
 - `GtV8t` `Simulation Monitor / Failed`
 - `Z0402` `Review Tasks / Queue States`
 
@@ -421,16 +421,16 @@
 
 ### 相关 frame
 
-- `HcPSf` `Settings / Save Success`
-- `DnwrZ` `Settings & BYOK`
+- `HcPSf` `设置 / 保存成功`
+- `DnwrZ` `设置与自带密钥`
 
 ### 相关文档
 
-- [PRD 10 设置与 BYOK 页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-10-settings-byok.md)
+- [PRD 10 设置与 自带密钥 页](/Users/chengwen/dev/novel-wirter/docs/mvp/prd/prd-10-settings-byok.md)
 
 ### 前置
 
-- 已修改一组有效 Provider 配置
+- 已修改一组有效 模型服务 配置
 
 ### 检查步骤
 
@@ -459,11 +459,11 @@
 
 ### 相关 frame
 
-- `WmFpE` `Writing Workbench / Missing Character Reference`
-- `emCHR` `Writing Workbench / Missing World Reference`
+- `WmFpE` `写作工作台 / 角色引用缺失`
+- `emCHR` `写作工作台 / 世界观引用缺失`
 - `bRkQL` `Character Library / Delete Referenced Confirm`
 - `CQycp` `Worldbuilding / Delete Parent Confirm`
-- `Z0240` `Story Bible / Aggregated Facts`
+- `Z0240` `设定摘要 / 聚合事实`
 
 ### 相关文档
 
@@ -480,14 +480,14 @@
 
 1. 删除被引用资料
 2. 回到对应工作台场景
-3. 进入 `Story Bible` 聚合事实视图
+3. 进入 `设定摘要` 聚合事实视图
 
 ### 通过标准
 
 - 工作台出现引用失效提示
 - 正文仍可继续编辑
 - 相关摘要 / 约束 / 模拟入口进入失效状态
-- `Story Bible` 聚合事实继续可读，并标记受影响的失效引用
+- `设定摘要` 聚合事实继续可读，并标记受影响的失效引用
 
 ### 执行记录
 

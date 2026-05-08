@@ -111,7 +111,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              _SandboxHeader(
+                              const _SandboxHeader(
                                 title: 'AI 生成过程',
                                 subtitle: '多角色协作流 · 导演调度视图',
                               ),
@@ -211,11 +211,12 @@ class _SandboxEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = desktopPalette(context);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDFC),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFB7AA9A)),
+        border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.all(20),
       alignment: Alignment.topLeft,
@@ -232,7 +233,7 @@ class _SandboxEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '这一章还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。',
+            '这一场还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF514943),
               height: 1.55,

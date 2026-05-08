@@ -75,6 +75,9 @@ void main() {
   });
 
   testWidgets('shows missing required fields state', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       const NovelWriterApp(
         home: CharacterLibraryPage(
@@ -138,6 +141,9 @@ void main() {
   });
 
   testWidgets('ready state shows summary panel', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(const NovelWriterApp(home: CharacterLibraryPage()));
     final workspaceStore = AppWorkspaceScope.of(
       tester.element(find.byType(CharacterLibraryPage)),
@@ -303,6 +309,9 @@ void main() {
     // The missing-required-fields state is a UI state that shows a warning
     // card when the character has no name. This is set via the uiState enum
     // rather than reactive form validation, so we test the overlay directly.
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       const NovelWriterApp(
         home: CharacterLibraryPage(

@@ -34,8 +34,8 @@ class _CreationGuideCard extends StatelessWidget {
     final steps = [
       const _GuideStep('作品设定', true),
       _GuideStep('人物 / 世界观', hasCharacters && hasWorldNodes),
-      _GuideStep('大纲 / 场景目标', hasSceneSummary),
-      _GuideStep('本场资料', hasSceneCharacterBinding && hasSceneWorldReference),
+      _GuideStep('大纲 / 章节目标', hasSceneSummary),
+      _GuideStep('本章资料', hasSceneCharacterBinding && hasSceneWorldReference),
       _GuideStep('生成候选稿', hasDraft || hasRun),
       _GuideStep('改稿 / 定稿', hasRun),
     ];
@@ -345,7 +345,7 @@ class _StoryGenerationRunPanel extends StatelessWidget {
                           visualDensity: VisualDensity.compact,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: Text(snapshot.hasRun ? '重新试写' : '让 AI 写这一场'),
+                        child: Text(snapshot.hasRun ? '重新试写' : '让 AI 写本章'),
                       ),
                       OutlinedButton(
                         key: WorkbenchShellPage.failSimulationButtonKey,
@@ -479,7 +479,7 @@ class _StoryGenerationRunPanel extends StatelessWidget {
   }
 
   String _compactMessageBody(String body) {
-    final compact = body.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final compact = _collapseWhitespace(body.trim());
     if (compact.length <= 96) {
       return compact;
     }
@@ -670,11 +670,11 @@ class _ToolWindowPanel extends StatelessWidget {
     }
 
     final (title, description) = switch (activePanel) {
-      WorkbenchToolPanel.resources => ('场景资料', '这一场会使用的人物、世界观和场景摘要会显示在这里。'),
+      WorkbenchToolPanel.resources => ('章节资料', '本章会使用的人物、世界观和章节摘要会显示在这里。'),
       WorkbenchToolPanel.ai => ('AI 写作助手', '选择写作动作、查看历史记录，并告诉 AI 你想怎么改。'),
       WorkbenchToolPanel.feedback => ('作者反馈', '记录审稿意见、修订请求和采纳/驳回决策。'),
       WorkbenchToolPanel.reviewTasks => ('改稿任务', '把问题检查结果变成可跟进的改稿任务。'),
-      WorkbenchToolPanel.settings => ('设置快捷面板', '当前提供方、模型、界面模式和快速入口会显示在这里。'),
+      WorkbenchToolPanel.settings => ('设置快捷面板', '当前模型服务、模型、界面模式和快速入口会显示在这里。'),
     };
 
     if (activePanel == WorkbenchToolPanel.ai) {
@@ -706,7 +706,7 @@ class _ToolWindowPanel extends StatelessWidget {
                         ? settingsFeedback.title!
                         : canGenerateAi
                         ? '当前模型：${settings.model}'
-                        : '请先在设置里补全密钥与模型提供方。',
+                        : '需要生成候选稿时，再到设置连接模型服务。',
                     style: theme.textTheme.bodySmall,
                   ),
                   if (hasSettingsWarning) ...[
@@ -1135,24 +1135,24 @@ class _ToolWindowPanel extends StatelessWidget {
                       TextButton(
                         key: WorkbenchShellPage.createSceneButtonKey,
                         onPressed: onCreateScene,
-                        child: const Text('新建场景'),
+                        child: const Text('新建章节'),
                       ),
                       TextButton(
                         key: WorkbenchShellPage.renameSceneButtonKey,
                         onPressed: onRenameScene,
-                        child: const Text('重命名场景'),
+                        child: const Text('重命名章节'),
                       ),
                       TextButton(
                         key: WorkbenchShellPage.deleteSceneButtonKey,
                         onPressed: canDeleteScene ? onDeleteScene : null,
-                        child: const Text('删除场景'),
+                        child: const Text('删除章节'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: onSyncContext,
-                    child: const Text('刷新当前场景资料'),
+                    child: const Text('刷新当前章节资料'),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1178,8 +1178,8 @@ class _ToolWindowPanel extends StatelessWidget {
                             settingsFeedback.title != null
                         ? settingsFeedback.title!
                         : settings.hasApiKey
-                        ? '提供方已配置'
-                        : '提供方未配置',
+                        ? '模型服务已连接'
+                        : '未连接模型服务',
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -1189,7 +1189,7 @@ class _ToolWindowPanel extends StatelessWidget {
                         ? settingsFeedback.message!
                         : settings.hasApiKey
                         ? '${settings.providerName} · ${settings.model}'
-                        : '请先补全密钥与提供方配置。',
+                        : '当前章节仍可编辑；生成候选稿前再连接模型服务。',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: settingsHasPersistenceIssue
                           ? appDangerColor
@@ -1363,7 +1363,7 @@ class _GenerationProcessSheetContent extends StatelessWidget {
                 accent: accent,
               ),
               _GenerationPill(
-                label: '场景',
+                label: '章节',
                 value: snapshot.sceneLabel.trim().isEmpty
                     ? simulation.sceneLabel
                     : snapshot.sceneLabel,

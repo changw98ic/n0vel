@@ -1991,7 +1991,7 @@ void main() {
         );
         final output = await orchestrator.run(brief: tense, cast: []);
 
-        expect(output.plan!.tone, '紧张');
+        expect(output.plan!.tone, '紧张激烈');
       },
     );
 
@@ -2021,7 +2021,7 @@ void main() {
       );
       final output = await orchestrator.run(brief: calm, cast: []);
 
-      expect(output.plan!.tone, '平和');
+      expect(output.plan!.tone, '细腻深沉');
     });
 
     test('infers fast pacing for short scenes', () async {
@@ -2041,8 +2041,8 @@ void main() {
         chapterId: 'c1',
         chapterTitle: '第1章',
         sceneId: 's1',
-        sceneTitle: '突发',
-        sceneSummary: '一声枪响。',
+        sceneTitle: '离开',
+        sceneSummary: '离开城门，赶往下一个目的地。',
         targetLength: 200,
       );
 

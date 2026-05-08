@@ -20,7 +20,7 @@
   - `az4YP` 具备完整的无结果说明、操作按钮与右侧详情区
   - `UbuvO` 仅剩空壳布局，缺少中间无结果文案与完整右侧内容
 
-### 2. `Settings / Missing API Key`
+### 2. `设置 / 缺少密钥`
 
 - 正式基线：`6yJaH`
 - 历史残留：`9izFv`
@@ -44,7 +44,7 @@
   - 删除理由：画面不完整，且与 canonical frame 重名
 
 - `9izFv`
-  - 名称：`Settings / Missing API Key`
+  - 名称：`设置 / 缺少密钥`
   - 替代基线：`6yJaH`
   - 删除理由：画面不完整，且与 canonical frame 重名
 

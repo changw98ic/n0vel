@@ -127,7 +127,7 @@ class _AuthorFeedbackPanelState extends State<AuthorFeedbackPanel> {
                   border: Border.all(color: palette.border),
                 ),
                 child: items.isEmpty
-                    ? Text('当前场景暂无反馈。', style: theme.textTheme.bodySmall)
+                    ? Text('当前章节暂无反馈。', style: theme.textTheme.bodySmall)
                     : ListView.separated(
                         itemCount: items.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 10),

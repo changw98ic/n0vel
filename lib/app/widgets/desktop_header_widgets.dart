@@ -49,8 +49,7 @@ class DesktopHeaderBar extends StatelessWidget {
           if (narrow) {
             return Container(
               width: double.infinity,
-              decoration: appPanelDecoration(context),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -75,10 +74,8 @@ class DesktopHeaderBar extends StatelessWidget {
           }
 
           return Container(
-            height: 56,
             width: double.infinity,
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: Row(
               children: [
                 if (showBackButton) ...[

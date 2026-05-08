@@ -116,7 +116,7 @@ mixin _WorkspaceFields on ChangeNotifier {
   }
 
   String get currentProjectBreadcrumb =>
-      '${currentProject.title} / ${currentProject.recentLocation}';
+      '${currentProject.title} / ${currentProject.displayRecentLocation}';
   SceneRecord? get currentSceneOrNull {
     final project = currentProjectOrNull;
     if (project == null) {
@@ -136,12 +136,13 @@ mixin _WorkspaceFields on ChangeNotifier {
     }
     return null;
   }
+
   String get currentSceneScopeId {
     final project = currentProjectOrNull;
     return project == null ? '' : '${project.id}::${project.sceneId}';
   }
-  SceneRecord get currentScene =>
-      currentSceneOrNull ?? _currentSceneFallback();
+
+  SceneRecord get currentScene => currentSceneOrNull ?? _currentSceneFallback();
 
   SceneRecord _currentSceneFallback() {
     final project = currentProjectOrNull;
@@ -158,6 +159,7 @@ mixin _WorkspaceFields on ChangeNotifier {
     }
     throw StateError('No fallback scene is available.');
   }
+
   int get selectedAuditIssueIndex =>
       _auditSelectionIndexForProject(_currentProjectId);
   AuditIssueRecord? get selectedAuditIssueOrNull {
@@ -168,6 +170,7 @@ mixin _WorkspaceFields on ChangeNotifier {
     final index = selectedAuditIssueIndex;
     return index < 0 || index >= issues.length ? issues.first : issues[index];
   }
+
   AuditIssueRecord get selectedAuditIssue =>
       selectedAuditIssueOrNull ?? const AuditIssueRecord(id: '');
   AuditIssueFilter get auditIssueFilter =>

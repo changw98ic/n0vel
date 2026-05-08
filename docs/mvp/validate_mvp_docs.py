@@ -313,16 +313,16 @@ def main() -> int:
             )
 
     expected_readme_links = [
-        "Frame / State Coverage (JSON)",
-        "Canonical Frame Map (JSON)",
+        "画面状态覆盖 (JSON)",
+        "标准画面映射 (JSON)",
         "MVP 文档清单 (JSON)",
         "Legacy Frame 审计",
         "MVP 行为缺口审计",
         "MVP 实现交接稿",
         "MVP 里程碑验收清单",
         "MVP 里程碑验收清单 (JSON)",
-        "MVP 运行时 Smoke Test 清单",
-        "MVP 运行时 Smoke Test 清单 (JSON)",
+        "MVP 运行时 冒烟测试 清单",
+        "MVP 运行时 冒烟测试 清单 (JSON)",
         "MVP 追踪矩阵",
         "MVP 追踪矩阵 (JSON)",
         "MVP 设计交付完成度",

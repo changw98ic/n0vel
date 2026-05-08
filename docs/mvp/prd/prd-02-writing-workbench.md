@@ -76,13 +76,13 @@ status: implemented
 - `Scene`
 - `Character`
 - `WorldNode`
-- `StyleProfile`
+- `风格档案`
 - `SimulationRun`
 
 依赖接口：
 
 - `AppLlmClient`
-- `AppLlmProviderAdapters`
+- `AppLlm模型服务Adapters`
 - `AppWorkspaceStore` style normalization
 - `ChapterGenerationOrchestrator`
 - `SceneRoleplayRuntime`
@@ -103,7 +103,7 @@ status: implemented
 - 场景未绑定角色：禁用“运行模拟”并提示补充资料
 - 角色引用已失效：进入轻阻断提示态，正文可继续编辑，但角色摘要与模拟入口失效
 - 世界观引用已失效：进入轻阻断提示态，正文可继续编辑，但地点摘要、规则约束与模拟条件失效
-- API Key 未配置：点击 AI 操作时进入工作台内阻塞弹窗，并引导跳转设置与 BYOK 页
+- 密钥 未配置：点击 AI 操作时进入工作台内阻塞弹窗，并引导跳转设置与 自带密钥 页
 - 模拟不存在：进入“尚无 SimulationRun”轻提示状态，不展示模拟过程弹窗，仅保留运行入口
 - AI 修改失败：不改正文，进入工作台内错误弹窗状态，并提示返回正文或调整上下文后重试
 - 作者拒绝整包修改：不改正文，不生成版本
@@ -123,7 +123,7 @@ status: implemented
 - 场景未绑定角色时，正文仍可编辑，但必须明确提示“模拟不可用”
 - 角色引用已失效时，必须明确提示“正文可继续，但需要重新绑定角色后才能恢复摘要与模拟”
 - 世界观引用已失效时，必须明确提示“正文可继续，但需要重新绑定地点 / 规则后才能恢复约束与模拟”
-- API Key 未配置时，必须明确阻止 AI 操作，并提供“前往设置”入口
+- 密钥 未配置时，必须明确阻止 AI 操作，并提供“前往设置”入口
 - 尚无 SimulationRun 时，必须明确提示“暂无可查看的模拟记录”，但不能打断正文编辑
 - `SimulationRun` 完成或失败后，工作台必须把结果回传为轻摘要条，而不是强制跳出到独立页面
 - 顶部轻摘要条只负责一次性结果回传与后续动作入口，底部状态栏负责持续状态与写作状态显示

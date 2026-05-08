@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_design_tokens.dart';
 import '../widgets/desktop_shell.dart';
 
 class _ThemeColors {
@@ -127,7 +128,7 @@ class AppTheme {
         filled: true,
         fillColor: c.elevated,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
+          horizontal: AppDesignTokens.space12,
           vertical: 10,
         ),
         enabledBorder: OutlineInputBorder(
@@ -147,9 +148,14 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: c.primary,
           foregroundColor: c.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
           minimumSize: const Size(0, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
           textStyle: base.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -160,9 +166,14 @@ class AppTheme {
           foregroundColor: c.onSurface,
           backgroundColor: c.elevated,
           side: BorderSide(color: c.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
           minimumSize: const Size(0, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
           textStyle: base.textTheme.labelMedium?.copyWith(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,

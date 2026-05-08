@@ -20,7 +20,8 @@ void main() {
   setUp(() {
     AppAiHistoryStore.debugStorageOverride = InMemoryAppAiHistoryStorage();
     AppDraftStore.debugStorageOverride = InMemoryAppDraftStorage();
-    AppSceneContextStore.debugStorageOverride = InMemoryAppSceneContextStorage();
+    AppSceneContextStore.debugStorageOverride =
+        InMemoryAppSceneContextStorage();
     AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
     AppSimulationStore.debugStorageOverride = InMemoryAppSimulationStorage();
     AppVersionStore.debugStorageOverride = InMemoryAppVersionStorage();
@@ -62,7 +63,9 @@ void main() {
       expect(find.text('AI 生成过程'), findsOneWidget);
     });
 
-    testWidgets('failed preview shows failure headline and summary', (tester) async {
+    testWidgets('failed preview shows failure headline and summary', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.failed),
@@ -104,7 +107,9 @@ void main() {
       );
     });
 
-    testWidgets('selects stateMachine by default in failure mode', (tester) async {
+    testWidgets('selects stateMachine by default in failure mode', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(home: SandboxMonitorPage(failureMode: true)),
       );
@@ -119,7 +124,9 @@ void main() {
       );
     });
 
-    testWidgets('all five participant tiles appear in the agent list', (tester) async {
+    testWidgets('all five participant tiles appear in the agent list', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -150,7 +157,9 @@ void main() {
   });
 
   group('participant switching', () {
-    testWidgets('tapping yueRen updates the run summary focus label', (tester) async {
+    testWidgets('tapping yueRen updates the run summary focus label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -167,7 +176,9 @@ void main() {
       );
     });
 
-    testWidgets('tapping fuXingzhou updates the run summary focus label', (tester) async {
+    testWidgets('tapping fuXingzhou updates the run summary focus label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -180,7 +191,9 @@ void main() {
       expect(find.text('傅行舟 · 压力'), findsWidgets);
     });
 
-    testWidgets('tapping director updates the run summary focus label', (tester) async {
+    testWidgets('tapping director updates the run summary focus label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -193,20 +206,26 @@ void main() {
       expect(find.text('导演 · 调度'), findsWidgets);
     });
 
-    testWidgets('tapping stateMachine updates the run summary focus label', (tester) async {
+    testWidgets('tapping stateMachine updates the run summary focus label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
         ),
       );
 
-      await tester.tap(find.byKey(SandboxMonitorPage.stateMachineParticipantKey));
+      await tester.tap(
+        find.byKey(SandboxMonitorPage.stateMachineParticipantKey),
+      );
       await tester.pump();
 
       expect(find.text('状态机 · 裁决'), findsWidgets);
     });
 
-    testWidgets('re-selecting the same participant keeps focus unchanged', (tester) async {
+    testWidgets('re-selecting the same participant keeps focus unchanged', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -223,7 +242,9 @@ void main() {
   });
 
   group('feedback input', () {
-    testWidgets('send button does nothing when feedback is empty', (tester) async {
+    testWidgets('send button does nothing when feedback is empty', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -235,10 +256,7 @@ void main() {
       await tester.tap(find.byKey(SandboxMonitorPage.sendFeedbackButtonKey));
       await tester.pump();
 
-      expect(
-        find.textContaining('任务调整').evaluate().length,
-        beforeMessages,
-      );
+      expect(find.textContaining('任务调整').evaluate().length, beforeMessages);
     });
 
     testWidgets('feedback text field clears after sending', (tester) async {
@@ -268,7 +286,9 @@ void main() {
       expect(after.controller?.text, '');
     });
 
-    testWidgets('sent feedback reorders task assignment in the chat', (tester) async {
+    testWidgets('sent feedback reorders task assignment in the chat', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -287,7 +307,9 @@ void main() {
   });
 
   group('prompt editing', () {
-    testWidgets('canceling the prompt dialog leaves the prompt unchanged', (tester) async {
+    testWidgets('canceling the prompt dialog leaves the prompt unchanged', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),
@@ -315,7 +337,9 @@ void main() {
       );
     });
 
-    testWidgets('saving an empty prompt removes the custom override', (tester) async {
+    testWidgets('saving an empty prompt removes the custom override', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const NovelWriterApp(
           home: SandboxMonitorPage(previewStatus: SimulationStatus.completed),

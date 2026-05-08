@@ -40,9 +40,6 @@ class ProjectListPage extends StatefulWidget {
   static const workbenchShortcutKey = ValueKey<String>(
     'project-list-shortcut-workbench',
   );
-  static const storyBibleButtonKey = ValueKey<String>(
-    'project-list-story-bible-button',
-  );
   static const readingMenuButtonKey = ValueKey<String>(
     'project-list-reading-menu-button',
   );
@@ -225,7 +222,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
                       Text('书架未加载', style: theme.textTheme.headlineSmall),
                       const SizedBox(height: 12),
                       Text(
-                        '本地数据库读取失败，请重试或从菜单进入导入工程。',
+                        '本地数据库读取失败，请重试或从侧边导航进入导入工程。',
                         style: theme.textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -320,7 +317,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
                 compact: compact,
                 onOpen: () => _openWorkbench(context, currentProject),
                 onEdit: () => _openWorkbench(context, currentProject),
-                onStoryBible: () => _openStoryBible(context, currentProject),
+
                 onDelete: () => _confirmDeleteProject(context, currentProject),
               );
 
@@ -375,7 +372,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
     return AppEmptyState(
       style: AppEmptyStateStyle.prominent,
       title: '当前还没有项目',
-      message: '可以直接从书架里新建一个项目，或从左侧菜单导入工程。',
+      message: '可以直接从书架里新建一个项目，或从左侧导航导入工程。',
       actions: [
         FilledButton(onPressed: _createProject, child: const Text('新建项目')),
         OutlinedButton(
@@ -384,7 +381,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
               _isDrawerOpen = true;
             });
           },
-          child: const Text('打开菜单'),
+          child: const Text('打开导航'),
         ),
       ],
     );
@@ -404,6 +401,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
   ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
           title: '确认删除项目',
@@ -477,16 +475,6 @@ class _ProjectListPageState extends State<ProjectListPage> {
     AppNavigator.push(context, AppRoutes.workbench);
   }
 
-  void _openStoryBible(BuildContext context, ProjectRecord project) {
-    final store = AppWorkspaceScope.of(context);
-    store.openProject(project.id);
-    setState(() {
-      _selectedProjectId = project.id;
-      _isDrawerOpen = false;
-    });
-    AppNavigator.push(context, AppRoutes.storyBible);
-  }
-
   Future<void> _createProject() async {
     final name = await showAppTextInputDialog(
       context: context,
@@ -516,7 +504,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
       items: projects,
       searchQuery: _searchController.text.trim(),
       searchExtractor: (p) =>
-          '${p.title} ${p.genre} ${p.tag} ${p.summary} ${p.recentLocation}',
+          '${p.title} ${p.genre} ${p.tag} ${p.summary} ${p.displayRecentLocation}',
       activeFilter: filters[_filterIndex],
       activeSort: _sortOptions[_sortIndex],
     );
@@ -669,6 +657,7 @@ class _ProjectShelfCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = desktopPalette(context);
     final theme = Theme.of(context);
+    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
     final background = isSelected
         ? palette.elevated
         : isPrimary
@@ -711,7 +700,7 @@ class _ProjectShelfCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                project.recentLocation,
+                recentLocation,
                 style: theme.textTheme.bodySmall?.copyWith(
                   height: 1.45,
                   color: palette.secondaryText,
@@ -742,7 +731,6 @@ class _ProjectDetailPanel extends StatelessWidget {
     this.compact = false,
     required this.onOpen,
     required this.onEdit,
-    required this.onStoryBible,
     required this.onDelete,
   });
 
@@ -750,13 +738,13 @@ class _ProjectDetailPanel extends StatelessWidget {
   final bool compact;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
-  final VoidCallback onStoryBible;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
+    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -766,7 +754,6 @@ class _ProjectDetailPanel extends StatelessWidget {
               project: project,
               onOpen: onOpen,
               onEdit: onEdit,
-              onStoryBible: onStoryBible,
               onDelete: onDelete,
             )
           : Column(
@@ -791,7 +778,7 @@ class _ProjectDetailPanel extends StatelessWidget {
                 const SizedBox(height: 12),
                 _ProjectDetailSection(
                   title: '最近内容',
-                  body: project.recentLocation,
+                  body: recentLocation,
                   bodyMaxLines: 2,
                 ),
                 const Spacer(),
@@ -810,15 +797,6 @@ class _ProjectDetailPanel extends StatelessWidget {
                     key: ProjectListPage.openProjectButtonKey,
                     onPressed: onOpen,
                     child: const Text('编辑'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    key: ProjectListPage.storyBibleButtonKey,
-                    onPressed: onStoryBible,
-                    child: const Text('作品圣经'),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -847,20 +825,19 @@ class _CompactProjectDetailContent extends StatelessWidget {
     required this.project,
     required this.onOpen,
     required this.onEdit,
-    required this.onStoryBible,
     required this.onDelete,
   });
 
   final ProjectRecord project;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
-  final VoidCallback onStoryBible;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
+    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,7 +871,7 @@ class _CompactProjectDetailContent extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          project.recentLocation,
+          recentLocation,
           style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -921,14 +898,6 @@ class _CompactProjectDetailContent extends StatelessWidget {
                 key: ProjectListPage.openProjectButtonKey,
                 onPressed: onOpen,
                 child: const Text('打开'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                key: ProjectListPage.storyBibleButtonKey,
-                onPressed: onStoryBible,
-                child: const Text('圣经'),
               ),
             ),
             const SizedBox(width: 8),

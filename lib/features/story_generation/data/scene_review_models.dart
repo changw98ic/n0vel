@@ -17,6 +17,7 @@ enum SceneReviewCategory {
   characterState,
   worldState,
   roleplayFidelity,
+  characterConsistency,
 }
 
 class SceneReviewPassResult {

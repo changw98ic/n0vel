@@ -54,7 +54,7 @@ void main() {
       );
       expect(store.canRetrySecureStoreAccess, isTrue);
       expect(store.feedback.title, '设置文件读取失败');
-      expect(store.feedback.message, contains('无法读取 settings.json'));
+      expect(store.feedback.message, contains('无法读取本地配置文件'));
     },
   );
 
@@ -85,7 +85,7 @@ void main() {
       expect(store.canRetrySecureStoreAccess, isTrue);
       expect(store.feedback.title, '设置文件读取失败');
       expect(store.snapshot.providerName, 'Draft Provider');
-      expect(store.feedback.message, contains('无法读取 settings.json'));
+      expect(store.feedback.message, contains('无法读取本地配置文件'));
     },
   );
 
@@ -252,7 +252,7 @@ void main() {
       store.snapshot.requestProviderRoutes.single.providerProfileId,
       'zhipu-fallback',
     );
-    expect(store.feedback.message, contains('settings.json 已重新读取，当前配置已同步。'));
+    expect(store.feedback.message, contains('本地配置文件已重新读取，当前配置已同步。'));
   });
 
   test('local CCR-compatible endpoints accept routed model names', () async {
@@ -947,37 +947,6 @@ class _ReadFailureThenRecoveryStorage implements AppSettingsStorage {
   }
 }
 
-class _DelayedReadWithFailureStorage implements AppSettingsStorage {
-  final Completer<Map<String, Object?>?> _loadCompleter = Completer();
-
-  @override
-  AppSettingsPersistenceIssue get lastLoadIssue =>
-      AppSettingsPersistenceIssue.fileReadFailed;
-
-  @override
-  String? get lastLoadDetail => 'settings.json is unreadable';
-
-  @override
-  Future<Map<String, Object?>?> load() async {
-    return _loadCompleter.future;
-  }
-
-  void completeRead() {
-    _loadCompleter.complete({
-      'providerName': 'OpenAI 兼容服务',
-      'baseUrl': 'https://api.example.com/v1',
-      'model': 'gpt-5.4',
-      'apiKey': 'sk-initial',
-      'themePreference': 'light',
-    });
-  }
-
-  @override
-  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
-    return const AppSettingsSaveResult();
-  }
-}
-
 class _DelayedReadThenWriteRecoveryStorage implements AppSettingsStorage {
   final Completer<Map<String, Object?>?> _loadCompleter = Completer();
   int _saveCallCount = 0;
@@ -1025,7 +994,6 @@ class _DelayedReadThenWriteRecoveryStorage implements AppSettingsStorage {
 class _DelayedReadWithFailureAndWriteFailureStorage
     implements AppSettingsStorage {
   final Completer<Map<String, Object?>?> _loadCompleter = Completer();
-  int _saveCallCount = 0;
 
   @override
   AppSettingsPersistenceIssue get lastLoadIssue =>
@@ -1051,8 +1019,7 @@ class _DelayedReadWithFailureAndWriteFailureStorage
 
   @override
   Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
-    _saveCallCount += 1;
-    return AppSettingsSaveResult(
+    return const AppSettingsSaveResult(
       issue: AppSettingsPersistenceIssue.fileWriteFailed,
       detail: 'settings.json write denied',
     );

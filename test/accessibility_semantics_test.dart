@@ -11,7 +11,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: DesktopHeaderBar(title: '项目列表', subtitle: '管理你的作品'),
           ),
         ),
@@ -25,12 +25,13 @@ void main() {
   });
 
   group('DesktopBreadcrumbBar semantics', () {
-    testWidgets('wraps breadcrumb with Semantics containing label',
-      (tester) async {
+    testWidgets('wraps breadcrumb with Semantics containing label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: DesktopBreadcrumbBar(breadcrumb: '路径A > 路径B'),
           ),
         ),
@@ -46,12 +47,13 @@ void main() {
   });
 
   group('DesktopStatusStrip semantics', () {
-    testWidgets('wraps status strip with Semantics containing label',
-      (tester) async {
+    testWidgets('wraps status strip with Semantics containing label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: DesktopStatusStrip(
               leftText: '本地数据库正常',
               rightText: '书架共 5 部作品',
@@ -72,16 +74,13 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
-            body: DesktopStatusStrip(leftText: '数据库读取失败'),
-          ),
+          home: const Scaffold(body: DesktopStatusStrip(leftText: '数据库读取失败')),
         ),
       );
 
       final semanticsFinder = find.byWidgetPredicate(
         (widget) =>
-            widget is Semantics &&
-            widget.properties.label == '状态栏: 数据库读取失败',
+            widget is Semantics && widget.properties.label == '状态栏: 数据库读取失败',
       );
       expect(semanticsFinder, findsOneWidget);
     });
@@ -94,7 +93,7 @@ void main() {
           theme: AppTheme.light(),
           home: Scaffold(
             body: DesktopMenuDrawer(
-              title: '菜单',
+              title: '导航',
               items: [
                 DesktopMenuItemData(
                   label: '书架',
@@ -109,9 +108,7 @@ void main() {
       );
 
       final drawerSemantics = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == '菜单 导航菜单',
+        (widget) => widget is Semantics && widget.properties.label == '导航 侧边导航',
       );
       expect(drawerSemantics, findsOneWidget);
 
@@ -127,12 +124,13 @@ void main() {
   });
 
   group('AppNoticeBanner semantics', () {
-    testWidgets('wraps banner with Semantics containing title and message',
-      (tester) async {
+    testWidgets('wraps banner with Semantics containing title and message', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: AppNoticeBanner(
               title: '导入失败',
               message: '工程包结构不完整',
@@ -156,7 +154,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: AppNoticeBanner(
               title: '操作成功',
               severity: AppNoticeSeverity.success,
@@ -180,7 +178,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: DesktopShellFrame(
+          home: const DesktopShellFrame(
             header: DesktopHeaderBar(title: '测试标题'),
             body: Text('内容区域'),
             statusBar: DesktopStatusStrip(leftText: '正常'),
@@ -189,23 +187,20 @@ void main() {
       );
 
       final semanticsFinder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == '应用主框架',
+        (widget) => widget is Semantics && widget.properties.label == '应用主框架',
       );
       expect(semanticsFinder, findsOneWidget);
     });
   });
 
   group('DesktopHandleBar semantics', () {
-    testWidgets('interactive handle has button semantics with label',
-      (tester) async {
+    testWidgets('interactive handle has button semantics with label', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
-            body: DesktopHandleBar(onTap: () {}),
-          ),
+          home: Scaffold(body: DesktopHandleBar(onTap: () {})),
         ),
       );
 
@@ -213,7 +208,7 @@ void main() {
         (widget) =>
             widget is Semantics &&
             widget.properties.button == true &&
-            widget.properties.label == '切换侧边菜单',
+            widget.properties.label == '切换侧边导航',
       );
       expect(semanticsFinder, findsOneWidget);
     });
@@ -222,7 +217,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(body: DesktopHandleBar()),
+          home: const Scaffold(body: DesktopHandleBar()),
         ),
       );
 

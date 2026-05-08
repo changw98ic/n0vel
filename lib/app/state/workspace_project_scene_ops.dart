@@ -128,7 +128,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
               id: sceneId,
               chapterLabel: chapterLabelFromRecentLocation(recentLocation),
               title: sceneTitleFromRecentLocation(recentLocation),
-              summary: '等待补充场景目标、冲突和收束条件。',
+              summary: '等待补充章节目标、冲突和收束条件。',
             ),
           for (final scene in scenes)
             if (scene.id == sceneId)
@@ -176,7 +176,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
       id: sceneId,
       chapterLabel: nextSceneChapterLabel(currentScenes),
       title: trimmedTitle,
-      summary: '等待补充场景目标、冲突和收束条件。',
+      summary: '等待补充目标、冲突和收束条件。',
     );
     _scenesByProjectId[_currentProjectId] = [...currentScenes, scene];
     updateCurrentScene(
@@ -221,13 +221,19 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     if (trimmedLabel.isEmpty) {
       return;
     }
+    final sceneSuffix = currentScene.locationParts.sceneLabel;
+    final submittedParts = SceneLocationParts.fromLabel(trimmedLabel);
+    final nextLabel =
+        submittedParts.sceneLabel.isNotEmpty || sceneSuffix.isEmpty
+        ? submittedParts.fullLabel
+        : '${submittedParts.chapterLabel} / $sceneSuffix';
     final currentSceneId = currentProject.sceneId;
     _scenesByProjectId[_currentProjectId] = [
       for (final scene in _scenesForCurrentProject())
         if (scene.id == currentSceneId)
           SceneRecord(
             id: scene.id,
-            chapterLabel: trimmedLabel,
+            chapterLabel: nextLabel,
             title: scene.title,
             summary: scene.summary,
           )
@@ -236,7 +242,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     ];
     updateCurrentScene(
       sceneId: currentSceneId,
-      recentLocation: '$trimmedLabel · ${currentScene.title}',
+      recentLocation: '$nextLabel · ${currentScene.title}',
     );
   }
 
@@ -344,5 +350,4 @@ mixin _ProjectSceneOps on _WorkspaceFields {
       sourceProjectId,
     );
   }
-
 }

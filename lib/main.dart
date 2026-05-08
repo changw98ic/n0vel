@@ -16,7 +16,7 @@ export 'features/projects/presentation/project_list_page.dart';
 export 'features/settings/presentation/settings_shell_page.dart';
 export 'features/scenes/presentation/scene_management_page.dart';
 export 'features/style/presentation/style_panel_page.dart';
-export 'features/story_bible/presentation/story_bible_page.dart';
+
 export 'features/versions/presentation/version_history_page.dart';
 export 'features/workbench/presentation/workbench_shell_page.dart';
 export 'features/worldbuilding/presentation/worldbuilding_page.dart';

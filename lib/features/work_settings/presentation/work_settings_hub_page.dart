@@ -5,6 +5,7 @@ import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
+import '../../../app/theme/app_design_tokens.dart';
 
 class WorkSettingsHubPage extends StatelessWidget {
   const WorkSettingsHubPage({super.key});
@@ -44,7 +45,9 @@ class WorkSettingsHubPage extends StatelessWidget {
                   : double.infinity;
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppDesignTokens.space8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -55,9 +58,9 @@ class WorkSettingsHubPage extends StatelessWidget {
                         SizedBox(
                           width: cardWidth,
                           child: _ContextCard(
-                            icon: Icons.menu_book_outlined,
-                            title: '作品圣经摘要',
-                            body: summary.bibleSummary,
+                            icon: Icons.edit_note_outlined,
+                            title: '当前进度',
+                            body: summary.writingSummary,
                           ),
                         ),
                         SizedBox(
@@ -78,7 +81,7 @@ class WorkSettingsHubPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppDesignTokens.space16),
                     Wrap(
                       spacing: 16,
                       runSpacing: 16,
@@ -117,18 +120,6 @@ class WorkSettingsHubPage extends StatelessWidget {
                                 AppNavigator.push(context, AppRoutes.style),
                           ),
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.auto_stories_outlined,
-                            title: '作品圣经',
-                            subtitle: summary.storyBibleSubtitle,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              AppRoutes.storyBible,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -146,24 +137,22 @@ class WorkSettingsHubPage extends StatelessWidget {
 class _WorkSettingsSummary {
   const _WorkSettingsSummary({
     required this.headerSubtitle,
-    required this.bibleSummary,
+    required this.writingSummary,
     required this.recentSettings,
     required this.nextStep,
     required this.characterSubtitle,
     required this.worldSubtitle,
     required this.styleSubtitle,
-    required this.storyBibleSubtitle,
     required this.statusText,
   });
 
   final String headerSubtitle;
-  final String bibleSummary;
+  final String writingSummary;
   final String recentSettings;
   final String nextStep;
   final String characterSubtitle;
   final String worldSubtitle;
   final String styleSubtitle;
-  final String storyBibleSubtitle;
   final String statusText;
 
   factory _WorkSettingsSummary.fromStores({
@@ -175,7 +164,8 @@ class _WorkSettingsSummary {
     final scene = workspaceStore.currentSceneOrNull;
     final projectTitle = _fallback(project?.title, '未选择项目');
     final sceneLabel =
-        scene?.displayLocation ?? _fallback(project?.recentLocation, '未选择场景');
+        (scene == null ? null : chapterLocationLabel(scene.displayLocation)) ??
+        chapterLocationLabel(_fallback(project?.recentLocation, '未选择章节'));
     final sceneSummary = _firstMeaningful([
       sceneContext.sceneSummary,
       scene?.summary,
@@ -217,7 +207,11 @@ class _WorkSettingsSummary {
 
     return _WorkSettingsSummary(
       headerSubtitle: '$projectTitle · $sceneLabel',
-      bibleSummary: _joinSentences(['当前锚点：$sceneLabel', sceneNote, draftState]),
+      writingSummary: _joinSentences([
+        '当前章节：$sceneLabel',
+        sceneNote,
+        draftState,
+      ]),
       recentSettings: _joinSentences([
         characters.isEmpty
             ? '角色库尚未建立'
@@ -240,10 +234,6 @@ class _WorkSettingsSummary {
           ? '尚未建立世界观节点'
           : '维护 ${worldNodes.length} 个节点，当前相关 ${linkedWorldNodes.length} 个',
       styleSubtitle: '当前风格 $styleName · 强度 ${workspaceStore.styleIntensity}',
-      storyBibleSubtitle: _joinSentences([
-        characterAnchor.isEmpty ? '角色摘要待同步' : _compact(characterAnchor),
-        worldAnchor.isEmpty ? '世界观摘要待同步' : _compact(worldAnchor),
-      ]),
       statusText: '$projectTitle · $draftState',
     );
   }
@@ -255,13 +245,13 @@ class _WorkSettingsSummary {
     required String worldAnchor,
   }) {
     if (sceneSummary.isEmpty) {
-      return '先补齐当前场景目标和冲突，再进入正文或改稿。';
+      return '先补齐当前章节目标和冲突，再进入正文或改稿。';
     }
     if (characterAnchor.isEmpty) {
-      return '为当前场景关联核心角色，补上动机和关系压力。';
+      return '为当前章节关联核心角色，补上动机和关系压力。';
     }
     if (worldAnchor.isEmpty) {
-      return '为当前场景补充地点规则或世界观约束，避免设定漂移。';
+      return '为当前章节补充地点规则或世界观约束，避免设定漂移。';
     }
     if (!hasDraft) {
       return '设定已具备基础锚点，可以回到工作台生成或补写正文。';
@@ -272,13 +262,13 @@ class _WorkSettingsSummary {
 
 String _sceneNote(String sceneSummary, String sceneLabel) {
   if (sceneSummary.trim().isEmpty) {
-    return '场景摘要待补充';
+    return '章节摘要待补充';
   }
   if (sceneSummary.contains('等待同步')) {
-    return '场景资料等待同步';
+    return '章节资料等待同步';
   }
   if (sceneSummary.contains(sceneLabel)) {
-    return '场景摘要已同步';
+    return '章节摘要已同步';
   }
   return _compact(sceneSummary, maxLength: 42);
 }
@@ -313,7 +303,11 @@ String _joinSentences(Iterable<String> parts) {
 }
 
 String _trimSentenceEnd(String value) {
-  return value.replaceFirst(RegExp(r'[。！？.!?]+$'), '');
+  var end = value.length;
+  while (end > 0 && '。！？.!?'.contains(value[end - 1])) {
+    end -= 1;
+  }
+  return value.substring(0, end);
 }
 
 String _nameList(Iterable<String> names) {
@@ -330,11 +324,38 @@ String _nameList(Iterable<String> names) {
 }
 
 String _compact(String value, {int maxLength = 28}) {
-  final normalized = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+  final normalized = _collapseWhitespace(value.trim());
   if (normalized.length <= maxLength) {
     return normalized;
   }
   return '${normalized.substring(0, maxLength - 1)}…';
+}
+
+String _collapseWhitespace(String value) {
+  final buffer = StringBuffer();
+  var previousWasWhitespace = false;
+  for (var index = 0; index < value.length; index += 1) {
+    final codeUnit = value.codeUnitAt(index);
+    if (_isWhitespace(codeUnit)) {
+      if (!previousWasWhitespace) {
+        buffer.write(' ');
+      }
+      previousWasWhitespace = true;
+    } else {
+      buffer.writeCharCode(codeUnit);
+      previousWasWhitespace = false;
+    }
+  }
+  return buffer.toString();
+}
+
+bool _isWhitespace(int codeUnit) {
+  return codeUnit == 0x09 ||
+      codeUnit == 0x0a ||
+      codeUnit == 0x0b ||
+      codeUnit == 0x0c ||
+      codeUnit == 0x0d ||
+      codeUnit == 0x20;
 }
 
 class _ContextCard extends StatelessWidget {
@@ -355,23 +376,23 @@ class _ContextCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDesignTokens.space16),
       decoration: BoxDecoration(
         color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
         border: Border.all(color: palette.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 22, color: palette.primary),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppDesignTokens.space8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppDesignTokens.space4),
                 Text(
                   body,
                   maxLines: 4,
@@ -407,24 +428,24 @@ class _HubCard extends StatelessWidget {
 
     return Material(
       color: palette.elevated,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppDesignTokens.space20),
           decoration: BoxDecoration(
             border: Border.all(color: palette.border),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, size: 32, color: palette.primary),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDesignTokens.space12),
               Text(title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppDesignTokens.space4),
               Text(
                 subtitle,
                 maxLines: 3,

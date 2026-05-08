@@ -8,7 +8,7 @@ class _UnsupportedAppLlmClient implements AppLlmClient {
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     return const AppLlmChatResult.failure(
       failureKind: AppLlmFailureKind.unsupportedPlatform,
-      detail: '当前平台不支持真实大模型网络请求。',
+      detail: '当前平台暂不支持真实模型网络请求。',
     );
   }
 
@@ -17,7 +17,7 @@ class _UnsupportedAppLlmClient implements AppLlmClient {
     return Stream<String>.error(
       const AppLlmStreamException(
         failureKind: AppLlmFailureKind.unsupportedPlatform,
-        detail: '当前平台不支持真实大模型网络请求。',
+        detail: '当前平台暂不支持真实模型网络请求。',
       ),
     );
   }

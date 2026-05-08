@@ -16,7 +16,7 @@
       ],
       "prerequisites": [
         "本地已有至少一个项目",
-        "可进入 Writing Workbench"
+        "可进入 写作工作台"
       ],
       "steps": [
         "在项目列表页切换窄宽窗口，确认项目卡片与最近项目 shelf 不溢出",
@@ -60,7 +60,7 @@
       ],
       "pass_criteria": [
         "请求不发出",
-        "出现 Writing Workbench / Overlapping Selections",
+        "出现 写作工作台 / 选择范围重叠",
         "正文不改动"
       ],
       "execution": {
@@ -365,7 +365,7 @@
         "prd-10-settings-byok.md"
       ],
       "prerequisites": [
-        "已修改一组有效 Provider 配置"
+        "已修改一组有效 模型服务 配置"
       ],
       "steps": [
         "保存配置",
@@ -409,13 +409,13 @@
       "steps": [
         "删除被引用资料",
         "回到对应工作台场景",
-        "进入 Story Bible 聚合事实视图"
+        "进入设定摘要聚合事实视图"
       ],
       "pass_criteria": [
         "工作台出现引用失效提示",
         "正文仍可继续编辑",
         "相关摘要 / 约束 / 模拟入口进入失效状态",
-        "Story Bible 聚合事实继续可读，并标记受影响的失效引用"
+        "设定摘要聚合事实继续可读，并标记受影响的失效引用"
       ],
       "execution": {
         "status": "未执行",

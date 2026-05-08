@@ -17,7 +17,7 @@ class LlmGateway implements AppLlmClient {
     if (endpoint == null) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.network,
-        detail: 'base_url 无法解析为有效地址。',
+        detail: '接口地址无法解析为有效地址。',
       );
     }
 

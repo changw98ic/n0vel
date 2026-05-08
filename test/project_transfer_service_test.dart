@@ -25,7 +25,7 @@ import 'package:novel_writer/app/state/story_outline_store.dart';
 void main() {
   test('manifest schema label and json defaults stay stable', () {
     const manifest = ProjectPackageManifest(
-      packageName: 'lunarifest',
+      packageName: '小说工程包',
       projectId: 'project-1',
       projectTitle: '项目一',
       schemaMajor: 1,
@@ -36,7 +36,7 @@ void main() {
 
     expect(manifest.schemaLabel, 'v1.2');
     expect(manifest.toJson(), {
-      'name': 'lunarifest',
+      'name': '小说工程包',
       'project_id': 'project-1',
       'project_title': '项目一',
       'schema_major': 1,
@@ -63,8 +63,8 @@ void main() {
 
       expect(service.exportPackagePath, contains('NovelWriter/exports'));
       expect(service.importPackagePath, contains('NovelWriter/imports'));
-      expect(service.exportPackagePath, endsWith('lunaris-export.zip'));
-      expect(service.importPackagePath, endsWith('lunaris-export.zip'));
+      expect(service.exportPackagePath, endsWith('月临-导出.zip'));
+      expect(service.importPackagePath, endsWith('月临-导出.zip'));
     },
   );
 
@@ -216,7 +216,7 @@ void main() {
       workspaceStore: sourceWorkspaceStore,
     );
 
-    final importFile = File('${directory.path}/imports/lunaris-export.zip');
+    final importFile = File('${directory.path}/imports/月临-导出.zip');
     await importFile.parent.create(recursive: true);
     await File(exportResult.packagePath).copy(importFile.path);
 
@@ -264,7 +264,7 @@ void main() {
     await File(
       '${stagingDirectory.path}/draft.json',
     ).writeAsString('{"text":"坏包"}');
-    final zipFile = File('${directory.path}/imports/lunaris-export.zip');
+    final zipFile = File('${directory.path}/imports/月临-导出.zip');
     await zipFile.parent.create(recursive: true);
     await Process.run('/usr/bin/zip', [
       '-qr',
@@ -880,7 +880,7 @@ void main() {
       workspaceStore: workspaceStore,
     );
     final missingInspection = await service.inspectPackage(
-      File('${directory.path}/missing/lunaris-export.zip'),
+      File('${directory.path}/missing/月临-导出.zip'),
     );
 
     expect(exportResult.state, ProjectTransferState.exportSuccess);
@@ -1160,10 +1160,10 @@ void main() {
     );
 
     final inspection = await service.inspectPackage(
-      File('${directory.path}/missing/lunaris-export.zip'),
+      File('${directory.path}/missing/月临-导出.zip'),
     );
     expect(inspection.state, ProjectTransferState.invalidPackage);
-    expect(inspection.packagePath, contains('lunaris-export.zip'));
+    expect(inspection.packagePath, contains('月临-导出.zip'));
   });
 
   test(
@@ -1317,7 +1317,9 @@ void main() {
         },
       );
       final draftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
-      final versionStore = AppVersionStore(storage: InMemoryAppVersionStorage());
+      final versionStore = AppVersionStore(
+        storage: InMemoryAppVersionStorage(),
+      );
       final workspaceStore = AppWorkspaceStore(
         storage: InMemoryAppWorkspaceStorage(),
       );
@@ -1366,7 +1368,9 @@ void main() {
         storyMemoryExport: (projectId) async => null,
       );
       final draftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
-      final versionStore = AppVersionStore(storage: InMemoryAppVersionStorage());
+      final versionStore = AppVersionStore(
+        storage: InMemoryAppVersionStorage(),
+      );
       final workspaceStore = AppWorkspaceStore(
         storage: InMemoryAppWorkspaceStorage(),
       );
@@ -1412,7 +1416,9 @@ void main() {
           };
         },
       );
-      final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
+      final sourceDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+      );
       final sourceVersionStore = AppVersionStore(
         storage: InMemoryAppVersionStorage(),
       );
@@ -1491,10 +1497,16 @@ void main() {
         exportsDirectory: Directory('${directory.path}/exports'),
         importsDirectory: Directory('${directory.path}/imports'),
         storyMemoryExport: (projectId) async {
-          return {'entries': [{'key': 'orphan-data'}]};
+          return {
+            'entries': [
+              {'key': 'orphan-data'},
+            ],
+          };
         },
       );
-      final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
+      final sourceDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+      );
       final sourceVersionStore = AppVersionStore(
         storage: InMemoryAppVersionStorage(),
       );
@@ -1561,7 +1573,9 @@ void main() {
         exportsDirectory: Directory('${directory.path}/exports'),
         importsDirectory: Directory('${directory.path}/imports'),
       );
-      final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
+      final sourceDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+      );
       final sourceVersionStore = AppVersionStore(
         storage: InMemoryAppVersionStorage(),
       );
@@ -1602,8 +1616,9 @@ void main() {
       addTearDown(targetVersionStore.dispose);
       addTearDown(targetWorkspaceStore.dispose);
 
-      for (final project
-          in List<ProjectRecord>.from(targetWorkspaceStore.projects)) {
+      for (final project in List<ProjectRecord>.from(
+        targetWorkspaceStore.projects,
+      )) {
         targetWorkspaceStore.deleteProject(project);
       }
       targetWorkspaceStore.createProject();
@@ -1622,14 +1637,8 @@ void main() {
       );
 
       expect(importResult.state, ProjectTransferState.importSuccess);
-      expect(
-        targetWorkspaceStore.hasProjectWithId(sourceProjectId),
-        isTrue,
-      );
-      expect(
-        targetWorkspaceStore.hasProjectWithId(existingProjectId),
-        isTrue,
-      );
+      expect(targetWorkspaceStore.hasProjectWithId(sourceProjectId), isTrue);
+      expect(targetWorkspaceStore.hasProjectWithId(existingProjectId), isTrue);
       expect(targetWorkspaceStore.projects, hasLength(2));
       expect(targetWorkspaceStore.currentProjectId, sourceProjectId);
       expect(targetDraftStore.snapshot.text, 'imported project draft');
@@ -1652,7 +1661,9 @@ void main() {
         exportsDirectory: Directory('${directory.path}/exports'),
         importsDirectory: Directory('${directory.path}/imports'),
       );
-      final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
+      final sourceDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+      );
       final sourceVersionStore = AppVersionStore(
         storage: InMemoryAppVersionStorage(),
       );
@@ -1664,8 +1675,9 @@ void main() {
       addTearDown(sourceWorkspaceStore.dispose);
 
       sourceDraftStore.updateText('default version round-trip');
-      for (final project
-          in List<ProjectRecord>.from(sourceWorkspaceStore.projects)) {
+      for (final project in List<ProjectRecord>.from(
+        sourceWorkspaceStore.projects,
+      )) {
         sourceWorkspaceStore.deleteProject(project);
       }
       sourceWorkspaceStore.createProject();
@@ -1695,8 +1707,9 @@ void main() {
       addTearDown(targetDraftStore.dispose);
       addTearDown(targetVersionStore.dispose);
       addTearDown(targetWorkspaceStore.dispose);
-      for (final project
-          in List<ProjectRecord>.from(targetWorkspaceStore.projects)) {
+      for (final project in List<ProjectRecord>.from(
+        targetWorkspaceStore.projects,
+      )) {
         targetWorkspaceStore.deleteProject(project);
       }
 
@@ -1730,7 +1743,9 @@ void main() {
         exportsDirectory: Directory('${directory.path}/exports'),
         importsDirectory: Directory('${directory.path}/imports'),
       );
-      final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
+      final sourceDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+      );
       final sourceVersionStore = AppVersionStore(
         storage: InMemoryAppVersionStorage(),
       );
@@ -1898,7 +1913,9 @@ void main() {
         importsDirectory: Directory('${directory.path}/imports'),
       );
       final draftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
-      final versionStore = AppVersionStore(storage: InMemoryAppVersionStorage());
+      final versionStore = AppVersionStore(
+        storage: InMemoryAppVersionStorage(),
+      );
       final workspaceStore = AppWorkspaceStore(
         storage: InMemoryAppWorkspaceStorage(),
       );
@@ -1917,16 +1934,43 @@ void main() {
       );
 
       expect(result.state, ProjectTransferState.exportSuccess);
-      expect(await _packageContains(result.packagePath, 'manifest.json'), isTrue);
-      expect(await _packageContains(result.packagePath, 'workspace.json'), isTrue);
+      expect(
+        await _packageContains(result.packagePath, 'manifest.json'),
+        isTrue,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'workspace.json'),
+        isTrue,
+      );
       expect(await _packageContains(result.packagePath, 'draft.json'), isTrue);
-      expect(await _packageContains(result.packagePath, 'versions.json'), isTrue);
-      expect(await _packageContains(result.packagePath, 'ai_history.json'), isFalse);
-      expect(await _packageContains(result.packagePath, 'scene_context.json'), isFalse);
-      expect(await _packageContains(result.packagePath, 'simulation.json'), isFalse);
-      expect(await _packageContains(result.packagePath, 'outline.json'), isFalse);
-      expect(await _packageContains(result.packagePath, 'generation_state.json'), isFalse);
-      expect(await _packageContains(result.packagePath, 'story_memory.json'), isFalse);
+      expect(
+        await _packageContains(result.packagePath, 'versions.json'),
+        isTrue,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'ai_history.json'),
+        isFalse,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'scene_context.json'),
+        isFalse,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'simulation.json'),
+        isFalse,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'outline.json'),
+        isFalse,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'generation_state.json'),
+        isFalse,
+      );
+      expect(
+        await _packageContains(result.packagePath, 'story_memory.json'),
+        isFalse,
+      );
     },
   );
 
@@ -2007,12 +2051,15 @@ exit 1
     expect(a, isNotEmpty);
   });
 
-  test('computePayloadChecksum produces different hashes for different input', () {
-    expect(
-      computePayloadChecksum('hello'),
-      isNot(equals(computePayloadChecksum('world'))),
-    );
-  });
+  test(
+    'computePayloadChecksum produces different hashes for different input',
+    () {
+      expect(
+        computePayloadChecksum('hello'),
+        isNot(equals(computePayloadChecksum('world'))),
+      );
+    },
+  );
 
   test('export generates checksums.json covering all payload files', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -2092,16 +2139,14 @@ exit 1
                 as Map<String, Object?>;
         manifest['project_id'] = 'project-tampered';
         await manifestFile.writeAsString(jsonEncode(manifest));
-        await File('${staging.path}/draft.json').writeAsString(
-          '{"text":"TAMPERED"}',
-        );
+        await File(
+          '${staging.path}/draft.json',
+        ).writeAsString('{"text":"TAMPERED"}');
       },
     );
     expect(await tamperedPackage.exists(), isTrue);
 
-    final targetDraftStore = AppDraftStore(
-      storage: InMemoryAppDraftStorage(),
-    );
+    final targetDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
     final targetVersionStore = AppVersionStore(
       storage: InMemoryAppVersionStorage(),
     );
@@ -2151,12 +2196,7 @@ exit 1
         await File('${staging.path}/workspace.json').writeAsString(
           jsonEncode({
             'projects': [
-              {
-                'id': '',
-                'sceneId': '',
-                'title': '   ',
-                'lastOpenedAtMs': -1,
-              },
+              {'id': '', 'sceneId': '', 'title': '   ', 'lastOpenedAtMs': -1},
             ],
           }),
         );
@@ -2164,9 +2204,7 @@ exit 1
     );
     expect(await invalidPackage.exists(), isTrue);
 
-    final targetDraftStore = AppDraftStore(
-      storage: InMemoryAppDraftStorage(),
-    );
+    final targetDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
     final targetVersionStore = AppVersionStore(
       storage: InMemoryAppVersionStorage(),
     );
@@ -2199,9 +2237,7 @@ exit 1
       exportsDirectory: Directory('${directory.path}/exports'),
       importsDirectory: Directory('${directory.path}/imports'),
     );
-    final sourceDraftStore = AppDraftStore(
-      storage: InMemoryAppDraftStorage(),
-    );
+    final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
     final sourceVersionStore = AppVersionStore(
       storage: InMemoryAppVersionStorage(),
     );
@@ -2227,9 +2263,7 @@ exit 1
     await importFile.parent.create(recursive: true);
     await File(exportResult.packagePath).copy(importFile.path);
 
-    final targetDraftStore = AppDraftStore(
-      storage: InMemoryAppDraftStorage(),
-    );
+    final targetDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
     final targetVersionStore = AppVersionStore(
       storage: InMemoryAppVersionStorage(),
     );

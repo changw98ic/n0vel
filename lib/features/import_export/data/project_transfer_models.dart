@@ -37,7 +37,7 @@ class ProjectPackageManifest {
 
   static ProjectPackageManifest fromJson(Map<String, Object?> json) {
     return ProjectPackageManifest(
-      packageName: (json['name'] as String?) ?? 'lunarifest',
+      packageName: (json['name'] as String?) ?? '小说工程包',
       projectId: (json['project_id'] as String?) ?? '',
       projectTitle: _fallbackManifestText(
         json['project_title'],

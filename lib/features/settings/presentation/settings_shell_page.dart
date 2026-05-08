@@ -338,7 +338,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             title: '默认模型',
             subtitle: '用于未被路由规则覆盖的写作、检查和改稿请求。',
             children: [
-              _FieldInputBox(label: '提供方', controller: _providerController),
+              _FieldInputBox(label: '模型服务', controller: _providerController),
               const SizedBox(height: 12),
               _FieldInputBox(
                 label: '接口地址',
@@ -357,7 +357,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 controller: _apiKeyController,
                 fieldKey: SettingsShellPage.apiKeyFieldKey,
                 obscureText: true,
-                placeholder: '输入 API Key',
+                placeholder: '输入密钥',
               ),
             ],
           ),
@@ -411,11 +411,11 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
           ),
           const SizedBox(height: 12),
           _SettingsGroup(
-            title: '多提供方配置',
+            title: '多模型服务配置',
             subtitle: '为不同 AI 阶段指定独立服务；未匹配时使用默认模型。',
             children: [
               if (settings.providerProfiles.isEmpty)
-                Text('暂无额外提供方。', style: theme.textTheme.bodySmall)
+                Text('暂无额外模型服务。', style: theme.textTheme.bodySmall)
               else ...[
                 for (final profile in settings.providerProfiles) ...[
                   _ProfileCard(
@@ -438,7 +438,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
               OutlinedButton(
                 key: SettingsShellPage.addProfileButtonKey,
                 onPressed: () => _showProfileDialog(context),
-                child: const Text('添加提供方'),
+                child: const Text('添加模型服务'),
               ),
               const SizedBox(height: 8),
               OutlinedButton(
@@ -454,7 +454,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
           const SizedBox(height: 12),
           _SettingsGroup(
             title: '路由规则',
-            subtitle: '将 trace 名称匹配到指定提供方，支持 scene_review_* 这类通配符。',
+            subtitle: '将 trace 名称匹配到指定模型服务，支持 scene_review_* 这类通配符。',
             children: [
               if (settings.requestProviderRoutes.isEmpty)
                 Text('暂无路由规则。', style: theme.textTheme.bodySmall)
@@ -523,12 +523,12 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 ),
                 const SizedBox(height: 8),
                 _ConfigSummaryRow(
-                  label: '已连接主机',
+                  label: '连接地址',
                   value: _baseUrlController.text.trim(),
                 ),
                 const SizedBox(height: 8),
                 _ConfigSummaryRow(
-                  label: '已选模型',
+                  label: '当前模型',
                   value: _modelController.text.trim(),
                 ),
               ],
@@ -684,12 +684,12 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   _ConfigSummaryRow(
-                                    label: '已连接主机',
+                                    label: '连接地址',
                                     value: _baseUrlController.text.trim(),
                                   ),
                                   const SizedBox(height: 8),
                                   _ConfigSummaryRow(
-                                    label: '已选模型',
+                                    label: '当前模型',
                                     value: _modelController.text.trim(),
                                   ),
                                 ],
@@ -813,10 +813,12 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     final keyController = TextEditingController(text: existing?.apiKey);
     final result = await showDialog<bool>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(existing == null ? '添加提供方' : '编辑提供方'),
-          content: SingleChildScrollView(
+        return DesktopModalDialog(
+          title: existing == null ? '添加模型服务' : '编辑模型服务',
+          width: 560,
+          body: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -832,7 +834,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: '提供方名称',
+                    labelText: '模型服务名称',
                     hintText: '例如：智谱 GLM',
                   ),
                 ),
@@ -858,14 +860,14 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                   obscureText: true,
                   decoration: const InputDecoration(
                     labelText: '密钥',
-                    hintText: '输入 API Key',
+                    hintText: '输入密钥',
                   ),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('取消'),
             ),
@@ -914,12 +916,14 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     String? selectedProfileId = profiles.first.id;
     final result = await showDialog<bool>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('添加路由'),
-              content: SingleChildScrollView(
+            return DesktopModalDialog(
+              title: '添加路由',
+              width: 520,
+              body: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -931,30 +935,51 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedProfileId,
-                      decoration: const InputDecoration(labelText: '目标提供方'),
-                      items: [
-                        for (final profile in profiles)
-                          DropdownMenuItem(
-                            value: profile.id,
-                            child: Text(
-                              '${profile.id} (${profile.model})',
-                              overflow: TextOverflow.ellipsis,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '目标模型服务',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final profile in profiles)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedProfileId = profile.id;
+                              });
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  selectedProfileId == profile.id
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '${profile.id} (${profile.model})',
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() {
-                          selectedProfileId = value;
-                        });
-                      },
-                    ),
+                        ),
+                      ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
                   child: const Text('取消'),
                 ),
@@ -1022,7 +1047,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         return [
           _StatusHeadlineCard(
             label: statusTitle!,
-            message: statusMessage ?? 'settings.json 已重新读取，当前配置已同步。',
+            message: statusMessage ?? '本地配置文件已重新读取，当前配置已同步。',
           ),
           const SizedBox(height: 8),
           const _StatusDetailRow(label: '恢复内容', value: '密钥与本地配置'),
@@ -1033,7 +1058,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         return [
           _StatusHeadlineCard(
             label: statusTitle!,
-            message: statusMessage ?? 'settings.json 已更新。',
+            message: statusMessage ?? '本地配置文件已更新。',
           ),
           const SizedBox(height: 8),
           const _StatusDetailRow(label: '下一次生效', value: '下一个 AI 请求'),
@@ -1104,7 +1129,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     if (activeIssue == AppSettingsPersistenceIssue.fileWriteFailed) {
       return '当前表单草稿仍保留，可先排查后再次保存。';
     }
-    return statusTitle ?? 'API 密钥仅保存在本地。';
+    return statusTitle ?? '连接状态';
   }
 
   String _helpBody({
@@ -1113,15 +1138,15 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
   }) {
     return switch (activeIssue) {
       AppSettingsPersistenceIssue.fileReadFailed =>
-        '读取失败不会阻塞当前写作工作区。复制诊断后，可检查 settings.json 是否损坏或权限异常。',
+        '读取失败不会阻塞当前写作工作区。复制诊断后，可检查本地配置文件是否损坏或权限异常。',
       AppSettingsPersistenceIssue.fileWriteFailed =>
         '保存失败不会丢失当前表单编辑。修复磁盘或目录权限后，可直接使用重试配置再次写入。',
       AppSettingsPersistenceIssue.none => switch (statusMessage) {
-        'settings.json 已重新读取，当前配置已同步。' =>
-          '系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的 base_url、model 等编辑仍保留在当前表单中。',
-        'settings.json 已更新。' =>
-          '最新配置已经持久化到 settings.json。返回工作台后，下一次 AI 请求会使用新配置；当前失败请求不会自动重试。',
-        _ => statusMessage ?? '如果连接失败，写作工作区仍可继续使用。\n\n切换模型只会影响下一次 AI 请求。',
+        '本地配置文件已重新读取，当前配置已同步。' =>
+          '系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的接口地址、模型名称等编辑仍保留在当前表单中。',
+        '本地配置文件已更新。' =>
+          '最新配置已经写入本地配置文件。返回工作台后，下一次 AI 请求会使用新配置；当前失败请求不会自动重试。',
+        _ => statusMessage ?? '连接测试、最近一次状态和模型可用性会显示在这里；未验证前不会影响本地写作。',
       },
     };
   }

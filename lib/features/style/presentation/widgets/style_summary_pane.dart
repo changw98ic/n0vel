@@ -113,7 +113,7 @@ class StyleSummaryPane extends StatelessWidget {
       case StylePanelUiState.maxProfilesReached:
         return '达到风格配置上限';
       case StylePanelUiState.sceneOverrideNotice:
-        return '场景级覆盖已生效';
+        return '章节级覆盖已生效';
     }
   }
 
@@ -136,8 +136,7 @@ class StyleSummaryPane extends StatelessWidget {
         return const [
           _SummarySectionData(
             title: '忽略说明',
-            message:
-                '已忽略 2 个未知字段：mood_shift、voice_bias。其余合法字段已成功生成 StyleProfile。',
+            message: '已忽略 2 个暂不支持的附加字段，其余内容已成功生成风格档案。',
           ),
           _SummarySectionData(title: '结果说明', message: '附加备注字段已忽略，核心摘要仍可生成。'),
         ];
@@ -145,7 +144,7 @@ class StyleSummaryPane extends StatelessWidget {
         return const [
           _SummarySectionData(
             title: '缺失必填项',
-            message: '体裁标签至少需要填写 1 项，因此当前问卷暂时无法生成新的 StyleProfile。',
+            message: '体裁标签至少需要填写 1 项，因此当前问卷暂时无法生成新的风格档案。',
           ),
           _SummarySectionData(
             title: '建议修正',
@@ -156,8 +155,7 @@ class StyleSummaryPane extends StatelessWidget {
         return const [
           _SummarySectionData(
             title: '失败原因',
-            message:
-                '当前风格输入之间存在冲突：极低描写密度与高情绪强度无法同时满足既定节奏规则，因此本轮未生成 StyleProfile。',
+            message: '当前风格输入之间存在冲突：极低描写密度与高情绪强度无法同时满足既定节奏规则，因此本轮未生成风格档案。',
           ),
           _SummarySectionData(
             title: '建议修正',
@@ -165,7 +163,7 @@ class StyleSummaryPane extends StatelessWidget {
           ),
           _SummarySectionData(
             title: '结果说明',
-            message: '当前项目与场景绑定保持不变，本轮不会生成新的 StyleProfile。',
+            message: '当前项目与章节绑定保持不变，本轮不会生成新的风格档案。',
           ),
         ];
       case StylePanelUiState.maxProfilesReached:
@@ -183,11 +181,11 @@ class StyleSummaryPane extends StatelessWidget {
         return const [
           _SummarySectionData(
             title: '覆盖说明',
-            message: '当前场景使用更强约束，项目级风格仍保留为默认值。',
+            message: '当前章节使用更强约束，项目级风格仍保留为默认值。',
           ),
           _SummarySectionData(
             title: '绑定结果',
-            message: '场景级绑定优先于项目级默认风格，切换场景后仍会恢复项目默认配置。',
+            message: '章节级绑定优先于项目级默认风格，切换章节后仍会恢复项目默认配置。',
           ),
         ];
     }
@@ -195,13 +193,10 @@ class StyleSummaryPane extends StatelessWidget {
 
   List<String> _primaryMessageLines() {
     return switch (uiState) {
-      StylePanelUiState.jsonError => const [
-        '错误 1：缺少必填字段 version',
-        '错误 2：rhythm_profile 值不受支持',
-      ],
+      StylePanelUiState.jsonError => const ['错误 1：缺少配置版本', '错误 2：节奏配置不受支持'],
       StylePanelUiState.unsupportedVersion => const [
-        '当前文件声明的 version 为 2.0。',
-        'MVP 仅支持 1.0 版配置。',
+        '当前文件声明为 2.0 版。',
+        '当前仅支持 1.0 版配置。',
       ],
       _ => const [],
     };
@@ -209,10 +204,8 @@ class StyleSummaryPane extends StatelessWidget {
 
   String _resolutionMessage() {
     return switch (uiState) {
-      StylePanelUiState.jsonError =>
-        '当前选择的 StyleProfile JSON 不符合 MVP 支持的字段约定。请修正 JSON 后重新导入。',
-      StylePanelUiState.unsupportedVersion =>
-        '请在来源工具中导出 version: 1.0 的配置，或手动降级字段后重新导入。',
+      StylePanelUiState.jsonError => '当前选择的风格档案 JSON 不符合当前支持的字段约定。请修正后重新导入。',
+      StylePanelUiState.unsupportedVersion => '请在来源工具中导出 1.0 版配置，或手动调整版本后重新导入。',
       _ => '',
     };
   }
@@ -221,7 +214,7 @@ class StyleSummaryPane extends StatelessWidget {
     return switch (uiState) {
       StylePanelUiState.jsonError => '系统不会生成风格配置。',
       StylePanelUiState.unsupportedVersion =>
-        '该 JSON 文件可被读取，但当前版本不会被导入，也不会生成新的 StyleProfile。',
+        '该 JSON 文件可被读取，但当前版本不会被导入，也不会生成新的风格档案。',
       _ => '',
     };
   }

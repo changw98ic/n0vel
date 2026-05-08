@@ -840,7 +840,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -870,7 +870,7 @@
                   "id": "2CVzx",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -2062,7 +2062,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -2323,7 +2323,7 @@
               "id": "7dmY7",
               "name": "spFooterText",
               "fill": "#6E665E",
-              "content": "校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0",
+              "content": "校验就绪 · 问卷已完成 · 支持 结构校验 v1.0",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -2546,7 +2546,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -2643,7 +2643,7 @@
                           "content": "往返耗时"
                         },
                         "Pa6iW": {
-                          "content": "412 ms"
+                          "content": "412 毫秒"
                         }
                       }
                     },
@@ -3502,7 +3502,7 @@
                       "id": "ATHcz",
                       "name": "menuSecLabel",
                       "fill": "#6E665E",
-                      "content": "外壳 / 菜单",
+                      "content": "外壳 / 导航",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -4071,7 +4071,7 @@
                           "id": "6PtOr",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -4235,7 +4235,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -4265,7 +4265,7 @@
               "id": "lg1ZI",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -4408,7 +4408,7 @@
                           "id": "eyQI7",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -4573,7 +4573,7 @@
               "id": "veXZM",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -4711,7 +4711,7 @@
                           "id": "br1EM",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -5023,7 +5023,7 @@
               "id": "t9tDZ",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5161,7 +5161,7 @@
                           "id": "ODnLm",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -5592,7 +5592,7 @@
               "id": "2tBbo",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -5730,7 +5730,7 @@
                           "id": "g9qDx",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -6424,7 +6424,7 @@
               "id": "eYyJF",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -6448,7 +6448,7 @@
       "id": "i2PgM",
       "x": 20544,
       "y": 0,
-      "name": "写作工作台 / 菜单抽屉展开",
+      "name": "写作工作台 / 导航展开",
       "width": 1280,
       "height": 900,
       "fill": "#F6F0E6",
@@ -6543,7 +6543,7 @@
                   "id": "u9RF2",
                   "name": "drawerTitle",
                   "fill": "#2E2925",
-                  "content": "菜单",
+                  "content": "导航",
                   "fontFamily": "Inter",
                   "fontSize": 16,
                   "fontWeight": "600"
@@ -6627,7 +6627,7 @@
                       "id": "hdhat",
                       "name": "editorTitle",
                       "fill": "#2E2925",
-                      "content": "Lunaris / 第三章 / 场景 05",
+                      "content": "月临 / 第三章 / 场景 05",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -6791,7 +6791,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -6821,7 +6821,7 @@
               "id": "zjNrp",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -7489,7 +7489,7 @@
               "id": "snsZq",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -9257,7 +9257,7 @@
                       "content": "目标路径"
                     },
                     "qZ1bN": {
-                      "content": "/exports/lunaris.zip"
+                      "content": "/导出/月临.zip"
                     }
                   }
                 },
@@ -9313,7 +9313,7 @@
                       "content": "工程包"
                     },
                     "qZ1bN": {
-                      "content": "/imports/lunaris-export.zip"
+                      "content": "/导入/月临-导出.zip"
                     }
                   }
                 },
@@ -9384,7 +9384,7 @@
                       "content": "清单文件"
                     },
                     "Pa6iW": {
-                      "content": "schema v1"
+                      "content": "结构版本 1"
                     }
                   }
                 },
@@ -9590,7 +9590,7 @@
                           "content": "目标路径"
                         },
                         "qZ1bN": {
-                          "content": "/exports/lunaris.zip"
+                          "content": "/导出/月临.zip"
                         }
                       }
                     },
@@ -9646,7 +9646,7 @@
                           "content": "工程包"
                         },
                         "qZ1bN": {
-                          "content": "/imports/lunaris-export.zip"
+                          "content": "/导入/月临-导出.zip"
                         }
                       }
                     },
@@ -9717,7 +9717,7 @@
                           "content": "清单文件"
                         },
                         "Pa6iW": {
-                          "content": "schema v1"
+                          "content": "结构版本 1"
                         }
                       }
                     },
@@ -9832,7 +9832,7 @@
                   "content": "目标项目"
                 },
                 "Pa6iW": {
-                  "content": "Lunaris"
+                  "content": "月临"
                 }
               }
             },
@@ -10039,7 +10039,7 @@
                           "content": "目标路径"
                         },
                         "qZ1bN": {
-                          "content": "/exports/lunaris.zip"
+                          "content": "/导出/月临.zip"
                         }
                       }
                     },
@@ -10095,7 +10095,7 @@
                           "content": "工程包"
                         },
                         "qZ1bN": {
-                          "content": "/imports/lunaris-export.zip"
+                          "content": "/导入/月临-导出.zip"
                         }
                       }
                     },
@@ -10166,7 +10166,7 @@
                           "content": "清单文件"
                         },
                         "Pa6iW": {
-                          "content": "schema v1"
+                          "content": "结构版本 1"
                         }
                       }
                     },
@@ -11096,7 +11096,7 @@
               "id": "UhCzl",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -12901,7 +12901,7 @@
                               "content": "风格配置 JSON"
                             },
                             "qZ1bN": {
-                              "content": "/styles/cold-suspense.json"
+                              "content": "/风格/冷感悬疑.json"
                             }
                           }
                         }
@@ -13162,7 +13162,7 @@
                   "id": "ciPbR",
                   "name": "spFooterText",
                   "fill": "#6E665E",
-                  "content": "校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0",
+                  "content": "校验就绪 · 问卷已完成 · 支持 结构校验 v1.0",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -13485,7 +13485,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -13582,7 +13582,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -13796,7 +13796,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：超时\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n系统未保存这次失败结果，也不会影响现有写作项目。请检查 base_url、api_key 或网络状态后重试。",
+              "content": "状态：超时\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n系统未保存这次失败结果，也不会影响现有写作项目。请检查 接口地址、接口密钥 或网络状态后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -14324,7 +14324,7 @@
               "id": "FNKIK",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -14479,7 +14479,7 @@
                               "id": "Q1RU4",
                               "name": "editorTitle",
                               "fill": "#2E2925",
-                              "content": "Lunaris / 第三章 / 场景 05",
+                              "content": "月临 / 第三章 / 场景 05",
                               "fontFamily": "Inter",
                               "fontSize": 16,
                               "fontWeight": "600"
@@ -14643,7 +14643,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -14673,7 +14673,7 @@
                   "id": "I6A4M",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -15383,7 +15383,7 @@
                   "fill": "#6E665E",
                   "textGrowth": "fixed-width",
                   "width": 360,
-                  "content": "填写 api_key、base_url 和模型后，才能执行连接测试。",
+                  "content": "填写 接口密钥、接口地址 和模型后，才能执行连接测试。",
                   "lineHeight": 1.55,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -16886,7 +16886,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -16983,7 +16983,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -17197,7 +17197,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：保存前校验失败\n字段：base_url\n\n当前填写的接口地址不是合法 URL。请确认协议头、域名与路径格式正确后再保存配置。",
+              "content": "状态：保存前校验失败\n字段：接口地址\n\n当前填写的接口地址不是合法 URL。请确认协议头、域名与路径格式正确后再保存配置。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -18744,7 +18744,7 @@
                   "fill": "#6E665E",
                   "textGrowth": "fixed-width",
                   "width": 360,
-                  "content": "当前 base_url 和模型已就绪，但未填写接口密钥，因此禁止测试连接。",
+                  "content": "当前 接口地址 和模型已就绪，但未填写接口密钥，因此禁止测试连接。",
                   "lineHeight": 1.55,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -19095,7 +19095,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -19563,7 +19563,7 @@
                       "content": "目标路径"
                     },
                     "qZ1bN": {
-                      "content": "/exports/lunaris.zip"
+                      "content": "/导出/月临.zip"
                     }
                   }
                 },
@@ -19619,7 +19619,7 @@
                       "content": "工程包"
                     },
                     "qZ1bN": {
-                      "content": "/imports/lunaris-export.zip"
+                      "content": "/导入/月临-导出.zip"
                     }
                   }
                 },
@@ -19690,7 +19690,7 @@
                       "content": "兼容性"
                     },
                     "Pa6iW": {
-                      "content": "schema v1.2"
+                      "content": "结构版本 1.2"
                     }
                   }
                 },
@@ -21239,7 +21239,7 @@
                       "content": "目标路径"
                     },
                     "qZ1bN": {
-                      "content": "/exports/lunaris.zip"
+                      "content": "/导出/月临.zip"
                     }
                   }
                 },
@@ -21315,7 +21315,7 @@
                       "id": "SirPq",
                       "name": "inputFieldValue",
                       "fill": "#2E2925",
-                      "content": "/imports/lunaris-v3-export.zip",
+                      "content": "/imports/月临-v3-导出.zip",
                       "fontFamily": "Geist",
                       "fontSize": 14,
                       "fontWeight": "normal"
@@ -21390,7 +21390,7 @@
                       "fill": "#6E665E",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "当前客户端仅支持 schema v1.x，无法导入 schema v3.x 工程包。",
+                      "content": "当前客户端仅支持 结构版本 1.x，无法导入 schema v3.x 工程包。",
                       "lineHeight": 1.4,
                       "fontFamily": "Inter",
                       "fontSize": 12,
@@ -21745,7 +21745,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -22848,7 +22848,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -22878,7 +22878,7 @@
                   "id": "cXphU",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -24008,7 +24008,7 @@
               "id": "2GP5H",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -24242,7 +24242,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -24272,7 +24272,7 @@
                   "id": "YueRW",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -24877,7 +24877,7 @@
                           "id": "PebrE",
                           "name": "editorTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -25080,7 +25080,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -25110,7 +25110,7 @@
               "id": "50Fc2",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -25254,7 +25254,7 @@
                           "type": "text",
                           "id": "xo8m3",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -25623,7 +25623,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -25653,7 +25653,7 @@
               "id": "TKJZ7",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -26863,7 +26863,7 @@
               "id": "dAyXl",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -27140,7 +27140,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -28758,7 +28758,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -30164,7 +30164,7 @@
                           "type": "text",
                           "id": "0DaYe",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -30533,7 +30533,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -30563,7 +30563,7 @@
               "id": "JmCZV",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -31092,7 +31092,7 @@
                               "content": "风格配置 JSON"
                             },
                             "qZ1bN": {
-                              "content": "/styles/cold-suspense.json"
+                              "content": "/风格/冷感悬疑.json"
                             }
                           }
                         }
@@ -31353,7 +31353,7 @@
                   "id": "dGbYk",
                   "name": "spFooterText",
                   "fill": "#6E665E",
-                  "content": "校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0",
+                  "content": "校验就绪 · 问卷已完成 · 支持 结构校验 v1.0",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -33749,7 +33749,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -34164,7 +34164,7 @@
               "id": "KzQSD",
               "name": "spFooterText",
               "fill": "#6E665E",
-              "content": "校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0",
+              "content": "校验就绪 · 问卷已完成 · 支持 结构校验 v1.0",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -34394,7 +34394,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -34616,7 +34616,7 @@
                           "fill": "#6E665E",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "当前未填写 model，因此系统已阻止测试连接与保存配置。请先补全模型名后再继续。",
+                          "content": "当前未填写模型名，因此系统已阻止测试连接与保存配置。请先补全模型名后再继续。",
                           "lineHeight": 1.4,
                           "fontFamily": "Inter",
                           "fontSize": 12,
@@ -34696,7 +34696,7 @@
               "id": "wc4up",
               "name": "setFooterText",
               "fill": "#6E665E",
-              "content": "缺少 model · 测试与保存均已禁用",
+              "content": "缺少模型名 · 测试与保存均已禁用",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -34897,7 +34897,7 @@
                           "type": "text",
                           "id": "FgkdZ",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -35098,7 +35098,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -35128,7 +35128,7 @@
               "id": "YOemS",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -35272,7 +35272,7 @@
                           "type": "text",
                           "id": "szEQL",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -35641,7 +35641,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -35671,7 +35671,7 @@
               "id": "XZjl3",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -35844,7 +35844,7 @@
                           "content": "目标路径"
                         },
                         "qZ1bN": {
-                          "content": "/exports/lunaris.zip"
+                          "content": "/导出/月临.zip"
                         }
                       }
                     },
@@ -35900,7 +35900,7 @@
                           "content": "工程包"
                         },
                         "qZ1bN": {
-                          "content": "/imports/lunaris-export.zip"
+                          "content": "/导入/月临-导出.zip"
                         }
                       }
                     },
@@ -35971,7 +35971,7 @@
                           "content": "清单文件"
                         },
                         "Pa6iW": {
-                          "content": "schema v1"
+                          "content": "结构版本 1"
                         }
                       }
                     },
@@ -37043,7 +37043,7 @@
               "id": "KqIo7",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -37184,7 +37184,7 @@
                           "type": "text",
                           "id": "2QJQL",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -37415,7 +37415,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -37445,7 +37445,7 @@
               "id": "UXU3T",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -37586,7 +37586,7 @@
                           "type": "text",
                           "id": "BHx9J",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -37817,7 +37817,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -37847,7 +37847,7 @@
               "id": "YtldJ",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -38008,7 +38008,7 @@
                       "content": "目标路径"
                     },
                     "qZ1bN": {
-                      "content": "/exports/lunaris.zip"
+                      "content": "/导出/月临.zip"
                     }
                   }
                 },
@@ -38512,7 +38512,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -39004,7 +39004,7 @@
                           "type": "text",
                           "id": "eU6Ex",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -39235,7 +39235,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -39265,7 +39265,7 @@
               "id": "B75ob",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -39933,7 +39933,7 @@
               "id": "WYIMT",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -40167,7 +40167,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -40197,7 +40197,7 @@
                   "id": "v4xot",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -40744,7 +40744,7 @@
                       "content": "目标路径"
                     },
                     "qZ1bN": {
-                      "content": "/exports/lunaris.zip"
+                      "content": "/导出/月临.zip"
                     }
                   }
                 },
@@ -41260,7 +41260,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -41357,7 +41357,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -41783,7 +41783,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -41880,7 +41880,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -42094,7 +42094,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：404 / model_not_found\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n提供方未找到当前配置的模型标识。系统未保存这次失败结果，也不会影响现有写作项目。请确认模型名拼写，或改用可用模型后重试。",
+              "content": "状态：404 / 未找到模型\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n提供方未找到当前配置的模型标识。系统未保存这次失败结果，也不会影响现有写作项目。请确认模型名拼写，或改用可用模型后重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -42306,7 +42306,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -42403,7 +42403,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -42781,7 +42781,7 @@
                           "type": "text",
                           "id": "WSPzI",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -43012,7 +43012,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -43042,7 +43042,7 @@
               "id": "Khb8G",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -43603,7 +43603,7 @@
               "id": "dLDyx",
               "name": "footerPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -43744,7 +43744,7 @@
                           "type": "text",
                           "id": "7Gkzi",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -43975,7 +43975,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -44005,7 +44005,7 @@
               "id": "7mf8k",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -44788,7 +44788,7 @@
                           "id": "YmpcH",
                           "name": "editorTitle",
                           "fill": "#F1E9DE",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -44952,7 +44952,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#D2C6B7"
                     }
@@ -44982,7 +44982,7 @@
               "id": "rIwYG",
               "name": "statusPath",
               "fill": "#D2C6B7",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -45216,7 +45216,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#D2C6B7"
                         }
@@ -45246,7 +45246,7 @@
                   "id": "nJBnf",
                   "name": "statusPath",
                   "fill": "#D2C6B7",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -46494,7 +46494,7 @@
                         },
                         "qZ1bN": {
                           "fill": "#F1E9DE",
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -46818,7 +46818,7 @@
               "id": "aqryo",
               "name": "spFooterText",
               "fill": "#A99C8E",
-              "content": "校验就绪 · 问卷已完成 · 支持 JSON Schema v1.0",
+              "content": "校验就绪 · 问卷已完成 · 支持 结构校验 v1.0",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -47081,7 +47081,7 @@
                     },
                     "qZ1bN": {
                       "fill": "#F1E9DE",
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -47203,7 +47203,7 @@
                         },
                         "Pa6iW": {
                           "fill": "#D2C6B7",
-                          "content": "412 ms"
+                          "content": "412 毫秒"
                         }
                       }
                     },
@@ -47980,7 +47980,7 @@
                       "id": "1Mvxm",
                       "name": "menuSecLabel",
                       "fill": "#A99C8E",
-                      "content": "外壳 / 菜单",
+                      "content": "外壳 / 导航",
                       "fontFamily": "Inter",
                       "fontSize": 12,
                       "fontWeight": "600"
@@ -53685,7 +53685,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "无法读取 settings.json。当前页面仍可继续浏览，但连接配置状态不可信；你可以直接重试读取，或复制诊断信息继续排查。",
+              "content": "无法读取 设置文件。当前页面仍可继续浏览，但连接配置状态不可信；你可以直接重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.5,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -54378,7 +54378,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -54475,7 +54475,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -54689,7 +54689,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_read_failed\n诊断：settings.json 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
+              "content": "类别：设置读取失败\n诊断：设置文件 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -54901,7 +54901,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -54998,7 +54998,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -55212,7 +55212,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_write_failed\n诊断：settings.json 写入被拒绝\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
+              "content": "类别：设置写入失败\n诊断：设置文件 写入被拒绝\n\n未能把最新配置持久化到 设置文件。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -55412,7 +55412,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -55670,7 +55670,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的 base_url、model 等编辑仍保留在当前表单中。",
+                  "content": "系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的 接口地址、模型名 等编辑仍保留在当前表单中。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -55940,7 +55940,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -56198,7 +56198,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "这次重试已经把最新的 provider、base_url、model、api_key 与 timeout_ms 成功写回本地。",
+                  "content": "这次重试已经把最新的 提供方、接口地址、模型名、接口密钥与超时时间 成功写回本地。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -56480,7 +56480,7 @@
                           "content": "超时时间"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms"
+                          "content": "30000 毫秒"
                         }
                       }
                     }
@@ -56577,7 +56577,7 @@
                               "content": "往返耗时"
                             },
                             "Pa6iW": {
-                              "content": "412 ms"
+                              "content": "412 毫秒"
                             }
                           }
                         },
@@ -56791,7 +56791,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：timeout\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
+              "content": "状态：超时\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 超时时间 限制内没有返回结果。请调大 超时时间、确认 接口地址 可达后再重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -60297,7 +60297,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "无法读取 settings.json。当前页面仍可继续浏览，但连接配置状态不可信；你可以直接重试读取，或复制诊断信息继续排查。",
+              "content": "无法读取 设置文件。当前页面仍可继续浏览，但连接配置状态不可信；你可以直接重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.5,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -61050,7 +61050,7 @@
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms",
+                          "content": "30000 毫秒",
                           "fill": "#f1e9de"
                         }
                       }
@@ -61170,7 +61170,7 @@
                               "fill": "#f1e9de"
                             },
                             "Pa6iW": {
-                              "content": "412 ms",
+                              "content": "412 毫秒",
                               "fill": "#a99c8e"
                             }
                           }
@@ -61393,7 +61393,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_read_failed\n诊断：settings.json 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
+              "content": "类别：设置读取失败\n诊断：设置文件 无法读取\n\n无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -61651,7 +61651,7 @@
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms",
+                          "content": "30000 毫秒",
                           "fill": "#f1e9de"
                         }
                       }
@@ -61771,7 +61771,7 @@
                               "fill": "#f1e9de"
                             },
                             "Pa6iW": {
-                              "content": "412 ms",
+                              "content": "412 毫秒",
                               "fill": "#a99c8e"
                             }
                           }
@@ -61994,7 +61994,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "类别：settings_file_write_failed\n诊断：settings.json 写入被拒绝\n\n未能把最新配置持久化到 settings.json。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
+              "content": "类别：设置写入失败\n诊断：设置文件 写入被拒绝\n\n未能把最新配置持久化到 设置文件。连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -62240,7 +62240,7 @@
                       "fill": "#a99c8e"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms",
+                      "content": "30000 毫秒",
                       "fill": "#f1e9de"
                     }
                   }
@@ -62506,7 +62506,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的 base_url、model 等编辑仍保留在当前表单中。",
+                  "content": "系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的 接口地址、模型名 等编辑仍保留在当前表单中。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -62815,7 +62815,7 @@
                       "fill": "#a99c8e"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms",
+                      "content": "30000 毫秒",
                       "fill": "#f1e9de"
                     }
                   }
@@ -63081,7 +63081,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "这次重试已经把最新的 provider、base_url、model、api_key 与 timeout_ms 成功写回本地。",
+                  "content": "这次重试已经把最新的 提供方、接口地址、模型名、接口密钥与超时时间 成功写回本地。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -63402,7 +63402,7 @@
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
-                          "content": "30000 ms",
+                          "content": "30000 毫秒",
                           "fill": "#f1e9de"
                         }
                       }
@@ -63522,7 +63522,7 @@
                               "fill": "#f1e9de"
                             },
                             "Pa6iW": {
-                              "content": "412 ms",
+                              "content": "412 毫秒",
                               "fill": "#a99c8e"
                             }
                           }
@@ -63745,7 +63745,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "状态：timeout\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 timeout_ms 限制内没有返回结果。请调大 timeout_ms、确认 base_url 可达后再重试。",
+              "content": "状态：超时\n请求：OpenAI 兼容 / gpt-5.4-mini\n\n模型服务在 超时时间 限制内没有返回结果。请调大 超时时间、确认 接口地址 可达后再重试。",
               "lineHeight": 1.55,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -63913,7 +63913,7 @@
                           "id": "iJIdx",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -64344,7 +64344,7 @@
               "id": "FtMQ7",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -64428,7 +64428,7 @@
                   "type": "text",
                   "id": "Jyl6S",
                   "fill": "#2E2925",
-                  "content": "settings_file_read_failed",
+                  "content": "设置读取失败",
                   "fontFamily": "Geist",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -64465,7 +64465,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "无法读取 settings.json，当前 AI 对话、改写与续写暂时不可用。",
+                  "content": "无法读取 设置文件，当前 AI 对话、改写与续写暂时不可用。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -64691,7 +64691,7 @@
                           "id": "KGNeX",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -65122,7 +65122,7 @@
               "id": "wEHJr",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -65206,7 +65206,7 @@
                   "type": "text",
                   "id": "8apwf",
                   "fill": "#2E2925",
-                  "content": "settings_file_write_failed",
+                  "content": "设置写入失败",
                   "fontFamily": "Geist",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -65243,7 +65243,7 @@
                   "fill": "#2E2925",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "settings.json 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
+                  "content": "设置文件 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -65510,7 +65510,7 @@
                           "id": "14gvC",
                           "name": "aiTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -65941,7 +65941,7 @@
               "id": "Br1Cl",
               "name": "aiFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -66079,7 +66079,7 @@
                           "id": "jDqjK",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -66391,7 +66391,7 @@
               "id": "70a2x",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -66631,7 +66631,7 @@
                           "id": "n4Lg3",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -66943,7 +66943,7 @@
               "id": "nYfDE",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -67183,7 +67183,7 @@
                           "id": "Q112q",
                           "name": "resTitle",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -67495,7 +67495,7 @@
               "id": "ZHYkP",
               "name": "resFootPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -67815,7 +67815,7 @@
                           "id": "97Skk",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -68246,7 +68246,7 @@
               "id": "SMkBq",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -68330,7 +68330,7 @@
                   "type": "text",
                   "id": "ZkGDk",
                   "fill": "#f1e9de",
-                  "content": "settings_file_read_failed",
+                  "content": "设置读取失败",
                   "fontFamily": "Geist",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -68367,7 +68367,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "无法读取 settings.json，当前 AI 对话、改写与续写暂时不可用。",
+                  "content": "无法读取 设置文件，当前 AI 对话、改写与续写暂时不可用。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -68593,7 +68593,7 @@
                           "id": "AnFH6",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -69024,7 +69024,7 @@
               "id": "vQzyZ",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69108,7 +69108,7 @@
                   "type": "text",
                   "id": "CRcHd",
                   "fill": "#f1e9de",
-                  "content": "settings_file_write_failed",
+                  "content": "设置写入失败",
                   "fontFamily": "Geist",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -69145,7 +69145,7 @@
                   "fill": "#f1e9de",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "settings.json 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
+                  "content": "设置文件 写入被拒绝。最新配置尚未落盘，因此当前 AI 快捷面板不会立刻切换到新模型。",
                   "lineHeight": 1.5,
                   "fontFamily": "Geist",
                   "fontSize": 14,
@@ -69412,7 +69412,7 @@
                           "id": "MED93",
                           "name": "aiTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -69843,7 +69843,7 @@
               "id": "5tb8M",
               "name": "aiFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -69981,7 +69981,7 @@
                           "id": "cFK5g",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -70329,7 +70329,7 @@
               "id": "mviKk",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -70584,7 +70584,7 @@
                           "id": "yYzAn",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -70932,7 +70932,7 @@
               "id": "7yYpi",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -71187,7 +71187,7 @@
                           "id": "5zLDm",
                           "name": "resTitle",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -71535,7 +71535,7 @@
               "id": "f4ocG",
               "name": "resFootPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -72184,7 +72184,7 @@
                           "type": "text",
                           "id": "vHRTa",
                           "fill": "#2E2925",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -72553,7 +72553,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -72583,7 +72583,7 @@
               "id": "oTy7O",
               "name": "statusPath",
               "fill": "#6E665E",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -72860,7 +72860,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -73444,7 +73444,7 @@
                           "content": "风格配置 JSON"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json"
+                          "content": "/风格/冷感悬疑.json"
                         }
                       }
                     }
@@ -74695,7 +74695,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -74725,7 +74725,7 @@
                   "id": "vmrr9",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -75991,7 +75991,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -76021,7 +76021,7 @@
                   "id": "HclxJ",
                   "name": "statusPath",
                   "fill": "#6E665E",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -77468,7 +77468,7 @@
                           "type": "text",
                           "id": "eu7cR",
                           "fill": "#f1e9de",
-                          "content": "Lunaris / 第三章 / 场景 05",
+                          "content": "月临 / 第三章 / 场景 05",
                           "fontFamily": "Inter",
                           "fontSize": 16,
                           "fontWeight": "600"
@@ -77837,7 +77837,7 @@
                       "name": "readIcon",
                       "width": 18,
                       "height": 18,
-                      "iconFontName": "menu_book",
+                      "iconFontName": "article",
                       "iconFontFamily": "Material Symbols Rounded",
                       "fill": "#6E665E"
                     }
@@ -77867,7 +77867,7 @@
               "id": "G1PTe",
               "name": "statusPath",
               "fill": "#a99c8e",
-              "content": "Lunaris / 第三章 / 场景 05",
+              "content": "月临 / 第三章 / 场景 05",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "500"
@@ -78197,7 +78197,7 @@
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json",
+                          "content": "/风格/冷感悬疑.json",
                           "fill": "#f1e9de"
                         }
                       }
@@ -78896,7 +78896,7 @@
                           "fill": "#a99c8e"
                         },
                         "qZ1bN": {
-                          "content": "/styles/cold-suspense.json",
+                          "content": "/风格/冷感悬疑.json",
                           "fill": "#f1e9de"
                         }
                       }
@@ -80341,7 +80341,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -80371,7 +80371,7 @@
                   "id": "v774f",
                   "name": "statusPath",
                   "fill": "#a99c8e",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -81644,7 +81644,7 @@
                           "name": "readIcon",
                           "width": 18,
                           "height": 18,
-                          "iconFontName": "menu_book",
+                          "iconFontName": "article",
                           "iconFontFamily": "Material Symbols Rounded",
                           "fill": "#6E665E"
                         }
@@ -81674,7 +81674,7 @@
                   "id": "9swhH",
                   "name": "statusPath",
                   "fill": "#a99c8e",
-                  "content": "Lunaris / 第三章 / 场景 05",
+                  "content": "月临 / 第三章 / 场景 05",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -82737,7 +82737,7 @@
               "fill": "#514943",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "未能持久化到 settings.json。当前页面里的最新配置草稿仍然保留；你可以继续编辑、复制诊断，或直接重试配置写入。",
+              "content": "未能持久化到 设置文件。当前页面里的最新配置草稿仍然保留；你可以继续编辑、复制诊断，或直接重试配置写入。",
               "lineHeight": 1.5,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -82883,7 +82883,7 @@
                       "content": "超时时间"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms"
+                      "content": "30000 毫秒"
                     }
                   }
                 }
@@ -82980,7 +82980,7 @@
                           "content": "往返耗时"
                         },
                         "Pa6iW": {
-                          "content": "412 ms"
+                          "content": "412 毫秒"
                         }
                       }
                     },
@@ -83233,7 +83233,7 @@
               "fill": "#d2c6b7",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "未能持久化到 settings.json。当前页面里的最新配置草稿仍然保留；你可以继续编辑、复制诊断，或直接重试配置写入。",
+              "content": "未能持久化到 设置文件。当前页面里的最新配置草稿仍然保留；你可以继续编辑、复制诊断，或直接重试配置写入。",
               "lineHeight": 1.5,
               "fontFamily": "Geist",
               "fontSize": 14,
@@ -83425,7 +83425,7 @@
                       "fill": "#a99c8e"
                     },
                     "qZ1bN": {
-                      "content": "30000 ms",
+                      "content": "30000 毫秒",
                       "fill": "#f1e9de"
                     }
                   }
@@ -83545,7 +83545,7 @@
                           "fill": "#f1e9de"
                         },
                         "Pa6iW": {
-                          "content": "412 ms",
+                          "content": "412 毫秒",
                           "fill": "#a99c8e"
                         }
                       }

@@ -7,6 +7,8 @@ import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'scene_roleplay_session_models.dart';
 import 'scene_cast_roleplay_policy.dart';
+import 'scene_type_classifier.dart';
+import 'scene_type_prompts.dart';
 import 'story_generation_formatter_trace.dart';
 
 class SceneReviewCoordinator implements SceneReviewService {
@@ -18,6 +20,8 @@ class SceneReviewCoordinator implements SceneReviewService {
 
   final AppSettingsStore _settingsStore;
   final StoryGenerationFormatterTraceSink? _formatterTraceSink;
+  final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
+  final SceneTypePrompts _typePrompts = SceneTypePrompts();
 
   static const List<SceneReviewCategory> _baseCombinedCategories = [
     SceneReviewCategory.prose,
@@ -223,6 +227,7 @@ class SceneReviewCoordinator implements SceneReviewService {
               '忠实性指引：正文围绕角色扮演过程中的可见动作、对白、裁决事实和局面推进展开；关键互动、裁决事实、角色可见信息共同决定评审结果。',
             '正文：${prose.text}',
             if (evidenceSection.isNotEmpty) evidenceSection,
+            _typePrompts.reviewCriteria(_typeClassifier.classify(brief)),
           ].join('\n'),
         ),
       ],
@@ -563,6 +568,7 @@ class SceneReviewCoordinator implements SceneReviewService {
       SceneReviewCategory.characterState => 'character_state',
       SceneReviewCategory.worldState => 'world_state',
       SceneReviewCategory.roleplayFidelity => 'roleplay_fidelity',
+      SceneReviewCategory.characterConsistency => 'character_consistency',
     };
   }
 

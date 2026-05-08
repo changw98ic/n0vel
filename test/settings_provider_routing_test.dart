@@ -14,6 +14,7 @@ import 'package:novel_writer/app/state/app_version_storage.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
 import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
+import 'package:novel_writer/app/widgets/desktop_shell.dart';
 import 'package:novel_writer/main.dart';
 import 'test_support/fake_app_llm_client.dart';
 
@@ -59,8 +60,8 @@ void main() {
   /// Find the FilledButton containing "保存" text (used in dialogs).
   Finder dialogSaveButton() => find.widgetWithText(FilledButton, '保存');
 
-  /// Find the TextButton containing "取消" text (used in dialogs).
-  Finder dialogCancelButton() => find.widgetWithText(TextButton, '取消');
+  /// Find the OutlinedButton containing "取消" text (used in dialogs).
+  Finder dialogCancelButton() => find.widgetWithText(OutlinedButton, '取消');
 
   /// Open the add-provider dialog, fill fields, and save.
   Future<void> addProviderProfile(
@@ -74,26 +75,11 @@ void main() {
     await tester.tap(find.byKey(SettingsShellPage.addProfileButtonKey));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(TextField, '标识（英文，唯一）'),
-      id,
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '提供方名称'),
-      name,
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '接口地址'),
-      url,
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '模型'),
-      model,
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '密钥'),
-      key,
-    );
+    await tester.enterText(find.widgetWithText(TextField, '标识（英文，唯一）'), id);
+    await tester.enterText(find.widgetWithText(TextField, '模型服务名称'), name);
+    await tester.enterText(find.widgetWithText(TextField, '接口地址'), url);
+    await tester.enterText(find.widgetWithText(TextField, '模型'), model);
+    await tester.enterText(find.widgetWithText(TextField, '密钥'), key);
     await tester.pump();
 
     await tester.tap(dialogSaveButton());
@@ -105,12 +91,9 @@ void main() {
       await pumpSettingsPage(tester);
       await scrollProviderPanel(tester, 600);
 
-      expect(find.text('多提供方配置'), findsOneWidget);
-      expect(find.text('暂无额外提供方。'), findsOneWidget);
-      expect(
-        find.byKey(SettingsShellPage.addProfileButtonKey),
-        findsOneWidget,
-      );
+      expect(find.text('多模型服务配置'), findsOneWidget);
+      expect(find.text('暂无额外模型服务。'), findsOneWidget);
+      expect(find.byKey(SettingsShellPage.addProfileButtonKey), findsOneWidget);
     });
 
     testWidgets('add provider dialog creates a profile card', (tester) async {
@@ -127,7 +110,7 @@ void main() {
       );
 
       expect(find.text('智谱 GLM · glm-5.1'), findsOneWidget);
-      expect(find.text('暂无额外提供方。'), findsNothing);
+      expect(find.text('暂无额外模型服务。'), findsNothing);
     });
 
     testWidgets('add provider dialog dismisses on cancel', (tester) async {
@@ -137,14 +120,13 @@ void main() {
       await tester.tap(find.byKey(SettingsShellPage.addProfileButtonKey));
       await tester.pumpAndSettle();
 
-      // Dialog should be visible via its specific title widget (AlertDialog).
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(DesktopModalDialog), findsOneWidget);
 
       await tester.tap(dialogCancelButton());
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('暂无额外提供方。'), findsOneWidget);
+      expect(find.byType(DesktopModalDialog), findsNothing);
+      expect(find.text('暂无额外模型服务。'), findsOneWidget);
     });
   });
 
@@ -155,14 +137,12 @@ void main() {
 
       expect(find.text('路由规则'), findsOneWidget);
       expect(find.text('暂无路由规则。'), findsOneWidget);
-      expect(
-        find.byKey(SettingsShellPage.addRouteButtonKey),
-        findsOneWidget,
-      );
+      expect(find.byKey(SettingsShellPage.addRouteButtonKey), findsOneWidget);
     });
 
-    testWidgets('add route dialog is blocked when no profiles exist',
-        (tester) async {
+    testWidgets('add route dialog is blocked when no profiles exist', (
+      tester,
+    ) async {
       await pumpSettingsPage(tester);
       await scrollProviderPanel(tester, 800);
 
@@ -170,11 +150,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // No dialog should appear.
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(DesktopModalDialog), findsNothing);
     });
 
-    testWidgets('add route dialog creates a route card after profile exists',
-        (tester) async {
+    testWidgets('add route dialog creates a route card after profile exists', (
+      tester,
+    ) async {
       await pumpSettingsPage(tester);
 
       // First, add a provider profile.
@@ -195,7 +176,7 @@ void main() {
       await tester.tap(find.byKey(SettingsShellPage.addRouteButtonKey));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(DesktopModalDialog), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Trace 名称模式'),
@@ -206,7 +187,7 @@ void main() {
       await tester.tap(dialogSaveButton());
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(DesktopModalDialog), findsNothing);
       expect(find.text('暂无路由规则。'), findsNothing);
       expect(find.text('scene_review_*'), findsOneWidget);
       expect(find.textContaining('智谱 GLM'), findsWidgets);
@@ -253,7 +234,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Temp · glm-5.1'), findsNothing);
-      expect(find.text('暂无额外提供方。'), findsOneWidget);
+      expect(find.text('暂无额外模型服务。'), findsOneWidget);
     });
   });
 }

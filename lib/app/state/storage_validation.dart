@@ -152,9 +152,9 @@ class WorkspaceDataValidator {
     _requireNonEmpty(
       project['sceneId'],
       'sceneId',
-      '项目 sceneId 不能为空',
+      '项目当前章节不能为空',
       errors,
-      suggestion: '请在项目设置中关联一个初始场景',
+      suggestion: '请在项目设置中关联一个初始章节',
     );
     _requireNonEmptyTrimmed(
       project['title'],
@@ -186,16 +186,16 @@ class WorkspaceDataValidator {
     _requireNonEmpty(
       scene['id'],
       'id',
-      '场景 id 不能为空',
+      '章节 id 不能为空',
       errors,
-      suggestion: '请确保场景在创建时自动生成了唯一 id',
+      suggestion: '请确保章节在创建时自动生成了唯一 id',
     );
     _requireNonEmptyTrimmed(
       scene['title'],
       'title',
-      '场景 title 不能为空白',
+      '章节 title 不能为空白',
       errors,
-      suggestion: '请在场景编辑中填写标题',
+      suggestion: '请在章节编辑中填写标题',
     );
 
     return errors.isEmpty
@@ -454,7 +454,7 @@ class WorkspaceDataValidator {
         ValidationError(
           field: field,
           message: '$field 必须是 List 类型',
-          suggestion: '请确保 $field 以 JSON 数组格式存储场景 id 列表',
+          suggestion: '请确保 $field 以 JSON 数组格式存储章节 id 列表',
         ),
       );
       return;
@@ -466,7 +466,7 @@ class WorkspaceDataValidator {
           ValidationError(
             field: '$field[$i]',
             message: '$field[$i] 不能为空字符串',
-            suggestion: '请移除空字符串引用或替换为有效的场景 id',
+            suggestion: '请移除空字符串引用或替换为有效的章节 id',
           ),
         );
         continue;
@@ -477,9 +477,9 @@ class WorkspaceDataValidator {
         errors.add(
           ValidationError(
             field: '$field[$i]',
-            message: '引用了不存在的场景 id: $item',
+            message: '引用了不存在的章节 id: $item',
             severity: ValidationSeverity.warning,
-            suggestion: '请先在场景管理中创建该场景，或移除对该场景的引用',
+            suggestion: '请先在章节管理中创建该章节，或移除对该章节的引用',
           ),
         );
       }

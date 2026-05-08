@@ -12,7 +12,7 @@ AppSettingsFeedback? validateInputs({
   if (timeoutMs <= 0) {
     return const AppSettingsFeedback(
       title: '超时时间必须大于 0',
-      message: '请填写有效的 timeout_ms，再继续保存或测试连接。',
+      message: '请填写有效的等待时间，再继续保存或测试连接。',
       tone: AppSettingsFeedbackTone.error,
     );
   }
@@ -26,10 +26,10 @@ AppSettingsFeedback? validateInputs({
   final allowsEmptyApiKey = isLocalCompatibleEndpoint(baseUrl);
   if (apiKey.trim().isEmpty && !allowsEmptyApiKey) {
     return AppSettingsFeedback(
-      title: forConnectionTest ? '测试连接前请先填写 API Key' : '请先填写 API Key',
+        title: forConnectionTest ? '测试连接前请先填写密钥' : '请先填写密钥',
       message: forConnectionTest
           ? '补全密钥后才能发起最小化连接测试。'
-          : 'base_url 与 model 可以保留当前值，但保存前必须补全密钥。',
+          : '接口地址与模型名称可以保留当前值，但保存前必须补全密钥。',
       tone: AppSettingsFeedbackTone.error,
     );
   }
@@ -41,17 +41,17 @@ AppSettingsFeedback? validateInputs({
       uri.hasAuthority;
   if (!hasValidBaseUrl) {
     return AppSettingsFeedback(
-      title: '请输入有效的 base_url',
+        title: '请输入有效的接口地址',
       message: forConnectionTest
           ? '修正接口地址后再测试连接。'
-          : 'base_url 需要是完整的 http 或 https 地址。',
+          : '接口地址需要是完整的 http 或 https 地址。',
       tone: AppSettingsFeedbackTone.error,
     );
   }
 
   if (model.trim().isEmpty) {
     return AppSettingsFeedback(
-      title: '请先填写 model',
+      title: '请先填写模型名称',
       message: forConnectionTest ? '填写模型名称后再测试连接。' : '保存配置前需要补全模型名称。',
       tone: AppSettingsFeedbackTone.error,
     );

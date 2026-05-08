@@ -12,10 +12,9 @@ class SceneEvent {
     List<String> presentCharacterIds = const [],
     List<String> targetIds = const [],
     Map<String, Object?> metadata = const {},
-  })  : presentCharacterIds =
-            List<String>.unmodifiable(presentCharacterIds),
-        targetIds = List<String>.unmodifiable(targetIds),
-        metadata = Map<String, Object?>.unmodifiable(metadata);
+  }) : presentCharacterIds = List<String>.unmodifiable(presentCharacterIds),
+       targetIds = List<String>.unmodifiable(targetIds),
+       metadata = Map<String, Object?>.unmodifiable(metadata);
 
   final String id;
   final String sceneId;
@@ -108,16 +107,16 @@ class SceneEvent {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        sceneId,
-        type,
-        content,
-        speakerId,
-        Object.hashAll(presentCharacterIds),
-        Object.hashAll(targetIds),
-        sequence,
-        Object.hashAllUnordered(metadata.entries),
-      );
+    id,
+    sceneId,
+    type,
+    content,
+    speakerId,
+    Object.hashAll(presentCharacterIds),
+    Object.hashAll(targetIds),
+    sequence,
+    Object.hashAllUnordered(metadata.entries),
+  );
 }
 
 /// Projects scene events into per-character cognition atoms.
@@ -207,35 +206,39 @@ class PerceptionProjector {
     required String projectId,
   }) {
     if (speaker != null && present.contains(speaker)) {
-      atoms.add(CharacterCognitionAtom.selfState(
-        id: '${event.id}_${speaker}_$seq',
-        projectId: projectId,
-        characterId: speaker,
-        sceneId: event.sceneId,
-        sequence: seq,
-        content: '我说：「${event.content}」',
-        sourceEventIds: [event.id],
-        sourceCharacterIds: [speaker],
-        certainty: 1.0,
-      ));
+      atoms.add(
+        CharacterCognitionAtom.selfState(
+          id: '${event.id}_${speaker}_$seq',
+          projectId: projectId,
+          characterId: speaker,
+          sceneId: event.sceneId,
+          sequence: seq,
+          content: '我说：「${event.content}」',
+          sourceEventIds: [event.id],
+          sourceCharacterIds: [speaker],
+          certainty: 1.0,
+        ),
+      );
       seq += 1;
     }
 
     for (final charId in present) {
       if (charId == speaker) continue;
-      atoms.add(CharacterCognitionAtom.perceivedEvent(
-        id: '${event.id}_${charId}_$seq',
-        projectId: projectId,
-        characterId: charId,
-        sceneId: event.sceneId,
-        sequence: seq,
-        content: speaker != null
-            ? '$speaker说：「${event.content}」'
-            : '有人说了：「${event.content}」',
-        sourceEventIds: [event.id],
-        sourceCharacterIds: speaker != null ? [speaker] : const [],
-        certainty: 1.0,
-      ));
+      atoms.add(
+        CharacterCognitionAtom.perceivedEvent(
+          id: '${event.id}_${charId}_$seq',
+          projectId: projectId,
+          characterId: charId,
+          sceneId: event.sceneId,
+          sequence: seq,
+          content: speaker != null
+              ? '$speaker说：「${event.content}」'
+              : '有人说了：「${event.content}」',
+          sourceEventIds: [event.id],
+          sourceCharacterIds: speaker != null ? [speaker] : const [],
+          certainty: 1.0,
+        ),
+      );
       seq += 1;
     }
 
@@ -253,19 +256,19 @@ class PerceptionProjector {
   }) {
     for (final charId in present) {
       final isTarget = event.targetIds.contains(charId);
-      atoms.add(CharacterCognitionAtom.perceivedEvent(
-        id: '${event.id}_${charId}_$seq',
-        projectId: projectId,
-        characterId: charId,
-        sceneId: event.sceneId,
-        sequence: seq,
-        content: isTarget
-            ? '我经历了：${event.content}'
-            : '我观察到：${event.content}',
-        sourceEventIds: [event.id],
-        sourceCharacterIds: event.speakerId != null ? [event.speakerId!] : [],
-        certainty: 1.0,
-      ));
+      atoms.add(
+        CharacterCognitionAtom.perceivedEvent(
+          id: '${event.id}_${charId}_$seq',
+          projectId: projectId,
+          characterId: charId,
+          sceneId: event.sceneId,
+          sequence: seq,
+          content: isTarget ? '我经历了：${event.content}' : '我观察到：${event.content}',
+          sourceEventIds: [event.id],
+          sourceCharacterIds: event.speakerId != null ? [event.speakerId!] : [],
+          certainty: 1.0,
+        ),
+      );
       seq += 1;
     }
     return seq;
@@ -284,17 +287,19 @@ class PerceptionProjector {
     if (speaker == null) return seq;
     if (!present.contains(speaker)) return seq;
 
-    atoms.add(CharacterCognitionAtom.selfState(
-      id: '${event.id}_${speaker}_$seq',
-      projectId: projectId,
-      characterId: speaker,
-      sceneId: event.sceneId,
-      sequence: seq,
-      content: '内心独白：${event.content}',
-      sourceEventIds: [event.id],
-      sourceCharacterIds: [speaker],
-      certainty: 1.0,
-    ));
+    atoms.add(
+      CharacterCognitionAtom.selfState(
+        id: '${event.id}_${speaker}_$seq',
+        projectId: projectId,
+        characterId: speaker,
+        sceneId: event.sceneId,
+        sequence: seq,
+        content: '内心独白：${event.content}',
+        sourceEventIds: [event.id],
+        sourceCharacterIds: [speaker],
+        certainty: 1.0,
+      ),
+    );
     return seq + 1;
   }
 
@@ -307,16 +312,18 @@ class PerceptionProjector {
     required String projectId,
   }) {
     for (final charId in present) {
-      atoms.add(CharacterCognitionAtom.perceivedEvent(
-        id: '${event.id}_${charId}_$seq',
-        projectId: projectId,
-        characterId: charId,
-        sceneId: event.sceneId,
-        sequence: seq,
-        content: '场景描述：${event.content}',
-        sourceEventIds: [event.id],
-        certainty: 1.0,
-      ));
+      atoms.add(
+        CharacterCognitionAtom.perceivedEvent(
+          id: '${event.id}_${charId}_$seq',
+          projectId: projectId,
+          characterId: charId,
+          sceneId: event.sceneId,
+          sequence: seq,
+          content: '场景描述：${event.content}',
+          sourceEventIds: [event.id],
+          certainty: 1.0,
+        ),
+      );
       seq += 1;
     }
     return seq;

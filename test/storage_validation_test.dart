@@ -270,7 +270,11 @@ void main() {
 
     test('empty sceneId fails', () {
       final project = validProject()..['sceneId'] = '';
-      expect(validator.validateProject(project).isValid, isFalse);
+      final result = validator.validateProject(project);
+      expect(result.isValid, isFalse);
+      expect(result.errors.single.field, 'sceneId');
+      expect(result.errors.single.message, '项目当前章节不能为空');
+      expect(result.errors.single.message, isNot(contains('sceneId')));
     });
 
     test('blank title fails', () {
@@ -314,7 +318,7 @@ void main() {
   group('validateScene', () {
     test('valid scene passes', () {
       expect(
-        validator.validateScene({'id': 'scene-1', 'title': '场景一'}).isValid,
+        validator.validateScene({'id': 'scene-1', 'title': '章节一'}).isValid,
         isTrue,
       );
     });
@@ -671,7 +675,7 @@ void main() {
           {
             'title': '动机冲突',
             'evidence': '证据',
-            'target': '场景05',
+            'target': '第 5 章',
             'status': 'open',
           },
         ],
@@ -844,7 +848,7 @@ void main() {
         ],
         'scenesByProject': {
           'project-a': [
-            {'id': 'scene-1', 'title': '场景一'},
+            {'id': 'scene-1', 'title': '章节一'},
           ],
         },
         'charactersByProject': {
@@ -877,7 +881,7 @@ void main() {
         ],
         'scenesByProject': {
           'project-a': [
-            {'id': 'scene-1', 'title': '场景一'},
+            {'id': 'scene-1', 'title': '章节一'},
           ],
         },
         'worldNodesByProject': {

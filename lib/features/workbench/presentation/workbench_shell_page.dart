@@ -357,16 +357,17 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final controller = TextEditingController(text: initialValue);
     final result = await showDialog<String>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
           title: title,
-          description: '创建后会出现在当前项目的场景列表中，并立即可在工作台中继续写作。',
+          description: '创建后会出现在当前项目的章节列表中，并立即可在工作台中继续写作。',
           body: _WorkbenchDialogField(
-            label: '场景标题',
+            label: '章节标题',
             child: TextField(
               key: WorkbenchShellPage.sceneTitleFieldKey,
               controller: controller,
-              decoration: const InputDecoration(hintText: '输入场景标题'),
+              decoration: const InputDecoration(hintText: '输入章节标题'),
             ),
           ),
           actions: [
@@ -395,12 +396,13 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
-          title: '删除场景',
-          description: '删除后会从当前项目的场景列表中移除，工作台会自动切换到相邻场景，并同步刷新相关引用摘要。',
+          title: '删除章节',
+          description: '删除后会从当前项目的章节列表中移除，工作台会自动切换到相邻章节，并同步刷新相关引用摘要。',
           body: _WorkbenchDialogField(
-            label: '当前场景',
+            label: '当前章节',
             child: Text(
               AppWorkspaceScope.of(context).currentScene.title,
               style: Theme.of(context).textTheme.bodyMedium,
@@ -472,6 +474,11 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       return;
     }
     await _restoreReturnAnchor(anchor);
+  }
+
+  String _authorBreadcrumb(AppWorkspaceStore workspace) {
+    return '${workspace.currentProject.title} / '
+        '${chapterLocationLabel(workspace.currentProject.displayRecentLocation)}';
   }
 
   _EditorReturnAnchor _captureReturnAnchor() {
@@ -622,16 +629,18 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final controller = TextEditingController(text: current.prompt);
     final nextPrompt = await showDialog<String>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('编辑该段修改意图'),
-          content: TextField(
+        return DesktopModalDialog(
+          title: '编辑该段修改意图',
+          width: 520,
+          body: TextField(
             controller: controller,
             maxLines: 3,
             decoration: const InputDecoration(hintText: '输入这段的单独修改要求'),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
             ),
@@ -664,10 +673,12 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   }) async {
     await showDialog<void>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(message),
+        return DesktopModalDialog(
+          title: title,
+          width: 460,
+          body: Text(message),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -858,7 +869,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   }
 
   String _previewText(String text, int maxLength) {
-    final normalized = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final normalized = _collapseWhitespace(text.trim());
     if (normalized.length <= maxLength) {
       return normalized;
     }
@@ -910,7 +921,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             '请求配置：${metadata.providerSummary}',
             '接口：${metadata.endpointLabel}',
             '风格约束：${metadata.styleSummary}',
-            '场景上下文：${metadata.sceneSummary}',
+            '章节上下文：${metadata.sceneSummary}',
             metadata.characterSummary,
             metadata.worldSummary,
             '模拟摘要：${metadata.simulationSummary}',
@@ -963,11 +974,11 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     return switch (result.failureKind) {
       AppLlmFailureKind.unauthorized => const _AiRequestException(
         title: 'AI 请求失败：鉴权失败',
-        message: '401 / 403：请检查 API Key、账号权限或服务端授权状态。',
+        message: '401 / 403：请检查密钥、账号权限或服务端授权状态。',
       ),
       AppLlmFailureKind.timeout => const _AiRequestException(
         title: 'AI 请求失败：连接超时',
-        message: '模型服务在超时时间内未返回结果，请稍后重试或调大 timeout_ms。',
+        message: '模型服务在超时时间内未返回结果，请稍后重试或调大等待时间。',
       ),
       AppLlmFailureKind.modelNotFound => _AiRequestException(
         title: 'AI 请求失败：模型不存在',
@@ -979,7 +990,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         title: 'AI 请求失败：网络错误',
         message: result.detail?.trim().isNotEmpty == true
             ? result.detail!
-            : '无法连接到模型服务，请检查网络环境与 base_url。',
+            : '无法连接到模型服务，请检查网络环境与接口地址。',
       ),
       AppLlmFailureKind.insecureScheme => _AiRequestException(
         title: 'AI 请求失败：接口地址不安全',
@@ -1101,6 +1112,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     }
     await showDialog<void>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
         final included = List<bool>.filled(blocks.length, true);
         var isSaving = false;
@@ -1119,9 +1131,10 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
               included,
               continueMode: continueMode,
             );
-            return AlertDialog(
-              title: Text(reviewTitle),
-              content: SingleChildScrollView(
+            return DesktopModalDialog(
+              title: reviewTitle,
+              width: 760,
+              body: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -1136,7 +1149,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                     const SizedBox(height: 4),
                     Text('风格约束：${metadata.styleSummary}'),
                     const SizedBox(height: 4),
-                    Text('场景上下文：${metadata.sceneSummary}'),
+                    Text('章节上下文：${metadata.sceneSummary}'),
                     const SizedBox(height: 4),
                     Text(metadata.characterSummary),
                     const SizedBox(height: 4),
@@ -1205,7 +1218,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                 ),
               ),
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: isSaving
                       ? null
                       : () {
@@ -1301,8 +1314,8 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     if (!settingsStore.hasReadyConfiguration ||
         settingsStore.hasPersistenceIssue) {
       await _showMessageDialog(
-        title: 'AI 功能暂不可用',
-        message: '请先补全可用的 Provider 配置并处理配置异常，然后再发起 AI 操作。',
+        title: '生成候选稿前需要连接模型服务',
+        message: '当前章节仍可继续编辑；需要 AI 候选稿时，请先连接可用的模型服务并处理配置异常。',
       );
       return;
     }
@@ -1675,6 +1688,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         if (didPop) return;
         final shouldLeave = await showDialog<bool>(
           context: context,
+          barrierLabel: '关闭',
           builder: (context) => DesktopModalDialog(
             title: '未保存的修改',
             description: '当前正文有未保存的修改，确定要离开吗？',
@@ -1699,7 +1713,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       child: DesktopShellFrame(
         header: DesktopBreadcrumbBar(
           barKey: WorkbenchShellPage.breadcrumbKey,
-          breadcrumb: workspace.currentProjectBreadcrumb,
+          breadcrumb: _authorBreadcrumb(workspace),
           trailingText: '自动保存 · Markdown',
         ),
         body: LayoutBuilder(
@@ -1779,13 +1793,13 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                       },
                       onCreateScene: () => _showSceneDialog(
                         context,
-                        title: '新建场景',
+                        title: '新建章节',
                         initialValue: '',
                         onConfirm: workspace.createScene,
                       ),
                       onRenameScene: () => _showSceneDialog(
                         context,
-                        title: '重命名场景',
+                        title: '重命名章节',
                         initialValue: workspace.currentSceneOrNull?.title ?? '',
                         onConfirm: workspace.renameCurrentScene,
                       ),
@@ -1811,7 +1825,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                                 const SizedBox(height: 8),
                                 Text('风格约束：${metadata.styleSummary}'),
                                 const SizedBox(height: 8),
-                                Text('场景上下文：${metadata.sceneSummary}'),
+                                Text('章节上下文：${metadata.sceneSummary}'),
                                 const SizedBox(height: 8),
                                 Text(metadata.characterSummary),
                                 const SizedBox(height: 8),
@@ -1886,7 +1900,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                               onOpenOutline: () {
                                 AppNavigator.push(
                                   context,
-                                  AppRoutes.storyBible,
+                                  AppRoutes.worldbuilding,
                                 );
                               },
                             ),
@@ -2077,7 +2091,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          workspace.currentProjectBreadcrumb,
+                                          _authorBreadcrumb(workspace),
                                           style: theme.textTheme.titleMedium,
                                         ),
                                         const SizedBox(height: 4),
@@ -2103,7 +2117,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                                     expands: true,
                                     style: theme.textTheme.bodyMedium,
                                     decoration: InputDecoration(
-                                      hintText: '开始书写当前场景正文…',
+                                      hintText: '开始书写当前章节正文…',
                                       hintStyle: TextStyle(
                                         color: palette.tertiaryText,
                                       ),
@@ -2141,7 +2155,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                   children: [
                     _RailButton(
                       buttonKey: WorkbenchShellPage.resourcesToolButtonKey,
-                      icon: Icons.menu_book_outlined,
+                      icon: Icons.article_outlined,
                       label: '资料',
                       isSelected:
                           _activeToolPanel == WorkbenchToolPanel.resources,
@@ -2205,7 +2219,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                   DesktopMenuDrawerRegion(
                     handleKey: WorkbenchShellPage.menuDrawerHandleKey,
                     drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
-                    title: '菜单',
+                    title: '导航',
                     isOpen: _isDrawerOpen,
                     onHandleTap: _isInteractiveDefault
                         ? () {
@@ -2239,7 +2253,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
                 DesktopMenuDrawerRegion(
                   handleKey: WorkbenchShellPage.menuDrawerHandleKey,
                   drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
-                  title: '菜单',
+                  title: '导航',
                   isOpen: _isDrawerOpen,
                   onHandleTap: _isInteractiveDefault
                       ? () {
@@ -2316,7 +2330,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       case SimulationStatus.none:
         return '还没有 AI 试写记录';
       case SimulationStatus.running:
-        return 'AI 正在写这一场';
+        return 'AI 正在写本章';
       case SimulationStatus.completed:
         return 'AI 试写完成';
       case SimulationStatus.failed:
@@ -2326,7 +2340,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
 
   String _statusMetaLabel(String draftText) {
     final panelLabel = switch (_activeToolPanel) {
-      WorkbenchToolPanel.resources => '场景资料',
+      WorkbenchToolPanel.resources => '章节资料',
       WorkbenchToolPanel.ai => 'AI 工具',
       WorkbenchToolPanel.feedback => '作者反馈',
       WorkbenchToolPanel.reviewTasks => '改稿任务',
@@ -2337,7 +2351,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   }
 
   String _formatDraftUnitCount(String draftText) {
-    final compact = draftText.replaceAll(RegExp(r'\s+'), '');
+    final compact = _removeWhitespace(draftText);
     final countText = compact.length.toString();
     final buffer = StringBuffer();
     for (var index = 0; index < countText.length; index += 1) {
@@ -2389,44 +2403,25 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     ).resolve<StoryGenerationRunStore>().snapshot;
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'AI 生成过程',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      tooltip: '关闭',
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                    ),
-                  ],
-                ),
-                Divider(color: desktopPalette(context).border),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: _GenerationProcessSheetContent(
-                    snapshot: runSnapshot,
-                    simulation: simulationStore.snapshot,
-                    fallbackStatus: fallbackStatus,
-                    failureMode: failureMode,
-                  ),
-                ),
-              ],
-            ),
+      barrierLabel: '关闭',
+      builder: (dialogContext) => DesktopModalDialog(
+        title: 'AI 生成过程',
+        width: 620,
+        body: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 560),
+          child: _GenerationProcessSheetContent(
+            snapshot: runSnapshot,
+            simulation: simulationStore.snapshot,
+            fallbackStatus: fallbackStatus,
+            failureMode: failureMode,
           ),
         ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
       ),
     );
   }
@@ -2443,65 +2438,64 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     final palette = desktopPalette(context);
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierLabel: '关闭',
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('确认让 AI 写这一场'),
-          content: SizedBox(
-            width: 560,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'AI 会先生成候选内容和过程记录，不会直接覆盖正文。你可以看完后再决定采纳、改写或放弃。',
-                    style: theme.textTheme.bodyMedium,
+        return DesktopModalDialog(
+          title: '确认让 AI 写本章',
+          width: 600,
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'AI 会先生成候选内容和过程记录，不会直接覆盖正文。你可以看完后再决定采纳、改写或放弃。',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                _ConfirmationLine(label: '将使用', value: providerSummary),
+                _ConfirmationLine(label: '当前章节', value: sceneLabel),
+                _ConfirmationLine(
+                  label: '出场人物',
+                  value: characterNames.isEmpty
+                      ? '还没有明确出场人物'
+                      : characterNames.join('、'),
+                ),
+                _ConfirmationLine(
+                  label: '世界观资料',
+                  value: worldNames.isEmpty
+                      ? '还没有明确世界观资料'
+                      : worldNames.join('、'),
+                ),
+                _ConfirmationLine(
+                  label: '章节目标',
+                  value: sceneSummary.trim().isEmpty
+                      ? '还没有章节摘要，AI 会更依赖正文上下文。'
+                      : sceneSummary.trim(),
+                ),
+                _ConfirmationLine(
+                  label: '当前正文',
+                  value: '$draftWordCount 字符，自动保存仍会保留原文。',
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: palette.border),
                   ),
-                  const SizedBox(height: 16),
-                  _ConfirmationLine(label: '将使用', value: providerSummary),
-                  _ConfirmationLine(label: '当前场景', value: sceneLabel),
-                  _ConfirmationLine(
-                    label: '出场人物',
-                    value: characterNames.isEmpty
-                        ? '还没有明确出场人物'
-                        : characterNames.join('、'),
+                  child: Text(
+                    '安全规则：AI 只生成候选稿；正文需要你主动采纳才会改变。建议生成前先点一次「保存版本」。',
+                    style: theme.textTheme.bodySmall,
                   ),
-                  _ConfirmationLine(
-                    label: '世界观资料',
-                    value: worldNames.isEmpty
-                        ? '还没有明确世界观资料'
-                        : worldNames.join('、'),
-                  ),
-                  _ConfirmationLine(
-                    label: '场景目标',
-                    value: sceneSummary.trim().isEmpty
-                        ? '还没有场景摘要，AI 会更依赖正文上下文。'
-                        : sceneSummary.trim(),
-                  ),
-                  _ConfirmationLine(
-                    label: '当前正文',
-                    value: '$draftWordCount 字符，自动保存仍会保留原文。',
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: palette.border),
-                    ),
-                    child: Text(
-                      '安全规则：AI 只生成候选稿；正文需要你主动采纳才会改变。建议生成前先点一次「保存版本」。',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('先不生成'),
             ),
@@ -2573,15 +2567,15 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       case WorkbenchUiState.noSimulationYet:
         if (showContextSynced) {
           return const _StatusBanner(
-            title: '当前场景资料已刷新。',
-            message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
+            title: '当前章节资料已刷新。',
+            message: '人物、世界观和章节摘要已更新，正文位置保持不变。',
             accentColor: appSuccessColor,
           );
         }
         if (!hasSceneCharacterBinding) {
           return _StatusBanner(
-            title: '这一场还没选择出场人物。',
-            message: '选择出场人物后，AI 才能按角色设定写这一场。',
+            title: '本章还没选择出场人物。',
+            message: '选择出场人物后，AI 才能按角色设定写本章。',
             actionLabel: '选择出场人物',
             onActionTap: () {
               final anchor = _captureReturnAnchor();
@@ -2593,7 +2587,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         }
         if (!hasSceneWorldReference) {
           return _StatusBanner(
-            title: '这一场还没选择世界观资料。',
+            title: '本章还没选择世界观资料。',
             message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
             actionLabel: '选择世界观资料',
             onActionTap: () {
@@ -2609,14 +2603,14 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             if (widget.uiState == WorkbenchUiState.noSimulationYet) {
               return const _StatusBanner(
                 title: '还没有 AI 试写记录。',
-                message: '你可以继续写正文，或让 AI 按当前资料试写这一场。',
+                message: '你可以继续写正文，或让 AI 按当前资料试写本章。',
                 accentColor: appInfoColor,
               );
             }
             if (!canGenerateAi) {
               return _StatusBanner(
-                title: 'AI 还没配置好。',
-                message: '请先在设置里保存可用的供应商、模型和密钥，再生成候选稿。',
+                title: '章节可先继续写',
+                message: '需要生成候选稿时，再到设置连接模型服务；当前章节编辑不受影响。',
                 actionLabel: '前往设置',
                 onActionTap: _openSettingsAndRestoreAnchor,
                 accentColor: _appAccentColor,
@@ -2625,7 +2619,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
             return null;
           case SimulationStatus.running:
             return _StatusBanner(
-              title: 'AI 正在写这一场',
+              title: 'AI 正在写本章',
               message: '${simulation.summary} · ${simulation.stageSummary}',
               actionLabel: '查看生成过程',
               onActionTap: () {
@@ -2665,16 +2659,16 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         return null;
       case WorkbenchUiState.apiKeyMissing:
         return _StatusBanner(
-          title: 'AI 功能暂不可用',
-          message: '请先补全 Provider 配置与 API Key，然后再发起 AI 操作。',
+          title: '生成候选稿前需要连接模型服务',
+          message: '当前章节仍可继续编辑；需要 AI 候选稿时，再到设置连接模型服务。',
           actionLabel: '前往设置',
           onActionTap: _openSettingsAndRestoreAnchor,
           accentColor: appDangerColor,
         );
       case WorkbenchUiState.missingCharacterBinding:
         return _StatusBanner(
-          title: '这一场还没选择出场人物。',
-          message: '选择出场人物后，AI 才能按角色设定写这一场。',
+          title: '本章还没选择出场人物。',
+          message: '选择出场人物后，AI 才能按角色设定写本章。',
           actionLabel: '选择出场人物',
           onActionTap: () {
             AppNavigator.push(context, AppRoutes.characters);
@@ -2693,7 +2687,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         );
       case WorkbenchUiState.missingWorldReference:
         return _StatusBanner(
-          title: '这一场还没选择世界观资料。',
+          title: '本章还没选择世界观资料。',
           message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
           actionLabel: '选择世界观资料',
           onActionTap: () {
@@ -2703,8 +2697,8 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         );
       case WorkbenchUiState.contextSynced:
         return const _StatusBanner(
-          title: '当前场景资料已刷新。',
-          message: '人物、世界观和场景摘要已更新，正文位置保持不变。',
+          title: '当前章节资料已刷新。',
+          message: '人物、世界观和章节摘要已更新，正文位置保持不变。',
           accentColor: appSuccessColor,
         );
     }
@@ -2764,7 +2758,7 @@ bool _isActionableReviewMessage(StoryGenerationRunMessage message) {
   if (body.isEmpty) {
     return false;
   }
-  final normalized = body.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  final normalized = _collapseWhitespace(body.toLowerCase());
   const passingBodies = {
     'pass',
     'passed',
@@ -2776,4 +2770,40 @@ bool _isActionableReviewMessage(StoryGenerationRunMessage message) {
     return false;
   }
   return true;
+}
+
+String _collapseWhitespace(String value) {
+  final buffer = StringBuffer();
+  var previousWasWhitespace = false;
+  for (final codeUnit in value.codeUnits) {
+    if (_isWhitespaceCodeUnit(codeUnit)) {
+      if (!previousWasWhitespace) {
+        buffer.write(' ');
+      }
+      previousWasWhitespace = true;
+    } else {
+      buffer.writeCharCode(codeUnit);
+      previousWasWhitespace = false;
+    }
+  }
+  return buffer.toString();
+}
+
+String _removeWhitespace(String value) {
+  final buffer = StringBuffer();
+  for (final codeUnit in value.codeUnits) {
+    if (!_isWhitespaceCodeUnit(codeUnit)) {
+      buffer.writeCharCode(codeUnit);
+    }
+  }
+  return buffer.toString();
+}
+
+bool _isWhitespaceCodeUnit(int codeUnit) {
+  return codeUnit == 0x20 ||
+      codeUnit == 0x09 ||
+      codeUnit == 0x0A ||
+      codeUnit == 0x0D ||
+      codeUnit == 0x0B ||
+      codeUnit == 0x0C;
 }

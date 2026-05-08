@@ -4,6 +4,8 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'scene_pipeline_models.dart';
+import 'scene_type_classifier.dart';
+import 'scene_type_prompts.dart';
 import 'story_generation_pass_retry.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
@@ -15,6 +17,8 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
     : _settingsStore = settingsStore;
 
   final AppSettingsStore _settingsStore;
+  final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
+  final SceneTypePrompts _typePrompts = SceneTypePrompts();
 
   @override
   Future<SceneDirectorOutput> run({
@@ -83,8 +87,13 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
         ? '出场角色：无'
         : '出场角色：${cast.map((m) => '${m.name}(${m.role})').join('、')}';
     final revisionPrompt = _revisionRequestPrompt(brief);
+    final sceneType = _typeClassifier.classify(brief);
+    final typeSupplement = _typePrompts.directorSupplement(sceneType);
     return [
       '任务：scene_director_polish',
+      '场景类型：${sceneType.label} (置信度: ${(sceneType.confidence * 100).toInt()}%)',
+      '建议基调：${sceneType.suggestedTone}',
+      '建议节奏：${sceneType.suggestedPacing}',
       '格式：目标/冲突/推进/约束',
       '章：${_compact('${brief.chapterTitle} ${brief.chapterId}', maxChars: 40)}',
       '场：${_compact('${brief.sceneTitle} ${brief.sceneId}', maxChars: 40)}',
@@ -95,6 +104,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
       if (ragContext != null && ragContext.isNotEmpty) ragContext,
       '本地计划：',
       localPlanText,
+      typeSupplement,
     ].join('\n');
   }
 
@@ -188,7 +198,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
       progression: parsed.progression,
       constraints: parsed.constraints,
       tone: _inferTone(brief),
-      pacing: _inferPacing(brief),
+      pacing: _inferPacingFromType(brief),
       characterNotes: _buildCharacterNotes(brief: brief, cast: cast),
     );
   }
@@ -209,7 +219,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
           characterId: member.characterId,
           name: member.name,
           motivation: '$target (${member.role})',
-          emotionalArc: '${_inferTone(brief)}中随压力推进',
+          emotionalArc: '${_classifyTone(brief)}中随压力推进',
           keyAction: member.contributions.isEmpty
               ? '围绕场景目标行动'
               : '承担${member.contributions.map((c) => c.name).join('/')}功能',
@@ -218,32 +228,22 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
   }
 
   String _inferTone(SceneBrief brief) {
-    final text =
-        '${brief.sceneTitle} ${brief.sceneSummary} ${brief.targetBeat}';
-    if (text.contains('宁静') ||
-        text.contains('闲聊') ||
-        text.contains('回忆') ||
-        text.contains('平静')) {
-      return '平和';
-    }
-    if (text.contains('逼问') ||
-        text.contains('拦住') ||
-        text.contains('对峙') ||
-        text.contains('冲突') ||
-        text.contains('施压')) {
-      return '紧张';
-    }
-    return '克制';
+    final result = _typeClassifier.classify(brief);
+    return result.suggestedTone;
   }
 
-  ScenePacing _inferPacing(SceneBrief brief) {
-    if (brief.targetLength <= 250) {
-      return ScenePacing.fast;
-    }
-    if (brief.targetLength >= 1000) {
-      return ScenePacing.slow;
-    }
-    return ScenePacing.medium;
+  String _classifyTone(SceneBrief brief) {
+    final result = _typeClassifier.classify(brief);
+    return result.suggestedTone;
+  }
+
+  ScenePacing _inferPacingFromType(SceneBrief brief) {
+    final result = _typeClassifier.classify(brief);
+    return switch (result.suggestedPacing) {
+      'fast' => ScenePacing.fast,
+      'slow' => ScenePacing.slow,
+      _ => ScenePacing.medium,
+    };
   }
 
   String _compact(String value, {required int maxChars}) {

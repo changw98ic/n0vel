@@ -15,7 +15,7 @@
 | 审计中心 | `prd-07-audit-center.md` | `p8Lkt` | `bAyGg` `55YHH` `25jQz` `BskXB` | 可作为资料 / 写作联调补充检查 |
 | 章节版本 | `prd-08-version-history.md` | `Ym6ea` | `PUmdJ` `uHxFC` `v82se` `xY5Bh` `rr4J7` `XEwpS` `pblhy` | `Smoke 08` |
 | 工程导入导出 | `prd-09-project-import-export.md` | `z0mJ1` | `aYhVV` `XrBiQ` `kJVPV` `YqiXr` `f4cfp` `O5g2A` `nJ1Vf` `sqxPi` `4U4Ue` | `Smoke 09` `Smoke 10` |
-| 设置与 BYOK | `prd-10-settings-byok.md` | `DnwrZ` | `WwWEh` `6yJaH` `hroTw` `NVC2a` `YwhiQ` `URbAX` `yRdSE` `1KpPn` `BtJNK` `HcPSf` `1ppB0` `2W8bB` | `Smoke 11` |
+| 设置与 自带密钥 | `prd-10-settings-byok.md` | `DnwrZ` | `WwWEh` `6yJaH` `hroTw` `NVC2a` `YwhiQ` `URbAX` `yRdSE` `1KpPn` `BtJNK` `HcPSf` `1ppB0` `2W8bB` | `Smoke 11` |
 | 纯净阅读 | `prd-11-reading-mode.md` | `GD63C` | `WGzHM` `Cz57s` `mDkBH` `ATuaL` `cqffu` | `Smoke 07` |
 
 ## 补充页面级追踪

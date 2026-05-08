@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
@@ -73,46 +74,6 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     final current = visibleCharacters.isEmpty
         ? null
         : characters[selectedIndex];
-    final body = Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        DesktopMenuDrawerRegion(
-          isOpen: _isDrawerOpen,
-          onHandleTap: () {
-            setState(() {
-              _isDrawerOpen = !_isDrawerOpen;
-            });
-          },
-          items: _menuItems(context),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 220,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildList(theme, visibleCharacters, selectedIndex),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildDetail(theme, store, current),
-          ),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 320,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildSummary(theme, store, current),
-          ),
-        ),
-      ],
-    );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
         title: '作品设定 · 角色库',
@@ -126,24 +87,74 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          if (widget.uiState == CharacterLibraryUiState.deleteReferencedConfirm)
-            Opacity(opacity: 0.55, child: body)
-          else
-            body,
-          if (widget.uiState == CharacterLibraryUiState.deleteReferencedConfirm)
-            Positioned.fill(
-              child: _CharacterDeleteOverlay(
-                characterName: current?.name ?? '当前角色',
-                sceneLabel: _linkedSceneTag(store, current),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final showSummary =
+              constraints.maxWidth >= AppDesignTokens.breakpointNarrow;
+          final body = Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DesktopMenuDrawerRegion(
+                isOpen: _isDrawerOpen,
+                onHandleTap: () {
+                  setState(() {
+                    _isDrawerOpen = !_isDrawerOpen;
+                  });
+                },
+                items: _menuItems(context),
               ),
-            ),
-        ],
+              const SizedBox(width: AppDesignTokens.space16),
+              SizedBox(
+                width: 220,
+                child: Container(
+                  decoration: appPanelDecoration(context),
+                  padding: const EdgeInsets.all(AppDesignTokens.space16),
+                  child: _buildList(theme, visibleCharacters, selectedIndex),
+                ),
+              ),
+              const SizedBox(width: AppDesignTokens.space16),
+              Expanded(
+                child: Container(
+                  decoration: appPanelDecoration(context),
+                  padding: const EdgeInsets.all(AppDesignTokens.space16),
+                  child: _buildDetail(theme, store, current),
+                ),
+              ),
+              if (showSummary) ...[
+                const SizedBox(width: AppDesignTokens.space16),
+                SizedBox(
+                  width: 320,
+                  child: Container(
+                    decoration: appPanelDecoration(context),
+                    padding: const EdgeInsets.all(AppDesignTokens.space16),
+                    child: _buildSummary(theme, store, current),
+                  ),
+                ),
+              ],
+            ],
+          );
+          return Stack(
+            children: [
+              if (widget.uiState ==
+                  CharacterLibraryUiState.deleteReferencedConfirm)
+                Opacity(opacity: 0.55, child: body)
+              else
+                body,
+              if (widget.uiState ==
+                  CharacterLibraryUiState.deleteReferencedConfirm)
+                Positioned.fill(
+                  child: _CharacterDeleteOverlay(
+                    characterName: current?.name ?? '当前角色',
+                    sceneLabel: _linkedSceneTag(store, current),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
       statusBar: const DesktopStatusStrip(
         leftText: '作品设定 · 人物资料已保存',
-        rightText: '场景 05',
+        rightText: '第 3 章',
       ),
     );
   }
@@ -158,7 +169,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('角色列表', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Text('当前项目无角色', style: theme.textTheme.bodySmall),
         ],
       );
@@ -168,11 +179,11 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('搜索结果', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const _InfoBlock(title: '没有找到匹配角色', message: '试试更短的名字、别名或身份关键词。'),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -189,7 +200,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('角色列表', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         DesktopSearchField(
           fieldKey: CharacterLibraryPage.searchFieldKey,
           controller: _searchController,
@@ -197,13 +208,13 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           onChanged: (_) => setState(() {}),
           width: double.infinity,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         AppListSortDropdown<CharacterRecord>(
           options: _sortOptions,
           selectedIndex: _sortIndex,
           onChanged: (i) => setState(() => _sortIndex = i),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppDesignTokens.space12),
         if (visibleCharacters.isEmpty)
           const Expanded(
             child: AppEmptyState(title: '没有匹配角色', message: '换个关键词，或新建一个角色。'),
@@ -220,7 +231,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
                 _selectedIndex = _characters(context).indexOf(character);
               }),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDesignTokens.space8),
           ],
       ],
     );
@@ -244,7 +255,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('角色详情', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const Expanded(
             child: _CenteredPanelState(
               title: '未选中角色',
@@ -260,14 +271,14 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('角色详情', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDesignTokens.space12),
             const _StateCard(
               title: '缺少必填字段',
               message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
               accent: Color(0xFF51624D),
             ),
             if (current != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDesignTokens.space12),
               _buildCharacterFields(store, current),
             ],
           ],
@@ -280,7 +291,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('角色详情', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const Expanded(
             child: _CenteredPanelState(
               title: '没有可展示的角色',
@@ -296,14 +307,14 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('角色详情', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           _buildCharacterFields(store, current),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           Text('引用场景', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppDesignTokens.space4),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppDesignTokens.space8,
+            runSpacing: AppDesignTokens.space8,
             children: [
               for (final scene in store.scenes)
                 FilterChip(
@@ -366,7 +377,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const _InfoBlock(
             title: '引用场景',
             message: '当前还没有角色引用，创建角色后可以从这里快速跳回工作台。',
@@ -379,9 +390,9 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const _InfoBlock(title: '改搜建议', message: '试试角色名、关系称谓、标签或登场场景关键词。'),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           const _InfoBlock(title: '引用场景', message: '搜索无结果时，不展示引用片段。'),
         ],
       );
@@ -391,7 +402,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           const _InfoBlock(
             title: '人物摘要',
             message: '缺少姓名时，暂不整理角色摘要，也不会同步到写作工作台。',
@@ -404,7 +415,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDesignTokens.space12),
           if (current == null)
             const AppEmptyState(title: '暂无摘要', message: '请先搜索或新建一个角色。')
           else ...[
@@ -414,7 +425,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
                   ? current.summary
                   : current.referenceSummary,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDesignTokens.space8),
             if (current.linkedSceneIds.isEmpty)
               const AppEmptyState(
                 title: '暂无引用场景',
@@ -422,8 +433,8 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
               )
             else
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppDesignTokens.space8,
+                runSpacing: AppDesignTokens.space8,
                 children: [
                   for (final scene in store.scenes)
                     if (current.linkedSceneIds.contains(scene.id))
@@ -455,7 +466,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
 
   String _linkedSceneTag(AppWorkspaceStore store, CharacterRecord? current) {
     if (current == null || current.linkedSceneIds.isEmpty) {
-      return 'Scene 05';
+      return '第 3 章 / 场景 05';
     }
     SceneRecord? matchedScene;
     for (final sceneId in current.linkedSceneIds) {
@@ -464,40 +475,16 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         continue;
       }
       final scene = candidate.first;
-      if (scene.chapterLabel.contains('场景 05')) {
+      if (scene.locationParts.chapterNumber == 3) {
         matchedScene = scene;
         break;
       }
       matchedScene ??= scene;
     }
     if (matchedScene == null) {
-      return 'Scene 05';
+      return '第 3 章 / 场景 05';
     }
-    final sceneNumber = _sceneNumberFromLabel(matchedScene.chapterLabel);
-    if (sceneNumber == null) {
-      return matchedScene.title;
-    }
-    return 'Scene $sceneNumber';
-  }
-
-  String? _sceneNumberFromLabel(String label) {
-    final markerIndex = label.indexOf('场景');
-    if (markerIndex < 0) {
-      return null;
-    }
-    var index = markerIndex + '场景'.length;
-    while (index < label.length && label.codeUnitAt(index) == 0x20) {
-      index++;
-    }
-    final start = index;
-    while (index < label.length) {
-      final codeUnit = label.codeUnitAt(index);
-      if (codeUnit < 0x30 || codeUnit > 0x39) {
-        break;
-      }
-      index++;
-    }
-    return index == start ? null : label.substring(start, index);
+    return matchedScene.displayLocation;
   }
 
   Widget _buildCharacterFields(
@@ -534,7 +521,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           initialValue: current.name,
           onChanged: (value) => onFieldChanged(current.id, name: value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         _EditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.roleFieldKey.value}-${current.id}',
@@ -543,7 +530,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           initialValue: current.role,
           onChanged: (value) => onFieldChanged(current.id, role: value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         _EditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.noteFieldKey.value}-${current.id}',
@@ -553,7 +540,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           maxLines: 3,
           onChanged: (value) => onFieldChanged(current.id, note: value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         _EditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.needFieldKey.value}-${current.id}',
@@ -563,7 +550,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           maxLines: 3,
           onChanged: (value) => onFieldChanged(current.id, need: value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDesignTokens.space8),
         _EditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.summaryFieldKey.value}-${current.id}',
@@ -640,7 +627,7 @@ class _InfoBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: appPanelDecoration(
         context,
         color: desktopPalette(context).subtle,
@@ -649,7 +636,7 @@ class _InfoBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppDesignTokens.space4),
           Text(message, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
@@ -702,17 +689,17 @@ class _StateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
       decoration: BoxDecoration(
         color: desktopPalette(context).subtle,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
         border: Border.all(color: desktopPalette(context).borderStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           Text(message, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
@@ -740,7 +727,7 @@ class _CallToActionState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Text(
@@ -749,7 +736,7 @@ class _CallToActionState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDesignTokens.space16),
           FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
         ],
       ),
@@ -771,12 +758,12 @@ class _CenteredPanelState extends StatelessWidget {
         context,
         color: desktopPalette(context).subtle,
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppDesignTokens.space24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDesignTokens.space8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 280),
             child: Text(
@@ -807,10 +794,10 @@ class _CharacterDeleteOverlay extends StatelessWidget {
       child: Center(
         child: Container(
           width: 728,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppDesignTokens.space20),
           decoration: BoxDecoration(
             color: desktopPalette(context).surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
             border: Border.all(color: desktopPalette(context).borderStrong),
           ),
           child: Column(
@@ -818,14 +805,14 @@ class _CharacterDeleteOverlay extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('删除被引用角色？', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDesignTokens.space16),
               Text(
-                '角色“$characterName”仍被 $sceneLabel 引用。继续删除会导致相关场景失去角色绑定。\n\n建议先回到工作台或角色库移除引用，再执行删除。',
+                '角色"$characterName"仍被 $sceneLabel 引用。继续删除会导致相关场景失去角色绑定。\n\n建议先回到工作台或角色库移除引用，再执行删除。',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDesignTokens.space16),
               _InfoBlock(title: '引用场景', message: sceneLabel),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDesignTokens.space16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

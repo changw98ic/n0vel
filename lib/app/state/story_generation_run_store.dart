@@ -369,14 +369,14 @@ class StoryGenerationRunStore extends ChangeNotifier {
         status: StoryGenerationRunStatus.running,
         sceneId: brief.sceneId,
         sceneLabel: _sceneLabel(),
-        headline: 'AI 正在准备这一场',
-        summary: '正在整理场景目标、出场人物和改稿检查；正文不会被直接覆盖。',
+        headline: 'AI 正在准备本章',
+        summary: '正在整理章节目标、出场人物和改稿检查；正文不会被直接覆盖。',
         stageSummary: '正在准备候选稿',
         participants: baseParticipants,
         messages: [
           const StoryGenerationRunMessage(
             title: '运行开始',
-            body: 'AI 已开始按当前场景资料试写；生成内容会先作为候选记录，等待作者确认。',
+            body: 'AI 已开始按当前章节资料试写；生成内容会先作为候选记录，等待作者确认。',
             kind: StoryGenerationRunMessageKind.status,
           ),
           ..._revisionRequestMessages(revisionRequests),
@@ -567,7 +567,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
       sceneId: scene?.id ?? '',
       sceneLabel: scene != null ? _sceneLabel() : '',
       headline: '还没有 AI 试写记录',
-      summary: '你可以继续写正文，或点击「让 AI 写这一场」生成初稿。',
+      summary: '你可以继续写正文，或点击「让 AI 写本章」生成初稿。',
       stageSummary: '未开始',
     );
   }
@@ -578,7 +578,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
         id: 'director',
         name: '导演',
         role: '固定编排代理',
-        summary: '负责整理这一场的写作目标，并协调出场人物。',
+        summary: '负责整理本章的写作目标，并协调出场人物。',
         statusSummary: '等待发放任务卡',
       ),
       for (final cast in brief.cast)
@@ -622,7 +622,7 @@ class StoryGenerationRunStore extends ChangeNotifier {
       sceneLabel: _sceneLabel(),
       headline: 'AI 试写完成',
       summary:
-          '${output.resolvedCast.length} 位出场人物完成这一场，候选内容已保留为记录，检查结果：${output.review.decision.name}。',
+          '${output.resolvedCast.length} 位出场人物完成本章，候选内容已保留为记录，检查结果：${output.review.decision.name}。',
       stageSummary: output.review.feedback.isEmpty
           ? '候选稿已生成，等待作者采纳'
           : output.review.feedback,

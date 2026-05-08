@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'desktop_status_modal.dart';
 import 'desktop_theme.dart';
 
 /// A sort option for list items of type [T].
 class AppListSortOption<T> {
-  const AppListSortOption({
-    required this.label,
-    required this.compare,
-  });
+  const AppListSortOption({required this.label, required this.compare});
 
   final String label;
   final int Function(T a, T b) compare;
@@ -15,10 +13,7 @@ class AppListSortOption<T> {
 
 /// A filter option for list items of type [T].
 class AppListFilterOption<T> {
-  const AppListFilterOption({
-    required this.label,
-    required this.test,
-  });
+  const AppListFilterOption({required this.label, required this.test});
 
   final String label;
   final bool Function(T item) test;
@@ -53,7 +48,7 @@ List<T> applyListFilter<T>({
   return result;
 }
 
-/// A compact dropdown that lets the user pick one sort option.
+/// A compact sort picker that opens a desktop dialog for option changes.
 class AppListSortDropdown<T> extends StatelessWidget {
   const AppListSortDropdown({
     super.key,
@@ -66,48 +61,109 @@ class AppListSortDropdown<T> extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
+  Future<void> _showSortDialog(BuildContext context) async {
+    final selected = await showDialog<int>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        final palette = desktopPalette(dialogContext);
+        return DesktopModalDialog(
+          title: '选择排序',
+          width: 360,
+          body: ListView.separated(
+            shrinkWrap: true,
+            itemCount: options.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final isSelected = index == selectedIndex;
+              return OutlinedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(index),
+                style: OutlinedButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSelected ? Icons.check_circle : Icons.circle_outlined,
+                      size: 18,
+                      color: isSelected
+                          ? palette.primary
+                          : palette.tertiaryText,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        options[index].label,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+    if (selected != null && selected != selectedIndex) {
+      onChanged(selected);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     final current = options[selectedIndex];
 
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: palette.border),
-      ),
-      child: PopupMenuButton<int>(
-        offset: const Offset(0, 34),
-        constraints: const BoxConstraints(minWidth: 140),
-        itemBuilder: (_) => [
-          for (var i = 0; i < options.length; i++)
-            PopupMenuItem<int>(
-              value: i,
+    return Semantics(
+      button: true,
+      label: '选择排序方式：${current.label}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showSortDialog(context),
+          borderRadius: BorderRadius.circular(8),
+          child: ExcludeSemantics(
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: palette.elevated,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border),
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(options[i].label, style: theme.textTheme.bodySmall),
-                  const Spacer(),
-                  if (i == selectedIndex)
-                    Icon(Icons.check, size: 16, color: palette.primary),
+                  Icon(
+                    Icons.sort_rounded,
+                    size: 14,
+                    color: palette.tertiaryText,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(current.label, style: theme.textTheme.bodySmall),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.expand_more,
+                    size: 14,
+                    color: palette.tertiaryText,
+                  ),
                 ],
               ),
             ),
-        ],
-        onSelected: onChanged,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              current.label,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.unfold_more, size: 14, color: palette.tertiaryText),
-          ],
+          ),
         ),
       ),
     );
@@ -175,7 +231,9 @@ class _FilterChipButton extends StatelessWidget {
         child: Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: selected ? Colors.white : theme.colorScheme.onSurface,
+            color: selected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),

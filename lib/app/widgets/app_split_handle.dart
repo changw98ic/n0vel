@@ -75,27 +75,25 @@ class _AppSplitHandleState extends State<AppSplitHandle> {
       final tappableHandle = AnimatedContainer(
         duration: _animDuration,
         curve: Curves.easeOut,
-        width: 20,
+        width: hitSize,
         height: widget.height ?? 64,
         decoration: BoxDecoration(
-          color: _active ? palette.subtle : palette.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: _active ? palette.borderStrong : palette.border,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: _active ? 0.08 : 0.04),
-              blurRadius: _active ? 10 : 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: _active
+              ? palette.subtle.withValues(alpha: 0.86)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          Icons.drag_indicator_rounded,
-          size: 16,
-          color: (_active ? palette.primary : palette.secondaryText).withValues(
-            alpha: _active ? 0.95 : 0.72,
+        child: Center(
+          child: AnimatedContainer(
+            duration: _animDuration,
+            curve: Curves.easeOut,
+            width: _active ? 3 : 1,
+            height: widget.height == null ? 44 : (widget.height! * 0.62),
+            decoration: BoxDecoration(
+              color: (_active ? palette.primary : palette.splitHandle)
+                  .withValues(alpha: _active ? 0.72 : 0.28),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
         ),
       );

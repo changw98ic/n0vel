@@ -74,15 +74,18 @@ void main() {
       '${Directory.current.path}/test/real_three_chapter_generation_test.dart',
     ).readAsStringSync();
 
-    final testName = "'real three chapter generation leaves visible artifacts'";
+    const testName = "'real three chapter generation leaves visible artifacts'";
 
     late final String block;
     var found = false;
     var searchFrom = 0;
     while (!found) {
       final callStart = source.indexOf('test(', searchFrom);
-      expect(callStart, greaterThanOrEqualTo(0),
-          reason: 'Test declaration $testName not found in source.');
+      expect(
+        callStart,
+        greaterThanOrEqualTo(0),
+        reason: 'Test declaration $testName not found in source.',
+      );
 
       var depth = 0;
       var callEnd = callStart;
@@ -117,8 +120,7 @@ void main() {
     expect(
       block,
       isNot(contains('Duration(minutes: 45)')),
-      reason:
-          'The real generation test must not contain Duration(minutes: 45)',
+      reason: 'The real generation test must not contain Duration(minutes: 45)',
     );
   });
 
@@ -415,9 +417,7 @@ void main() {
         isTrue,
       );
       expect(
-        File(
-          '${result.outputRoot.path}/exports/lunaris-export.zip',
-        ).existsSync(),
+        File('${result.outputRoot.path}/exports/月临-导出.zip').existsSync(),
         isTrue,
       );
     },
@@ -434,7 +434,7 @@ void main() {
       }
     });
 
-    final package = File('${directory.path}/lunaris-export.zip');
+    final package = File('${directory.path}/月临-导出.zip');
     await package.writeAsBytes(List<int>.filled(128, 0x50));
 
     final markdown = _runReportMarkdown(
@@ -651,12 +651,11 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
 
     await statusReporter.update(
       phase: 'writing-inputs',
-      detail:
-          'Writing world bible and character profiles, then generating the real outline.',
+      detail: '写入世界观资料与角色档案，然后生成真实三章大纲。',
     );
     await recorder.recordReport(
-      relativePath: 'inputs/world_bible.md',
-      content: _worldBibleMarkdown(),
+      relativePath: 'inputs/world_settings.md',
+      content: _worldSettingsMarkdown(),
     );
     await recorder.recordReport(
       relativePath: 'inputs/character_profiles.md',
@@ -803,7 +802,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
       aiHistoryStore.addEntry(
         mode: '真实正文生成',
         prompt:
-            '${chapter.title} generated from outline, world bible, '
+            '${chapter.title} generated from outline, world settings, '
             'characters, and ${simulationSession.messages.length} '
             'real multi-agent messages.',
       );
@@ -1411,7 +1410,7 @@ String _realOutlinePrompt(List<_ValidationChapter> chapters) {
     '- 保持悬疑港区、调查记者、账本证据、雨夜追逃的主线连续性。',
     '',
     '世界观：',
-    _worldBibleMarkdown(),
+    _worldSettingsMarkdown(),
     '',
     '角色：',
     _characterProfilesMarkdown(chapters),
@@ -1946,7 +1945,7 @@ Future<int> _readJsonlCount(Directory logsDirectory) async {
   return count;
 }
 
-String _worldBibleMarkdown() {
+String _worldSettingsMarkdown() {
   return [
     '# 世界设定',
     '',

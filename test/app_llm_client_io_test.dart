@@ -438,7 +438,7 @@ void main() {
 
         expect(invalidUrl.succeeded, isFalse);
         expect(invalidUrl.failureKind, AppLlmFailureKind.network);
-        expect(invalidUrl.detail, 'base_url 无法解析为有效地址。');
+        expect(invalidUrl.detail, '接口地址无法解析为有效地址。');
       },
     );
 

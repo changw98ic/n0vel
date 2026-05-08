@@ -344,15 +344,12 @@ mixin _AuditTransferOps on _WorkspaceCodec {
   // ---------------------------------------------------------------------------
 
   SceneRecord? _sceneForAuditIssue(AuditIssueRecord issue) {
-    final sceneNumber = RegExp(
-      r'场景\s*(\d+)',
-    ).firstMatch(issue.target)?.group(1);
+    final sceneNumber = SceneLocationParts.firstSceneNumberIn(issue.target);
     if (sceneNumber == null) {
       return null;
     }
-    final padded = sceneNumber.padLeft(2, '0');
     for (final scene in _scenesForCurrentProject()) {
-      if (scene.chapterLabel.contains('场景 $padded')) {
+      if (scene.locationParts.sceneNumber == sceneNumber) {
         return scene;
       }
     }

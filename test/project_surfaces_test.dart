@@ -129,7 +129,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('设置文件读取失败'), findsOneWidget);
-      expect(find.textContaining('无法读取 settings.json'), findsOneWidget);
+      expect(find.textContaining('无法读取本地配置文件'), findsOneWidget);
     },
   );
 
@@ -149,7 +149,7 @@ void main() {
     await tester.tap(find.byKey(SettingsShellPage.saveButtonKey));
     await tester.pump();
 
-    expect(find.text('请输入有效的 base_url'), findsWidgets);
+    expect(find.text('请输入有效的接口地址'), findsWidgets);
     expect(find.text('重试配置'), findsNothing);
     expect(find.text('设置文件读取失败'), findsNothing);
   });
@@ -349,7 +349,7 @@ void main() {
         );
     await tester.pumpAndSettle();
 
-    expect(find.text('新建项目 4 / 第 1 章 / 场景 01 · 等待命名'), findsWidgets);
+    expect(find.text('新建项目 4 / 第 1 章 · 等待命名'), findsWidgets);
   });
 
   testWidgets(
@@ -363,7 +363,7 @@ void main() {
 
       workspaceStore.updateCurrentScene(
         sceneId: 'scene-07-balcony-conflict',
-        recentLocation: '第 3 章 / 场景 07 · 阳台争执',
+        recentLocation: '第 3 章 · 阳台争执',
       );
       await tester.pump();
 
@@ -374,7 +374,7 @@ void main() {
           );
       await tester.pumpAndSettle();
 
-      expect(find.text('月潮回声 / 第 3 章 / 场景 07 · 阳台争执'), findsWidgets);
+      expect(find.text('月潮回声 / 第 3 章 · 阳台争执'), findsWidgets);
     },
   );
 
@@ -441,7 +441,7 @@ void main() {
     await openProjectDrawer(tester);
     await tester.tap(find.text('作品设定'));
     await tester.pumpAndSettle();
-    expect(find.text('作品圣经摘要'), findsOneWidget);
+    expect(find.text('当前进度'), findsOneWidget);
     expect(find.text('角色库'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -462,7 +462,7 @@ void main() {
 
     expect(find.text('当前还没有项目'), findsOneWidget);
     expect(find.text('新建项目'), findsWidgets);
-    expect(find.text('打开菜单'), findsOneWidget);
+    expect(find.text('打开导航'), findsOneWidget);
   });
 
   testWidgets('shows project list search no results state', (tester) async {
@@ -849,7 +849,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(WorkbenchShellPage.editorTextFieldKey),
-      '作者端到端草稿：角色带着目标进入场景，世界规则推动下一步冲突。',
+      '作者端到端草稿：角色带着目标进入章节，世界规则推动下一步冲突。',
     );
     await tester.pump();
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
@@ -876,9 +876,9 @@ class FakeProjectTransferService extends ProjectTransferService {
   FakeProjectTransferService() : super();
 
   static const String _fakeExportPath =
-      '/tmp/novel_writer_test/exports/lunaris-export.zip';
+      '/tmp/novel_writer_test/exports/月临-导出.zip';
   static const String _fakeImportPath =
-      '/tmp/novel_writer_test/imports/lunaris-export.zip';
+      '/tmp/novel_writer_test/imports/月临-导出.zip';
 
   ProjectPackageManifest? _exportManifest;
   ProjectPackageManifest? _importManifest;
@@ -901,7 +901,7 @@ class FakeProjectTransferService extends ProjectTransferService {
     _stagedVersionJson = versionStore.exportJson();
     _stagedWorkspaceJson = workspaceStore.exportJson();
     _importManifest = ProjectPackageManifest(
-      packageName: 'lunarifest',
+      packageName: '小说工程包',
       projectId: workspaceStore.currentProjectId,
       projectTitle: workspaceStore.currentProject.title,
       schemaMajor: 1,
@@ -923,7 +923,7 @@ class FakeProjectTransferService extends ProjectTransferService {
     required AppWorkspaceStore workspaceStore,
   }) async {
     _exportManifest = ProjectPackageManifest(
-      packageName: 'lunarifest',
+      packageName: '小说工程包',
       projectId: workspaceStore.currentProjectId,
       projectTitle: workspaceStore.currentProject.title,
       schemaMajor: 1,

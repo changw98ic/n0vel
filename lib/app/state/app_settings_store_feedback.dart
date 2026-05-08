@@ -35,11 +35,11 @@ import 'app_settings_store_utils.dart';
       return (
         issue: result.issue,
         detail: result.detail,
-        summary: '设置文件写入失败，本次修改未能持久化到 settings.json。',
+        summary: '本地配置文件写入失败，本次修改未能保存。',
         feedback: AppSettingsFeedback(
           title: '设置保存失败',
           message: withDetail(
-            '设置文件写入失败，本次修改未能持久化到 settings.json。',
+            '本地配置文件写入失败，本次修改未能保存。',
             result.detail,
           ),
           tone: AppSettingsFeedbackTone.error,
@@ -69,10 +69,10 @@ import 'app_settings_store_utils.dart';
       return (
         issue: issue,
         detail: detail,
-        summary: '无法读取 settings.json，请检查文件内容是否损坏。',
+        summary: '无法读取本地配置文件，请检查文件内容是否损坏。',
         feedback: AppSettingsFeedback(
           title: '设置文件读取失败',
-          message: withDetail('无法读取 settings.json，请检查文件内容是否损坏。', detail),
+          message: withDetail('无法读取本地配置文件，请检查文件内容是否损坏。', detail),
           tone: AppSettingsFeedbackTone.error,
         ),
       );
@@ -80,10 +80,10 @@ import 'app_settings_store_utils.dart';
       return (
         issue: issue,
         detail: detail,
-        summary: '无法写入 settings.json，请检查磁盘或目录权限。',
+        summary: '无法写入本地配置文件，请检查磁盘或目录权限。',
         feedback: AppSettingsFeedback(
           title: '设置文件写入失败',
-          message: withDetail('无法写入 settings.json，请检查磁盘或目录权限。', detail),
+          message: withDetail('无法写入本地配置文件，请检查磁盘或目录权限。', detail),
           tone: AppSettingsFeedbackTone.error,
         ),
       );

@@ -200,7 +200,10 @@ void main() {
         expect(summary.sceneCount, 2);
         expect(summary.plotProgress, contains('逼问线索'));
         expect(summary.plotProgress, contains('拿到账本'));
-        expect(summary.characterStateChanges, containsAll(['柳溪(角色)', '岳刃(角色)']));
+        expect(
+          summary.characterStateChanges,
+          containsAll(['柳溪(角色)', '岳刃(角色)']),
+        );
         expect(summary.unresolvedThreads, hasLength(1));
         expect(summary.unresolvedThreads.first, contains('review='));
         expect(summary.createdAtMs, 1000);
@@ -405,57 +408,57 @@ void main() {
         expect(context.previousSummaries, hasLength(2));
       });
 
-      test('carries over high-confidence thoughts from previous chapters',
-          () async {
-        await bridge.saveChapterSummary(
-          'project-1',
-          ChapterSummary(
-            chapterId: 'ch-01',
-            chapterTitle: '第一章',
-            sceneCount: 1,
-            plotProgress: 'A',
-            createdAtMs: 1000,
-          ),
-        );
+      test(
+        'carries over high-confidence thoughts from previous chapters',
+        () async {
+          await bridge.saveChapterSummary(
+            'project-1',
+            ChapterSummary(
+              chapterId: 'ch-01',
+              chapterTitle: '第一章',
+              sceneCount: 1,
+              plotProgress: 'A',
+              createdAtMs: 1000,
+            ),
+          );
 
-        await storage.saveThoughts('ch-01', [
-          ThoughtAtom(
-            id: 't1',
-            projectId: 'ch-01',
-            scopeId: 'ch-01:scene-01',
-            thoughtType: ThoughtType.plotCausality,
-            content: '岳刃暴露了货单线索',
-            confidence: 0.9,
-            abstractionLevel: 2.0,
-            createdAtMs: 1100,
-          ),
-          ThoughtAtom(
-            id: 't2',
-            projectId: 'ch-01',
-            scopeId: 'ch-01:scene-01',
-            thoughtType: ThoughtType.persona,
-            content: '低置信度',
-            confidence: 0.3,
-            abstractionLevel: 1.0,
-            createdAtMs: 1200,
-          ),
-        ]);
+          await storage.saveThoughts('ch-01', [
+            ThoughtAtom(
+              id: 't1',
+              projectId: 'ch-01',
+              scopeId: 'ch-01:scene-01',
+              thoughtType: ThoughtType.plotCausality,
+              content: '岳刃暴露了货单线索',
+              confidence: 0.9,
+              abstractionLevel: 2.0,
+              createdAtMs: 1100,
+            ),
+            ThoughtAtom(
+              id: 't2',
+              projectId: 'ch-01',
+              scopeId: 'ch-01:scene-01',
+              thoughtType: ThoughtType.persona,
+              content: '低置信度',
+              confidence: 0.3,
+              abstractionLevel: 1.0,
+              createdAtMs: 1200,
+            ),
+          ]);
 
-        final context = await bridge.buildCrossChapterContext(
-          projectId: 'project-1',
-          currentChapterId: 'ch-02',
-        );
+          final context = await bridge.buildCrossChapterContext(
+            projectId: 'project-1',
+            currentChapterId: 'ch-02',
+          );
 
-        expect(context.carryOverThoughts, hasLength(1));
-        expect(context.carryOverThoughts.first.content, '岳刃暴露了货单线索');
-      });
+          expect(context.carryOverThoughts, hasLength(1));
+          expect(context.carryOverThoughts.first.content, '岳刃暴露了货单线索');
+        },
+      );
     });
 
     group('enrichMaterialSnapshot', () {
       test('returns base snapshot when context is empty', () {
-        const base = ProjectMaterialSnapshot(
-          worldFacts: ['世界规则1'],
-        );
+        const base = ProjectMaterialSnapshot(worldFacts: ['世界规则1']);
         const context = CrossChapterContext(
           previousSummaries: [],
           carryOverThoughts: [],
@@ -466,9 +469,7 @@ void main() {
       });
 
       test('injects chapter summaries into scene summaries', () {
-        const base = ProjectMaterialSnapshot(
-          sceneSummaries: ['场景1'],
-        );
+        const base = ProjectMaterialSnapshot(sceneSummaries: ['场景1']);
         final context = CrossChapterContext(
           previousSummaries: [
             ChapterSummary(
@@ -490,9 +491,7 @@ void main() {
       });
 
       test('injects character states and unresolved threads', () {
-        const base = ProjectMaterialSnapshot(
-          acceptedStates: ['现有状态'],
-        );
+        const base = ProjectMaterialSnapshot(acceptedStates: ['现有状态']);
         final context = CrossChapterContext(
           previousSummaries: [
             ChapterSummary(
@@ -510,14 +509,8 @@ void main() {
         final enriched = bridge.enrichMaterialSnapshot(base, context);
 
         expect(enriched.acceptedStates, contains('现有状态'));
-        expect(
-          enriched.acceptedStates.any((s) => s.contains('前章角色')),
-          isTrue,
-        );
-        expect(
-          enriched.acceptedStates.any((s) => s.contains('前章悬念')),
-          isTrue,
-        );
+        expect(enriched.acceptedStates.any((s) => s.contains('前章角色')), isTrue);
+        expect(enriched.acceptedStates.any((s) => s.contains('前章悬念')), isTrue);
       });
 
       test('injects carry-over thoughts as scene summaries', () {
@@ -541,14 +534,8 @@ void main() {
         final enriched = bridge.enrichMaterialSnapshot(base, context);
 
         expect(enriched.sceneSummaries, hasLength(1));
-        expect(
-          enriched.sceneSummaries.first,
-          contains('跨章记忆'),
-        );
-        expect(
-          enriched.sceneSummaries.first,
-          contains('foreshadowing'),
-        );
+        expect(enriched.sceneSummaries.first, contains('跨章记忆'));
+        expect(enriched.sceneSummaries.first, contains('foreshadowing'));
       });
 
       test('preserves base fields that are not enriched', () {
@@ -718,10 +705,7 @@ void main() {
       });
 
       test('detects empty previousExit chapterId', () {
-        const exitState = ChapterExitState(
-          chapterId: '',
-          chapterTitle: '',
-        );
+        const exitState = ChapterExitState(chapterId: '', chapterTitle: '');
 
         final validation = bridge.validateEntry(
           previousExit: exitState,

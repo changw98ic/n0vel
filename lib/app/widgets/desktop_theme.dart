@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_design_tokens.dart';
+
 const Color appCanvasColor = Color(0xFFF6F0E6);
 const Color appSurfaceColor = Color(0xFFFBF7F1);
 const Color appElevatedColor = Color(0xFFFFFDFC);
@@ -25,17 +27,17 @@ abstract final class DesktopLayoutTokens {
   static const double workbenchToolWindowWidth = 296;
   static const double workbenchRailWidth = 60;
 
-  static const double narrowBreakpoint = 600;
-  static const double mediumBreakpoint = 860;
-  static const double wideBreakpoint = 1200;
+  static const double narrowBreakpoint = AppDesignTokens.breakpointNarrow;
+  static const double mediumBreakpoint = AppDesignTokens.breakpointMedium;
+  static const double wideBreakpoint = AppDesignTokens.breakpointWide;
 
-  static const double shellPaddingWide = 24.0;
-  static const double shellPaddingMedium = 16.0;
-  static const double shellPaddingNarrow = 12.0;
-  static const double panelSpacingWide = 16.0;
-  static const double panelSpacingNarrow = 8.0;
+  static const double shellPaddingWide = AppDesignTokens.space24;
+  static const double shellPaddingMedium = AppDesignTokens.space16;
+  static const double shellPaddingNarrow = AppDesignTokens.space12;
+  static const double panelSpacingWide = AppDesignTokens.space16;
+  static const double panelSpacingNarrow = AppDesignTokens.space8;
   static const double splitHandleWidth = 6.0;
-  static const double splitHandleHitArea = 14.0;
+  static const double splitHandleHitArea = AppDesignTokens.space12 + 2;
 }
 
 enum LayoutSize { narrow, medium, wide }
@@ -168,15 +170,27 @@ BoxDecoration appPanelDecoration(BuildContext context, {Color? color}) {
   return BoxDecoration(
     color: color ?? palette.surface,
     border: Border.all(color: palette.border),
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
   );
 }
 
 BoxDecoration appModalDecoration(BuildContext context, {Color? color}) {
   final palette = desktopPalette(context);
   return BoxDecoration(
-    color: color ?? palette.elevated,
+    color:
+        color ??
+        Color.alphaBlend(
+          palette.subtle.withValues(alpha: 0.24),
+          palette.surface,
+        ),
     border: Border.all(color: palette.border),
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.12),
+        blurRadius: 28,
+        offset: const Offset(0, 14),
+      ),
+    ],
   );
 }

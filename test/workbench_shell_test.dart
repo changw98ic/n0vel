@@ -202,7 +202,7 @@ void main() {
     );
 
     expect(find.byKey(WorkbenchShellPage.menuDrawerPanelKey), findsOneWidget);
-    expect(find.text('菜单'), findsOneWidget);
+    expect(find.text('导航'), findsOneWidget);
   });
 
   testWidgets('keeps the drawer handle attached to the opened menu edge', (
@@ -251,7 +251,7 @@ void main() {
       ),
     );
 
-    expect(find.text('AI 功能暂不可用'), findsOneWidget);
+    expect(find.text('生成候选稿前需要连接模型服务'), findsOneWidget);
     expect(find.text('前往设置'), findsOneWidget);
   });
 
@@ -264,7 +264,7 @@ void main() {
       ),
     );
 
-    expect(find.text('这一场还没选择出场人物。'), findsOneWidget);
+    expect(find.text('本章还没选择出场人物。'), findsOneWidget);
   });
 
   testWidgets('store-driven scene bindings disable simulation when missing', (
@@ -289,7 +289,7 @@ void main() {
     // Scene context fallback keeps hasSceneCharacterBinding=true,
     // and with pre-populated settings canGenerateAi=true,
     // so the banner falls through all checks to null (no banner).
-    expect(find.text('AI 还没配置好。'), findsNothing);
+    expect(find.text('章节可先继续写'), findsNothing);
     final runButton = tester.widget<FilledButton>(
       find.byKey(WorkbenchShellPage.runSimulationButtonKey),
     );
@@ -335,7 +335,7 @@ void main() {
       ),
     );
 
-    expect(find.text('这一场还没选择世界观资料。'), findsOneWidget);
+    expect(find.text('本章还没选择世界观资料。'), findsOneWidget);
   });
 
   testWidgets(
@@ -380,7 +380,7 @@ void main() {
     );
     await startWorkbenchSimulation(tester);
 
-    expect(find.text('AI 正在写这一场'), findsWidgets);
+    expect(find.text('AI 正在写本章'), findsWidgets);
     expect(find.text('查看生成过程'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 800));
@@ -465,7 +465,7 @@ void main() {
 
     await startWorkbenchSimulation(tester, forceFailure: true);
 
-    expect(find.text('AI 正在写这一场'), findsWidgets);
+    expect(find.text('AI 正在写本章'), findsWidgets);
 
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
@@ -603,7 +603,7 @@ void main() {
       ),
     );
 
-    expect(find.text('当前场景资料已刷新。'), findsOneWidget);
+    expect(find.text('当前章节资料已刷新。'), findsOneWidget);
   });
 
   testWidgets('shows the simulation completed notice', (tester) async {
@@ -641,8 +641,8 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(WorkbenchShellPage.toolWindowKey), findsOneWidget);
-    expect(find.text('场景资料'), findsOneWidget);
-    expect(find.text('当前场景：第 3 章 / 场景 05 · 证人房间对峙 · 等待同步'), findsOneWidget);
+    expect(find.text('章节资料'), findsOneWidget);
+    expect(find.text('当前章节：第 3 章 · 证人房间对峙 · 等待同步'), findsOneWidget);
     expect(find.text('角色摘要：柳溪 · 调查记者'), findsOneWidget);
     expect(find.text('世界观摘要：旧港规则 · 规则'), findsOneWidget);
   });
@@ -652,11 +652,11 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
     await tester.pump();
-    await tester.tap(find.text('刷新当前场景资料'));
+    await tester.tap(find.text('刷新当前章节资料'));
     await tester.pump();
 
-    expect(find.text('当前场景资料已刷新。'), findsOneWidget);
-    expect(find.text('当前场景：第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
+    expect(find.text('当前章节资料已刷新。'), findsOneWidget);
+    expect(find.text('当前章节：第 3 章 · 证人房间对峙'), findsOneWidget);
     expect(find.text('角色摘要：柳溪 · 已重新同步'), findsOneWidget);
     expect(find.text('世界观摘要：旧港规则 · 已刷新'), findsOneWidget);
   });
@@ -671,8 +671,8 @@ void main() {
     await tester.tap(find.text('雨夜码头'));
     await tester.pump();
 
-    expect(find.text('月潮回声 / 第 3 章 / 场景 03 · 雨夜码头'), findsWidgets);
-    expect(find.text('当前场景：第 3 章 / 场景 03 · 雨夜码头 · 等待同步'), findsOneWidget);
+    expect(find.text('月潮回声 / 第 3 章 · 雨夜码头'), findsWidgets);
+    expect(find.text('当前章节：第 3 章 · 雨夜码头 · 等待同步'), findsOneWidget);
   });
 
   testWidgets('creates a new scene from the resource panel', (tester) async {
@@ -683,7 +683,7 @@ void main() {
     await tester.tap(find.byKey(WorkbenchShellPage.createSceneButtonKey));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建后会出现在当前项目的场景列表中，并立即可在工作台中继续写作。'), findsOneWidget);
+    expect(find.text('创建后会出现在当前项目的章节列表中，并立即可在工作台中继续写作。'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(WorkbenchShellPage.sceneTitleFieldKey),
@@ -693,7 +693,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('阳台争执'), findsWidgets);
-    expect(find.text('月潮回声 / 第 3 章 / 场景 06 · 阳台争执'), findsWidgets);
+    expect(find.text('月潮回声 / 第 4 章 · 阳台争执'), findsWidgets);
   });
 
   testWidgets('renames the current scene from the resource panel', (
@@ -713,7 +713,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('证人房间加压'), findsWidgets);
-    expect(find.text('月潮回声 / 第 3 章 / 场景 05 · 证人房间加压'), findsWidgets);
+    expect(find.text('月潮回声 / 第 3 章 · 证人房间加压'), findsWidgets);
   });
 
   testWidgets('deletes the current scene from the resource panel', (
@@ -727,7 +727,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('删除后会从当前项目的场景列表中移除，工作台会自动切换到相邻场景，并同步刷新相关引用摘要。'),
+      find.text('删除后会从当前项目的章节列表中移除，工作台会自动切换到相邻章节，并同步刷新相关引用摘要。'),
       findsOneWidget,
     );
 
@@ -735,7 +735,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('证人房间对峙'), findsNothing);
-    expect(find.text('月潮回声 / 第 3 章 / 场景 03 · 雨夜码头'), findsWidgets);
+    expect(find.text('月潮回声 / 第 3 章 · 雨夜码头'), findsWidgets);
   });
 
   testWidgets('switches between tool window tabs from the tool rail', (
@@ -745,7 +745,7 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.resourcesToolButtonKey));
     await tester.pump();
-    expect(find.text('场景资料'), findsOneWidget);
+    expect(find.text('章节资料'), findsOneWidget);
 
     await tester.tap(find.byKey(WorkbenchShellPage.aiToolButtonKey));
     await tester.pump();
@@ -755,7 +755,7 @@ void main() {
     await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
     await tester.pump();
     expect(find.text('设置快捷面板'), findsOneWidget);
-    expect(find.text('当前提供方、模型、界面模式和快速入口会显示在这里。'), findsOneWidget);
+    expect(find.text('当前模型服务、模型、界面模式和快速入口会显示在这里。'), findsOneWidget);
   });
 
   testWidgets('shows AI panel unconfigured guidance before provider setup', (
@@ -769,7 +769,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('AI 暂不可用'), findsOneWidget);
-    expect(find.textContaining('请先在设置里补全密钥与模型提供方'), findsOneWidget);
+    expect(find.text('需要生成候选稿时，再到设置连接模型服务。'), findsOneWidget);
   });
 
   testWidgets('surfaces secure store read failures in the AI panel', (
@@ -785,7 +785,7 @@ void main() {
 
     expect(find.text('AI 配置异常'), findsOneWidget);
     expect(find.text('检查设置'), findsOneWidget);
-    expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+    expect(find.textContaining('无法读取本地配置文件'), findsWidgets);
   });
 
   testWidgets('AI panel can retry secure store access from the warning state', (
@@ -964,7 +964,7 @@ void main() {
     await tester.tap(find.byKey(WorkbenchShellPage.readingToolButtonKey));
     await tester.pumpAndSettle();
 
-    expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
+    expect(find.text('月潮回声 · 第 3 章 · 证人房间对峙'), findsOneWidget);
     expect(find.byKey(ReadingModePage.pageBodyKey), findsOneWidget);
     expect(find.text('返回写作'), findsOneWidget);
   });
@@ -974,12 +974,12 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.readingToolButtonKey));
     await tester.pumpAndSettle();
-    expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsOneWidget);
+    expect(find.text('月潮回声 · 第 3 章 · 证人房间对峙'), findsOneWidget);
 
     await tester.tap(find.text('返回写作'));
     await tester.pumpAndSettle();
 
-    expect(find.text('月潮回声 · 第 3 章 / 场景 05 · 证人房间对峙'), findsNothing);
+    expect(find.text('月潮回声 · 第 3 章 · 证人房间对峙'), findsNothing);
     expect(find.byKey(WorkbenchShellPage.editorPaneKey), findsOneWidget);
   });
 
@@ -1011,12 +1011,12 @@ void main() {
               documents: [
                 ReadingSceneDocument(
                   sceneId: 'scene-01',
-                  locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                  locationLabel: '第 1 章 · 风暴前夜',
                   text: longChapter,
                 ),
                 const ReadingSceneDocument(
                   sceneId: 'scene-02',
-                  locationLabel: '第 2 章 / 场景 02 · 码头回响',
+                  locationLabel: '第 2 章 · 码头回响',
                   text: '乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙乙',
                 ),
               ],
@@ -1043,7 +1043,7 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
-      expect(find.text('月潮回声 · 第 2 章 / 场景 02 · 码头回响'), findsOneWidget);
+      expect(find.text('月潮回声 · 第 2 章 · 码头回响'), findsOneWidget);
       expect(find.text('单页'), findsOneWidget);
       expect(find.text('单页阅读'), findsOneWidget);
       expect(find.text('当前章节内容较短或无需拆分页，因此以整章单页方式展示。'), findsOneWidget);
@@ -1063,7 +1063,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: '短章内容',
               ),
             ],
@@ -1094,7 +1094,7 @@ void main() {
             documents: [
               ReadingSceneDocument(
                 sceneId: 'scene-01',
-                locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                locationLabel: '第 1 章 · 风暴前夜',
                 text: '$firstPage$secondPage',
               ),
             ],
@@ -1125,7 +1125,7 @@ void main() {
               documents: [
                 ReadingSceneDocument(
                   sceneId: 'scene-01',
-                  locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                  locationLabel: '第 1 章 · 风暴前夜',
                   text: 'AAAAAA',
                 ),
               ],
@@ -1145,7 +1145,7 @@ void main() {
               documents: [
                 ReadingSceneDocument(
                   sceneId: 'scene-01',
-                  locationLabel: '第 1 章 / 场景 01 · 风暴前夜',
+                  locationLabel: '第 1 章 · 风暴前夜',
                   text: 'BBBBBB',
                 ),
               ],
@@ -1289,7 +1289,7 @@ void main() {
     await tester.tap(find.byKey(SettingsShellPage.saveButtonKey));
     await tester.pump();
 
-    expect(find.text('请先填写 API Key'), findsWidgets);
+    expect(find.text('请先填写密钥'), findsWidgets);
   });
 
   testWidgets('shows save success after entering an API key', (tester) async {
@@ -1306,7 +1306,9 @@ void main() {
     expect(find.text('新配置会从下一次 AI 请求开始生效。'), findsWidgets);
   });
 
-  testWidgets('shows invalid base_url feedback on save', (tester) async {
+  testWidgets('shows invalid interface address feedback on save', (
+    tester,
+  ) async {
     await tester.pumpWidget(const NovelWriterApp(home: SettingsShellPage()));
 
     await tester.enterText(
@@ -1320,7 +1322,7 @@ void main() {
     await tester.tap(find.byKey(SettingsShellPage.saveButtonKey));
     await tester.pump();
 
-    expect(find.text('请输入有效的 base_url'), findsWidgets);
+    expect(find.text('请输入有效的接口地址'), findsWidgets);
   });
 
   testWidgets(
@@ -1366,7 +1368,7 @@ void main() {
     await tester.tap(find.byKey(SettingsShellPage.saveButtonKey));
     await tester.pump();
 
-    expect(find.text('请先填写 model'), findsWidgets);
+    expect(find.text('请先填写模型名称'), findsWidgets);
   });
 
   testWidgets(
@@ -1396,7 +1398,7 @@ void main() {
 
     await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
     await tester.pump();
-    expect(find.text('提供方未配置'), findsOneWidget);
+    expect(find.text('未连接模型服务'), findsOneWidget);
 
     await tester.tap(find.text('打开完整设置'));
     await tester.pumpAndSettle();
@@ -1413,7 +1415,7 @@ void main() {
     await tester.tap(find.byKey(WorkbenchShellPage.settingsToolButtonKey));
     await tester.pump();
 
-    expect(find.text('提供方已配置'), findsOneWidget);
+    expect(find.text('模型服务已连接'), findsOneWidget);
     expect(find.text('OpenAI 兼容服务 · gpt-4.1-mini'), findsOneWidget);
   });
 
@@ -1429,7 +1431,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('设置文件读取失败'), findsWidgets);
-      expect(find.textContaining('无法读取 settings.json'), findsWidgets);
+      expect(find.textContaining('无法读取本地配置文件'), findsWidgets);
     },
   );
 
@@ -1521,7 +1523,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('设置文件读取失败'), findsNothing);
-      expect(find.text('提供方已配置'), findsOneWidget);
+      expect(find.text('模型服务已连接'), findsOneWidget);
       expect(find.text('智谱 GLM · glm-4'), findsOneWidget);
     },
   );
@@ -1567,7 +1569,7 @@ void main() {
         find.byKey(WorkbenchShellPage.settingsRetrySecureStoreButtonKey),
         findsNothing,
       );
-      expect(find.text('提供方已配置'), findsOneWidget);
+      expect(find.text('模型服务已连接'), findsOneWidget);
       expect(find.text('OpenAI 兼容服务 · gpt-4.1-mini'), findsOneWidget);
     },
   );
@@ -2769,7 +2771,7 @@ void main() {
 
     expect(find.text('还没有生成过程'), findsOneWidget);
     expect(
-      find.text('这一章还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。'),
+      find.text('这一场还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。'),
       findsOneWidget,
     );
   });
@@ -2787,7 +2789,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('生成记录'), findsOneWidget);
-    expect(find.textContaining('月潮回声 / 第 3 章 / 场景 05'), findsWidgets);
+    expect(find.textContaining('月潮回声 / 第 3 章'), findsWidgets);
   });
 
   testWidgets('shows single-version fallback messaging in version history', (

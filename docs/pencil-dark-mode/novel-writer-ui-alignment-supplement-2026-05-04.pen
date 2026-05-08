@@ -287,7 +287,7 @@
                   "fill": "$ink-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "书架 / 编辑工作台 / 风格面板 / 场景管理 / 角色库 / 世界观 / 作品圣经 / 问题检查 / 生产看板 / 改稿任务 / 导入工程 / 设置",
+                  "content": "书架 / 编辑工作台 / 风格面板 / 场景管理 / 角色库 / 世界观 / 设定摘要 / 问题检查 / 生产看板 / 改稿任务 / 导入工程 / 设置",
                   "lineHeight": 1.55,
                   "fontFamily": "Inter",
                   "fontSize": 14,
@@ -6893,7 +6893,7 @@
                       "id": "d366A",
                       "name": "cat4t",
                       "fill": "$ink",
-                      "content": "作品圣经",
+                      "content": "设定摘要",
                       "fontFamily": "Inter",
                       "fontSize": 14,
                       "fontWeight": "normal"
@@ -7214,7 +7214,7 @@
                     {
                       "type": "frame",
                       "id": "utkAA",
-                      "name": "bible",
+                      "name": "setting summary",
                       "width": "fill_container",
                       "height": "fill_container",
                       "fill": "$paper-raised",
@@ -7232,7 +7232,7 @@
                           "id": "lI8HV",
                           "name": "bt",
                           "fill": "$ink",
-                          "content": "作品圣经摘要",
+                          "content": "设定摘要",
                           "fontFamily": "Newsreader",
                           "fontSize": 18,
                           "fontWeight": "600"
@@ -9518,7 +9518,7 @@
                   "fill": "#7A7065",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "书架、编辑工作台、风格面板、场景管理、角色库、世界观、作品圣经、问题检查、生产看板、改稿任务、导入工程、设置。",
+                  "content": "书架、编辑工作台、风格面板、场景管理、角色库、世界观、设定摘要、问题检查、生产看板、改稿任务、导入工程、设置。",
                   "lineHeight": 1.45,
                   "fontFamily": "Inter",
                   "fontSize": 13,
@@ -9982,7 +9982,7 @@
                       "id": "WU01C",
                       "name": "r4at",
                       "fill": "#2B241E",
-                      "content": "作品圣经",
+                      "content": "设定摘要",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "650"
@@ -21398,7 +21398,7 @@
                     {
                       "type": "frame",
                       "id": "eAQvd",
-                      "name": "open bible",
+                      "name": "open setting summary",
                       "fill": "$paper-soft",
                       "cornerRadius": 7,
                       "gap": 6,
@@ -21423,7 +21423,7 @@
                           "id": "dtLTX",
                           "name": "open text",
                           "fill": "$sage-ink",
-                          "content": "打开作品圣经",
+                          "content": "打开设定摘要",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "650"
@@ -24863,7 +24863,7 @@
                 {
                   "type": "frame",
                   "id": "wxWqV",
-                  "name": "nav bible",
+                  "name": "nav setting summary",
                   "width": 36,
                   "height": 36,
                   "cornerRadius": 8,
@@ -24873,7 +24873,7 @@
                     {
                       "type": "icon_font",
                       "id": "TkYrB",
-                      "name": "nav bible icon",
+                      "name": "nav setting summary icon",
                       "width": 18,
                       "height": 18,
                       "iconFontName": "book-open",

@@ -46,6 +46,7 @@ app.*.map.json
 
 # Local agent/workflow runtime state
 /.omx/
+docs/pencil-dark-mode/.omx/
 /.superpowers/
 /setting.json
 /.settings.key

@@ -60,9 +60,9 @@ void main() {
     await tester.pumpWidget(const NovelWriterApp(home: StylePanelPage()));
 
     expect(find.text('作品设定 · 风格'), findsOneWidget);
-    expect(find.text('问卷与 JSON 风格档案'), findsOneWidget);
+    expect(find.text('问卷与风格档案'), findsOneWidget);
     expect(find.text('整理风格档案'), findsOneWidget);
-    expect(find.text('风格档案就绪 · 问卷已完成 · 支持 JSON v1.0'), findsOneWidget);
+    expect(find.text('风格档案就绪 · 问卷已完成 · 支持 1.0 版'), findsOneWidget);
     expect(find.text('冷峻悬疑第一人称'), findsWidgets);
     expect(find.text('第三人称限知'), findsWidgets);
   });
@@ -82,11 +82,8 @@ void main() {
     expect(find.byKey(StylePanelPage.jsonDraftFieldKey), findsOneWidget);
     expect(find.text('选择 JSON 文件'), findsOneWidget);
     expect(find.text('JSON'), findsWidgets);
-    expect(find.text('JSON 风格草稿'), findsOneWidget);
-    expect(
-      find.text('可直接粘贴或导入 StyleProfile JSON，导入后会保留可修订的字段提示。'),
-      findsOneWidget,
-    );
+    expect(find.text('风格档案草稿'), findsOneWidget);
+    expect(find.text('可直接粘贴或导入风格档案 JSON，导入后会保留可修订的字段提示。'), findsOneWidget);
 
     await tester.tap(find.byKey(StylePanelPage.questionnaireModeButtonKey));
     await tester.pumpAndSettle();
@@ -186,8 +183,8 @@ void main() {
     );
 
     expect(find.text('JSON 校验失败'), findsOneWidget);
-    expect(find.text('错误 1：缺少必填字段 version'), findsOneWidget);
-    expect(find.text('错误 2：rhythm_profile 值不受支持'), findsOneWidget);
+    expect(find.text('错误 1：缺少配置版本'), findsOneWidget);
+    expect(find.text('错误 2：节奏配置不受支持'), findsOneWidget);
     expect(find.textContaining('系统不会生成风格配置'), findsOneWidget);
     expect(find.text('处理建议'), findsOneWidget);
   });
@@ -200,7 +197,7 @@ void main() {
     );
 
     expect(find.text('配置版本不受支持'), findsOneWidget);
-    expect(find.text('MVP 仅支持 1.0 版配置。'), findsOneWidget);
+    expect(find.text('当前仅支持 1.0 版配置。'), findsOneWidget);
   });
 
   testWidgets('shows unknown fields ignored notice', (tester) async {
@@ -259,7 +256,7 @@ void main() {
       ),
     );
 
-    expect(find.text('场景级覆盖已生效'), findsOneWidget);
-    expect(find.text('场景级绑定优先于项目级默认风格，切换场景后仍会恢复项目默认配置。'), findsOneWidget);
+    expect(find.text('章节级覆盖已生效'), findsOneWidget);
+    expect(find.text('章节级绑定优先于项目级默认风格，切换章节后仍会恢复项目默认配置。'), findsOneWidget);
   });
 }

@@ -77,7 +77,7 @@ void main() {
     expect(find.text('打开工作台'), findsAtLeastNWidgets(1));
     expect(find.text('改稿清单'), findsOneWidget);
     expect(find.text('打开改稿清单'), findsOneWidget);
-    expect(find.text('作品圣经'), findsAtLeastNWidgets(1));
+    expect(find.text('作者反馈'), findsOneWidget);
     expect(find.text('导出'), findsAtLeastNWidgets(1));
 
     await tester.scrollUntilVisible(

@@ -2,6 +2,9 @@
 // Core Domain Models — workspace entities and value types.
 // ============================================================================
 
+import 'scene_location_parts.dart';
+export 'scene_location_parts.dart';
+
 enum AuditIssueStatus { open, resolved, ignored }
 
 enum ProjectTransferState {
@@ -42,6 +45,10 @@ class ProjectRecord {
   final int lastOpenedAtMs;
 
   String get tag => projectTagFor(lastOpenedAtMs);
+  String get displayRecentLocation {
+    final trimmed = recentLocation.trim();
+    return trimmed.isEmpty ? '' : trimmed;
+  }
 
   ProjectRecord copyWith({
     String? id,
@@ -93,7 +100,7 @@ class SceneRecord {
     required this.id,
     this.chapterLabel = '第 1 章 / 场景 01',
     this.title = '等待命名',
-    this.summary = '等待补充场景目标、冲突和收束条件。',
+    this.summary = '等待补充目标、冲突和收束条件。',
   });
 
   final String id;
@@ -101,7 +108,24 @@ class SceneRecord {
   final String title;
   final String summary;
 
-  String get displayLocation => '$chapterLabel · $title';
+  SceneLocationParts get locationParts =>
+      SceneLocationParts.fromLabel(displayChapterLabel);
+
+  String get chapterOnlyLabel => locationParts.chapterLabel;
+
+  String get displayChapterLabel {
+    final trimmed = chapterLabel.trim();
+    return trimmed.isEmpty ? '第 1 章 / 场景 01' : trimmed;
+  }
+
+  String get displayLocation {
+    final label = displayChapterLabel;
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      return label;
+    }
+    return '$label · $trimmedTitle';
+  }
 
   Map<String, Object?> toJson() {
     return {
@@ -117,7 +141,7 @@ class SceneRecord {
       id: json['id']?.toString() ?? generateSceneId(),
       chapterLabel: json['chapterLabel']?.toString() ?? '第 1 章 / 场景 01',
       title: json['title']?.toString() ?? '等待命名',
-      summary: json['summary']?.toString() ?? '等待补充场景目标、冲突和收束条件。',
+      summary: json['summary']?.toString() ?? '等待补充目标、冲突和收束条件。',
     );
   }
 }
@@ -180,7 +204,8 @@ class CharacterRecord {
 
   static CharacterRecord fromJson(Map<Object?, Object?> json) {
     return CharacterRecord(
-      id: json['id']?.toString() ??
+      id:
+          json['id']?.toString() ??
           fallbackScopedRecordId('character', json['name']),
       name: fallbackDisplayText(json['name'], fallback: '新角色'),
       role: json['role']?.toString() ?? '',
@@ -256,7 +281,8 @@ class WorldNodeRecord {
 
   static WorldNodeRecord fromJson(Map<Object?, Object?> json) {
     return WorldNodeRecord(
-      id: json['id']?.toString() ??
+      id:
+          json['id']?.toString() ??
           fallbackScopedRecordId('world', json['title']),
       title: fallbackDisplayText(json['title'], fallback: '新节点'),
       location: json['location']?.toString() ?? '',
@@ -325,7 +351,8 @@ class AuditIssueRecord {
 
   static AuditIssueRecord fromJson(Map<Object?, Object?> json) {
     return AuditIssueRecord(
-      id: json['id']?.toString() ??
+      id:
+          json['id']?.toString() ??
           fallbackScopedRecordId('audit', json['title']),
       title: fallbackDisplayText(json['title'], fallback: '待处理问题'),
       evidence: json['evidence']?.toString() ?? '',
@@ -365,17 +392,13 @@ class StyleProfileRecord {
   }
 
   Map<String, Object?> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'source': source,
-      'jsonData': jsonData,
-    };
+    return {'id': id, 'name': name, 'source': source, 'jsonData': jsonData};
   }
 
   static StyleProfileRecord fromJson(Map<Object?, Object?> json) {
     return StyleProfileRecord(
-      id: json['id']?.toString() ??
+      id:
+          json['id']?.toString() ??
           fallbackScopedRecordId('style', json['name']),
       name: fallbackDisplayText(json['name'], fallback: '默认风格'),
       source: json['source']?.toString() ?? 'questionnaire',

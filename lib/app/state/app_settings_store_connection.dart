@@ -22,14 +22,14 @@ AppSettingsConnectionTestState connectionStateFromChatResult({
         status: AppSettingsConnectionTestStatus.error,
         outcome: AppSettingsConnectionTestOutcome.unauthorized,
         title: '连接测试失败：鉴权失败',
-        message: '401 / 403：请检查 API Key、组织权限或账号状态。',
+        message: '401 / 403：请检查密钥、组织权限或账号状态。',
       );
     case AppLlmFailureKind.timeout:
       return const AppSettingsConnectionTestState(
         status: AppSettingsConnectionTestStatus.error,
         outcome: AppSettingsConnectionTestOutcome.timeout,
         title: '连接测试失败：连接超时',
-        message: '最小化请求超时，请检查接口响应时间或调大 timeout_ms。',
+        message: '最小化请求超时，请检查接口响应时间或调大等待时间。',
       );
     case AppLlmFailureKind.modelNotFound:
       return AppSettingsConnectionTestState(

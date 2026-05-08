@@ -7,7 +7,7 @@
 先看：
 
 1. [MVP 实现交接稿](/Users/chengwen/dev/novel-wirter/docs/mvp/implementation-handoff.md)
-2. [Canonical Frame Map (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
+2. [标准画面映射 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
 3. [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md)
 
 本地先跑：
@@ -20,7 +20,7 @@ make mvp-docs-check
 
 先看：
 
-1. [MVP 运行时 Smoke Test 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
+1. [MVP 运行时 冒烟测试 清单](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.md)
 2. [MVP 里程碑验收清单](/Users/chengwen/dev/novel-wirter/docs/mvp/milestone-verification-checklist.md)
 3. [MVP 追踪矩阵](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.md)
 
@@ -34,7 +34,7 @@ make mvp-docs-check
 先看：
 
 1. [MVP 设计交付完成度](/Users/chengwen/dev/novel-wirter/docs/mvp/release-readiness.md)
-2. [Frame / State Coverage](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
+2. [画面状态覆盖](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.md)
 3. [MVP 追踪矩阵](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.md)
 
 重点：
@@ -46,10 +46,10 @@ make mvp-docs-check
 
 先看：
 
-1. [Canonical Frame Map (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
-2. [Frame / State Coverage (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
+1. [标准画面映射 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/canonical-frame-map.json)
+2. [画面状态覆盖 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/frame-state-coverage.json)
 3. [MVP 追踪矩阵 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/traceability-matrix.json)
-4. [MVP 运行时 Smoke Test 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
+4. [MVP 运行时 冒烟测试 清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/runtime-smoke-tests.json)
 5. [MVP 文档清单 (JSON)](/Users/chengwen/dev/novel-wirter/docs/mvp/doc-manifest.json)
 
 本地先跑：

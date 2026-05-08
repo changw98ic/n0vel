@@ -69,8 +69,7 @@ void main() {
       );
 
       // Bob should get a perceivedEvent atom
-      final bobAtoms =
-          atoms.where((a) => a.characterId == 'bob').toList();
+      final bobAtoms = atoms.where((a) => a.characterId == 'bob').toList();
       expect(bobAtoms.length, 1);
       expect(bobAtoms.first.kind, CognitionKind.perceivedEvent);
       expect(bobAtoms.first.content, contains('alice'));
@@ -96,8 +95,7 @@ void main() {
         activeCharacterIds: ['alice', 'bob'],
       );
 
-      final bobAtoms =
-          atoms.where((a) => a.characterId == 'bob').toList();
+      final bobAtoms = atoms.where((a) => a.characterId == 'bob').toList();
       expect(bobAtoms.length, 1);
       expect(bobAtoms.first.kind, CognitionKind.perceivedEvent);
       expect(bobAtoms.first.content, contains('我观察到'));
@@ -123,8 +121,9 @@ void main() {
       );
 
       // charlie is NOT in presentCharacterIds, must have zero atoms
-      final charlieAtoms =
-          atoms.where((a) => a.characterId == 'charlie').toList();
+      final charlieAtoms = atoms
+          .where((a) => a.characterId == 'charlie')
+          .toList();
       expect(charlieAtoms, isEmpty);
     });
 
@@ -146,8 +145,7 @@ void main() {
         activeCharacterIds: ['alice', 'bob'],
       );
 
-      final aliceAtoms =
-          atoms.where((a) => a.characterId == 'alice').toList();
+      final aliceAtoms = atoms.where((a) => a.characterId == 'alice').toList();
       expect(aliceAtoms.length, 1);
       expect(aliceAtoms.first.kind, CognitionKind.selfState);
       expect(aliceAtoms.first.content, contains('我说'));
@@ -179,8 +177,7 @@ void main() {
       expect(atoms.first.content, contains('内心独白'));
 
       // Bob gets nothing from an internal event
-      final bobAtoms =
-          atoms.where((a) => a.characterId == 'bob').toList();
+      final bobAtoms = atoms.where((a) => a.characterId == 'bob').toList();
       expect(bobAtoms, isEmpty);
     });
 
@@ -264,7 +261,8 @@ void main() {
         expect(
           atoms[i].sequence,
           greaterThanOrEqualTo(atoms[i - 1].sequence),
-          reason: 'Atom at index $i has sequence ${atoms[i].sequence} '
+          reason:
+              'Atom at index $i has sequence ${atoms[i].sequence} '
               '< previous ${atoms[i - 1].sequence}',
         );
       }
@@ -338,14 +336,12 @@ void main() {
         activeCharacterIds: ['alice', 'bob'],
       );
 
-      final bobAtoms =
-          atoms.where((a) => a.characterId == 'bob').toList();
+      final bobAtoms = atoms.where((a) => a.characterId == 'bob').toList();
       expect(bobAtoms.length, 1);
       // Bob is a target, content uses first-person "我经历了"
       expect(bobAtoms.first.content, contains('我经历了'));
 
-      final aliceAtoms =
-          atoms.where((a) => a.characterId == 'alice').toList();
+      final aliceAtoms = atoms.where((a) => a.characterId == 'alice').toList();
       expect(aliceAtoms.length, 1);
       // Alice is an observer, content uses "我观察到"
       expect(aliceAtoms.first.content, contains('我观察到'));
@@ -372,30 +368,32 @@ void main() {
       expect(atoms, isEmpty);
     });
 
-    test('dialogue without speaker produces perceivedEvent for all present',
-        () {
-      final events = [
-        SceneEvent(
-          id: 'e-nospeaker',
-          sceneId: 's1',
-          type: 'dialogue',
-          content: '远处的钟声响起',
-          sequence: 0,
-          presentCharacterIds: ['alice', 'bob'],
-        ),
-      ];
+    test(
+      'dialogue without speaker produces perceivedEvent for all present',
+      () {
+        final events = [
+          SceneEvent(
+            id: 'e-nospeaker',
+            sceneId: 's1',
+            type: 'dialogue',
+            content: '远处的钟声响起',
+            sequence: 0,
+            presentCharacterIds: ['alice', 'bob'],
+          ),
+        ];
 
-      final atoms = projector.project(
-        events: events,
-        activeCharacterIds: ['alice', 'bob'],
-      );
+        final atoms = projector.project(
+          events: events,
+          activeCharacterIds: ['alice', 'bob'],
+        );
 
-      // No speakerId -> all present get perceivedEvent (narrator voice)
-      expect(atoms.length, 2);
-      for (final atom in atoms) {
-        expect(atom.kind, CognitionKind.perceivedEvent);
-      }
-    });
+        // No speakerId -> all present get perceivedEvent (narrator voice)
+        expect(atoms.length, 2);
+        for (final atom in atoms) {
+          expect(atom.kind, CognitionKind.perceivedEvent);
+        }
+      },
+    );
 
     test('projectId is propagated to atoms', () {
       final events = [

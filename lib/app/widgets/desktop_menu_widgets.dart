@@ -15,7 +15,7 @@ class DesktopHandleBar extends StatelessWidget {
       key: handleKey,
       onTap: onTap,
       height: 48,
-      semanticLabel: onTap != null ? '切换侧边菜单' : null,
+      semanticLabel: onTap != null ? '切换侧边导航' : null,
     );
 
     if (onTap == null) {
@@ -49,7 +49,7 @@ enum DesktopWorkspaceSection {
   scenes,
   characters,
   worldbuilding,
-  storyBible,
+
   audit,
   settings,
   workSettingsHub,
@@ -71,8 +71,7 @@ List<DesktopMenuItemData> buildDesktopWorkspaceMenuItems({
       selected == DesktopWorkspaceSection.workSettingsHub ||
       selected == DesktopWorkspaceSection.characters ||
       selected == DesktopWorkspaceSection.worldbuilding ||
-      selected == DesktopWorkspaceSection.style ||
-      selected == DesktopWorkspaceSection.storyBible;
+      selected == DesktopWorkspaceSection.style;
 
   final revisionSelected =
       selected == DesktopWorkspaceSection.revisionHub ||
@@ -117,7 +116,7 @@ List<DesktopMenuItemData> buildDesktopWorkspaceMenuItems({
 }
 
 class DesktopMenuDrawer extends StatelessWidget {
-  const DesktopMenuDrawer({super.key, this.title = '菜单', required this.items});
+  const DesktopMenuDrawer({super.key, this.title = '导航', required this.items});
 
   final String title;
   final List<DesktopMenuItemData> items;
@@ -128,7 +127,7 @@ class DesktopMenuDrawer extends StatelessWidget {
     final palette = desktopPalette(context);
 
     return Semantics(
-      label: '$title 导航菜单',
+      label: '$title 侧边导航',
       explicitChildNodes: true,
       child: Container(
         width: 220,
@@ -229,7 +228,7 @@ class DesktopMenuDrawerRegion extends StatelessWidget {
   const DesktopMenuDrawerRegion({
     super.key,
     required this.items,
-    this.title = '菜单',
+    this.title = '导航',
     this.isOpen = false,
     this.handleKey,
     this.drawerKey,

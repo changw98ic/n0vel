@@ -176,7 +176,7 @@ void main() {
       await tester.tap(find.text('确认生成候选稿'));
       await tester.pump();
 
-      expect(find.text('AI 正在写这一场'), findsWidgets);
+      expect(find.text('AI 正在写本章'), findsWidgets);
 
       await tester.pump(const Duration(milliseconds: 800));
       await tester.pump();
@@ -296,7 +296,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(ProjectImportExportPage.titleKey), findsOneWidget);
-      expect(find.text('lunaris-export.zip'), findsWidgets);
+      expect(find.text('月临-导出.zip'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 

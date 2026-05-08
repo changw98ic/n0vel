@@ -120,10 +120,10 @@ class _StylePanelPageState extends State<StylePanelPage> {
           StyleModeFramingCard(
             title: store.styleInputMode == StyleInputMode.questionnaire
                 ? '问卷输入'
-                : 'JSON 风格草稿',
+                : '风格档案草稿',
             message: store.styleInputMode == StyleInputMode.questionnaire
                 ? '优先补全问卷字段，再整理当前作品的风格摘要。'
-                : '可直接粘贴或导入 StyleProfile JSON，导入后会保留可修订的字段提示。',
+                : '可直接粘贴或导入风格档案 JSON，导入后会保留可修订的字段提示。',
           ),
           const SizedBox(height: 16),
           if (store.styleInputMode == StyleInputMode.questionnaire) ...[
@@ -240,7 +240,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
               controller: _jsonDraftController,
               maxLines: 8,
               decoration: const InputDecoration(
-                labelText: 'StyleProfile JSON',
+                labelText: '风格档案 JSON',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -308,7 +308,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
           OutlinedButton(
             key: StylePanelPage.bindSceneButtonKey,
             onPressed: store.bindStyleToScene,
-            child: const Text('仅绑定当前场景'),
+            child: const Text('仅绑定当前章节'),
           ),
           const SizedBox(height: 12),
           Container(
@@ -327,7 +327,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
     return DesktopShellFrame(
       header: DesktopHeaderBar(
         title: '作品设定 · 风格',
-        subtitle: '问卷与 JSON 风格档案',
+        subtitle: '问卷与风格档案',
         showBackButton: true,
         actions: [
           FilledButton(
@@ -395,7 +395,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
   String _footerMessage(StylePanelUiState state) {
     switch (state) {
       case StylePanelUiState.ready:
-        return '风格档案就绪 · 问卷已完成 · 支持 JSON v1.0';
+        return '风格档案就绪 · 问卷已完成 · 支持 1.0 版';
       case StylePanelUiState.empty:
         return '尚未创建风格档案。';
       case StylePanelUiState.jsonError:
@@ -411,7 +411,7 @@ class _StylePanelPageState extends State<StylePanelPage> {
       case StylePanelUiState.maxProfilesReached:
         return '同一项目最多保留 3 个风格档案。';
       case StylePanelUiState.sceneOverrideNotice:
-        return '当前场景级绑定优先于项目级默认风格。';
+        return '当前章节级绑定优先于项目级默认风格。';
     }
   }
 

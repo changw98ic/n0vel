@@ -176,7 +176,8 @@ class _RevisionSummary {
     final scene = workspaceStore.currentSceneOrNull;
     final projectTitle = _fallback(project?.title, '未选择项目');
     final sceneLabel =
-        scene?.displayLocation ?? _fallback(project?.recentLocation, '未选择场景');
+        (scene == null ? null : chapterLocationLabel(scene.displayLocation)) ??
+        chapterLocationLabel(_fallback(project?.recentLocation, '未选择章节'));
     final auditIssues = workspaceStore.auditIssues;
     final openAuditCount = auditIssues.where((issue) => issue.isOpen).length;
     final criticalTasks = reviewTaskStore.tasks
@@ -214,7 +215,7 @@ class _RevisionSummary {
           : '待处理 $openAuditCount / ${auditIssues.length}',
       taskSubtitle: reviewTaskStore.tasks.isEmpty
           ? '尚未生成改稿任务'
-          : '待处理 $activeTaskCount 项 · 当前场景反馈 $sceneFeedbackCount 条',
+          : '待处理 $activeTaskCount 项 · 当前章节反馈 $sceneFeedbackCount 条',
       productionSubtitle: generationState,
       statusText: _nextStep(
         hasAudit: auditIssues.isNotEmpty,

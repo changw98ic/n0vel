@@ -94,7 +94,7 @@ mixin _ResourceStyleOps on _WorkspaceFields {
         detail: '等待补充规则、位置和依赖关系。',
         summary: '新节点已创建，可继续补充引用和约束。',
         ruleSummary: '创建后可补充规则摘要。',
-        referenceSummary: '创建后可补充此节点影响的场景与引用。',
+        referenceSummary: '创建后可补充此节点影响的章节与引用。',
       ),
       ...existing,
     ];
@@ -260,7 +260,7 @@ mixin _ResourceStyleOps on _WorkspaceFields {
         jsonData: profileJson,
       ),
       workflowState: StyleWorkflowState.ready,
-      workflowMessage: '已生成 StyleProfile，可绑定到项目或场景。',
+      workflowMessage: '已生成风格档案，可绑定到项目或章节。',
     );
   }
 
@@ -270,7 +270,7 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     if (rawDraft.isEmpty) {
       _styleByProjectId[_currentProjectId] = currentStyle.copyWith(
         workflowState: StyleWorkflowState.empty,
-        workflowMessage: '请先输入或粘贴 StyleProfileJson。',
+        workflowMessage: '请先输入或粘贴风格档案 JSON。',
       );
       _commitMutation();
       return;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/widgets/desktop_status_modal.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/desktop_theme.dart';
 import '../data/review_task_store.dart';
@@ -146,17 +147,10 @@ class _ReviewTaskTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               _SeverityBadge(severity: task.severity),
-              PopupMenuButton<ReviewTaskStatus>(
-                tooltip: 'Change status',
-                initialValue: task.status,
-                onSelected: (status) => onStatusChanged(task.id, status),
-                itemBuilder: (context) => [
-                  for (final status in ReviewTaskStatus.values)
-                    PopupMenuItem(
-                      value: status,
-                      child: Text(_statusLabel(status)),
-                    ),
-                ],
+              OutlinedButton.icon(
+                onPressed: () => _showStatusDialog(context),
+                icon: const Icon(Icons.tune_outlined, size: 16),
+                label: Text(_statusLabel(task.status)),
               ),
             ],
           ),
@@ -172,6 +166,60 @@ class _ReviewTaskTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showStatusDialog(BuildContext context) async {
+    final selected = await showDialog<ReviewTaskStatus>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return DesktopModalDialog(
+          title: '调整任务状态',
+          description: task.title,
+          width: 420,
+          body: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final status in ReviewTaskStatus.values)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(status),
+                      child: Row(
+                        children: [
+                          Icon(
+                            task.status == status
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _statusLabel(status),
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+    if (selected != null && selected != task.status) {
+      onStatusChanged(task.id, selected);
+    }
   }
 }
 

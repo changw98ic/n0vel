@@ -324,7 +324,7 @@ It should not contain:
 - full truth state
 - other characters' private beliefs
 - raw historical tool output
-- global world bible unless directly relevant
+- global world settings unless directly relevant
 
 ### For Resolver
 

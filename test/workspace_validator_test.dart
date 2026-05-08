@@ -15,7 +15,7 @@ void main() {
           title: '测试项目',
           genre: '悬疑',
           summary: '测试摘要',
-          recentLocation: '第 1 章 · 场景 01',
+          recentLocation: '第 1 章',
           lastOpenedAtMs: DateTime.now().millisecondsSinceEpoch,
         );
         expect(validateProjectRecord(project), isEmpty);
@@ -94,7 +94,7 @@ void main() {
         const scene = SceneRecord(
           id: 'scene-1',
           chapterLabel: '第 1 章',
-          title: '测试场景',
+          title: '测试章节',
           summary: '摘要',
         );
         expect(validateSceneRecord(scene), isEmpty);
@@ -108,8 +108,11 @@ void main() {
           summary: '',
         );
         expect(
-          validateSceneRecord(scene)
-              .any((i) => i.field == 'SceneRecord.id' && i.severity == ValidationSeverity.error),
+          validateSceneRecord(scene).any(
+            (i) =>
+                i.field == 'SceneRecord.id' &&
+                i.severity == ValidationSeverity.error,
+          ),
           isTrue,
         );
       });
@@ -122,8 +125,11 @@ void main() {
           summary: '',
         );
         expect(
-          validateSceneRecord(scene)
-              .any((i) => i.field == 'SceneRecord.title' && i.severity == ValidationSeverity.warning),
+          validateSceneRecord(scene).any(
+            (i) =>
+                i.field == 'SceneRecord.title' &&
+                i.severity == ValidationSeverity.warning,
+          ),
           isTrue,
         );
       });
@@ -152,8 +158,11 @@ void main() {
           summary: '',
         );
         expect(
-          validateCharacterRecord(character)
-              .any((i) => i.field == 'CharacterRecord.id' && i.severity == ValidationSeverity.error),
+          validateCharacterRecord(character).any(
+            (i) =>
+                i.field == 'CharacterRecord.id' &&
+                i.severity == ValidationSeverity.error,
+          ),
           isTrue,
         );
       });
@@ -168,8 +177,11 @@ void main() {
           summary: '',
         );
         expect(
-          validateCharacterRecord(character)
-              .any((i) => i.field == 'CharacterRecord.name' && i.severity == ValidationSeverity.warning),
+          validateCharacterRecord(character).any(
+            (i) =>
+                i.field == 'CharacterRecord.name' &&
+                i.severity == ValidationSeverity.warning,
+          ),
           isTrue,
         );
       });
@@ -198,8 +210,11 @@ void main() {
           summary: '',
         );
         expect(
-          validateWorldNodeRecord(node)
-              .any((i) => i.field == 'WorldNodeRecord.id' && i.severity == ValidationSeverity.error),
+          validateWorldNodeRecord(node).any(
+            (i) =>
+                i.field == 'WorldNodeRecord.id' &&
+                i.severity == ValidationSeverity.error,
+          ),
           isTrue,
         );
       });
@@ -211,7 +226,7 @@ void main() {
           id: 'audit-1',
           title: '测试问题',
           evidence: '证据',
-          target: '场景 01',
+          target: '第 1 章',
         );
         expect(validateAuditIssueRecord(issue), isEmpty);
       });
@@ -224,8 +239,11 @@ void main() {
           target: '',
         );
         expect(
-          validateAuditIssueRecord(issue)
-              .any((i) => i.field == 'AuditIssueRecord.id' && i.severity == ValidationSeverity.error),
+          validateAuditIssueRecord(issue).any(
+            (i) =>
+                i.field == 'AuditIssueRecord.id' &&
+                i.severity == ValidationSeverity.error,
+          ),
           isTrue,
         );
       });
@@ -250,8 +268,11 @@ void main() {
           jsonData: {},
         );
         expect(
-          validateStyleProfileRecord(profile)
-              .any((i) => i.field == 'StyleProfileRecord.id' && i.severity == ValidationSeverity.error),
+          validateStyleProfileRecord(profile).any(
+            (i) =>
+                i.field == 'StyleProfileRecord.id' &&
+                i.severity == ValidationSeverity.error,
+          ),
           isTrue,
         );
       });
@@ -342,8 +363,7 @@ void main() {
         expect(
           result.issues.any(
             (i) =>
-                i.field == 'WorkspaceData.projects' &&
-                i.message.contains('重复'),
+                i.field == 'WorkspaceData.projects' && i.message.contains('重复'),
           ),
           isTrue,
         );
@@ -380,7 +400,7 @@ void main() {
               const SceneRecord(
                 id: 'scene-1',
                 chapterLabel: '第 1 章',
-                title: '场景1',
+                title: '章节1',
                 summary: '',
               ),
             ],
@@ -395,7 +415,7 @@ void main() {
         final result = validateWorkspaceData(data);
         expect(result.hasWarnings, isTrue);
         expect(
-          result.warnings.any((i) => i.message.contains('不存在的场景')),
+          result.warnings.any((i) => i.message.contains('不存在的章节')),
           isTrue,
         );
       });
@@ -419,7 +439,7 @@ void main() {
               const SceneRecord(
                 id: 'scene-1',
                 chapterLabel: '第 1 章',
-                title: '场景1',
+                title: '章节1',
                 summary: '',
               ),
             ],
@@ -434,7 +454,7 @@ void main() {
         final result = validateWorkspaceData(data);
         expect(result.hasWarnings, isTrue);
         expect(
-          result.warnings.any((i) => i.message.contains('不存在于场景列表')),
+          result.warnings.any((i) => i.message.contains('不存在于章节列表')),
           isTrue,
         );
       });
@@ -454,7 +474,16 @@ void main() {
           projects: [project],
           charactersByProjectId: {
             'project-1': const [],
-            'orphan-project': [const CharacterRecord(id: 'c', name: '孤', role: '', note: '', need: '', summary: '')],
+            'orphan-project': [
+              const CharacterRecord(
+                id: 'c',
+                name: '孤',
+                role: '',
+                note: '',
+                need: '',
+                summary: '',
+              ),
+            ],
           },
           scenesByProjectId: const {'project-1': []},
           worldNodesByProjectId: const {'project-1': []},
@@ -498,7 +527,10 @@ void main() {
         final result = validateWorkspaceData(data);
         expect(result.hasErrors, isTrue);
         expect(result.hasWarnings, isTrue);
-        expect(result.errors.length + result.warnings.length, equals(result.issues.length));
+        expect(
+          result.errors.length + result.warnings.length,
+          equals(result.issues.length),
+        );
       });
     });
 

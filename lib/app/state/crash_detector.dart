@@ -29,8 +29,14 @@ class CrashDetector {
   /// Remove the running marker.  Call on normal app shutdown.
   void markCleanShutdown() {
     final marker = File('$_appDataDir/$_markerFileName');
-    if (marker.existsSync()) {
-      marker.deleteSync();
+    try {
+      if (marker.existsSync()) {
+        marker.deleteSync();
+      }
+    } on FileSystemException catch (error) {
+      if (error.osError?.errorCode != 2) {
+        rethrow;
+      }
     }
   }
 
@@ -40,9 +46,7 @@ class CrashDetector {
       dir.createSync(recursive: true);
     }
     final marker = File('$_appDataDir/$_markerFileName');
-    marker.writeAsStringSync(
-      DateTime.now().toUtc().toIso8601String(),
-    );
+    marker.writeAsStringSync(DateTime.now().toUtc().toIso8601String());
   }
 
   static String _defaultAppDataDir() {

@@ -269,11 +269,9 @@ class SceneStateResolver {
           '${l.taskLabel}${l.colon}scene_beat_resolve',
           '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
           if (hasAuthoritativeRoleplay) ...[
-            '规划背景（非既定事实，不得直接输出为场景拍）：'
-                '${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
+            '规划背景（非既定事实，不得直接输出为场景拍）：${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
             if (taskCard.directorPlan.trim().isNotEmpty)
-              '导演规划（非既定事实，不得直接输出为场景拍）：'
-                  '${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
+              '导演规划（非既定事实，不得直接输出为场景拍）：${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
           ] else ...[
             '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
             '${l.directorLabel}${l.colon}${PromptStringUtils.compact(taskCard.directorPlan, maxChars: 120)}',
@@ -285,17 +283,13 @@ class SceneStateResolver {
           ],
           _turnSummary(roleTurns),
           if (roleplaySession != null && !roleplaySession.isEmpty)
-            '角色扮演裁决（权威事实源）：'
-                '${roleplaySession.toCommittedPromptText(maxChars: 2400)}',
+            '角色扮演裁决（权威事实源）：${roleplaySession.toCommittedPromptText(maxChars: 2400)}',
           if (_stageCapsules(capsules).isNotEmpty)
-            '场景旁白/舞台信息（权威场景源）：'
-                '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+            '场景旁白/舞台信息（权威场景源）：${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
           if (_retrievalCapsules(capsules).isNotEmpty)
             '${l.retrievalContextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
           if (hasAuthoritativeRoleplay)
-            '约束：只从角色输入、角色扮演裁决和检索上下文抽取场景拍；'
-                '场景旁白/舞台信息可作为环境、氛围、物理机制与公共证据；'
-                '规划背景只用于场景边界和语气，不是已发生事件。',
+            '约束：只从角色输入、角色扮演裁决和检索上下文抽取场景拍；场景旁白/舞台信息可作为环境、氛围、物理机制与公共证据；规划背景只用于场景边界和语气，不是已发生事件。',
           '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
         ].join('\n'),
       ),

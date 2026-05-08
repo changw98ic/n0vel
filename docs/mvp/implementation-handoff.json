@@ -10,7 +10,7 @@
     { "order": 2, "label": "AI 修改确认流" },
     { "order": 3, "label": "纯净阅读" },
     { "order": 4, "label": "模拟过程弹窗" },
-    { "order": 5, "label": "设置与 BYOK" },
+    { "order": 5, "label": "设置与 自带密钥" },
     { "order": 6, "label": "工程导入导出" },
     { "order": 7, "label": "章节版本" },
     { "order": 8, "label": "角色库 / 世界观 / 审计中心" }
@@ -56,7 +56,7 @@
       "related_frames": ["Z0073", "Z0240", "Z0340", "Z0402"],
       "done_when": [
         "书架响应式补充稿可回查",
-        "作品圣经、生产看板、审查任务有补充设计基线"
+        "设定摘要、生产看板、审查任务有补充设计基线"
       ]
     }
   },
@@ -65,7 +65,7 @@
       "canonical": "az4YP",
       "legacy": "UbuvO"
     },
-    "Settings / Missing API Key": {
+    "设置 / 缺少密钥": {
       "canonical": "6yJaH",
       "legacy": "9izFv"
     }

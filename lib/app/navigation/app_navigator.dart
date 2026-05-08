@@ -10,7 +10,6 @@ abstract final class AppRoutes {
   static const String worldbuilding = 'worldbuilding';
   static const String scenes = 'scenes';
   static const String style = 'style';
-  static const String storyBible = 'story_bible';
   static const String audit = 'audit';
   static const String importExport = 'import_export';
   static const String productionBoard = 'production_board';

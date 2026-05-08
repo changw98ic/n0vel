@@ -11,6 +11,7 @@ import '../../../app/state/app_version_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../data/project_transfer_service.dart';
+import '../data/standard_format_exporter.dart';
 
 enum ProjectImportExportUiState {
   ready,
@@ -52,6 +53,8 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
   late final ProjectTransferService _service;
   ProjectPackageManifest? _manifest;
   String? _manifestPackagePath;
+  StandardExportFormat _selectedFormat = StandardExportFormat.markdown;
+  StandardExportMode _selectedMode = StandardExportMode.manuscript;
 
   @override
   void initState() {
@@ -167,10 +170,9 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  exportDisabled ? '请先创建或导入项目' : _service.exportPackagePath,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                exportDisabled
+                    ? Text('请先创建或导入项目', style: theme.textTheme.bodyMedium)
+                    : _PathValueText(value: _service.exportPackagePath),
               ],
             ),
           ),
@@ -180,6 +182,58 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
             child: FilledButton(
               onPressed: exportDisabled ? null : () => _handleExport(context),
               child: const Text('导出当前工程'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('导出稿件', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: appPanelDecoration(
+              context,
+              color: desktopPalette(context).elevated,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('格式', style: theme.textTheme.bodySmall),
+                const SizedBox(height: 4),
+                _FormatDropdown<StandardExportFormat>(
+                  title: '选择导出格式',
+                  value: _selectedFormat,
+                  items: const [
+                    (StandardExportFormat.markdown, 'Markdown'),
+                    (StandardExportFormat.html, 'HTML'),
+                    (StandardExportFormat.plainText, '纯文本'),
+                    (StandardExportFormat.json, 'JSON'),
+                  ],
+                  onChanged: (v) => setState(() => _selectedFormat = v),
+                ),
+                const SizedBox(height: 8),
+                Text('范围', style: theme.textTheme.bodySmall),
+                const SizedBox(height: 4),
+                _FormatDropdown<StandardExportMode>(
+                  title: '选择导出范围',
+                  value: _selectedMode,
+                  items: const [
+                    (StandardExportMode.manuscript, '稿件正文'),
+                    (StandardExportMode.fullProject, '完整项目'),
+                    (StandardExportMode.finalDraft, '终稿'),
+                  ],
+                  onChanged: (v) => setState(() => _selectedMode = v),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: exportDisabled
+                  ? null
+                  : () => _handleFormatExport(context),
+              child: const Text('导出稿件'),
             ),
           ),
         ],
@@ -260,7 +314,7 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
         children: [
           Text('包信息 / 兼容性', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          _FieldRow(label: '包名', value: manifest?.packageName ?? 'lunarifest'),
+          _FieldRow(label: '包名', value: manifest?.packageName ?? '小说工程包'),
           const SizedBox(height: 8),
           _FieldRow(label: '包版本', value: manifest?.schemaLabel ?? 'v1.0'),
           const SizedBox(height: 8),
@@ -624,6 +678,42 @@ class _ProjectImportExportPageState extends State<ProjectImportExportPage> {
     await _refreshManifestSummary(packagePath: result.packagePath);
   }
 
+  void _handleFormatExport(BuildContext context) {
+    final workspaceStore = AppWorkspaceScope.of(context);
+    final project = workspaceStore.currentProject;
+    final exporter = StandardFormatExporter();
+    final input = StandardExportInput(
+      project: project,
+      characters: workspaceStore.characters,
+      scenes: workspaceStore.scenes,
+      worldNodes: workspaceStore.worldNodes,
+      draftText: AppDraftScope.of(context).snapshot.text,
+      versionEntries: AppVersionScope.of(context).entries,
+      outline: null,
+      mode: _selectedMode,
+    );
+    final content = exporter.export(
+      input,
+      _selectedFormat,
+      mode: _selectedMode,
+    );
+    final ext = switch (_selectedFormat) {
+      StandardExportFormat.markdown => 'md',
+      StandardExportFormat.html => 'html',
+      StandardExportFormat.plainText => 'txt',
+      StandardExportFormat.json => 'json',
+    };
+    final fileName =
+        '${_safeExportFileStem(project.title)}.${_selectedMode.name}.$ext';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '已生成 ${_selectedFormat.name} 稿件 ($fileName，${content.length} 字符)',
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleImport(BuildContext context) async {
     final workspaceStore = AppWorkspaceScope.of(context);
     final result = await _service.importPackage(
@@ -725,6 +815,7 @@ class _PathValueText extends StatelessWidget {
     final directory = separatorIndex == -1
         ? ''
         : value.substring(0, separatorIndex);
+    final directoryLabel = _compactDirectoryLabel(directory, separator);
 
     return Tooltip(
       message: value,
@@ -743,9 +834,9 @@ class _PathValueText extends StatelessWidget {
           if (directory.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              directory,
+              directoryLabel,
               style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -753,6 +844,23 @@ class _PathValueText extends StatelessWidget {
       ),
     );
   }
+}
+
+String _compactDirectoryLabel(String directory, String separator) {
+  if (directory.isEmpty) {
+    return directory;
+  }
+  final parts = directory
+      .split(separator)
+      .where((part) => part.trim().isNotEmpty)
+      .toList(growable: false);
+  if (parts.length <= 2) {
+    return directory;
+  }
+  final prefix = directory.startsWith(separator)
+      ? '$separator…$separator'
+      : '…$separator';
+  return '$prefix${parts.last}';
 }
 
 class _TransferStatusDescriptor {
@@ -997,6 +1105,140 @@ class _TransferResultLog extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+String _safeExportFileStem(String title) {
+  final buffer = StringBuffer();
+  for (final rune in title.runes) {
+    final isDigit = rune >= 0x30 && rune <= 0x39;
+    final isUpper = rune >= 0x41 && rune <= 0x5A;
+    final isLower = rune >= 0x61 && rune <= 0x7A;
+    final isCjk = rune >= 0x4E00 && rune <= 0x9FFF;
+    if (isDigit || isUpper || isLower || isCjk || rune == 0x5F) {
+      buffer.writeCharCode(rune);
+    } else {
+      buffer.write('_');
+    }
+  }
+  final stem = buffer.toString();
+  return stem.isEmpty ? 'untitled' : stem;
+}
+
+class _FormatDropdown<T> extends StatelessWidget {
+  const _FormatDropdown({
+    required this.title,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String title;
+  final T value;
+  final List<(T, String)> items;
+  final ValueChanged<T> onChanged;
+
+  Future<void> _showPicker(BuildContext context) async {
+    final selected = await showDialog<T>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        final palette = desktopPalette(dialogContext);
+        return DesktopModalDialog(
+          title: title,
+          width: 360,
+          body: ListView.separated(
+            shrinkWrap: true,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final (itemValue, label) = items[index];
+              final selected = itemValue == value;
+              return OutlinedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(itemValue),
+                style: OutlinedButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      selected ? Icons.check_circle : Icons.circle_outlined,
+                      size: 18,
+                      color: selected ? palette.primary : palette.tertiaryText,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(label, style: theme.textTheme.bodyMedium),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+    if (selected != null && selected != value) {
+      onChanged(selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final selectedLabel = items
+        .firstWhere((item) => item.$1 == value, orElse: () => items.first)
+        .$2;
+
+    return Semantics(
+      button: true,
+      label: '$title：$selectedLabel',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showPicker(context),
+          borderRadius: BorderRadius.circular(8),
+          child: ExcludeSemantics(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: palette.elevated,
+                border: Border.all(color: palette.border),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      selectedLabel,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  Icon(
+                    Icons.expand_more,
+                    size: 16,
+                    color: palette.tertiaryText,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

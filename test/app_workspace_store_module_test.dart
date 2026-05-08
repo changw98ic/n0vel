@@ -131,8 +131,11 @@ void main() {
         expect(store.currentScene.title, '新增场景');
         store.updateCurrentSceneChapterLabel('   ');
         expect(store.currentScene.chapterLabel, contains('场景'));
+        store.updateCurrentSceneChapterLabel('第 8 章');
+        expect(store.currentScene.chapterLabel, '第 8 章 / 场景 01');
+        expect(store.currentScene.chapterOnlyLabel, '第 8 章');
         store.updateCurrentSceneSummary('   ');
-        expect(store.currentScene.summary, '等待补充场景目标、冲突和收束条件。');
+        expect(store.currentScene.summary, '等待补充目标、冲突和收束条件。');
 
         final createdIndex = store.scenes.indexWhere(
           (scene) => scene.id == createdSceneId,
@@ -370,6 +373,7 @@ void main() {
         store.jumpToSelectedAuditScene();
         expect(store.currentProject.sceneId, 'scene-05-witness-room');
         expect(store.auditActionFeedback, contains('已跳转到关联场景'));
+        expect(store.currentScene.locationParts.sceneNumber, 5);
 
         store.selectAuditIssue(1);
         store.jumpToSelectedAuditScene();
