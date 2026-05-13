@@ -22,15 +22,22 @@ void registerFeatureServices(ServiceRegistry registry) {
       authorFeedbackStore: r.resolve<AuthorFeedbackStore>(),
       roleplaySessionStore: r.resolve<RoleplaySessionStore>(),
       characterMemoryStore: r.resolve<CharacterMemoryStore>(),
+      reviewTaskStore: r.resolve<ReviewTaskStore>(),
       eventBus: r.resolve<AppEventBus>(),
     ),
   );
 
   registry.registerFactory<AuthorFeedbackStore>(
-    (r) => AuthorFeedbackStore(workspaceStore: r.resolve<AppWorkspaceStore>(), eventBus: r.resolve<AppEventBus>()),
+    (r) => AuthorFeedbackStore(
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
   );
 
   registry.registerFactory<ReviewTaskStore>(
-    (r) => ReviewTaskStore(workspaceStore: r.resolve<AppWorkspaceStore>(), eventBus: r.resolve<AppEventBus>()),
+    (r) => ReviewTaskStore(
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
   );
 }

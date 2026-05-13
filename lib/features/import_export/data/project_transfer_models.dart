@@ -150,8 +150,8 @@ Future<Map<String, Object?>?> exportRoleplayStateForProject(
       return null;
     }
     return {
-      if (roleplayData != null) 'roleplaySessions': roleplayData,
-      if (memoryData != null) 'characterMemories': memoryData,
+      'roleplaySessions':? roleplayData,
+      'characterMemories':? memoryData,
       if (auditReports.isNotEmpty)
         'auditReports': [for (final report in auditReports) report.toJson()],
       if (auditReports.isNotEmpty)

@@ -293,8 +293,8 @@ void main() {
         expect(maxActiveRequests, 2);
 
         release.complete();
-        final outputs = await future;
-        expect(outputs, hasLength(2));
+        final result = await future;
+        expect(result.outputs, hasLength(2));
       },
     );
 

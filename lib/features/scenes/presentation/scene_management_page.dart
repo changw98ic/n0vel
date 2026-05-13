@@ -49,7 +49,8 @@ class SceneManagementPage extends ConsumerStatefulWidget {
   );
 
   @override
-  ConsumerState<SceneManagementPage> createState() => _SceneManagementPageState();
+  ConsumerState<SceneManagementPage> createState() =>
+      _SceneManagementPageState();
 }
 
 class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
@@ -115,7 +116,7 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                           )
                         : ListView.separated(
                             itemCount: groupedScenes.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 16),
                             itemBuilder: (context, index) {
                               final group = groupedScenes[index];
@@ -358,5 +359,4 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
         ),
     ];
   }
-
 }

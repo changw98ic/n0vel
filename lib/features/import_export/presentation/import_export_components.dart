@@ -23,7 +23,11 @@ class TransferStatusDescriptor {
 }
 
 class ImportExportFieldRow extends StatelessWidget {
-  const ImportExportFieldRow({required this.label, required this.value, super.key});
+  const ImportExportFieldRow({
+    required this.label,
+    required this.value,
+    super.key,
+  });
 
   final String label;
   final String value;
@@ -38,7 +42,9 @@ class ImportExportFieldRow extends StatelessWidget {
           width: 72,
           child: Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -74,7 +80,9 @@ class ImportExportPathValueText extends StatelessWidget {
         children: [
           Text(
             fileName,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -107,7 +115,11 @@ String _compactDirectoryLabel(String directory, String separator) {
 }
 
 class ImportExportStatusCard extends StatelessWidget {
-  const ImportExportStatusCard({required this.descriptor, required this.accent, super.key});
+  const ImportExportStatusCard({
+    required this.descriptor,
+    required this.accent,
+    super.key,
+  });
 
   final TransferStatusDescriptor descriptor;
   final Color accent;
@@ -138,7 +150,10 @@ class ImportExportStatusCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(999),
@@ -170,10 +185,16 @@ class ImportExportStatusCard extends StatelessWidget {
               children: [
                 Text(
                   descriptor.detailTitle,
-                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                for (var index = 0; index < descriptor.detailLines.length; index++) ...[
+                for (
+                  var index = 0;
+                  index < descriptor.detailLines.length;
+                  index++
+                ) ...[
                   Text(
                     descriptor.detailLines[index],
                     style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
@@ -191,7 +212,11 @@ class ImportExportStatusCard extends StatelessWidget {
 }
 
 class ImportExportGuidanceCard extends StatelessWidget {
-  const ImportExportGuidanceCard({required this.descriptor, required this.accent, super.key});
+  const ImportExportGuidanceCard({
+    required this.descriptor,
+    required this.accent,
+    super.key,
+  });
 
   final TransferStatusDescriptor descriptor;
   final Color accent;
@@ -243,7 +268,11 @@ class ImportExportGuidanceCard extends StatelessWidget {
 }
 
 class ImportExportResultLog extends StatelessWidget {
-  const ImportExportResultLog({required this.descriptor, required this.accent, super.key});
+  const ImportExportResultLog({
+    required this.descriptor,
+    required this.accent,
+    super.key,
+  });
 
   final TransferStatusDescriptor descriptor;
   final Color accent;
@@ -370,7 +399,7 @@ class ImportExportFormatDropdown<T> extends StatelessWidget {
           body: ListView.separated(
             shrinkWrap: true,
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final (itemValue, label) = items[index];
               final selected = itemValue == value;
@@ -378,7 +407,10 @@ class ImportExportFormatDropdown<T> extends StatelessWidget {
                 onPressed: () => Navigator.of(dialogContext).pop(itemValue),
                 style: OutlinedButton.styleFrom(
                   alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -388,7 +420,9 @@ class ImportExportFormatDropdown<T> extends StatelessWidget {
                       color: selected ? palette.primary : palette.tertiaryText,
                     ),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+                    Expanded(
+                      child: Text(label, style: theme.textTheme.bodyMedium),
+                    ),
                   ],
                 ),
               );
@@ -435,8 +469,17 @@ class ImportExportFormatDropdown<T> extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Expanded(child: Text(selectedLabel, style: theme.textTheme.bodyMedium)),
-                  Icon(Icons.expand_more, size: 16, color: palette.tertiaryText),
+                  Expanded(
+                    child: Text(
+                      selectedLabel,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  Icon(
+                    Icons.expand_more,
+                    size: 16,
+                    color: palette.tertiaryText,
+                  ),
                 ],
               ),
             ),

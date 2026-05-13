@@ -150,20 +150,16 @@ void main() {
       expect(firstProject['title'], '月潮回声');
       expect(firstProject['genre'], '悬疑 / 8.7 万字');
       expect(firstProject['summary'], '证人房间的对峙停在最危险的地方。');
-      expect(
-        firstProject['recentLocation'],
-        '第 3 章 / 场景 05 · 证人房间对峙',
-      );
+      expect(firstProject['recentLocation'], '第 3 章 / 场景 05 · 证人房间对峙');
       expect(firstProject['lastOpenedAtMs'], 1700000000000);
 
       final secondProject = projects[1] as Map<String, Object?>;
       expect(secondProject['id'], 'project-beta');
       expect(secondProject['title'], '盐港档案');
 
-      final characters =
-          loaded['charactersByProject'] as Map<String, Object?>;
-      final alphaChars =
-          (characters['project-alpha'] as List<Object?>).cast<Map<String, Object?>>();
+      final characters = loaded['charactersByProject'] as Map<String, Object?>;
+      final alphaChars = (characters['project-alpha'] as List<Object?>)
+          .cast<Map<String, Object?>>();
       expect(alphaChars.length, 1);
       expect(alphaChars.first['name'], '柳溪');
       expect(alphaChars.first['role'], '调查记者');
@@ -171,24 +167,23 @@ void main() {
       expect(alphaChars.first['need'], '承认她也会判断失误');
       expect(alphaChars.first['summary'], '冷静、急迫、对线索高度敏感。');
 
-      final betaChars =
-          (characters['project-beta'] as List<Object?>).cast<Map<String, Object?>>();
+      final betaChars = (characters['project-beta'] as List<Object?>)
+          .cast<Map<String, Object?>>();
       expect(betaChars.length, 1);
       expect(betaChars.first['name'], '岳人');
 
       final scenes = loaded['scenesByProject'] as Map<String, Object?>;
-      final alphaScenes =
-          (scenes['project-alpha'] as List<Object?>).cast<Map<String, Object?>>();
+      final alphaScenes = (scenes['project-alpha'] as List<Object?>)
+          .cast<Map<String, Object?>>();
       expect(alphaScenes.length, 1);
       expect(alphaScenes.first['id'], 'scene-01');
       expect(alphaScenes.first['chapterLabel'], '第 3 章 / 场景 05');
       expect(alphaScenes.first['title'], '证人房间对峙');
       expect(alphaScenes.first['summary'], '证人与柳溪的对峙停在最危险的地方。');
 
-      final worldNodes =
-          loaded['worldNodesByProject'] as Map<String, Object?>;
-      final alphaNodes =
-          (worldNodes['project-alpha'] as List<Object?>).cast<Map<String, Object?>>();
+      final worldNodes = loaded['worldNodesByProject'] as Map<String, Object?>;
+      final alphaNodes = (worldNodes['project-alpha'] as List<Object?>)
+          .cast<Map<String, Object?>>();
       expect(alphaNodes.length, 1);
       expect(alphaNodes.first['title'], '旧港规则');
       expect(alphaNodes.first['location'], '旧港城');
@@ -198,8 +193,8 @@ void main() {
 
       final auditIssues =
           loaded['auditIssuesByProject'] as Map<String, Object?>;
-      final alphaIssues =
-          (auditIssues['project-alpha'] as List<Object?>).cast<Map<String, Object?>>();
+      final alphaIssues = (auditIssues['project-alpha'] as List<Object?>)
+          .cast<Map<String, Object?>>();
       expect(alphaIssues.length, 2);
       expect(alphaIssues[0]['title'], '角色动机冲突');
       expect(alphaIssues[0]['evidence'], '角色上一场景处于防御姿态，当前段落突然主动进攻。');
@@ -213,7 +208,8 @@ void main() {
       expect(alphaStyle['styleBindingFeedback'], '已将风格绑定到项目。');
 
       final auditStates = loaded['projectAuditStates'] as Map<String, Object?>;
-      final alphaAuditState = auditStates['project-alpha'] as Map<String, Object?>;
+      final alphaAuditState =
+          auditStates['project-alpha'] as Map<String, Object?>;
       expect(alphaAuditState['selectedAuditIssueIndex'], '1');
       expect(alphaAuditState['auditActionFeedback'], '已标记为已处理。');
 
@@ -238,7 +234,13 @@ void main() {
         ],
         'charactersByProject': {
           'project-old': [
-            {'name': '旧角色', 'role': '旧', 'note': '旧', 'need': '旧', 'summary': '旧'},
+            {
+              'name': '旧角色',
+              'role': '旧',
+              'note': '旧',
+              'need': '旧',
+              'summary': '旧',
+            },
           ],
         },
       });
@@ -343,15 +345,18 @@ void main() {
           .map((row) => row['name'] as String)
           .toSet();
 
-      expect(tableNames, containsAll([
-        'workspace_projects',
-        'workspace_characters',
-        'workspace_scenes',
-        'workspace_world_nodes',
-        'workspace_audit_issues',
-        'workspace_preferences',
-        'workspace_project_preferences',
-      ]));
+      expect(
+        tableNames,
+        containsAll([
+          'workspace_projects',
+          'workspace_characters',
+          'workspace_scenes',
+          'workspace_world_nodes',
+          'workspace_audit_issues',
+          'workspace_preferences',
+          'workspace_project_preferences',
+        ]),
+      );
 
       final projectColumns = database
           .select('PRAGMA table_info(workspace_projects)')
@@ -378,37 +383,52 @@ void main() {
           .toList();
       expect(
         charColumns,
-        containsAll(['scope_key', 'project_id', 'position_no', 'name', 'role', 'note', 'need_text', 'summary']),
+        containsAll([
+          'scope_key',
+          'project_id',
+          'position_no',
+          'name',
+          'role',
+          'note',
+          'need_text',
+          'summary',
+        ]),
       );
     });
 
-    test('save with empty data results in load with empty collections', () async {
-      final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+    test(
+      'save with empty data results in load with empty collections',
+      () async {
+        final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
 
-      await storage.save({});
-      final result = await storage.load();
-      expect(result, isNotNull);
-      expect(result!['projects'] as List, isEmpty);
-      expect(result['charactersByProject'] as Map, isEmpty);
-      expect(result['currentProjectId'], '');
-    });
+        await storage.save({});
+        final result = await storage.load();
+        expect(result, isNotNull);
+        expect(result!['projects'] as List, isEmpty);
+        expect(result['charactersByProject'] as Map, isEmpty);
+        expect(result['currentProjectId'], '');
+      },
+    );
 
-    test('save with null list values results in load with empty collections', () async {
-      final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+    test(
+      'save with null list values results in load with empty collections',
+      () async {
+        final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
 
-      await storage.save({
-        'projects': null,
-        'charactersByProject': null,
-        'scenesByProject': null,
-        'worldNodesByProject': null,
-        'auditIssuesByProject': null,
-        'projectStyles': null,
-        'projectAuditStates': null,
-      });
-      final result = await storage.load();
-      expect(result, isNotNull);
-      expect(result!['projects'] as List, isEmpty);
-    });
+        await storage.save({
+          'projects': null,
+          'charactersByProject': null,
+          'scenesByProject': null,
+          'worldNodesByProject': null,
+          'auditIssuesByProject': null,
+          'projectStyles': null,
+          'projectAuditStates': null,
+        });
+        final result = await storage.load();
+        expect(result, isNotNull);
+        expect(result!['projects'] as List, isEmpty);
+      },
+    );
 
     test('save handles missing keys gracefully', () async {
       final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
@@ -456,8 +476,8 @@ void main() {
       expect(project['summary'], 'Спокойствие');
 
       final characters = loaded['charactersByProject'] as Map<String, Object?>;
-      final chars =
-          (characters['project-unicode'] as List).cast<Map<String, Object?>>();
+      final chars = (characters['project-unicode'] as List)
+          .cast<Map<String, Object?>>();
       expect(chars.first['name'], '角色 🎭');
       expect(chars.first['summary'], '摘要 🌸');
     });
@@ -507,9 +527,27 @@ void main() {
         ],
         'charactersByProject': {
           'project-order': [
-            {'name': '第一', 'role': 'r', 'note': 'n', 'need': 'ne', 'summary': 's'},
-            {'name': '第二', 'role': 'r', 'note': 'n', 'need': 'ne', 'summary': 's'},
-            {'name': '第三', 'role': 'r', 'note': 'n', 'need': 'ne', 'summary': 's'},
+            {
+              'name': '第一',
+              'role': 'r',
+              'note': 'n',
+              'need': 'ne',
+              'summary': 's',
+            },
+            {
+              'name': '第二',
+              'role': 'r',
+              'note': 'n',
+              'need': 'ne',
+              'summary': 's',
+            },
+            {
+              'name': '第三',
+              'role': 'r',
+              'note': 'n',
+              'need': 'ne',
+              'summary': 's',
+            },
           ],
         },
       });
@@ -538,9 +576,24 @@ void main() {
         ],
         'scenesByProject': {
           'project-scene-order': [
-            {'id': 'scene-01', 'chapterLabel': '第 1 章', 'title': '场景一', 'summary': 's1'},
-            {'id': 'scene-02', 'chapterLabel': '第 2 章', 'title': '场景二', 'summary': 's2'},
-            {'id': 'scene-03', 'chapterLabel': '第 3 章', 'title': '场景三', 'summary': 's3'},
+            {
+              'id': 'scene-01',
+              'chapterLabel': '第 1 章',
+              'title': '场景一',
+              'summary': 's1',
+            },
+            {
+              'id': 'scene-02',
+              'chapterLabel': '第 2 章',
+              'title': '场景二',
+              'summary': 's2',
+            },
+            {
+              'id': 'scene-03',
+              'chapterLabel': '第 3 章',
+              'title': '场景三',
+              'summary': 's3',
+            },
           ],
         },
       });
@@ -765,14 +818,7 @@ void main() {
           scope_key, position_no, title, genre, summary, recent_location
         ) VALUES (?, ?, ?, ?, ?, ?)
       ''',
-        [
-          'workspace-default',
-          0,
-          '遗留月潮',
-          '悬疑',
-          '遗留摘要',
-          '第 3 章 / 场景 05 · 遗留场景',
-        ],
+        ['workspace-default', 0, '遗留月潮', '悬疑', '遗留摘要', '第 3 章 / 场景 05 · 遗留场景'],
       );
       database.dispose();
 
@@ -789,9 +835,11 @@ void main() {
       expect(project['lastOpenedAtMs'], greaterThan(0));
     });
 
-    test('legacy scoped table migration assigns rows to existing projects', () async {
-      final database = sqlite3.open(dbPath);
-      database.execute('''
+    test(
+      'legacy scoped table migration assigns rows to existing projects',
+      () async {
+        final database = sqlite3.open(dbPath);
+        database.execute('''
         CREATE TABLE workspace_projects (
           scope_key TEXT NOT NULL,
           position_no INTEGER NOT NULL,
@@ -805,17 +853,25 @@ void main() {
           PRIMARY KEY (scope_key, position_no)
         )
       ''');
-      database.execute(
-        '''
+        database.execute(
+          '''
         INSERT INTO workspace_projects (
           scope_key, position_no, id, scene_id, title, genre, summary, recent_location, last_opened_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
-        [
-          'workspace-default', 0, 'project-yuechao', 'scene-05', '月潮', '悬疑', '摘要', '位置', 1,
-        ],
-      );
-      database.execute('''
+          [
+            'workspace-default',
+            0,
+            'project-yuechao',
+            'scene-05',
+            '月潮',
+            '悬疑',
+            '摘要',
+            '位置',
+            1,
+          ],
+        );
+        database.execute('''
         CREATE TABLE workspace_characters (
           scope_key TEXT NOT NULL,
           position_no INTEGER NOT NULL,
@@ -827,31 +883,34 @@ void main() {
           PRIMARY KEY (scope_key, position_no)
         )
       ''');
-      database.execute(
-        '''
+        database.execute(
+          '''
         INSERT INTO workspace_characters (
           scope_key, position_no, name, role, note, need_text, summary
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
       ''',
-        ['workspace-default', 0, '遗留角色', '主角', '备注', '需求', '摘要'],
-      );
-      database.dispose();
+          ['workspace-default', 0, '遗留角色', '主角', '备注', '需求', '摘要'],
+        );
+        database.dispose();
 
-      final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
-      final loaded = await storage.load();
+        final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+        final loaded = await storage.load();
 
-      expect(loaded, isNotNull);
-      final characters =
-          loaded!['charactersByProject'] as Map<String, Object?>;
-      final migratedChars =
-          (characters['project-yuechao'] as List).cast<Map<String, Object?>>();
-      expect(migratedChars.length, 1);
-      expect(migratedChars.first['name'], '遗留角色');
-    });
+        expect(loaded, isNotNull);
+        final characters =
+            loaded!['charactersByProject'] as Map<String, Object?>;
+        final migratedChars = (characters['project-yuechao'] as List)
+            .cast<Map<String, Object?>>();
+        expect(migratedChars.length, 1);
+        expect(migratedChars.first['name'], '遗留角色');
+      },
+    );
 
-    test('legacy project preferences migration moves scoped keys to project preferences', () async {
-      final database = sqlite3.open(dbPath);
-      database.execute('''
+    test(
+      'legacy project preferences migration moves scoped keys to project preferences',
+      () async {
+        final database = sqlite3.open(dbPath);
+        database.execute('''
         CREATE TABLE workspace_projects (
           scope_key TEXT NOT NULL,
           position_no INTEGER NOT NULL,
@@ -865,17 +924,25 @@ void main() {
           PRIMARY KEY (scope_key, position_no)
         )
       ''');
-      database.execute(
-        '''
+        database.execute(
+          '''
         INSERT INTO workspace_projects (
           scope_key, position_no, id, scene_id, title, genre, summary, recent_location, last_opened_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
-        [
-          'workspace-default', 0, 'project-migrate', 'scene-01', '迁移', 'test', 'test', 'test', 1,
-        ],
-      );
-      database.execute('''
+          [
+            'workspace-default',
+            0,
+            'project-migrate',
+            'scene-01',
+            '迁移',
+            'test',
+            'test',
+            'test',
+            1,
+          ],
+        );
+        database.execute('''
         CREATE TABLE workspace_preferences (
           scope_key TEXT NOT NULL,
           preference_key TEXT NOT NULL,
@@ -883,44 +950,45 @@ void main() {
           PRIMARY KEY (scope_key, preference_key)
         )
       ''');
-      database.execute(
-        '''
+        database.execute(
+          '''
         INSERT INTO workspace_preferences (
           scope_key, preference_key, preference_value
         ) VALUES (?, ?, ?)
       ''',
-        ['workspace-default', 'style_input_mode', 'json'],
-      );
-      database.execute(
-        '''
+          ['workspace-default', 'style_input_mode', 'json'],
+        );
+        database.execute(
+          '''
         INSERT INTO workspace_preferences (
           scope_key, preference_key, preference_value
         ) VALUES (?, ?, ?)
       ''',
-        ['workspace-default', 'style_intensity', '3'],
-      );
-      database.execute(
-        '''
+          ['workspace-default', 'style_intensity', '3'],
+        );
+        database.execute(
+          '''
         INSERT INTO workspace_preferences (
           scope_key, preference_key, preference_value
         ) VALUES (?, ?, ?)
       ''',
-        ['workspace-default', 'current_project_id', 'project-migrate'],
-      );
-      database.dispose();
+          ['workspace-default', 'current_project_id', 'project-migrate'],
+        );
+        database.dispose();
 
-      final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
-      final loaded = await storage.load();
+        final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+        final loaded = await storage.load();
 
-      expect(loaded, isNotNull);
+        expect(loaded, isNotNull);
 
-      final styles = loaded!['projectStyles'] as Map<String, Object?>;
-      final style = styles['project-migrate'] as Map<String, Object?>;
-      expect(style['styleInputMode'], 'json');
-      expect(style['styleIntensity'], '3');
+        final styles = loaded!['projectStyles'] as Map<String, Object?>;
+        final style = styles['project-migrate'] as Map<String, Object?>;
+        expect(style['styleInputMode'], 'json');
+        expect(style['styleIntensity'], '3');
 
-      expect(loaded['currentProjectId'], 'project-migrate');
-    });
+        expect(loaded['currentProjectId'], 'project-migrate');
+      },
+    );
 
     test('large number of projects round-trip correctly', () async {
       final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
@@ -999,11 +1067,29 @@ void main() {
         ],
         'worldNodesByProject': {
           'project-a': [
-            {'title': '节点A1', 'location': '位置A', 'type': '规则', 'detail': '细节A', 'summary': '摘要A'},
+            {
+              'title': '节点A1',
+              'location': '位置A',
+              'type': '规则',
+              'detail': '细节A',
+              'summary': '摘要A',
+            },
           ],
           'project-b': [
-            {'title': '节点B1', 'location': '位置B', 'type': '事件', 'detail': '细节B', 'summary': '摘要B'},
-            {'title': '节点B2', 'location': '位置B2', 'type': '流程', 'detail': '细节B2', 'summary': '摘要B2'},
+            {
+              'title': '节点B1',
+              'location': '位置B',
+              'type': '事件',
+              'detail': '细节B',
+              'summary': '摘要B',
+            },
+            {
+              'title': '节点B2',
+              'location': '位置B2',
+              'type': '流程',
+              'detail': '细节B2',
+              'summary': '摘要B2',
+            },
           ],
         },
       });
@@ -1011,11 +1097,13 @@ void main() {
       final loaded = await storage.load();
       final worldNodes = loaded!['worldNodesByProject'] as Map<String, Object?>;
 
-      final nodesA = (worldNodes['project-a'] as List).cast<Map<String, Object?>>();
+      final nodesA = (worldNodes['project-a'] as List)
+          .cast<Map<String, Object?>>();
       expect(nodesA.length, 1);
       expect(nodesA.first['title'], '节点A1');
 
-      final nodesB = (worldNodes['project-b'] as List).cast<Map<String, Object?>>();
+      final nodesB = (worldNodes['project-b'] as List)
+          .cast<Map<String, Object?>>();
       expect(nodesB.length, 2);
       expect(nodesB[0]['title'], '节点B1');
       expect(nodesB[1]['title'], '节点B2');
@@ -1059,13 +1147,13 @@ void main() {
       final loaded = await storage.load();
       final issues = loaded!['auditIssuesByProject'] as Map<String, Object?>;
 
-      final issuesA =
-          (issues['project-audit-a'] as List).cast<Map<String, Object?>>();
+      final issuesA = (issues['project-audit-a'] as List)
+          .cast<Map<String, Object?>>();
       expect(issuesA.length, 1);
       expect(issuesA.first['title'], '问题A');
 
-      final issuesB =
-          (issues['project-audit-b'] as List).cast<Map<String, Object?>>();
+      final issuesB = (issues['project-audit-b'] as List)
+          .cast<Map<String, Object?>>();
       expect(issuesB.length, 2);
       expect(issuesB[0]['title'], '问题B');
       expect(issuesB[1]['title'], '问题B2');

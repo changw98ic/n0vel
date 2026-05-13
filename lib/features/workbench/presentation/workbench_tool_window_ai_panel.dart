@@ -6,7 +6,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
   final diagnosticText = panel.diagnosticReport;
   String selectionPreviewForDraft(WorkbenchAiSelectionDraft selection) {
     final safeStart = selection.start.clamp(0, panel.draftText.length).toInt();
-    final safeEnd = selection.end.clamp(safeStart, panel.draftText.length).toInt();
+    final safeEnd = selection.end
+        .clamp(safeStart, panel.draftText.length)
+        .toInt();
     final excerpt = panel.draftText.substring(safeStart, safeEnd).trim();
     if (excerpt.isEmpty) {
       return '尚未选择正文片段';
@@ -56,19 +58,11 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _AiModeTab(
-              label: '润色',
-              isActive: false,
-              onTap: () {},
-            ),
+            child: _AiModeTab(label: '润色', isActive: false, onTap: () {}),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _AiModeTab(
-              label: '对话',
-              isActive: false,
-              onTap: () {},
-            ),
+            child: _AiModeTab(label: '对话', isActive: false, onTap: () {}),
           ),
         ],
       ),
@@ -85,7 +79,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0x14FFFFFF),
-                borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                borderRadius: BorderRadius.circular(
+                  AppDesignTokens.radiusXLarge,
+                ),
                 border: Border.all(color: const Color(0x20FFFFFF)),
               ),
               child: Column(
@@ -135,8 +131,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                       runSpacing: 8,
                       children: [
                         TextButton(
-                          key: WorkbenchShellPage
-                              .aiRetrySecureStoreButtonKey,
+                          key: WorkbenchShellPage.aiRetrySecureStoreButtonKey,
                           onPressed: () => panel.onRetrySecureStore(),
                           child: const Text('重试配置'),
                         ),
@@ -146,8 +141,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                         ),
                         if (diagnosticText != null)
                           TextButton(
-                            key: WorkbenchShellPage
-                                .aiCopyDiagnosticButtonKey,
+                            key: WorkbenchShellPage.aiCopyDiagnosticButtonKey,
                             onPressed: () => copyDiagnosticToClipboard(
                               context,
                               diagnosticText,
@@ -176,8 +170,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: panel.selectionDrafts.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final draft = panel.selectionDrafts[index];
                         return Container(
@@ -200,8 +193,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                                     ),
                                   ),
                                   GestureDetector(
-                                                    onTap: () =>
-                                      panel.onRemoveSelection(index),
+                                    onTap: () => panel.onRemoveSelection(index),
                                     child: Icon(
                                       Icons.close,
                                       size: 14,
@@ -241,7 +233,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFBFAF6),
-                      borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusXLarge,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -254,8 +248,8 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                             panel.aiPromptController.text = entry.prompt;
                             panel.aiPromptController.selection =
                                 TextSelection.collapsed(
-                              offset: entry.prompt.length,
-                            );
+                                  offset: entry.prompt.length,
+                                );
                           },
                           child: Text(
                             entry.prompt,
@@ -283,7 +277,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0x14FFFFFF),
-                      borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusXLarge,
+                      ),
                       border: Border.all(color: const Color(0x20FFFFFF)),
                     ),
                     child: Column(
@@ -308,8 +304,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                           runSpacing: 4,
                           children: [
                             GestureDetector(
-                              key: WorkbenchShellPage
-                                  .aiHistoryReplayButtonKey(
+                              key: WorkbenchShellPage.aiHistoryReplayButtonKey(
                                 entry.sequence,
                               ),
                               behavior: HitTestBehavior.translucent,
@@ -327,13 +322,11 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                               ),
                             ),
                             GestureDetector(
-                              key: WorkbenchShellPage
-                                  .aiHistoryDeleteButtonKey(
+                              key: WorkbenchShellPage.aiHistoryDeleteButtonKey(
                                 entry.sequence,
                               ),
                               behavior: HitTestBehavior.translucent,
-                              onTap: () =>
-                                  panel.onDeleteAiHistoryEntry(entry),
+                              onTap: () => panel.onDeleteAiHistoryEntry(entry),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 2,
@@ -367,7 +360,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                 height: 48,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFBFAF6),
-                  borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
+                  borderRadius: BorderRadius.circular(
+                    AppDesignTokens.radiusLarge,
+                  ),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Row(
@@ -377,7 +372,8 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                         key: WorkbenchShellPage.aiPromptFieldKey,
                         controller: panel.aiPromptController,
                         decoration: InputDecoration(
-                          hintText: '当前：${panel.aiToolMode == AiToolMode.rewrite ? "改写" : "续写"}',
+                          hintText:
+                              '当前：${panel.aiToolMode == AiToolMode.rewrite ? "改写" : "续写"}',
                           hintStyle: theme.textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF8A867C),
                           ),
@@ -393,7 +389,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                       ),
                     ),
                     GestureDetector(
-                      onTap: panel.isGeneratingAi ? null : panel.onGenerateAiSuggestion,
+                      onTap: panel.isGeneratingAi
+                          ? null
+                          : panel.onGenerateAiSuggestion,
                       child: const Icon(
                         Icons.send,
                         size: 18,
@@ -409,12 +407,16 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                   Expanded(
                     child: GestureDetector(
                       key: WorkbenchShellPage.aiGenerateButtonKey,
-                      onTap: panel.isGeneratingAi ? null : panel.onGenerateAiSuggestion,
+                      onTap: panel.isGeneratingAi
+                          ? null
+                          : panel.onGenerateAiSuggestion,
                       child: Container(
                         height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusFull,
+                          ),
                         ),
                         alignment: Alignment.center,
                         child: panel.isGeneratingAi
@@ -444,7 +446,9 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                         height: 40,
                         decoration: BoxDecoration(
                           color: const Color(0x14FFFFFF),
-                          borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusFull,
+                          ),
                           border: Border.all(color: const Color(0x24FFFFFF)),
                         ),
                         alignment: Alignment.center,

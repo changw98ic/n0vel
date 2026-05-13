@@ -2,7 +2,6 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'scene_pipeline_models.dart' show SceneTaskCard;
 import 'scene_roleplay_runtime.dart';
-import 'scene_roleplay_session_models.dart';
 import 'character_memory_delta_models.dart';
 import 'character_memory_store.dart';
 import '../domain/scene_models.dart';
@@ -17,12 +16,9 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
 
   final AppSettingsStore _settingsStore;
   final CharacterMemoryStore? _characterMemoryStore;
-  SceneRoleplaySession? _lastRoleplaySession;
-
-  SceneRoleplaySession? get lastRoleplaySession => _lastRoleplaySession;
 
   @override
-  Future<List<DynamicRoleAgentOutput>> run({
+  Future<DynamicRoleAgentResult> run({
     required SceneBrief brief,
     required List<ResolvedSceneCastMember> cast,
     required SceneDirectorOutput director,
@@ -31,17 +27,19 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     void Function(String message)? onStatus,
   }) async {
     if (brief.metadata['localStructuredRoleplayOnly'] == true) {
-      _lastRoleplaySession = null;
-      return [
-        for (final member in cast)
-          _localMemberOutput(
-            brief: brief,
-            director: director,
-            member: member,
-            taskCard: taskCard,
-            onStatus: onStatus,
-          ),
-      ];
+      return (
+        outputs: [
+          for (final member in cast)
+            _localMemberOutput(
+              brief: brief,
+              director: director,
+              member: member,
+              taskCard: taskCard,
+              onStatus: onStatus,
+            ),
+        ],
+        session: null,
+      );
     }
 
     final memoryDeltasByCharacter = await _loadVisibleMemories(
@@ -58,8 +56,7 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
           memoryDeltasByCharacter: memoryDeltasByCharacter,
           onStatus: onStatus,
         );
-    _lastRoleplaySession = result.session;
-    return result.outputs;
+    return (outputs: result.outputs, session: result.session);
   }
 
   Future<Map<String, List<CharacterMemoryDelta>>> _loadVisibleMemories({

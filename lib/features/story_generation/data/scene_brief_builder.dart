@@ -22,10 +22,7 @@ class SceneBriefBuilder {
       ..sort((a, b) => a.sequence.compareTo(b.sequence));
 
     final targetBeat = sortedBeats.isNotEmpty ? sortedBeats.first.content : '';
-    final beatSummary = sortedBeats
-        .take(3)
-        .map((b) => b.content)
-        .join(' / ');
+    final beatSummary = sortedBeats.take(3).map((b) => b.content).join(' / ');
 
     final transitionId = sortedBeats
         .where((b) => b.transitionTarget != null)
@@ -36,7 +33,7 @@ class SceneBriefBuilder {
       ...plan.metadata,
       '_beatSummary': beatSummary,
       '_planId': plan.id,
-      if (transitionId != null) '_transitionId': transitionId,
+      '_transitionId':? transitionId,
     };
 
     return SceneBrief(

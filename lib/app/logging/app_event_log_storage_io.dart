@@ -192,10 +192,7 @@ class IoAppEventLogStorage implements AppEventLogStorage {
     // Find next available rotation suffix: .1.jsonl, .2.jsonl, ...
     var suffix = 1;
     while (true) {
-      final rotatedName = baseName.replaceFirst(
-        '.jsonl',
-        '.$suffix.jsonl',
-      );
+      final rotatedName = baseName.replaceFirst('.jsonl', '.$suffix.jsonl');
       final rotatedFile = File('${_logsDirectory.path}/$rotatedName');
       if (!await rotatedFile.exists()) {
         await file.rename(rotatedFile.path);

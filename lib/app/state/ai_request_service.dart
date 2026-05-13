@@ -417,7 +417,7 @@ class AiRequestService {
         metadata: {
           'fromEndpointId': fromEndpointId,
           'toEndpointId': toEndpointId,
-          if (latencyMs != null) 'latencyMs': latencyMs,
+          'latencyMs':? latencyMs,
         },
       );
     } on Object {

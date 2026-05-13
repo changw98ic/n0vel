@@ -26,7 +26,7 @@ void main() {
     var updateCount = 0;
     final subscription = container.listen<AppWorkspaceStore>(
       appWorkspaceStoreProvider,
-      (_, __) => updateCount++,
+      (_, _) => updateCount++,
     );
     addTearDown(subscription.close);
 

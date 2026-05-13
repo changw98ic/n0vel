@@ -10,9 +10,7 @@ void main() {
   late String dbPath;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp(
-      'novel_writer_backup_test',
-    );
+    tempDir = await Directory.systemTemp.createTemp('novel_writer_backup_test');
     dbPath = '${tempDir.path}/authoring.db';
   });
 
@@ -45,10 +43,7 @@ void main() {
     test('createBackup throws when database file does not exist', () async {
       final service = FileAutoBackupService(dbPath: dbPath);
 
-      expect(
-        service.createBackup(),
-        throwsA(isA<StateError>()),
-      );
+      expect(service.createBackup(), throwsA(isA<StateError>()));
     });
 
     test('createBackup creates a backup copy of the database', () async {
@@ -74,7 +69,9 @@ void main() {
 
       final entry = await service.createBackup();
 
-      final backupFile = File('${tempDir.path}/backups/authoring_${entry.id}.db');
+      final backupFile = File(
+        '${tempDir.path}/backups/authoring_${entry.id}.db',
+      );
       expect(await backupFile.exists(), isTrue);
 
       final backupDb = sqlite3.open(backupFile.path);
@@ -94,18 +91,24 @@ void main() {
       expect(entries, isEmpty);
     });
 
-    test('listBackups returns backups sorted by creation time descending', () async {
-      await writeSampleData();
-      final service = FileAutoBackupService(dbPath: dbPath);
+    test(
+      'listBackups returns backups sorted by creation time descending',
+      () async {
+        await writeSampleData();
+        final service = FileAutoBackupService(dbPath: dbPath);
 
-      await service.createBackup();
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      await service.createBackup();
+        await service.createBackup();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        await service.createBackup();
 
-      final entries = await service.listBackups();
-      expect(entries, hasLength(2));
-      expect(entries[0].createdAtMs, greaterThanOrEqualTo(entries[1].createdAtMs));
-    });
+        final entries = await service.listBackups();
+        expect(entries, hasLength(2));
+        expect(
+          entries[0].createdAtMs,
+          greaterThanOrEqualTo(entries[1].createdAtMs),
+        );
+      },
+    );
 
     test('restoreBackup overwrites the current database', () async {
       await writeSampleData();
@@ -134,10 +137,7 @@ void main() {
     test('restoreBackup throws when backup id does not exist', () async {
       final service = FileAutoBackupService(dbPath: dbPath);
 
-      expect(
-        service.restoreBackup('nonexistent'),
-        throwsA(isA<StateError>()),
-      );
+      expect(service.restoreBackup('nonexistent'), throwsA(isA<StateError>()));
     });
 
     test('deleteBackup removes a specific backup file', () async {
@@ -228,18 +228,22 @@ void main() {
         'INSERT INTO workspace_projects (scope_key, position_no, id, title) VALUES (?, ?, ?, ?)',
         ['workspace-default', 1, 'project-2', '新增项目'],
       );
-      final countBefore = db.select(
-        'SELECT COUNT(*) as cnt FROM workspace_projects',
-      ).first['cnt'] as int;
+      final countBefore =
+          db
+                  .select('SELECT COUNT(*) as cnt FROM workspace_projects')
+                  .first['cnt']
+              as int;
       expect(countBefore, 2);
       db.dispose();
 
       await service.restoreBackup(entry.id);
 
       final restoredDb = sqlite3.open(dbPath);
-      final countAfter = restoredDb.select(
-        'SELECT COUNT(*) as cnt FROM workspace_projects',
-      ).first['cnt'] as int;
+      final countAfter =
+          restoredDb
+                  .select('SELECT COUNT(*) as cnt FROM workspace_projects')
+                  .first['cnt']
+              as int;
       expect(countAfter, 1);
       restoredDb.dispose();
     });
@@ -252,7 +256,9 @@ void main() {
 
       final backupDir = Directory('${tempDir.path}/backups');
       await File('${backupDir.path}/other_file.txt').writeAsString('junk');
-      await File('${backupDir.path}/authoring.db').writeAsString('not-a-backup');
+      await File(
+        '${backupDir.path}/authoring.db',
+      ).writeAsString('not-a-backup');
 
       final entries = await service.listBackups();
       expect(entries, hasLength(1));

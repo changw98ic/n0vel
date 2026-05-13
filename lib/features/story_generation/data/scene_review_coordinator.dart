@@ -413,14 +413,14 @@ class SceneReviewCoordinator implements SceneReviewService {
   /// Creates a repair query from a consistency failure for re-retrieval.
   StoryMemoryQuery createRepairQuery(SceneBrief brief, String failureReason) {
     return StoryMemoryQuery(
-      projectId: brief.chapterId,
+      projectId: brief.projectId ?? brief.chapterId,
       queryType: StoryMemoryQueryType.concreteFact,
       text: failureReason,
       tags: [
         ...brief.worldNodeIds,
         for (final c in brief.cast) 'char-${c.characterId}',
       ],
-      scopeId: '${brief.chapterId}:${brief.sceneId}',
+      scopeId: '${brief.projectId ?? brief.chapterId}:${brief.sceneId}',
       maxResults: 5,
       tokenBudget: 300,
     );

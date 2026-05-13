@@ -58,7 +58,7 @@ class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
                 Expanded(
                   child: ListView.separated(
                     itemCount: entries.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(height: AppDesignTokens.space8),
                     itemBuilder: (context, index) {
                       final entry = entries[index];
@@ -75,8 +75,9 @@ class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
                             horizontal: AppDesignTokens.space12,
                             vertical: 10,
                           ),
-                          backgroundColor:
-                              isSelected ? palette.subtle : palette.elevated,
+                          backgroundColor: isSelected
+                              ? palette.subtle
+                              : palette.elevated,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
                               AppDesignTokens.radiusMedium,
@@ -162,15 +163,16 @@ class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
                             final confirmed = await showAppConfirmDialog(
                               context: context,
                               title: '恢复版本',
-                              description:
-                                  '确定要恢复到此版本吗？当前草稿内容会被替换。',
+                              description: '确定要恢复到此版本吗？当前草稿内容会被替换。',
                               body: const SizedBox.shrink(),
                               confirmText: '恢复',
                             );
                             if (!confirmed || !context.mounted) {
                               return;
                             }
-                            ref.read(appDraftStoreProvider).updateText(selectedEntry.content);
+                            ref
+                                .read(appDraftStoreProvider)
+                                .updateText(selectedEntry.content);
                             versionStore.restoreEntry(selectedEntry);
                             setState(() {
                               _selectedIndex = 0;

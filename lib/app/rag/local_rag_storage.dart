@@ -224,7 +224,7 @@ class LocalRagStorage {
         .join(' OR ');
     final params = <Object?>[
       projectId,
-      if (category != null) category,
+      ?category,
       for (final needle in needles) ...['%$needle%', '%$needle%'],
       limit * 4,
     ];

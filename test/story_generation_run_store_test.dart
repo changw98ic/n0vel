@@ -18,6 +18,9 @@ import 'package:novel_writer/features/story_generation/data/chapter_generation_o
 import 'package:novel_writer/features/story_generation/data/story_memory_storage.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
+import 'package:novel_writer/features/review_tasks/domain/review_task_models.dart';
 
 void main() {
   group('StoryGenerationRunSnapshot lifecycle phase', () {
@@ -396,6 +399,228 @@ void main() {
       },
     );
   });
+
+  group('StoryGenerationRunStore review task integration', () {
+    late AppSettingsStore settingsStore;
+    late AppWorkspaceStore workspaceStore;
+    late StoryGenerationStore generationStore;
+
+    setUp(() async {
+      settingsStore = AppSettingsStore(storage: InMemoryAppSettingsStorage());
+      workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      generationStore = StoryGenerationStore(
+        storage: InMemoryStoryGenerationStorage(),
+        workspaceStore: workspaceStore,
+      );
+      await generationStore.waitUntilReady();
+    });
+
+    tearDown(() {
+      generationStore.dispose();
+      workspaceStore.dispose();
+      settingsStore.dispose();
+    });
+
+    test('rewrite review creates open review tasks', () async {
+      final reviewTaskStore = ReviewTaskStore(
+        storage: InMemoryReviewTaskStorage(),
+        workspaceStore: workspaceStore,
+      );
+      addTearDown(reviewTaskStore.dispose);
+
+      final orchestrator = _ControlledOrchestrator(
+        settingsStore: settingsStore,
+        reviewResult: const SceneReviewResult(
+          judge: SceneReviewPassResult(
+            status: SceneReviewStatus.rewriteProse,
+            reason: 'prose needs improvement',
+            rawText: '',
+          ),
+          consistency: SceneReviewPassResult(
+            status: SceneReviewStatus.pass,
+            reason: 'consistent',
+            rawText: '',
+          ),
+          decision: SceneReviewDecision.rewriteProse,
+        ),
+      );
+      final runStore = StoryGenerationRunStore(
+        settingsStore: settingsStore,
+        workspaceStore: workspaceStore,
+        generationStore: generationStore,
+        storage: InMemoryStoryGenerationRunStorage(),
+        orchestratorFactory: (_) => orchestrator,
+        reviewTaskStore: reviewTaskStore,
+      );
+      addTearDown(runStore.dispose);
+      await runStore.waitUntilReady();
+
+      final runFuture = runStore.runCurrentScene();
+      await orchestrator.started.future;
+      orchestrator.release.complete();
+      await runFuture;
+
+      expect(reviewTaskStore.tasks, isNotEmpty);
+      for (final task in reviewTaskStore.tasks) {
+        expect(task.status, ReviewTaskStatus.open);
+        expect(task.body, contains('prose needs improvement'));
+      }
+    });
+
+    test('pass review does not create review tasks', () async {
+      final reviewTaskStore = ReviewTaskStore(
+        storage: InMemoryReviewTaskStorage(),
+        workspaceStore: workspaceStore,
+      );
+      addTearDown(reviewTaskStore.dispose);
+
+      final orchestrator = _ControlledOrchestrator(
+        settingsStore: settingsStore,
+      );
+      final runStore = StoryGenerationRunStore(
+        settingsStore: settingsStore,
+        workspaceStore: workspaceStore,
+        generationStore: generationStore,
+        storage: InMemoryStoryGenerationRunStorage(),
+        orchestratorFactory: (_) => orchestrator,
+        reviewTaskStore: reviewTaskStore,
+      );
+      addTearDown(runStore.dispose);
+      await runStore.waitUntilReady();
+
+      final runFuture = runStore.runCurrentScene();
+      await orchestrator.started.future;
+      orchestrator.release.complete();
+      await runFuture;
+
+      expect(reviewTaskStore.tasks, isEmpty);
+    });
+
+    test(
+      'replan review creates open review tasks for all failing passes',
+      () async {
+        final reviewTaskStore = ReviewTaskStore(
+          storage: InMemoryReviewTaskStorage(),
+          workspaceStore: workspaceStore,
+        );
+        addTearDown(reviewTaskStore.dispose);
+
+        final orchestrator = _ControlledOrchestrator(
+          settingsStore: settingsStore,
+          reviewResult: const SceneReviewResult(
+            judge: SceneReviewPassResult(
+              status: SceneReviewStatus.replanScene,
+              reason: 'plot contradiction detected',
+              rawText: '',
+            ),
+            consistency: SceneReviewPassResult(
+              status: SceneReviewStatus.replanScene,
+              reason: 'timeline inconsistency',
+              rawText: '',
+            ),
+            decision: SceneReviewDecision.replanScene,
+          ),
+        );
+        final runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: InMemoryStoryGenerationRunStorage(),
+          orchestratorFactory: (_) => orchestrator,
+          reviewTaskStore: reviewTaskStore,
+        );
+        addTearDown(runStore.dispose);
+        await runStore.waitUntilReady();
+
+        final runFuture = runStore.runCurrentScene();
+        await orchestrator.started.future;
+        orchestrator.release.complete();
+        await runFuture;
+
+        expect(reviewTaskStore.tasks.length, 2);
+        for (final task in reviewTaskStore.tasks) {
+          expect(task.status, ReviewTaskStatus.open);
+        }
+      },
+    );
+
+    test(
+      'existing review task status is preserved on repeated upsert',
+      () async {
+        final reviewTaskStore = ReviewTaskStore(
+          storage: InMemoryReviewTaskStorage(),
+          workspaceStore: workspaceStore,
+        );
+        addTearDown(reviewTaskStore.dispose);
+
+        const rewriteResult = SceneReviewResult(
+          judge: SceneReviewPassResult(
+            status: SceneReviewStatus.rewriteProse,
+            reason: 'prose needs improvement',
+            rawText: '',
+          ),
+          consistency: SceneReviewPassResult(
+            status: SceneReviewStatus.pass,
+            reason: 'consistent',
+            rawText: '',
+          ),
+          decision: SceneReviewDecision.rewriteProse,
+        );
+
+        final orchestrator1 = _ControlledOrchestrator(
+          settingsStore: settingsStore,
+          reviewResult: rewriteResult,
+        );
+        final orchestrator2 = _ControlledOrchestrator(
+          settingsStore: settingsStore,
+          reviewResult: rewriteResult,
+        );
+        var factoryCallCount = 0;
+        final runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: InMemoryStoryGenerationRunStorage(),
+          orchestratorFactory: (_) {
+            factoryCallCount++;
+            return factoryCallCount == 1 ? orchestrator1 : orchestrator2;
+          },
+          reviewTaskStore: reviewTaskStore,
+        );
+        addTearDown(runStore.dispose);
+        await runStore.waitUntilReady();
+
+        // First run: creates open review task.
+        final runFuture1 = runStore.runCurrentScene();
+        await orchestrator1.started.future;
+        orchestrator1.release.complete();
+        await runFuture1;
+
+        expect(reviewTaskStore.tasks.length, 1);
+        final taskId = reviewTaskStore.tasks.first.id;
+        expect(reviewTaskStore.tasks.first.status, ReviewTaskStatus.open);
+
+        // Manually advance status.
+        reviewTaskStore.updateStatus(taskId, ReviewTaskStatus.inProgress);
+        expect(reviewTaskStore.tasks.first.status, ReviewTaskStatus.inProgress);
+
+        // Second run: same review result produces same task IDs.
+        final runFuture2 = runStore.runCurrentScene();
+        await orchestrator2.started.future;
+        orchestrator2.release.complete();
+        await runFuture2;
+
+        expect(reviewTaskStore.tasks.length, 1);
+        expect(
+          reviewTaskStore.tasks.first.status,
+          ReviewTaskStatus.inProgress,
+          reason: 'upsertAll should preserve existing task status',
+        );
+      },
+    );
+  });
 }
 
 class _FailingStoryGenerationRunStorage
@@ -410,8 +635,9 @@ class _FailingStoryGenerationRunStorage
 }
 
 class _ControlledOrchestrator extends ChapterGenerationOrchestrator {
-  _ControlledOrchestrator({required super.settingsStore});
+  _ControlledOrchestrator({required super.settingsStore, this.reviewResult});
 
+  final SceneReviewResult? reviewResult;
   final Completer<void> started = Completer<void>();
   final Completer<void> release = Completer<void>();
 
@@ -431,19 +657,21 @@ class _ControlledOrchestrator extends ChapterGenerationOrchestrator {
       director: const SceneDirectorOutput(text: 'director output'),
       roleOutputs: const [],
       prose: const SceneProseDraft(text: 'prose', attempt: 1),
-      review: const SceneReviewResult(
-        judge: SceneReviewPassResult(
-          status: SceneReviewStatus.pass,
-          reason: 'pass',
-          rawText: '',
-        ),
-        consistency: SceneReviewPassResult(
-          status: SceneReviewStatus.pass,
-          reason: 'consistent',
-          rawText: '',
-        ),
-        decision: SceneReviewDecision.pass,
-      ),
+      review:
+          reviewResult ??
+          const SceneReviewResult(
+            judge: SceneReviewPassResult(
+              status: SceneReviewStatus.pass,
+              reason: 'pass',
+              rawText: '',
+            ),
+            consistency: SceneReviewPassResult(
+              status: SceneReviewStatus.pass,
+              reason: 'consistent',
+              rawText: '',
+            ),
+            decision: SceneReviewDecision.pass,
+          ),
       proseAttempts: 1,
       softFailureCount: 0,
     );
@@ -546,11 +774,14 @@ class _MemoryPausingOrchestrator extends ChapterGenerationOrchestrator {
     void Function()? onSpeculationReady,
   }) async {
     onStatus?.call('pausing at saveChunks');
-    await pausingStorage.saveChunks(brief.chapterId, const []);
+    await pausingStorage.saveChunks(
+      brief.projectId ?? brief.chapterId,
+      const [],
+    );
     onStatus?.call('post-saveChunks: persisting character deltas');
     if (isRunCancelled?.call() != true) {
       await characterMemorySpy.saveAcceptedDeltas(
-        projectId: brief.chapterId,
+        projectId: brief.projectId ?? brief.chapterId,
         chapterId: brief.chapterId,
         sceneId: brief.sceneId,
         deltas: [

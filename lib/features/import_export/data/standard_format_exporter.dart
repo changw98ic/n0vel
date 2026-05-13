@@ -343,7 +343,7 @@ class StandardFormatExporter {
 
     return [
       for (final line in input.draftText.split('\n'))
-        if (markdownHeadingTitle(line) case final title?) title,
+        ?markdownHeadingTitle(line),
     ];
   }
 

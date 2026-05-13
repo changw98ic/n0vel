@@ -298,7 +298,10 @@ class SandboxChatroomPanel extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: palette.subtle,
                   borderRadius: BorderRadius.circular(999),
@@ -321,7 +324,9 @@ class SandboxChatroomPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             snapshot.stageSummary,
-            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -339,10 +344,12 @@ class SandboxChatroomPanel extends StatelessWidget {
                       itemCount: snapshot.messages.length,
                       cacheExtent: 500,
                       addAutomaticKeepAlives: false,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return RepaintBoundary(
-                          child: SandboxChatBubble(message: snapshot.messages[index]),
+                          child: SandboxChatBubble(
+                            message: snapshot.messages[index],
+                          ),
                         );
                       },
                     ),
@@ -437,7 +444,12 @@ class SandboxRunSummaryPanel extends StatelessWidget {
           children: [
             Text('运行摘要', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            Text('当前场景', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              '当前场景',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(snapshot.sceneLabel, style: theme.textTheme.bodySmall),
             const SizedBox(height: 12),
@@ -446,12 +458,21 @@ class SandboxRunSummaryPanel extends StatelessWidget {
               runSpacing: 8,
               children: [
                 SandboxSummaryMetricChip(label: snapshot.headline),
-                SandboxSummaryMetricChip(label: '阶段 $completedStages/${snapshot.stages.length}'),
-                SandboxSummaryMetricChip(label: '${snapshot.participants.length} 位参与方'),
+                SandboxSummaryMetricChip(
+                  label: '阶段 $completedStages/${snapshot.stages.length}',
+                ),
+                SandboxSummaryMetricChip(
+                  label: '${snapshot.participants.length} 位参与方',
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            Text('输出分类', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              '输出分类',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -463,15 +484,34 @@ class SandboxRunSummaryPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text('当前焦点', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              '当前焦点',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(selectedParticipantSnapshot.participant.displayLabel, style: theme.textTheme.bodyMedium),
+            Text(
+              selectedParticipantSnapshot.participant.displayLabel,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 4),
-            Text('认知：${selectedParticipantSnapshot.promptSummary}', style: theme.textTheme.bodySmall),
+            Text(
+              '认知：${selectedParticipantSnapshot.promptSummary}',
+              style: theme.textTheme.bodySmall,
+            ),
             const SizedBox(height: 4),
-            Text(selectedParticipantSnapshot.statusSummary, style: theme.textTheme.bodySmall),
+            Text(
+              selectedParticipantSnapshot.statusSummary,
+              style: theme.textTheme.bodySmall,
+            ),
             const SizedBox(height: 16),
-            Text('关键裁决', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              '关键裁决',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(latestVerdict.title, style: theme.textTheme.bodySmall),
             const SizedBox(height: 4),
@@ -518,11 +558,13 @@ class SandboxChatBubble extends StatelessWidget {
       SimulationChatTone.director => palette.surface,
       SimulationChatTone.focusCharacter =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2F3941) : const Color(0xFFF5F9FC),
+            ? const Color(0xFF2F3941)
+            : const Color(0xFFF5F9FC),
       SimulationChatTone.supportingCharacter => palette.elevated,
       SimulationChatTone.stateMachine =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF334237) : const Color(0xFFEAF3EA),
+            ? const Color(0xFF334237)
+            : const Color(0xFFEAF3EA),
       SimulationChatTone.user => palette.elevated,
     };
 
@@ -530,7 +572,8 @@ class SandboxChatBubble extends StatelessWidget {
       SimulationChatTone.director => palette.border,
       SimulationChatTone.focusCharacter =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF50626E) : const Color(0xFFC9D8E3),
+            ? const Color(0xFF50626E)
+            : const Color(0xFFC9D8E3),
       SimulationChatTone.supportingCharacter => palette.border,
       SimulationChatTone.stateMachine => palette.border,
       SimulationChatTone.user => palette.border,
@@ -539,22 +582,27 @@ class SandboxChatBubble extends StatelessWidget {
     final senderChipColor = switch (message.tone) {
       SimulationChatTone.director =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF3B322C) : const Color(0xFFF1E7D7),
+            ? const Color(0xFF3B322C)
+            : const Color(0xFFF1E7D7),
       SimulationChatTone.focusCharacter =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF384650) : const Color(0xFFE9F1F7),
+            ? const Color(0xFF384650)
+            : const Color(0xFFE9F1F7),
       SimulationChatTone.supportingCharacter =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF3B322C) : const Color(0xFFF1E7D7),
+            ? const Color(0xFF3B322C)
+            : const Color(0xFFF1E7D7),
       SimulationChatTone.stateMachine =>
         Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF334237) : const Color(0xFFEAF3EA),
+            ? const Color(0xFF334237)
+            : const Color(0xFFEAF3EA),
       SimulationChatTone.user => palette.subtle,
     };
 
     return Align(
       alignment: message.alignEnd
-          ? Alignment.centerRight : Alignment.centerLeft,
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: message.alignEnd ? 430 : 560),
         child: Row(
@@ -578,13 +626,17 @@ class SandboxChatBubble extends StatelessWidget {
                   children: [
                     Text(
                       message.title,
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       _kindLabel(message.kind),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.78),
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.78,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -614,7 +666,11 @@ class SandboxChatBubble extends StatelessWidget {
 }
 
 class SandboxSenderChip extends StatelessWidget {
-  const SandboxSenderChip({required this.color, required this.label, super.key});
+  const SandboxSenderChip({
+    required this.color,
+    required this.label,
+    super.key,
+  });
 
   final Color color;
   final String label;
@@ -624,7 +680,10 @@ class SandboxSenderChip extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Text(
         label,
         style: theme.textTheme.bodySmall?.copyWith(

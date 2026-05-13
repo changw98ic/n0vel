@@ -4,8 +4,7 @@ import '../roleplay_session_store.dart';
 import '../character_memory_store.dart';
 import '../scene_roleplay_session_models.dart';
 import '../scene_pipeline_models.dart' as pipeline;
-import '../scene_runtime_models.dart'
-    show SceneBrief, DynamicRoleAgentOutput;
+import '../scene_runtime_models.dart' show SceneBrief, DynamicRoleAgentOutput;
 import '../../domain/story_pipeline_interfaces.dart'
     show DynamicRoleAgentService;
 import '../step_io.dart';
@@ -22,10 +21,10 @@ class RoleplayStep {
     RoleplaySessionStore? roleplaySessionStore,
     CharacterMemoryStore? characterMemoryStore,
     required RetrievalController retrievalController,
-  })  : _dynamicRoleAgentRunner = dynamicRoleAgentRunner,
-        _roleplaySessionStore = roleplaySessionStore,
-        _characterMemoryStore = characterMemoryStore,
-        _retrievalController = retrievalController;
+  }) : _dynamicRoleAgentRunner = dynamicRoleAgentRunner,
+       _roleplaySessionStore = roleplaySessionStore,
+       _characterMemoryStore = characterMemoryStore,
+       _retrievalController = retrievalController;
 
   final DynamicRoleAgentService _dynamicRoleAgentRunner;
   final RoleplaySessionStore? _roleplaySessionStore;
@@ -47,7 +46,7 @@ class RoleplayStep {
     final brief = input.brief;
     final plan = input.plan;
 
-    final roleOutputs = await _dynamicRoleAgentRunner.run(
+    final agentResult = await _dynamicRoleAgentRunner.run(
       brief: brief,
       cast: plan.resolvedCast,
       director: plan.director,
@@ -56,7 +55,8 @@ class RoleplayStep {
       onStatus: onStatus,
     );
 
-    final roleplaySession = _dynamicRoleAgentRunner.lastRoleplaySession;
+    final roleOutputs = agentResult.outputs;
+    final roleplaySession = agentResult.session;
 
     await _persistRoleplaySession(
       projectId: brief.projectId ?? brief.chapterId,
@@ -72,10 +72,7 @@ class RoleplayStep {
     ];
 
     // Resolve retrieval capsules (consumed by downstream stages)
-    _retrievalController.resolve(
-      taskCard: plan.taskCard,
-      turns: roleTurns,
-    );
+    _retrievalController.resolve(taskCard: plan.taskCard, turns: roleTurns);
 
     return RoleplayOutput(
       roleOutputs: roleOutputs,

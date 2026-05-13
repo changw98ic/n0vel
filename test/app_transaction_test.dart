@@ -115,7 +115,6 @@ void main() {
     });
   });
 
-
   // ── SqliteAppSimulationStorage transaction in clear ──────────────────────
 
   group('SqliteAppSimulationStorage clear transaction', () {
@@ -136,22 +135,16 @@ void main() {
     });
 
     test('clear by project removes all related data', () async {
-      await storage.save(
-        {
-          'template': 'dialogue',
-          'promptOverrides': {'char1': 'prompt'},
-          'extraMessages': [],
-        },
-        projectId: 'p1',
-      );
-      await storage.save(
-        {
-          'template': 'monologue',
-          'promptOverrides': {},
-          'extraMessages': [],
-        },
-        projectId: 'p2',
-      );
+      await storage.save({
+        'template': 'dialogue',
+        'promptOverrides': {'char1': 'prompt'},
+        'extraMessages': [],
+      }, projectId: 'p1');
+      await storage.save({
+        'template': 'monologue',
+        'promptOverrides': {},
+        'extraMessages': [],
+      }, projectId: 'p2');
 
       await storage.clear(projectId: 'p1');
 
@@ -162,14 +155,11 @@ void main() {
     });
 
     test('clear all removes everything', () async {
-      await storage.save(
-        {
-          'template': 'dialogue',
-          'promptOverrides': {},
-          'extraMessages': [],
-        },
-        projectId: 'p1',
-      );
+      await storage.save({
+        'template': 'dialogue',
+        'promptOverrides': {},
+        'extraMessages': [],
+      }, projectId: 'p1');
 
       await storage.clear();
 
@@ -211,7 +201,13 @@ void main() {
         ],
         'charactersByProject': {
           'p1': [
-            {'name': 'Alice', 'role': 'protagonist', 'note': '', 'need': '', 'summary': ''},
+            {
+              'name': 'Alice',
+              'role': 'protagonist',
+              'note': '',
+              'need': '',
+              'summary': '',
+            },
           ],
         },
         'scenesByProject': {},
@@ -245,17 +241,30 @@ void main() {
         ],
         'charactersByProject': {
           'p1': [
-            {'name': 'Bob', 'role': 'sidekick', 'note': 'n', 'need': 'nd', 'summary': 'sm'},
+            {
+              'name': 'Bob',
+              'role': 'sidekick',
+              'note': 'n',
+              'need': 'nd',
+              'summary': 'sm',
+            },
           ],
         },
         'scenesByProject': {
           'p1': [
-            {'id': 'sc1', 'chapterLabel': 'Ch1', 'title': 'Scene 1', 'summary': 'S1'},
+            {
+              'id': 'sc1',
+              'chapterLabel': 'Ch1',
+              'title': 'Scene 1',
+              'summary': 'S1',
+            },
           ],
         },
         'worldNodesByProject': {},
         'auditIssuesByProject': {},
-        'projectStyles': {'p1': {'styleInputMode': 'guided'}},
+        'projectStyles': {
+          'p1': {'styleInputMode': 'guided'},
+        },
         'projectAuditStates': {},
         'projectTransferState': '',
         'currentProjectId': 'p1',
@@ -267,8 +276,7 @@ void main() {
       expect(loaded, isNotNull);
       expect((loaded!['projects'] as List).length, 1);
       expect(loaded['currentProjectId'], 'p1');
-      final chars =
-          loaded['charactersByProject'] as Map<Object?, Object?>?;
+      final chars = loaded['charactersByProject'] as Map<Object?, Object?>?;
       expect(chars?['p1'], isNotNull);
       final scenes = loaded['scenesByProject'] as Map<Object?, Object?>?;
       expect(scenes?['p1'], isNotNull);

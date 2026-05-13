@@ -146,7 +146,10 @@ void main() {
 
       final columns = database.select('PRAGMA table_info(draft_documents)');
       final columnNames = columns.map((row) => row['name'] as String).toList();
-      expect(columnNames, containsAll(['project_id', 'text_body', 'updated_at_ms']));
+      expect(
+        columnNames,
+        containsAll(['project_id', 'text_body', 'updated_at_ms']),
+      );
     });
 
     test('updated_at_ms advances on subsequent saves', () async {
@@ -159,9 +162,11 @@ void main() {
       final database = sqlite3.open(dbPath);
       addTearDown(database.dispose);
 
-      final row = database.select(
-        "SELECT updated_at_ms FROM draft_documents WHERE project_id = 'project-ts'",
-      ).first;
+      final row = database
+          .select(
+            "SELECT updated_at_ms FROM draft_documents WHERE project_id = 'project-ts'",
+          )
+          .first;
       expect(row['updated_at_ms'] as int, greaterThan(0));
     });
 
@@ -186,13 +191,16 @@ void main() {
       expect(loaded!['text'], '遗留草稿内容');
     });
 
-    test('load on cleared non-existent project returns null without error', () async {
-      final storage = SqliteAppDraftStorage(dbPath: dbPath);
+    test(
+      'load on cleared non-existent project returns null without error',
+      () async {
+        final storage = SqliteAppDraftStorage(dbPath: dbPath);
 
-      await storage.clear(projectId: 'non-existent');
-      final result = await storage.load(projectId: 'non-existent');
-      expect(result, isNull);
-    });
+        await storage.clear(projectId: 'non-existent');
+        final result = await storage.load(projectId: 'non-existent');
+        expect(result, isNull);
+      },
+    );
 
     test('save preserves unicode and emoji content', () async {
       final storage = SqliteAppDraftStorage(dbPath: dbPath);

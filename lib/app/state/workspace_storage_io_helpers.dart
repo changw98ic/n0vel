@@ -37,13 +37,11 @@ class WorkspaceStorageHelpers {
     String scopeKey,
     List<Object?> projects,
   ) {
-    final stmt = database.prepare(
-      '''
+    final stmt = database.prepare('''
       INSERT INTO workspace_projects (
         scope_key, position_no, id, scene_id, title, genre, summary, recent_location, last_opened_at_ms
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ''',
-    );
+      ''');
     try {
       for (var index = 0; index < projects.length; index++) {
         final row = projects[index];
@@ -92,12 +90,7 @@ class WorkspaceStorageHelpers {
           if (row is! Map) {
             continue;
           }
-          stmt.execute([
-            scopeKey,
-            projectId,
-            index,
-            ...valuesBuilder(row),
-          ]);
+          stmt.execute([scopeKey, projectId, index, ...valuesBuilder(row)]);
         }
       }
     } finally {
@@ -111,13 +104,11 @@ class WorkspaceStorageHelpers {
     required Map<Object?, Object?> preferencesByProject,
     required Map<String, String> rename,
   }) {
-    final stmt = database.prepare(
-      '''
+    final stmt = database.prepare('''
       INSERT INTO workspace_project_preferences (
         scope_key, project_id, preference_key, preference_value
       ) VALUES (?, ?, ?, ?)
-      ''',
-    );
+      ''');
     try {
       for (final entry in preferencesByProject.entries) {
         final projectId = entry.key.toString();

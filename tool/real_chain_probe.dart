@@ -588,10 +588,7 @@ List<SceneRuntimeOutput> _orderedOutputs({
   final outputBySceneId = {
     for (final output in outputs) output.brief.sceneId: output,
   };
-  return [
-    for (final scene in scenes)
-      if (outputBySceneId[scene.sceneId] case final output?) output,
-  ];
+  return [for (final scene in scenes) ?outputBySceneId[scene.sceneId]];
 }
 
 String _oneLine(String text) {

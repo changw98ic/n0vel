@@ -143,6 +143,7 @@ ServiceRegistry createTestRegistry({AppLlmClient? llmClient}) {
       sceneContextStore: r.resolve<AppSceneContextStore>(),
       outlineStore: r.resolve<StoryOutlineStore>(),
       authorFeedbackStore: r.resolve<AuthorFeedbackStore>(),
+      reviewTaskStore: r.resolve<ReviewTaskStore>(),
       eventBus: r.resolve<AppEventBus>(),
       storage: InMemoryStoryGenerationRunStorage(),
     ),

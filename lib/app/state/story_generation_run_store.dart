@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 
 import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/author_feedback/domain/author_feedback_models.dart';
+import '../../features/review_tasks/data/review_task_mapper.dart';
+import '../../features/review_tasks/data/review_task_store.dart';
 // Intentional: run store bridges app state to feature pipeline.
 import '../../features/story_generation/data/chapter_generation_orchestrator.dart';
 import '../../features/story_generation/data/scene_context_assembler.dart';
@@ -52,6 +54,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     AuthorFeedbackStore? authorFeedbackStore,
     RoleplaySessionStore? roleplaySessionStore,
     CharacterMemoryStore? characterMemoryStore,
+    ReviewTaskStore? reviewTaskStore,
     AppEventBus? eventBus,
     StoryGenerationRunStorage? storage,
     SceneContextAssembler? sceneContextAssembler,
@@ -61,14 +64,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _workspaceStore = workspaceStore,
        _generationStore = generationStore,
        _authorFeedbackStore = authorFeedbackStore,
+       _reviewTaskStore = reviewTaskStore,
        _eventBus = eventBus,
-       _storage =
-           storage ??
-           
-           createDefaultStoryGenerationRunStorage(),
+       _storage = storage ?? createDefaultStoryGenerationRunStorage(),
        _orchestratorFactory =
            orchestratorFactory ??
-           
            ((settingsStore) {
              final styleReferenceConfig = _styleReferenceConfigFromWorkspace(
                workspaceStore,
@@ -84,8 +84,9 @@ class StoryGenerationRunStore extends AppStoreListenable {
     _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
     _workspaceStore.addListener(_handleWorkspaceChanged);
-    _projectDeletedSubscription = _eventBus
-        ?.listen<ProjectDeletedEvent>(_handleProjectDeleted);
+    _projectDeletedSubscription = _eventBus?.listen<ProjectDeletedEvent>(
+      _handleProjectDeleted,
+    );
     _readyFuture = _restoreCurrentScene();
     unawaited(_readyFuture);
   }
@@ -94,6 +95,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final AppWorkspaceStore _workspaceStore;
   final StoryGenerationStore _generationStore;
   final AuthorFeedbackStore? _authorFeedbackStore;
+  final ReviewTaskStore? _reviewTaskStore;
   final AppEventBus? _eventBus;
   final StoryGenerationRunStorage _storage;
   final ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)
@@ -337,17 +339,17 @@ class StoryGenerationRunStore extends AppStoreListenable {
       }
       final (sceneStatus, reviewStatus) = switch (output.review.decision) {
         SceneReviewDecision.pass => (
-            StorySceneGenerationStatus.passed,
-            StoryReviewStatus.passed,
-          ),
+          StorySceneGenerationStatus.passed,
+          StoryReviewStatus.passed,
+        ),
         SceneReviewDecision.rewriteProse => (
-            StorySceneGenerationStatus.blocked,
-            StoryReviewStatus.softFailed,
-          ),
+          StorySceneGenerationStatus.blocked,
+          StoryReviewStatus.softFailed,
+        ),
         SceneReviewDecision.replanScene => (
-            StorySceneGenerationStatus.blocked,
-            StoryReviewStatus.failed,
-          ),
+          StorySceneGenerationStatus.blocked,
+          StoryReviewStatus.failed,
+        ),
       };
       _recordSceneState(
         brief: brief,
@@ -361,6 +363,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
         ),
       );
       await _setSnapshot(_snapshotFromOutput(output));
+      _persistReviewTasks(output.review, brief, runSceneScopeId);
       _finishRun(runToken);
     } catch (error) {
       if (!_isCurrentRun(runToken, runSceneScopeId)) {
@@ -489,6 +492,23 @@ class StoryGenerationRunStore extends AppStoreListenable {
     }
     _activeRunToken = null;
     _activeRunSceneScopeId = null;
+  }
+
+  void _persistReviewTasks(
+    SceneReviewResult review,
+    SceneBrief brief,
+    String runId,
+  ) {
+    final store = _reviewTaskStore;
+    if (store == null) return;
+    final tasks = const ReviewTaskMapper().fromSceneReviewResult(
+      result: review,
+      brief: brief,
+      runId: runId,
+    );
+    if (tasks.isNotEmpty) {
+      store.upsertAll(tasks);
+    }
   }
 
   @override

@@ -12,7 +12,7 @@ import '../domain/story_pipeline_interfaces.dart';
 /// Runs memory indexing and attaches scene-level retrieval requirements.
 class SceneContextAssembler implements SceneContextAssemblerService {
   SceneContextAssembler({StoryMemoryIndexer? indexer})
-      : _indexer = indexer ?? StoryMemoryIndexer();
+    : _indexer = indexer ?? StoryMemoryIndexer();
 
   final StoryMemoryIndexer _indexer;
 
@@ -40,9 +40,9 @@ class SceneContextAssembler implements SceneContextAssemblerService {
       requirements.add('outline_beats');
     }
 
-    final scopeId = '${brief.chapterId}:${brief.sceneId}';
+    final scopeId = '${brief.projectId ?? brief.chapterId}:${brief.sceneId}';
     final chunks = _indexer.index(
-      projectId: brief.chapterId,
+      projectId: brief.projectId ?? brief.chapterId,
       scopeId: scopeId,
       materials: materials,
     );

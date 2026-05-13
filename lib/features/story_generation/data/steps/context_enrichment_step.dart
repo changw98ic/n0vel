@@ -24,12 +24,12 @@ class ContextEnrichmentStep {
     StoryMemoryRetrieverService? memoryRetriever,
     RagOrchestrator? ragOrchestrator,
     StoryContextCache? contextCache,
-  })  : _chapterContextBridge = chapterContextBridge,
-        _contextAssembler = contextAssembler,
-        _memoryStorage = memoryStorage,
-        _memoryRetriever = memoryRetriever,
-        _ragOrchestrator = ragOrchestrator,
-        _contextCache = contextCache;
+  }) : _chapterContextBridge = chapterContextBridge,
+       _contextAssembler = contextAssembler,
+       _memoryStorage = memoryStorage,
+       _memoryRetriever = memoryRetriever,
+       _ragOrchestrator = ragOrchestrator,
+       _contextCache = contextCache;
 
   final ChapterContextBridgeService? _chapterContextBridge;
   final SceneContextAssemblerService _contextAssembler;
@@ -46,6 +46,7 @@ class ContextEnrichmentStep {
   /// - Runs memory retrieval and RAG in parallel.
   Future<ContextEnrichmentOutput> execute(ContextEnrichmentInput input) async {
     final brief = input.brief;
+    final projectScopeId = brief.projectId ?? brief.chapterId;
 
     // Cross-chapter context: enrich materials with previous chapter data
     ProjectMaterialSnapshot effectiveMaterials =
@@ -70,9 +71,9 @@ class ContextEnrichmentStep {
     if (!effectiveMaterials.isEmpty &&
         _memoryStorage != null &&
         _memoryRetriever != null) {
-      final scopeId = '${brief.chapterId}:${brief.sceneId}';
+      final scopeId = '$projectScopeId:${brief.sceneId}';
       cachedAssembly = _contextCache?.lookup(
-        brief.chapterId,
+        projectScopeId,
         scopeId,
         effectiveMaterials,
       );
@@ -85,7 +86,7 @@ class ContextEnrichmentStep {
 
       if (cachedAssembly == null && _contextCache != null) {
         _contextCache.store(
-          brief.chapterId,
+          projectScopeId,
           scopeId,
           assembly,
           effectiveMaterials,
@@ -94,15 +95,12 @@ class ContextEnrichmentStep {
 
       // Persist indexed chunks
       if (assembly.memoryChunks.isNotEmpty) {
-        await _memoryStorage.saveChunks(
-          brief.projectId ?? brief.chapterId,
-          assembly.memoryChunks,
-        );
+        await _memoryStorage.saveChunks(projectScopeId, assembly.memoryChunks);
       }
 
       // Run retrieval for scene context
       final query = StoryMemoryQuery(
-        projectId: brief.projectId ?? brief.chapterId,
+        projectId: projectScopeId,
         queryType: StoryMemoryQueryType.sceneContinuity,
         text: '${brief.sceneTitle} ${brief.sceneSummary}',
         tags: [
@@ -111,14 +109,14 @@ class ContextEnrichmentStep {
         ],
         maxResults: 10,
         tokenBudget: 500,
-        scopeId: '${brief.projectId ?? brief.chapterId}:${brief.sceneId}',
+        scopeId: scopeId,
       );
 
       // Memory retrieval and RAG retrieval are independent — run in parallel
       if (_ragOrchestrator != null) {
         final results = await (
           _memoryRetriever.retrieve(query),
-          _retrieveRagSafe(brief),
+          _retrieveRagSafe(projectScopeId, brief),
         ).wait;
         retrievalPack = results.$1;
         ragContext = results.$2;
@@ -126,7 +124,7 @@ class ContextEnrichmentStep {
         retrievalPack = await _memoryRetriever.retrieve(query);
       }
     } else if (_ragOrchestrator != null) {
-      ragContext = await _retrieveRagSafe(brief);
+      ragContext = await _retrieveRagSafe(projectScopeId, brief);
     }
 
     return ContextEnrichmentOutput(
@@ -138,10 +136,13 @@ class ContextEnrichmentStep {
   }
 
   /// Retrieves RAG context, catching any failure so generation is not blocked.
-  Future<RagSceneContext?> _retrieveRagSafe(SceneBrief brief) async {
+  Future<RagSceneContext?> _retrieveRagSafe(
+    String projectScopeId,
+    SceneBrief brief,
+  ) async {
     try {
       return await _ragOrchestrator!.retrieveForScene(
-        projectId: brief.chapterId,
+        projectId: projectScopeId,
         sceneTitle: brief.sceneTitle,
         sceneSummary: brief.sceneSummary,
         castNames: [for (final c in brief.cast) c.name],

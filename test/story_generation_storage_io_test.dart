@@ -164,7 +164,8 @@ void main() {
       expect(workspaceStore.currentProjectId, secondProjectId);
       await generationStore.waitUntilReady();
       final loadedWorkspaceBeforeRestore = await workspaceStorage.load();
-      final loadedProjects = (loadedWorkspaceBeforeRestore?['projects'] as List?)
+      final loadedProjects =
+          (loadedWorkspaceBeforeRestore?['projects'] as List?)
               ?.cast<Map<Object?, Object?>>() ??
           <Map<Object?, Object?>>[];
       expect(loadedProjects.isNotEmpty, isTrue);
@@ -224,8 +225,7 @@ void main() {
       expect(
         restoredWorkspaceStore.hasProjectWithId(secondProjectId),
         isTrue,
-        reason:
-            'Restored workspace should include the created second project.',
+        reason: 'Restored workspace should include the created second project.',
       );
       if (restoredWorkspaceStore.currentProjectId != secondProjectId) {
         restoredWorkspaceStore.openProject(secondProjectId);
@@ -325,67 +325,66 @@ void main() {
       dbPath: '${directory.path}/authoring.db',
     );
 
-    await storage.save(
-      {'projectId': 'project-dock', 'chapters': []},
-      projectId: 'project-dock',
-    );
-    await storage.save(
-      {
-        'projectId': 'project-dock',
-        'chapters': [
-          {
-            'chapterId': 'chapter-03',
-            'status': 'pending',
-            'targetLength': 0,
-            'actualLength': 0,
-            'participatingRoleIds': <String>[],
-            'worldNodeIds': <String>[],
-            'scenes': <Object?>[],
-          },
-        ],
-      },
-      projectId: 'project-dock',
-    );
+    await storage.save({
+      'projectId': 'project-dock',
+      'chapters': [],
+    }, projectId: 'project-dock');
+    await storage.save({
+      'projectId': 'project-dock',
+      'chapters': [
+        {
+          'chapterId': 'chapter-03',
+          'status': 'pending',
+          'targetLength': 0,
+          'actualLength': 0,
+          'participatingRoleIds': <String>[],
+          'worldNodeIds': <String>[],
+          'scenes': <Object?>[],
+        },
+      ],
+    }, projectId: 'project-dock');
 
     final loaded = await storage.load(projectId: 'project-dock');
     final chapters = loaded!['chapters'] as List<Object?>;
     expect(chapters, hasLength(1));
-    expect(
-      (chapters.first as Map<String, Object?>)['chapterId'],
-      'chapter-03',
-    );
+    expect((chapters.first as Map<String, Object?>)['chapterId'], 'chapter-03');
   });
 
-  test('clear isolates by project and wipes all when project is null', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_story_gen_clear_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
+  test(
+    'clear isolates by project and wipes all when project is null',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_story_gen_clear_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
 
-    final storage = SqliteStoryGenerationStorage(
-      dbPath: '${directory.path}/authoring.db',
-    );
+      final storage = SqliteStoryGenerationStorage(
+        dbPath: '${directory.path}/authoring.db',
+      );
 
-    await storage.save(
-      {'projectId': 'project-dock', 'chapters': []},
-      projectId: 'project-dock',
-    );
-    await storage.save(
-      {'projectId': 'project-harbor', 'chapters': [{'chapterId': 'c1'}]},
-      projectId: 'project-harbor',
-    );
+      await storage.save({
+        'projectId': 'project-dock',
+        'chapters': [],
+      }, projectId: 'project-dock');
+      await storage.save({
+        'projectId': 'project-harbor',
+        'chapters': [
+          {'chapterId': 'c1'},
+        ],
+      }, projectId: 'project-harbor');
 
-    await storage.clear(projectId: 'project-dock');
-    expect(await storage.load(projectId: 'project-dock'), isNull);
-    expect(await storage.load(projectId: 'project-harbor'), isNotNull);
+      await storage.clear(projectId: 'project-dock');
+      expect(await storage.load(projectId: 'project-dock'), isNull);
+      expect(await storage.load(projectId: 'project-harbor'), isNotNull);
 
-    await storage.clear();
-    expect(await storage.load(projectId: 'project-harbor'), isNull);
-  });
+      await storage.clear();
+      expect(await storage.load(projectId: 'project-harbor'), isNull);
+    },
+  );
 
   test('storage creates expected table and column schema', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -399,10 +398,10 @@ void main() {
 
     final dbPath = '${directory.path}/authoring.db';
     final storage = SqliteStoryGenerationStorage(dbPath: dbPath);
-    await storage.save(
-      {'projectId': 'project-x', 'chapters': []},
-      projectId: 'project-x',
-    );
+    await storage.save({
+      'projectId': 'project-x',
+      'chapters': [],
+    }, projectId: 'project-x');
 
     final database = sqlite3.open(dbPath);
     addTearDown(database.dispose);
@@ -417,91 +416,99 @@ void main() {
         .select('PRAGMA table_info(story_generation_state)')
         .map((row) => row['name'] as String)
         .toList();
-    expect(columns, containsAll(['project_id', 'payload_json', 'updated_at_ms']));
+    expect(
+      columns,
+      containsAll(['project_id', 'payload_json', 'updated_at_ms']),
+    );
   });
 
-  test('snapshot deep copy prevents external mutation from reaching storage', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_story_gen_immutability_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
+  test(
+    'snapshot deep copy prevents external mutation from reaching storage',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_story_gen_immutability_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
 
-    final dbPath = '${directory.path}/authoring.db';
-    final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: dbPath);
-    final genStorage = SqliteStoryGenerationStorage(dbPath: dbPath);
+      final dbPath = '${directory.path}/authoring.db';
+      final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+      final genStorage = SqliteStoryGenerationStorage(dbPath: dbPath);
 
-    final workspaceStore = AppWorkspaceStore(storage: workspaceStorage);
-    final genStore = StoryGenerationStore(
-      storage: genStorage,
-      workspaceStore: workspaceStore,
-    );
-    addTearDown(workspaceStore.dispose);
-    addTearDown(genStore.dispose);
-    await genStore.waitUntilReady();
+      final workspaceStore = AppWorkspaceStore(storage: workspaceStorage);
+      final genStore = StoryGenerationStore(
+        storage: genStorage,
+        workspaceStore: workspaceStore,
+      );
+      addTearDown(workspaceStore.dispose);
+      addTearDown(genStore.dispose);
+      await genStore.waitUntilReady();
 
-    genStore.replaceSnapshot(
-      StoryGenerationSnapshot(
-        projectId: workspaceStore.currentProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'chapter-01',
-            status: StoryChapterGenerationStatus.inProgress,
-            targetLength: 6000,
-            actualLength: 1500,
-            participatingRoleIds: ['char-liuxi'],
-            worldNodeIds: ['node-dock'],
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-01',
-                status: StorySceneGenerationStatus.reviewing,
-                judgeStatus: StoryReviewStatus.softFailed,
-                consistencyStatus: StoryReviewStatus.pending,
-                proseRetryCount: 2,
-                directorRetryCount: 1,
-                castRoleIds: ['char-liuxi', 'char-chenmo'],
-                worldNodeIds: ['node-dock'],
-                upstreamFingerprint: 'fp-gamma',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    await genStore.waitUntilReady();
+      genStore.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: workspaceStore.currentProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'chapter-01',
+              status: StoryChapterGenerationStatus.inProgress,
+              targetLength: 6000,
+              actualLength: 1500,
+              participatingRoleIds: ['char-liuxi'],
+              worldNodeIds: ['node-dock'],
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-01',
+                  status: StorySceneGenerationStatus.reviewing,
+                  judgeStatus: StoryReviewStatus.softFailed,
+                  consistencyStatus: StoryReviewStatus.pending,
+                  proseRetryCount: 2,
+                  directorRetryCount: 1,
+                  castRoleIds: ['char-liuxi', 'char-chenmo'],
+                  worldNodeIds: ['node-dock'],
+                  upstreamFingerprint: 'fp-gamma',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      await genStore.waitUntilReady();
 
-    final firstView = genStore.snapshot;
-    expect(
-      firstView.chapters.first.scenes.first.judgeStatus,
-      StoryReviewStatus.softFailed,
-    );
+      final firstView = genStore.snapshot;
+      expect(
+        firstView.chapters.first.scenes.first.judgeStatus,
+        StoryReviewStatus.softFailed,
+      );
 
-    final secondView = genStore.snapshot;
-    expect(
-      secondView.chapters.first.scenes.first.judgeStatus,
-      StoryReviewStatus.softFailed,
-    );
+      final secondView = genStore.snapshot;
+      expect(
+        secondView.chapters.first.scenes.first.judgeStatus,
+        StoryReviewStatus.softFailed,
+      );
 
-    final restoredGenStore = StoryGenerationStore(
-      storage: genStorage,
-      workspaceStore: workspaceStore,
-    );
-    addTearDown(restoredGenStore.dispose);
-    await restoredGenStore.waitUntilReady();
+      final restoredGenStore = StoryGenerationStore(
+        storage: genStorage,
+        workspaceStore: workspaceStore,
+      );
+      addTearDown(restoredGenStore.dispose);
+      await restoredGenStore.waitUntilReady();
 
-    final restored = restoredGenStore.snapshot;
-    expect(
-      restored.chapters.first.scenes.first.judgeStatus,
-      StoryReviewStatus.softFailed,
-    );
-    expect(restored.chapters.first.scenes.first.proseRetryCount, 2);
-    expect(restored.chapters.first.scenes.first.castRoleIds,
-        ['char-liuxi', 'char-chenmo']);
-    expect(restored.chapters.first.targetLength, 6000);
-    expect(restored.chapters.first.actualLength, 1500);
-    expect(restored.chapters.first.participatingRoleIds, ['char-liuxi']);
-  });
+      final restored = restoredGenStore.snapshot;
+      expect(
+        restored.chapters.first.scenes.first.judgeStatus,
+        StoryReviewStatus.softFailed,
+      );
+      expect(restored.chapters.first.scenes.first.proseRetryCount, 2);
+      expect(restored.chapters.first.scenes.first.castRoleIds, [
+        'char-liuxi',
+        'char-chenmo',
+      ]);
+      expect(restored.chapters.first.targetLength, 6000);
+      expect(restored.chapters.first.actualLength, 1500);
+      expect(restored.chapters.first.participatingRoleIds, ['char-liuxi']);
+    },
+  );
 }

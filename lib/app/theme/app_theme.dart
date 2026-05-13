@@ -182,6 +182,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: c.canvas,
+      splashFactory: InkRipple.splashFactory,
     );
 
     return base.copyWith(

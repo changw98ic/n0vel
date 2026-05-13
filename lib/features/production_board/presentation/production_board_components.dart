@@ -125,11 +125,26 @@ class ProductionProgressPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              ProductionMetricChip(label: '章节', value: '${snapshot.totalChapters}'),
-              ProductionMetricChip(label: '章节块', value: '${snapshot.totalScenes}'),
-              ProductionMetricChip(label: '已通过', value: '${snapshot.completedScenes}'),
-              ProductionMetricChip(label: '进行中', value: '${snapshot.inFlightScenes}'),
-              ProductionMetricChip(label: '需处理', value: '${snapshot.needsWorkScenes}'),
+              ProductionMetricChip(
+                label: '章节',
+                value: '${snapshot.totalChapters}',
+              ),
+              ProductionMetricChip(
+                label: '章节块',
+                value: '${snapshot.totalScenes}',
+              ),
+              ProductionMetricChip(
+                label: '已通过',
+                value: '${snapshot.completedScenes}',
+              ),
+              ProductionMetricChip(
+                label: '进行中',
+                value: '${snapshot.inFlightScenes}',
+              ),
+              ProductionMetricChip(
+                label: '需处理',
+                value: '${snapshot.needsWorkScenes}',
+              ),
             ],
           ),
         ],
@@ -404,7 +419,10 @@ class ProductionLaneBoard extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 for (final lane in ProductionBoardLane.values)
-                  ProductionLaneColumn(lane: lane, scenes: snapshot.lanes[lane] ?? []),
+                  ProductionLaneColumn(
+                    lane: lane,
+                    scenes: snapshot.lanes[lane] ?? [],
+                  ),
               ],
             );
           },
@@ -459,7 +477,7 @@ class ProductionLaneColumn extends StatelessWidget {
                 ? Text('暂无章节', style: theme.textTheme.bodySmall)
                 : ListView.separated(
                     itemCount: scenes.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(height: AppDesignTokens.space4),
                     itemBuilder: (context, index) {
                       final scene = scenes[index];
@@ -507,7 +525,10 @@ class ProductionBoardSide extends StatelessWidget {
     if (compact) {
       return Column(
         children: [
-          SizedBox(height: 240, child: ProductionRecentRunCard(run: snapshot.recentRun)),
+          SizedBox(
+            height: 240,
+            child: ProductionRecentRunCard(run: snapshot.recentRun),
+          ),
           const SizedBox(height: AppDesignTokens.space16),
           SizedBox(
             height: 320,
@@ -591,7 +612,7 @@ class ProductionChapterList extends StatelessWidget {
             )
           : ListView.separated(
               itemCount: chapters.length + 1,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(height: AppDesignTokens.space8),
               itemBuilder: (context, index) {
                 if (index == 0) {

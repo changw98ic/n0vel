@@ -57,7 +57,7 @@ class GatewayInterceptor extends Interceptor {
       correlationId: correlationId,
       metadata: {
         'statusCode': response.statusCode,
-        if (latencyMs != null) 'latencyMs': latencyMs,
+        'latencyMs':? latencyMs,
         if (tokenUsage != null) ...{
           'promptTokens': tokenUsage.promptTokens,
           'completionTokens': tokenUsage.completionTokens,
@@ -90,7 +90,7 @@ class GatewayInterceptor extends Interceptor {
       metadata: {
         'errorType': err.type.name,
         'statusCode': err.response?.statusCode,
-        if (latencyMs != null) 'latencyMs': latencyMs,
+        'latencyMs':? latencyMs,
       },
     );
     handler.next(err);

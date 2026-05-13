@@ -212,7 +212,7 @@ class _ChapterListPanel extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: scenes.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (context, index) {
                     final scene = scenes[index];
                     final isActive = scene.id == currentSceneId;

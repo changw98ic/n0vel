@@ -17,11 +17,15 @@ abstract interface class SceneDirectorService {
   });
 }
 
+/// Result of a dynamic role agent run.
+typedef DynamicRoleAgentResult = ({
+  List<DynamicRoleAgentOutput> outputs,
+  SceneRoleplaySession? session,
+});
+
 /// Runs dynamic role agents for scene characters.
 abstract interface class DynamicRoleAgentService {
-  SceneRoleplaySession? get lastRoleplaySession;
-
-  Future<List<DynamicRoleAgentOutput>> run({
+  Future<DynamicRoleAgentResult> run({
     required SceneBrief brief,
     required List<ResolvedSceneCastMember> cast,
     required SceneDirectorOutput director,

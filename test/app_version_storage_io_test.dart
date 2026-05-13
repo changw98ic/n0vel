@@ -90,14 +90,8 @@ void main() {
       final loadedA = await storage.load(projectId: 'project-a');
       final loadedB = await storage.load(projectId: 'project-b');
 
-      expect(
-        ((loadedA!['entries'] as List).first as Map)['label'],
-        '项目 A',
-      );
-      expect(
-        ((loadedB!['entries'] as List).first as Map)['label'],
-        '项目 B',
-      );
+      expect(((loadedA!['entries'] as List).first as Map)['label'], '项目 A');
+      expect(((loadedB!['entries'] as List).first as Map)['label'], '项目 B');
     });
 
     test('clear with projectId removes only that project', () async {
@@ -233,8 +227,7 @@ void main() {
       expect(tableNames, contains('version_entries'));
 
       final columns = database.select('PRAGMA table_info(version_entries)');
-      final columnNames =
-          columns.map((row) => row['name'] as String).toList();
+      final columnNames = columns.map((row) => row['name'] as String).toList();
       expect(
         columnNames,
         containsAll([
@@ -267,9 +260,11 @@ void main() {
       final database = sqlite3.open(dbPath);
       addTearDown(database.dispose);
 
-      final row = database.select(
-        "SELECT updated_at_ms FROM version_entries WHERE project_id = 'project-ts'",
-      ).first;
+      final row = database
+          .select(
+            "SELECT updated_at_ms FROM version_entries WHERE project_id = 'project-ts'",
+          )
+          .first;
       expect(row['updated_at_ms'] as int, greaterThan(0));
     });
 
@@ -299,29 +294,35 @@ void main() {
       expect((entries[0] as Map)['content'], '遗留内容');
     });
 
-    test('legacy migration does not re-run if project_id column exists', () async {
-      final storage = SqliteAppVersionStorage(dbPath: dbPath);
+    test(
+      'legacy migration does not re-run if project_id column exists',
+      () async {
+        final storage = SqliteAppVersionStorage(dbPath: dbPath);
 
-      await storage.save({
-        'entries': [
-          {'label': '新格式', 'content': '新内容'},
-        ],
-      }, projectId: 'project-new');
+        await storage.save({
+          'entries': [
+            {'label': '新格式', 'content': '新内容'},
+          ],
+        }, projectId: 'project-new');
 
-      final storage2 = SqliteAppVersionStorage(dbPath: dbPath);
-      final loaded = await storage2.load(projectId: 'project-new');
+        final storage2 = SqliteAppVersionStorage(dbPath: dbPath);
+        final loaded = await storage2.load(projectId: 'project-new');
 
-      final entries = loaded!['entries'] as List<Object?>;
-      expect((entries[0] as Map)['label'], '新格式');
-    });
+        final entries = loaded!['entries'] as List<Object?>;
+        expect((entries[0] as Map)['label'], '新格式');
+      },
+    );
 
-    test('load on cleared non-existent project returns null without error', () async {
-      final storage = SqliteAppVersionStorage(dbPath: dbPath);
+    test(
+      'load on cleared non-existent project returns null without error',
+      () async {
+        final storage = SqliteAppVersionStorage(dbPath: dbPath);
 
-      await storage.clear(projectId: 'non-existent');
-      final result = await storage.load(projectId: 'non-existent');
-      expect(result, isNull);
-    });
+        await storage.clear(projectId: 'non-existent');
+        final result = await storage.load(projectId: 'non-existent');
+        expect(result, isNull);
+      },
+    );
 
     test('save preserves unicode and emoji content', () async {
       final storage = SqliteAppVersionStorage(dbPath: dbPath);

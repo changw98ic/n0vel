@@ -29,7 +29,7 @@ class FinalizationStep {
     // 1. Build RetrievalTrace from context data.
     var retrievalTrace = RetrievalTrace(
       query: StoryMemoryQuery(
-        projectId: brief.chapterId,
+        projectId: brief.projectId ?? brief.chapterId,
         queryType: StoryMemoryQueryType.sceneContinuity,
         text: '${brief.sceneTitle} ${brief.sceneSummary}',
       ),
@@ -90,7 +90,7 @@ class FinalizationStep {
     if (review.review.decision == SceneReviewDecision.pass &&
         _thoughtUpdater != null) {
       final thoughtResult = await _thoughtUpdater.extractWithLlm(
-        projectId: brief.chapterId,
+        projectId: brief.projectId ?? brief.chapterId,
         sceneOutput: output,
       );
       retrievalTrace = RetrievalTrace(
