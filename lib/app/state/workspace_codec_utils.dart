@@ -166,59 +166,46 @@ List<ProjectRecord> buildDefaultProjects() {
 
 Map<String, List<CharacterRecord>> buildDefaultProjectCharacters(
   List<ProjectRecord> projects,
-) {
-  return {
-    for (final project in projects)
-      project.id: List<CharacterRecord>.from(defaultCharacters),
-  };
-}
+) => {
+  for (final project in projects)
+    project.id: List<CharacterRecord>.from(defaultCharacters),
+};
 
 Map<String, List<SceneRecord>> buildDefaultProjectScenes(
   List<ProjectRecord> projects,
-) {
-  return {
-    for (final project in projects)
-      project.id: defaultScenesForProject(project),
-  };
-}
+) => {
+  for (final project in projects) project.id: defaultScenesForProject(project),
+};
 
 Map<String, List<WorldNodeRecord>> buildDefaultProjectWorldNodes(
   List<ProjectRecord> projects,
-) {
-  return {
-    for (final project in projects)
-      project.id: List<WorldNodeRecord>.from(defaultWorldNodes),
-  };
-}
+) => {
+  for (final project in projects)
+    project.id: List<WorldNodeRecord>.from(defaultWorldNodes),
+};
 
 Map<String, List<AuditIssueRecord>> buildDefaultProjectAuditIssues(
   List<ProjectRecord> projects,
-) {
-  return {
-    for (final project in projects)
-      project.id: List<AuditIssueRecord>.from(defaultAuditIssues),
-  };
-}
+) => {
+  for (final project in projects)
+    project.id: List<AuditIssueRecord>.from(defaultAuditIssues),
+};
 
 Map<String, ProjectStyleState> buildDefaultProjectStyles(
   List<ProjectRecord> projects,
-) {
-  return {for (final project in projects) project.id: defaultStyleState()};
-}
+) => {for (final project in projects) project.id: defaultStyleState()};
 
 Map<String, ProjectAuditUiState> buildDefaultProjectAuditUi(
   List<ProjectRecord> projects,
-) {
-  return {
-    for (final project in projects)
-      project.id: const ProjectAuditUiState(
-        selectedIssueId: '',
-        selectedIssueIndex: 0,
-        filter: AuditIssueFilter.all,
-        actionFeedback: defaultAuditActionFeedback,
-      ),
-  };
-}
+) => {
+  for (final project in projects)
+    project.id: const ProjectAuditUiState(
+      selectedIssueId: '',
+      selectedIssueIndex: 0,
+      filter: AuditIssueFilter.all,
+      actionFeedback: defaultAuditActionFeedback,
+    ),
+};
 
 List<SceneRecord> defaultScenesForProject(ProjectRecord project) {
   switch (project.id) {
@@ -261,7 +248,7 @@ List<SceneRecord> defaultScenesForProject(ProjectRecord project) {
           id: project.sceneId,
           chapterLabel: chapterLabelFromRecentLocation(project.recentLocation),
           title: sceneTitleFromRecentLocation(project.recentLocation),
-          summary: '等待补充章节目标、冲突和收束条件。',
+          summary: '等待补充目标、冲突和收束条件。',
         ),
       ];
   }
@@ -603,7 +590,7 @@ ProjectStyleState defaultStyleState() {
   final profileJson = buildStyleProfileJson(defaultStyleQuestionnaireDraft);
   final profile = StyleProfileRecord(
     id: 'style-default',
-    name: normalizeStyleName(profileJson['name']),
+    name: '东方含蓄文青风',
     source: 'questionnaire',
     jsonData: profileJson,
   );

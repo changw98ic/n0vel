@@ -2,8 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/events/app_domain_events.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
+import 'package:novel_writer/app/state/app_ai_history_storage.dart';
+import 'package:novel_writer/app/state/app_ai_history_store.dart';
+import 'package:novel_writer/app/state/app_draft_storage.dart';
+import 'package:novel_writer/app/state/app_draft_store.dart';
+import 'package:novel_writer/app/state/app_scene_context_storage.dart';
+import 'package:novel_writer/app/state/app_scene_context_store.dart';
+import 'package:novel_writer/app/state/app_simulation_storage.dart';
+import 'package:novel_writer/app/state/app_simulation_store.dart';
+import 'package:novel_writer/app/state/app_version_storage.dart';
+import 'package:novel_writer/app/state/app_version_store.dart';
 import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
+import 'package:novel_writer/app/state/story_generation_store.dart';
+import 'package:novel_writer/app/state/story_generation_storage.dart';
+import 'package:novel_writer/app/state/story_outline_storage.dart';
+import 'package:novel_writer/app/state/story_outline_store.dart';
+import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
+import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 
 void main() {
   group('AppEventBus', () {
@@ -22,10 +40,7 @@ void main() {
       bus.listen<ProjectScopeChangedEvent>(events.add);
 
       bus.publish(
-        const ProjectScopeChangedEvent(
-          projectId: 'p1',
-          sceneScopeId: 'p1::s1',
-        ),
+        const ProjectScopeChangedEvent(projectId: 'p1', sceneScopeId: 'p1::s1'),
       );
 
       expect(events, hasLength(1));
@@ -52,10 +67,7 @@ void main() {
       bus.listen<ProjectCreatedEvent>(createdEvents.add);
 
       bus.publish(
-        const ProjectScopeChangedEvent(
-          projectId: 'p1',
-          sceneScopeId: 'p1::s1',
-        ),
+        const ProjectScopeChangedEvent(projectId: 'p1', sceneScopeId: 'p1::s1'),
       );
       bus.publish(const ProjectCreatedEvent(projectId: 'p2'));
 
@@ -111,18 +123,12 @@ void main() {
 
     test('on after dispose throws StateError', () {
       bus.dispose();
-      expect(
-        () => bus.on<ProjectScopeChangedEvent>(),
-        throwsStateError,
-      );
+      expect(() => bus.on<ProjectScopeChangedEvent>(), throwsStateError);
     });
 
     test('no subscribers — publish does not throw', () {
       bus.publish(
-        const ProjectScopeChangedEvent(
-          projectId: 'p1',
-          sceneScopeId: 'p1::s1',
-        ),
+        const ProjectScopeChangedEvent(projectId: 'p1', sceneScopeId: 'p1::s1'),
       );
     });
 
@@ -150,6 +156,7 @@ void main() {
       bus = AppEventBus();
       store = AppWorkspaceStore(
         storage: InMemoryAppWorkspaceStorage(),
+        eventBus: bus,
       );
     });
 
@@ -170,19 +177,22 @@ void main() {
       expect(events.first.sceneScopeId, isNotEmpty);
     });
 
-    test('createProject publishes ProjectCreatedEvent and ProjectScopeChangedEvent', () async {
-      final createdEvents = <ProjectCreatedEvent>[];
-      final scopeEvents = <ProjectScopeChangedEvent>[];
-      bus.listen<ProjectCreatedEvent>(createdEvents.add);
-      bus.listen<ProjectScopeChangedEvent>(scopeEvents.add);
+    test(
+      'createProject publishes ProjectCreatedEvent and ProjectScopeChangedEvent',
+      () async {
+        final createdEvents = <ProjectCreatedEvent>[];
+        final scopeEvents = <ProjectScopeChangedEvent>[];
+        bus.listen<ProjectCreatedEvent>(createdEvents.add);
+        bus.listen<ProjectScopeChangedEvent>(scopeEvents.add);
 
-      store.createProject();
+        store.createProject();
 
-      expect(createdEvents, hasLength(1));
-      expect(scopeEvents, hasLength(1));
-      expect(createdEvents.first.projectId, store.currentProjectId);
-      expect(scopeEvents.first.projectId, store.currentProjectId);
-    });
+        expect(createdEvents, hasLength(1));
+        expect(scopeEvents, hasLength(1));
+        expect(createdEvents.first.projectId, store.currentProjectId);
+        expect(scopeEvents.first.projectId, store.currentProjectId);
+      },
+    );
 
     test('deleteProject publishes ProjectDeletedEvent', () async {
       final deletedEvents = <ProjectDeletedEvent>[];
@@ -193,6 +203,135 @@ void main() {
 
       expect(deletedEvents, hasLength(1));
       expect(deletedEvents.first.projectId, target.id);
+    });
+
+    test('deleteProject clears project-scoped feature storage', () async {
+      store.createProject(projectName: '待删除外部分区');
+      final deletedProject = store.currentProject;
+      final deletedSceneScopeId = store.currentSceneScopeId;
+
+      final draftStorage = InMemoryAppDraftStorage();
+      final versionStorage = InMemoryAppVersionStorage();
+      final aiHistoryStorage = InMemoryAppAiHistoryStorage();
+      final sceneContextStorage = InMemoryAppSceneContextStorage();
+      final simulationStorage = InMemoryAppSimulationStorage();
+      final outlineStorage = InMemoryStoryOutlineStorage();
+      final generationStorage = InMemoryStoryGenerationStorage();
+      final feedbackStorage = InMemoryAuthorFeedbackStorage();
+      final reviewTaskStorage = InMemoryReviewTaskStorage();
+
+      await draftStorage.save({
+        'text': 'deleted draft',
+      }, projectId: deletedSceneScopeId);
+      await versionStorage.save({
+        'entries': const [],
+      }, projectId: deletedSceneScopeId);
+      await aiHistoryStorage.save({
+        'entries': const [],
+      }, projectId: deletedSceneScopeId);
+      await sceneContextStorage.save({
+        'sceneSummary': 'deleted',
+        'characterSummary': 'deleted',
+        'worldSummary': 'deleted',
+      }, projectId: deletedSceneScopeId);
+      await simulationStorage.save({
+        'template': 'completed',
+      }, projectId: deletedProject.id);
+      await outlineStorage.save({
+        'projectId': deletedProject.id,
+      }, projectId: deletedProject.id);
+      await generationStorage.save({
+        'projectId': deletedProject.id,
+      }, projectId: deletedProject.id);
+      await feedbackStorage.save({
+        'items': const [],
+      }, projectId: deletedProject.id);
+      await reviewTaskStorage.save({
+        'tasks': const [],
+      }, projectId: deletedProject.id);
+
+      final scopedStores = [
+        AppDraftStore(
+          storage: draftStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        AppVersionStore(
+          storage: versionStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        AppAiHistoryStore(
+          storage: aiHistoryStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        AppSceneContextStore(
+          storage: sceneContextStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        AppSimulationStore(
+          storage: simulationStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        StoryOutlineStore(
+          storage: outlineStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        AuthorFeedbackStore(
+          storage: feedbackStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+        ReviewTaskStore(
+          storage: reviewTaskStorage,
+          workspaceStore: store,
+          eventBus: bus,
+        ),
+      ];
+      final generationStore = StoryGenerationStore(
+        storage: generationStorage,
+        workspaceStore: store,
+        eventBus: bus,
+      );
+      addTearDown(() {
+        for (final scopedStore in scopedStores) {
+          scopedStore.dispose();
+        }
+        generationStore.dispose();
+      });
+
+      store.deleteProject(deletedProject);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await draftStorage.load(projectId: deletedSceneScopeId), isNull);
+      expect(await versionStorage.load(projectId: deletedSceneScopeId), isNull);
+      expect(
+        await aiHistoryStorage.load(projectId: deletedSceneScopeId),
+        isNull,
+      );
+      expect(
+        await sceneContextStorage.load(projectId: deletedSceneScopeId),
+        isNull,
+      );
+      expect(
+        await simulationStorage.load(projectId: deletedProject.id),
+        isNull,
+      );
+      expect(await outlineStorage.load(projectId: deletedProject.id), isNull);
+      expect(
+        await generationStorage.load(projectId: deletedProject.id),
+        isNull,
+      );
+      expect(await feedbackStorage.load(projectId: deletedProject.id), isNull);
+      expect(
+        await reviewTaskStorage.load(projectId: deletedProject.id),
+        isNull,
+      );
     });
 
     test('openProject publishes ProjectScopeChangedEvent', () async {
@@ -209,6 +348,8 @@ void main() {
     test('updateCurrentScene publishes SceneChangedEvent', () async {
       final events = <SceneChangedEvent>[];
       bus.listen<SceneChangedEvent>(events.add);
+
+      store.createProject();
 
       store.updateCurrentScene(
         sceneId: 'scene-new',
@@ -250,11 +391,19 @@ void main() {
         const ProjectScopeChangedEvent(projectId: 'p1', sceneScopeId: 'p1::s1'),
         const ProjectCreatedEvent(projectId: 'p1'),
         const ProjectDeletedEvent(projectId: 'p1'),
-        const SceneChangedEvent(projectId: 'p1', sceneId: 's1', sceneScopeId: 'p1::s1'),
+        const SceneChangedEvent(
+          projectId: 'p1',
+          sceneId: 's1',
+          sceneScopeId: 'p1::s1',
+        ),
         const SettingsSavedEvent(providerName: 'test', model: 'm1'),
         const StoryGenerationStartedEvent(projectId: 'p1', sceneId: 's1'),
         const StoryGenerationCompletedEvent(projectId: 'p1', sceneId: 's1'),
-        const StoryGenerationFailedEvent(projectId: 'p1', sceneId: 's1', error: 'err'),
+        const StoryGenerationFailedEvent(
+          projectId: 'p1',
+          sceneId: 's1',
+          error: 'err',
+        ),
       ];
 
       final types = events.map((e) => e.runtimeType).toSet();

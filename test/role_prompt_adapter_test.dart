@@ -8,7 +8,7 @@ void main() {
   // ---------------------------------------------------------------
   group('RolePromptAdapter.toLegacyText', () {
     test('empty packet returns empty string', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: 'Alice',
         characterRole: 'protagonist',
@@ -17,7 +17,7 @@ void main() {
     });
 
     test('omits empty sections', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: 'Alice',
         characterRole: 'protagonist',
@@ -37,7 +37,7 @@ void main() {
     });
 
     test('all fields populated produces all 7 sections', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: '林黛玉',
         characterRole: '女主角',
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('sections separated by double newlines', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: 'Alice',
         characterRole: 'protagonist',
@@ -81,7 +81,7 @@ void main() {
     });
 
     test('produces correctly formatted Chinese headers', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: '薛宝钗',
         characterRole: '女配角',
@@ -95,7 +95,7 @@ void main() {
 
     test('legacy output structure preserves content integrity', () {
       const content = '这是一段包含特殊字符的内容：换行、逗号、句号。';
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: 'Test',
         characterRole: 'test',
@@ -201,7 +201,7 @@ void main() {
   // ---------------------------------------------------------------
   group('RolePromptAdapter round-trip', () {
     test('packet to legacy text preserves all non-empty field content', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: '贾宝玉',
         characterRole: '主角',
@@ -234,7 +234,7 @@ void main() {
     });
 
     test('legacy text is parseable — headers and values extractable', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'c1',
         characterName: 'Test',
         characterRole: 'test',

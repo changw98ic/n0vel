@@ -21,9 +21,6 @@ void main() {
 
     tearDown(() {
       bus.dispose();
-      AppSettingsStore.debugStorageOverride = null;
-      AppSettingsStore.debugLlmClientOverride = null;
-      StoryGenerationStore.debugStorageOverride = null;
     });
 
     test('AppSettingsStore.save publishes SettingsSavedEvent', () async {
@@ -32,7 +29,8 @@ void main() {
 
       final store = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
-        llmClient: _NoOpLlmClient(),
+        llmClient: const _NoOpLlmClient(),
+        eventBus: bus,
       );
       addTearDown(store.dispose);
 
@@ -54,7 +52,8 @@ void main() {
 
       final store = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
-        llmClient: _NoOpLlmClient(),
+        llmClient: const _NoOpLlmClient(),
+        eventBus: bus,
       );
       addTearDown(store.dispose);
 
@@ -70,29 +69,31 @@ void main() {
       expect(events.first.model, 'glm-5.1');
     });
 
-    test('settings save with persistence issue does not publish event',
-        () async {
-      final events = <SettingsSavedEvent>[];
-      bus.listen<SettingsSavedEvent>(events.add);
-
-      final store = AppSettingsStore(
-        storage: _FailingWriteStorage(),
-        llmClient: _NoOpLlmClient(),
-      );
-      addTearDown(store.dispose);
-
-      await store.save(
-        providerName: 'Test',
-        baseUrl: 'https://api.example.com/v1',
-        model: 'gpt-4.1-mini',
-        apiKey: 'sk-test',
-      );
-
-      expect(events, isEmpty);
-    });
-
     test(
-        'StoryGenerationStore.replaceSnapshot publishes '
+      'settings save with persistence issue does not publish event',
+      () async {
+        final events = <SettingsSavedEvent>[];
+        bus.listen<SettingsSavedEvent>(events.add);
+
+        final store = AppSettingsStore(
+          storage: _FailingWriteStorage(),
+          llmClient: const _NoOpLlmClient(),
+          eventBus: bus,
+        );
+        addTearDown(store.dispose);
+
+        await store.save(
+          providerName: 'Test',
+          baseUrl: 'https://api.example.com/v1',
+          model: 'gpt-4.1-mini',
+          apiKey: 'sk-test',
+        );
+
+        expect(events, isEmpty);
+      },
+    );
+
+    test('StoryGenerationStore.replaceSnapshot publishes '
         'StoryGenerationStartedEvent when generation begins', () {
       final events = <StoryGenerationStartedEvent>[];
       bus.listen<StoryGenerationStartedEvent>(events.add);
@@ -103,34 +104,35 @@ void main() {
       );
       addTearDown(store.dispose);
 
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.inProgress,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.directing,
-                judgeStatus: StoryReviewStatus.pending,
-                consistencyStatus: StoryReviewStatus.pending,
-                proseRetryCount: 0,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.inProgress,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.directing,
+                  judgeStatus: StoryReviewStatus.pending,
+                  consistencyStatus: StoryReviewStatus.pending,
+                  proseRetryCount: 0,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       expect(events, hasLength(1));
       expect(events.first.projectId, store.activeProjectId);
       expect(events.first.sceneId, 'scene-1');
     });
 
-    test(
-        'StoryGenerationStore.replaceSnapshot publishes '
+    test('StoryGenerationStore.replaceSnapshot publishes '
         'StoryGenerationCompletedEvent when scene passes', () {
       final startedEvents = <StoryGenerationStartedEvent>[];
       final completedEvents = <StoryGenerationCompletedEvent>[];
@@ -144,48 +146,52 @@ void main() {
       addTearDown(store.dispose);
 
       // First: transition to running
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.inProgress,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.directing,
-                judgeStatus: StoryReviewStatus.pending,
-                consistencyStatus: StoryReviewStatus.pending,
-                proseRetryCount: 0,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.inProgress,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.directing,
+                  judgeStatus: StoryReviewStatus.pending,
+                  consistencyStatus: StoryReviewStatus.pending,
+                  proseRetryCount: 0,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       // Then: transition to passed
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.passed,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.passed,
-                judgeStatus: StoryReviewStatus.passed,
-                consistencyStatus: StoryReviewStatus.passed,
-                proseRetryCount: 0,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.passed,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.passed,
+                  judgeStatus: StoryReviewStatus.passed,
+                  consistencyStatus: StoryReviewStatus.passed,
+                  proseRetryCount: 0,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       expect(startedEvents, hasLength(1));
       expect(completedEvents, hasLength(1));
@@ -193,8 +199,7 @@ void main() {
       expect(completedEvents.first.sceneId, 'scene-1');
     });
 
-    test(
-        'StoryGenerationStore.replaceSnapshot publishes '
+    test('StoryGenerationStore.replaceSnapshot publishes '
         'StoryGenerationFailedEvent when scene is blocked', () {
       final failedEvents = <StoryGenerationFailedEvent>[];
       bus.listen<StoryGenerationFailedEvent>(failedEvents.add);
@@ -206,52 +211,199 @@ void main() {
       addTearDown(store.dispose);
 
       // First: transition to running
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.inProgress,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.drafting,
-                judgeStatus: StoryReviewStatus.pending,
-                consistencyStatus: StoryReviewStatus.pending,
-                proseRetryCount: 0,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.inProgress,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.drafting,
+                  judgeStatus: StoryReviewStatus.pending,
+                  consistencyStatus: StoryReviewStatus.pending,
+                  proseRetryCount: 0,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       // Then: transition to blocked
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.blocked,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.blocked,
-                judgeStatus: StoryReviewStatus.failed,
-                consistencyStatus: StoryReviewStatus.failed,
-                proseRetryCount: 3,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.blocked,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.blocked,
+                  judgeStatus: StoryReviewStatus.failed,
+                  consistencyStatus: StoryReviewStatus.failed,
+                  proseRetryCount: 3,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       expect(failedEvents, hasLength(1));
       expect(failedEvents.first.projectId, store.activeProjectId);
       expect(failedEvents.first.sceneId, 'scene-1');
+    });
+
+    test(
+      'StoryGenerationStore.replaceSnapshot publishes start for active scene '
+      'when older preserved scene already passed',
+      () {
+        final startedEvents = <StoryGenerationStartedEvent>[];
+        bus.listen<StoryGenerationStartedEvent>(startedEvents.add);
+
+        final store = StoryGenerationStore(
+          storage: InMemoryStoryGenerationStorage(),
+          eventBus: bus,
+        );
+        addTearDown(store.dispose);
+
+        final preservedScene = _scene(
+          'scene-1',
+          StorySceneGenerationStatus.passed,
+        );
+
+        store.replaceSnapshot(
+          _snapshot(store, [
+            preservedScene,
+            _scene('scene-2', StorySceneGenerationStatus.pending),
+          ]),
+        );
+
+        store.replaceSnapshot(
+          _snapshot(store, [
+            preservedScene,
+            _scene('scene-2', StorySceneGenerationStatus.directing),
+          ]),
+        );
+
+        expect(startedEvents, hasLength(1));
+        expect(startedEvents.first.projectId, store.activeProjectId);
+        expect(startedEvents.first.sceneId, 'scene-2');
+      },
+    );
+
+    test('StoryGenerationStore.replaceSnapshot publishes completion for active '
+        'scene when older preserved scene already passed', () {
+      final completedEvents = <StoryGenerationCompletedEvent>[];
+      bus.listen<StoryGenerationCompletedEvent>(completedEvents.add);
+
+      final store = StoryGenerationStore(
+        storage: InMemoryStoryGenerationStorage(),
+        eventBus: bus,
+      );
+      addTearDown(store.dispose);
+
+      final preservedScene = _scene(
+        'scene-1',
+        StorySceneGenerationStatus.passed,
+      );
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          preservedScene,
+          _scene('scene-2', StorySceneGenerationStatus.drafting),
+        ]),
+      );
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          preservedScene,
+          _scene('scene-2', StorySceneGenerationStatus.passed),
+        ]),
+      );
+
+      expect(completedEvents, hasLength(1));
+      expect(completedEvents.first.projectId, store.activeProjectId);
+      expect(completedEvents.first.sceneId, 'scene-2');
+    });
+
+    test('StoryGenerationStore.replaceSnapshot publishes failure for active '
+        'blocked scene when older preserved scene already passed', () {
+      final failedEvents = <StoryGenerationFailedEvent>[];
+      bus.listen<StoryGenerationFailedEvent>(failedEvents.add);
+
+      final store = StoryGenerationStore(
+        storage: InMemoryStoryGenerationStorage(),
+        eventBus: bus,
+      );
+      addTearDown(store.dispose);
+
+      final preservedScene = _scene(
+        'scene-1',
+        StorySceneGenerationStatus.passed,
+      );
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          preservedScene,
+          _scene('scene-2', StorySceneGenerationStatus.drafting),
+        ]),
+      );
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          preservedScene,
+          _scene('scene-2', StorySceneGenerationStatus.blocked),
+        ]),
+      );
+
+      expect(failedEvents, hasLength(1));
+      expect(failedEvents.first.projectId, store.activeProjectId);
+      expect(failedEvents.first.sceneId, 'scene-2');
+    });
+
+    test('StoryGenerationStore.replaceSnapshot publishes cancellation instead '
+        'of failure for cancelled blocked scene', () {
+      final failedEvents = <StoryGenerationFailedEvent>[];
+      final cancelledEvents = <StoryGenerationCancelledEvent>[];
+      bus.listen<StoryGenerationFailedEvent>(failedEvents.add);
+      bus.listen<StoryGenerationCancelledEvent>(cancelledEvents.add);
+
+      final store = StoryGenerationStore(
+        storage: InMemoryStoryGenerationStorage(),
+        eventBus: bus,
+      );
+      addTearDown(store.dispose);
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          _scene('scene-1', StorySceneGenerationStatus.drafting),
+        ]),
+      );
+
+      store.replaceSnapshot(
+        _snapshot(store, [
+          _scene(
+            'scene-1',
+            StorySceneGenerationStatus.blocked,
+            terminalReason: 'cancelled',
+          ),
+        ]),
+      );
+
+      expect(failedEvents, isEmpty);
+      expect(cancelledEvents, hasLength(1));
+      expect(cancelledEvents.first.projectId, store.activeProjectId);
+      expect(cancelledEvents.first.sceneId, 'scene-1');
     });
 
     test('same phase transition does not publish duplicate events', () {
@@ -296,16 +448,14 @@ void main() {
     test('bus.dispose prevents further publish', () {
       bus.dispose();
       expect(
-        () => bus.publish(const SettingsSavedEvent(
-          providerName: 'test',
-          model: 'test-model',
-        )),
+        () => bus.publish(
+          const SettingsSavedEvent(providerName: 'test', model: 'test-model'),
+        ),
         throwsStateError,
       );
     });
 
-    test(
-        'StoryGenerationStore without eventBus does not throw '
+    test('StoryGenerationStore without eventBus does not throw '
         'on snapshot transitions', () {
       // No bus set up, so AppEventBus.current is null after dispose in tearDown
       // Create store explicitly without eventBus
@@ -317,30 +467,34 @@ void main() {
       );
       addTearDown(store.dispose);
 
-      store.replaceSnapshot(StoryGenerationSnapshot(
-        projectId: store.activeProjectId,
-        chapters: [
-          StoryChapterGenerationState(
-            chapterId: 'ch1',
-            status: StoryChapterGenerationStatus.inProgress,
-            scenes: [
-              StorySceneGenerationState(
-                sceneId: 'scene-1',
-                status: StorySceneGenerationStatus.directing,
-                judgeStatus: StoryReviewStatus.pending,
-                consistencyStatus: StoryReviewStatus.pending,
-                proseRetryCount: 0,
-                directorRetryCount: 0,
-                upstreamFingerprint: '',
-              ),
-            ],
-          ),
-        ],
-      ));
+      store.replaceSnapshot(
+        StoryGenerationSnapshot(
+          projectId: store.activeProjectId,
+          chapters: [
+            StoryChapterGenerationState(
+              chapterId: 'ch1',
+              status: StoryChapterGenerationStatus.inProgress,
+              scenes: [
+                StorySceneGenerationState(
+                  sceneId: 'scene-1',
+                  status: StorySceneGenerationStatus.directing,
+                  judgeStatus: StoryReviewStatus.pending,
+                  consistencyStatus: StoryReviewStatus.pending,
+                  proseRetryCount: 0,
+                  directorRetryCount: 0,
+                  upstreamFingerprint: '',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       // Should not throw
-      expect(store.snapshot.chapters.first.scenes.first.status,
-          StorySceneGenerationStatus.directing);
+      expect(
+        store.snapshot.chapters.first.scenes.first.status,
+        StorySceneGenerationStatus.directing,
+      );
     });
   });
 }
@@ -349,10 +503,7 @@ class _NoOpLlmClient implements AppLlmClient {
   const _NoOpLlmClient();
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
-    return AppLlmChatResult.success(
-      text: 'pong',
-      latencyMs: 10,
-    );
+    return const AppLlmChatResult.success(text: 'pong', latencyMs: 10);
   }
 
   @override
@@ -377,4 +528,42 @@ class _FailingWriteStorage implements AppSettingsStorage {
       detail: 'write failed for test',
     );
   }
+}
+
+StoryGenerationSnapshot _snapshot(
+  StoryGenerationStore store,
+  List<StorySceneGenerationState> scenes,
+) {
+  return StoryGenerationSnapshot(
+    projectId: store.activeProjectId,
+    chapters: [
+      StoryChapterGenerationState(
+        chapterId: 'ch1',
+        status: StoryChapterGenerationStatus.inProgress,
+        scenes: scenes,
+      ),
+    ],
+  );
+}
+
+StorySceneGenerationState _scene(
+  String sceneId,
+  StorySceneGenerationStatus status, {
+  String terminalReason = '',
+}) {
+  final reviewStatus = switch (status) {
+    StorySceneGenerationStatus.passed => StoryReviewStatus.passed,
+    StorySceneGenerationStatus.blocked => StoryReviewStatus.failed,
+    _ => StoryReviewStatus.pending,
+  };
+  return StorySceneGenerationState(
+    sceneId: sceneId,
+    status: status,
+    judgeStatus: reviewStatus,
+    consistencyStatus: reviewStatus,
+    proseRetryCount: status == StorySceneGenerationStatus.blocked ? 3 : 0,
+    directorRetryCount: 0,
+    upstreamFingerprint: '',
+    terminalReason: terminalReason,
+  );
 }

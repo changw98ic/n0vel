@@ -107,6 +107,7 @@ class RetrievalIntent {
   static const String kToolRelationship = 'relationship';
   static const String kToolWorldSetting = 'world_setting';
   static const String kToolPastEvent = 'past_event';
+  static const String kToolWritingReference = 'search_writing_reference';
 }
 
 /// A compressed retrieval result injected into prompts as a capsule.

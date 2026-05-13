@@ -6,7 +6,7 @@ void main() {
 
   group('RequestRateLimiter', () {
     test('nextAvailableIn returns zero when under limit', () {
-      var now = t(0);
+      final now = t(0);
       final limiter = RequestRateLimiter(requestsPerMinute: 3, now: () => now);
 
       expect(limiter.nextAvailableIn(), Duration.zero);

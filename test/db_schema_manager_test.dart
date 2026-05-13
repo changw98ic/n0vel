@@ -304,7 +304,7 @@ void main() {
 
       // Insert a row to detect if tables were dropped/recreated.
       db.execute(
-        "INSERT INTO version_entries (project_id, sequence_no, label, content, updated_at_ms) "
+        'INSERT INTO version_entries (project_id, sequence_no, label, content, updated_at_ms) '
         "VALUES ('test', 0, 'v1', 'c', 1000)",
       );
 

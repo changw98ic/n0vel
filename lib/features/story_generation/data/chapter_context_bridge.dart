@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../app/logging/app_log.dart';
 import '../domain/memory_models.dart';
 import '../domain/outline_plan_models.dart';
 import '../domain/scene_models.dart';
@@ -359,8 +360,11 @@ class ChapterContextBridge implements ChapterContextBridgeService {
       try {
         final json = jsonDecode(source.content) as Map<String, Object?>;
         summaries.add(ChapterSummary.fromJson(json));
-      } catch (_) {
-        // Skip malformed entries
+      } catch (error) {
+        AppLog.w(
+          'Skipped malformed chapter summary source ${source.id}: $error',
+          tag: 'ChapterContextBridge',
+        );
       }
     }
 
@@ -455,8 +459,11 @@ class ChapterContextBridge implements ChapterContextBridgeService {
               .where((t) => t.confidence >= 0.7 && t.abstractionLevel >= 1.5)
               .take(5),
         );
-      } catch (_) {
-        // Skip chapters with no stored thoughts
+      } catch (error) {
+        AppLog.w(
+          'Skipped carry-over thoughts for chapter ${summary.chapterId}: $error',
+          tag: 'ChapterContextBridge',
+        );
       }
     }
 
@@ -486,7 +493,9 @@ class ChapterContextBridge implements ChapterContextBridgeService {
           summaryEntries.add('[前章世界观] $s.chapterTitle: ${s.worldStateChanges}');
         }
         if (s.foreshadowingStatus.isNotEmpty) {
-          summaryEntries.add('[前章伏笔] $s.chapterTitle: ${s.foreshadowingStatus}');
+          summaryEntries.add(
+            '[前章伏笔] $s.chapterTitle: ${s.foreshadowingStatus}',
+          );
         }
         if (s.keyRevelations.isNotEmpty) {
           summaryEntries.add('[前章揭示] $s.chapterTitle: ${s.keyRevelations}');

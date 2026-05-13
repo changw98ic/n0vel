@@ -1,7 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
 import 'package:novel_writer/app/app.dart';
-import 'package:novel_writer/app/logging/app_event_log.dart';
+import 'package:novel_writer/app/di/app_providers.dart';
 
 void main() {
   testWidgets('NovelWriterApp provides AppEventLogScope', (tester) async {
@@ -25,7 +27,7 @@ class _TestLogScopeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final log = AppEventLogScope.of(context);
+    final log = ProviderScope.containerOf(context).read(appEventLogProvider);
     return Text(log.sessionId.isNotEmpty ? 'log-found' : 'log-missing');
   }
 }

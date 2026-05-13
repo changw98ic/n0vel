@@ -15,13 +15,11 @@ class AppEventLog {
     AppEventLogNowProvider? nowProvider,
   }) : _nowProvider = nowProvider ?? DateTime.now,
        _storage =
-           storage ?? debugStorageOverride ?? createDefaultAppEventLogStorage(),
+           storage ?? createDefaultAppEventLogStorage(),
        sessionId =
            sessionId ?? _generateId('session', (nowProvider ?? DateTime.now)());
 
-  @visibleForTesting
-  static AppEventLogStorage? debugStorageOverride;
-
+  
   final AppEventLogNowProvider _nowProvider;
   final AppEventLogStorage _storage;
   final String sessionId;

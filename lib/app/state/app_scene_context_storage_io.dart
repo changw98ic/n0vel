@@ -4,7 +4,7 @@ import 'cached_project_storage.dart';
 
 class SqliteAppSceneContextStorage implements AppSceneContextStorage {
   SqliteAppSceneContextStorage({String? dbPath})
-      : _dbPath = dbPath ?? resolveAuthoringDbPath();
+    : _dbPath = dbPath ?? resolveAuthoringDbPath();
 
   final String _dbPath;
 
@@ -32,10 +32,7 @@ class SqliteAppSceneContextStorage implements AppSceneContextStorage {
   }
 
   @override
-  Future<void> save(
-    Map<String, Object?> data, {
-    required String projectId,
-  }) {
+  Future<void> save(Map<String, Object?> data, {required String projectId}) {
     withAuthoringDb(_dbPath, (database) {
       database.execute(
         '''
@@ -67,12 +64,20 @@ class SqliteAppSceneContextStorage implements AppSceneContextStorage {
     });
     return Future.value();
   }
+
+  @override
+  Future<void> clearProject(String projectId) {
+    withAuthoringDb(_dbPath, (database) {
+      clearByProjectScope(database, 'scene_context_snapshots', projectId);
+    });
+    return Future.value();
+  }
 }
 
 class _CachedSqliteAppSceneContextStorage extends CachedProjectStorage
     implements AppSceneContextStorage {
   _CachedSqliteAppSceneContextStorage({String? dbPath})
-      : super(SqliteAppSceneContextStorage(dbPath: dbPath));
+    : super(SqliteAppSceneContextStorage(dbPath: dbPath));
 }
 
 AppSceneContextStorage createAppSceneContextStorage() =>

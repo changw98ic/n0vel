@@ -85,7 +85,7 @@ class FakeAppLlmClient implements AppLlmClient {
     }
 
     if (lastUserMessage.contains('连接测试')) {
-      return AppLlmChatResult.success(text: 'pong', latencyMs: 182);
+      return const AppLlmChatResult.success(text: 'pong', latencyMs: 182);
     }
 
     final taskType = _extractField(lastUserMessage, '任务类型');

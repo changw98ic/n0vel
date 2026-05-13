@@ -10,9 +10,9 @@ class SceneQualityReporter {
       ..writeln('# Scene Quality Report')
       ..writeln()
       ..writeln(
-        '| Scene | Review | 综合 | 文笔 | 连贯 | 角色 | 完整 | Attempts | Summary |',
+        '| Scene | Review | 综合 | 文笔 | 连贯 | 角色 | 完整 | Attempts | Summary | Warning |',
       )
-      ..writeln('|---|---:|---:|---:|---:|---:|---:|---:|---|');
+      ..writeln('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
 
     for (final output in outputs) {
       final score = output.qualityScore;
@@ -27,6 +27,7 @@ class SceneQualityReporter {
           _score(score?.completeness),
           output.proseAttempts.toString(),
           _escapeTable(score?.summary ?? '未记录'),
+          _escapeTable(score?.warning ?? ''),
         ].join(' | ').surroundWithPipes(),
       );
     }
@@ -46,6 +47,7 @@ class SceneQualityReporter {
         )
         ..writeln('- Soft failures: ${output.softFailureCount}')
         ..writeln('- Characters: ${output.prose.text.trim().length}')
+        ..write(_warningLine(output.qualityScore?.warning))
         ..writeln();
     }
 
@@ -79,7 +81,14 @@ class SceneQualityReporter {
         'consistencyReason': output.review.consistency.reason,
       },
       if (score != null) 'qualityScore': score.toJson(),
+      if (score?.warning != null && score!.warning!.isNotEmpty)
+        'qualityWarning': score.warning,
     };
+  }
+
+  static String _warningLine(String? warning) {
+    if (warning == null || warning.isEmpty) return '';
+    return '- Quality warning: ${_escapeTable(warning)}\n';
   }
 
   static String _sceneLabel(SceneRuntimeOutput output) {

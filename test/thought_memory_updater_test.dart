@@ -169,7 +169,7 @@ void main() {
     });
 
     test('rejects confidence below threshold', () {
-      final thought = ThoughtAtom(
+      const thought = ThoughtAtom(
         id: 't1',
         projectId: 'p1',
         scopeId: 's1',
@@ -188,7 +188,7 @@ void main() {
     });
 
     test('accepts confidence at threshold', () {
-      final thought = ThoughtAtom(
+      const thought = ThoughtAtom(
         id: 't1',
         projectId: 'p1',
         scopeId: 's1',
@@ -208,7 +208,7 @@ void main() {
 
     test('rejects near-duplicate thought', () {
       final existing = [
-        ThoughtAtom(
+        const ThoughtAtom(
           id: 't1',
           projectId: 'p1',
           scopeId: 's1',
@@ -225,7 +225,7 @@ void main() {
         ),
       ];
 
-      final candidate = ThoughtAtom(
+      const candidate = ThoughtAtom(
         id: 't2',
         projectId: 'p1',
         scopeId: 's1',
@@ -245,7 +245,7 @@ void main() {
     });
 
     test('rejects thought with no source trace', () {
-      final thought = ThoughtAtom(
+      const thought = ThoughtAtom(
         id: 't1',
         projectId: 'p1',
         scopeId: 's1',
@@ -257,7 +257,7 @@ void main() {
     });
 
     test('accepts thought with rootSourceIds but no sourceRefs', () {
-      final thought = ThoughtAtom(
+      const thought = ThoughtAtom(
         id: 't1',
         projectId: 'p1',
         scopeId: 's1',
@@ -271,7 +271,7 @@ void main() {
 
     test('higher-abstraction thought coexists with raw source', () {
       final existing = [
-        ThoughtAtom(
+        const ThoughtAtom(
           id: 't1',
           projectId: 'p1',
           scopeId: 's1',
@@ -289,7 +289,7 @@ void main() {
         ),
       ];
 
-      final candidate = ThoughtAtom(
+      const candidate = ThoughtAtom(
         id: 't2',
         projectId: 'p1',
         scopeId: 's1',
@@ -355,13 +355,13 @@ void main() {
           text: 'The water cascaded over the ancient stones.',
           attempt: 1,
         ),
-        review: SceneReviewResult(
-          judge: const SceneReviewPassResult(
+        review: const SceneReviewResult(
+          judge: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: 'No issues found.',
             rawText: '决定：PASS\n原因：No issues found.',
           ),
-          consistency: const SceneReviewPassResult(
+          consistency: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: '',
             rawText: '决定：PASS\n原因：',

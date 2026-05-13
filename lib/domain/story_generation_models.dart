@@ -35,6 +35,7 @@ class StorySceneGenerationState {
     required this.upstreamFingerprint,
     this.memoryFingerprint = '',
     List<String> invalidationEdges = const [],
+    this.terminalReason = '',
   }) : castRoleIds = List.unmodifiable([...castRoleIds]),
        worldNodeIds = List.unmodifiable([...worldNodeIds]),
        invalidationEdges = List.unmodifiable([...invalidationEdges]);
@@ -53,6 +54,13 @@ class StorySceneGenerationState {
 
   final List<String> invalidationEdges;
 
+  /// Machine-readable terminal outcome detail for blocked terminal scenes.
+  ///
+  /// Empty means an ordinary failure/blocker. Known values include
+  /// `cancelled`, which keeps user cancellation distinct from generation
+  /// failure in downstream event streams.
+  final String terminalReason;
+
   StorySceneGenerationState copyWith({
     String? sceneId,
     StorySceneGenerationStatus? status,
@@ -65,6 +73,7 @@ class StorySceneGenerationState {
     String? upstreamFingerprint,
     String? memoryFingerprint,
     List<String>? invalidationEdges,
+    String? terminalReason,
   }) {
     return StorySceneGenerationState(
       sceneId: sceneId ?? this.sceneId,
@@ -78,22 +87,24 @@ class StorySceneGenerationState {
       upstreamFingerprint: upstreamFingerprint ?? this.upstreamFingerprint,
       memoryFingerprint: memoryFingerprint ?? this.memoryFingerprint,
       invalidationEdges: [...(invalidationEdges ?? this.invalidationEdges)],
+      terminalReason: terminalReason ?? this.terminalReason,
     );
   }
 
   StorySceneGenerationState deepCopy() => StorySceneGenerationState(
-      sceneId: sceneId,
-      status: status,
-      judgeStatus: judgeStatus,
-      consistencyStatus: consistencyStatus,
-      proseRetryCount: proseRetryCount,
-      directorRetryCount: directorRetryCount,
-      castRoleIds: castRoleIds,
-      worldNodeIds: worldNodeIds,
-      upstreamFingerprint: upstreamFingerprint,
-      memoryFingerprint: memoryFingerprint,
-      invalidationEdges: invalidationEdges,
-    );
+    sceneId: sceneId,
+    status: status,
+    judgeStatus: judgeStatus,
+    consistencyStatus: consistencyStatus,
+    proseRetryCount: proseRetryCount,
+    directorRetryCount: directorRetryCount,
+    castRoleIds: castRoleIds,
+    worldNodeIds: worldNodeIds,
+    upstreamFingerprint: upstreamFingerprint,
+    memoryFingerprint: memoryFingerprint,
+    invalidationEdges: invalidationEdges,
+    terminalReason: terminalReason,
+  );
 
   Map<String, Object?> toJson() {
     return {
@@ -108,6 +119,7 @@ class StorySceneGenerationState {
       'upstreamFingerprint': upstreamFingerprint,
       'memoryFingerprint': memoryFingerprint,
       'invalidationEdges': [for (final edge in invalidationEdges) edge],
+      if (terminalReason.isNotEmpty) 'terminalReason': terminalReason,
     };
   }
 
@@ -124,6 +136,7 @@ class StorySceneGenerationState {
       upstreamFingerprint: json['upstreamFingerprint']?.toString() ?? '',
       memoryFingerprint: json['memoryFingerprint']?.toString() ?? '',
       invalidationEdges: stringListFromRaw(json['invalidationEdges']),
+      terminalReason: json['terminalReason']?.toString() ?? '',
     );
   }
 }
@@ -172,14 +185,14 @@ class StoryChapterGenerationState {
   }
 
   StoryChapterGenerationState deepCopy() => StoryChapterGenerationState(
-      chapterId: chapterId,
-      status: status,
-      targetLength: targetLength,
-      actualLength: actualLength,
-      participatingRoleIds: participatingRoleIds,
-      worldNodeIds: worldNodeIds,
-      scenes: [for (final scene in scenes) scene.deepCopy()],
-    );
+    chapterId: chapterId,
+    status: status,
+    targetLength: targetLength,
+    actualLength: actualLength,
+    participatingRoleIds: participatingRoleIds,
+    worldNodeIds: worldNodeIds,
+    scenes: [for (final scene in scenes) scene.deepCopy()],
+  );
 
   Map<String, Object?> toJson() {
     return {
@@ -240,9 +253,9 @@ class StoryGenerationSnapshot {
   }
 
   StoryGenerationSnapshot deepCopy() => StoryGenerationSnapshot(
-      projectId: projectId,
-      chapters: [for (final chapter in chapters) chapter.deepCopy()],
-    );
+    projectId: projectId,
+    chapters: [for (final chapter in chapters) chapter.deepCopy()],
+  );
 
   static StoryGenerationSnapshot empty(String projectId) {
     return StoryGenerationSnapshot(projectId: projectId);
@@ -266,10 +279,7 @@ Map<String, Object?> asStringObjectMap(Object? value) {
   if (value is! Map) {
     return const {};
   }
-  return {
-    for (final entry in value.entries)
-      entry.key.toString(): entry.value,
-  };
+  return {for (final entry in value.entries) entry.key.toString(): entry.value};
 }
 
 List<String> stringListFromRaw(Object? value) {
@@ -294,8 +304,7 @@ final _sceneStatusByName = {
 };
 
 StorySceneGenerationStatus storySceneGenerationStatusFromRaw(Object? value) =>
-    _sceneStatusByName[value?.toString()] ??
-    StorySceneGenerationStatus.pending;
+    _sceneStatusByName[value?.toString()] ?? StorySceneGenerationStatus.pending;
 
 final _chapterStatusByName = {
   for (final v in StoryChapterGenerationStatus.values) v.name: v,

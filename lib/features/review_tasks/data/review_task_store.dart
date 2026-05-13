@@ -9,10 +9,10 @@ import 'review_task_storage.dart';
 class ReviewTaskStore extends AppProjectScopedStore {
   ReviewTaskStore({
     ReviewTaskStorage? storage,
-    super.workspaceStore,
+    super.workspaceStore, super.eventBus,
     List<ReviewTask> initialTasks = const [],
   }) : _storage =
-           storage ?? debugStorageOverride ?? createDefaultReviewTaskStorage(),
+           storage ?? createDefaultReviewTaskStorage(),
        super(
          scopeMode: AppStoreScopeMode.project,
          fallbackProjectId: 'project-yuechao',
@@ -24,9 +24,7 @@ class ReviewTaskStore extends AppProjectScopedStore {
     }
   }
 
-  @visibleForTesting
-  static ReviewTaskStorage? debugStorageOverride;
-
+  
   final ReviewTaskStorage _storage;
   final Map<String, List<ReviewTask>> _tasksByProjectId = {};
   Future<void> _readyFuture = Future<void>.value();
@@ -175,6 +173,15 @@ class ReviewTaskStore extends AppProjectScopedStore {
 
   Future<void> _persist() =>
       _storage.save(exportJson(), projectId: activeProjectId);
+
+  @override
+  void onProjectDeleted(String projectId) {
+    _tasksByProjectId.remove(projectId);
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 }
 
 class ReviewTaskScope extends InheritedNotifier<ReviewTaskStore> {

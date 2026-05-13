@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../di/app_providers.dart';
 import '../events/app_domain_events.dart';
-import '../events/app_event_bus_scope.dart';
 import 'desktop_shell.dart';
 
 const int _maxVisibleNotifications = 5;
@@ -31,7 +32,9 @@ void showAppNotification(
   AppNoticeSeverity severity = AppNoticeSeverity.info,
   Duration duration = const Duration(seconds: 4),
 }) {
-  final bus = AppEventBusScope.of(context);
+  // Requires a ProviderScope ancestor. Use inside ConsumerWidgets when possible.
+  final container = ProviderScope.containerOf(context);
+  final bus = container.read(appEventBusProvider);
   bus.publish(NotificationRequestedEvent(
     title: title,
     message: message,
@@ -40,26 +43,30 @@ void showAppNotification(
   ));
 }
 
-class AppNotificationOverlay extends StatefulWidget {
+class AppNotificationOverlay extends ConsumerStatefulWidget {
   const AppNotificationOverlay({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<AppNotificationOverlay> createState() => _AppNotificationOverlayState();
+  ConsumerState<AppNotificationOverlay> createState() => _AppNotificationOverlayState();
 }
 
-class _AppNotificationOverlayState extends State<AppNotificationOverlay> {
+class _AppNotificationOverlayState extends ConsumerState<AppNotificationOverlay> {
   final List<AppNotificationData> _notifications = [];
   final Map<int, Timer> _timers = {};
   StreamSubscription<NotificationRequestedEvent>? _subscription;
   int _nextId = 0;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
+    _subscribeToBus();
+  }
+
+  void _subscribeToBus() {
     _subscription?.cancel();
-    final bus = AppEventBusScope.of(context);
+    final bus = ref.read(appEventBusProvider);
     _subscription = bus.on<NotificationRequestedEvent>().listen(_onNotification);
   }
 

@@ -76,6 +76,19 @@ class SqliteReviewTaskStorage implements ReviewTaskStorage {
     }
   }
 
+  @override
+  Future<void> clearProject(String projectId) async {
+    final database = _openDatabase();
+    try {
+      database.execute(
+        'DELETE FROM review_task_projects WHERE project_id = ? OR project_id LIKE ?',
+        [projectId, '$projectId::%'],
+      );
+    } finally {
+      database.dispose();
+    }
+  }
+
   sqlite3.Database _openDatabase() {
     final database = openAuthoringDatabase(_dbPath);
     database.execute('''

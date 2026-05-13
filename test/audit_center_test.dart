@@ -1,40 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:novel_writer/app/state/app_ai_history_storage.dart';
-import 'package:novel_writer/app/state/app_draft_storage.dart';
-import 'package:novel_writer/app/state/app_draft_store.dart';
-import 'package:novel_writer/app/state/app_scene_context_store.dart';
-import 'package:novel_writer/app/state/app_scene_context_storage.dart';
-import 'package:novel_writer/app/state/app_settings_storage.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/app/state/app_simulation_storage.dart';
-import 'package:novel_writer/app/state/app_simulation_store.dart';
-import 'package:novel_writer/app/state/app_version_storage.dart';
-import 'package:novel_writer/app/state/app_version_store.dart';
-import 'package:novel_writer/app/state/app_workspace_storage.dart';
-import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/main.dart';
+import 'test_support/test_registry.dart';
 
 void main() {
   setUp(() {
-    AppAiHistoryStore.debugStorageOverride = InMemoryAppAiHistoryStorage();
-    AppDraftStore.debugStorageOverride = InMemoryAppDraftStorage();
-    AppSceneContextStore.debugStorageOverride =
-        InMemoryAppSceneContextStorage();
-    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
-    AppSimulationStore.debugStorageOverride = InMemoryAppSimulationStorage();
-    AppVersionStore.debugStorageOverride = InMemoryAppVersionStorage();
-    AppWorkspaceStore.debugStorageOverride = InMemoryAppWorkspaceStorage();
+    NovelWriterApp.debugRegistryOverride = createTestRegistry();
   });
 
   tearDown(() {
-    AppAiHistoryStore.debugStorageOverride = null;
-    AppDraftStore.debugStorageOverride = null;
-    AppSceneContextStore.debugStorageOverride = null;
-    AppSettingsStore.debugStorageOverride = null;
-    AppSimulationStore.debugStorageOverride = null;
-    AppVersionStore.debugStorageOverride = null;
-    AppWorkspaceStore.debugStorageOverride = null;
+    NovelWriterApp.debugRegistryOverride = null;
   });
 
   testWidgets('shows audit center ready state', (tester) async {

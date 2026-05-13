@@ -102,10 +102,34 @@ T withAuthoringDbInTxn<T>(String dbPath, T Function(Database) action) {
 }
 
 void clearByProject(Database db, String tableName, {String? projectId}) {
+  checkedSqlIdentifier(tableName);
   if (projectId == null) {
     db.execute('DELETE FROM $tableName');
   } else {
     db.execute('DELETE FROM $tableName WHERE project_id = ?', [projectId]);
+  }
+}
+
+void clearByProjectScope(Database db, String tableName, String projectId) {
+  checkedSqlIdentifier(tableName);
+  db.execute(
+    'DELETE FROM $tableName WHERE project_id = ? OR project_id LIKE ?',
+    [projectId, '$projectId::%'],
+  );
+}
+
+/// Validates that [identifier] is a safe SQL identifier (table/column name).
+///
+/// Only allows alphanumeric characters and underscores. Rejects empty strings
+/// and any identifier containing characters outside `[a-zA-Z0-9_]`.
+void checkedSqlIdentifier(String identifier) {
+  if (identifier.isEmpty) {
+    throw ArgumentError('SQL identifier must not be empty');
+  }
+  if (!RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(identifier)) {
+    throw ArgumentError(
+      'SQL identifier contains invalid characters: "$identifier"',
+    );
   }
 }
 

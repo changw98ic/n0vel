@@ -38,6 +38,7 @@ void main() {
     addTearDown(aiHistoryStore.dispose);
     addTearDown(sceneContextStore.dispose);
 
+    workspaceStore.createProject();
     final firstProjectId = workspaceStore.currentProjectId;
     aiHistoryStore.addEntry(mode: '改写', prompt: '项目一历史');
     sceneContextStore.syncContext();
@@ -68,7 +69,7 @@ void main() {
     restoredWorkspaceStore.openProject(firstProjectId);
     await Future<void>.delayed(const Duration(milliseconds: 60));
     expect(restoredAiHistoryStore.entries.first.prompt, '项目一历史');
-    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
+    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('等待命名'));
   });
 
   test('AI history and scene context persist by scene scope within a project', () async {
@@ -99,6 +100,9 @@ void main() {
     addTearDown(aiHistoryStore.dispose);
     addTearDown(sceneContextStore.dispose);
 
+    workspaceStore.createProject();
+    final defaultSceneId = workspaceStore.currentProject.sceneId;
+
     aiHistoryStore.addEntry(mode: '改写', prompt: '场景 05 历史');
     sceneContextStore.syncContext();
 
@@ -128,12 +132,12 @@ void main() {
     expect(restoredSceneContextStore.snapshot.sceneSummary, contains('阳台争执'));
 
     restoredWorkspaceStore.updateCurrentScene(
-      sceneId: 'scene-05-witness-room',
-      recentLocation: '第 3 章 / 场景 05 · 证人房间对峙',
+      sceneId: defaultSceneId,
+      recentLocation: '第 1 章 / 场景 01 · 等待命名',
     );
     await Future<void>.delayed(const Duration(milliseconds: 60));
 
     expect(restoredAiHistoryStore.entries.first.prompt, '场景 05 历史');
-    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
+    expect(restoredSceneContextStore.snapshot.sceneSummary, contains('等待命名'));
   });
 }

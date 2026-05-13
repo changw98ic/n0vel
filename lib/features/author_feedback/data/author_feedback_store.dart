@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../app/state/app_project_scoped_store.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/events/app_event_bus.dart';
 import '../domain/author_feedback_models.dart';
 import 'author_feedback_storage.dart';
 
@@ -14,14 +15,16 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
   AuthorFeedbackStore({
     AuthorFeedbackStorage? storage,
     AppWorkspaceStore? workspaceStore,
+    AppEventBus? eventBus,
     DateTime Function()? clock,
   }) : _storage =
            storage ??
-           debugStorageOverride ??
+           
            createDefaultAuthorFeedbackStorage(),
        _clock = clock ?? DateTime.now,
        super(
          workspaceStore: workspaceStore,
+         eventBus: eventBus,
          scopeMode: AppStoreScopeMode.project,
          fallbackProjectId: 'project-yuechao',
        ) {
@@ -29,9 +32,7 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     unawaited(_readyFuture);
   }
 
-  @visibleForTesting
-  static AuthorFeedbackStorage? debugStorageOverride;
-
+  
   final AuthorFeedbackStorage _storage;
   final DateTime Function() _clock;
   final Map<String, List<AuthorFeedbackItem>> _itemsByProjectId = {};
@@ -276,6 +277,15 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
 
   Future<void> _persist() =>
       _storage.save(exportJson(), projectId: activeProjectId);
+
+  @override
+  void onProjectDeleted(String projectId) {
+    _itemsByProjectId.remove(projectId);
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 
   void _updateItem(
     String id,

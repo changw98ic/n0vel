@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/llm_gateway.dart';
 
 void main() {
   group('LLM gateway integration', () {
@@ -28,7 +29,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-no-perm',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '测试403')],
         ),
       );
@@ -59,7 +60,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-rate-limited',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '触发限流')],
         ),
       );
@@ -90,7 +91,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '服务不可用')],
         ),
       );
@@ -117,7 +118,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '网关异常')],
         ),
       );
@@ -155,7 +156,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(5000),
+          timeout: const AppLlmTimeoutConfig.uniform(5000),
           messages: const [AppLlmChatMessage(role: 'user', content: '长文本测试')],
         ),
       );
@@ -191,7 +192,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '中文流式测试')],
         ),
       );
@@ -228,7 +229,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '噪音行测试')],
         ),
       );
@@ -262,7 +263,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-ok',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(5000),
+              timeout: const AppLlmTimeoutConfig.uniform(5000),
               messages: [AppLlmChatMessage(role: 'user', content: '并发请求 $i')],
             ),
           );
@@ -307,7 +308,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '第一条')],
         ),
       );
@@ -319,7 +320,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '第二条')],
         ),
       );
@@ -331,7 +332,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '第三条')],
         ),
       );
@@ -368,7 +369,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(150),
+          timeout: const AppLlmTimeoutConfig.uniform(150),
           messages: const [AppLlmChatMessage(role: 'user', content: '流式超时')],
         ),
       );
@@ -398,7 +399,7 @@ void main() {
           baseUrl: 'http://${server.address.host}:${server.port}/v1',
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '无斜杠')],
         ),
       );
@@ -410,7 +411,7 @@ void main() {
           baseUrl: 'http://${server.address.host}:${server.port}/v1/',
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: '有斜杠')],
         ),
       );
@@ -428,7 +429,7 @@ void main() {
           baseUrl: 'http://127.0.0.1:$port/v1',
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(3000),
+          timeout: const AppLlmTimeoutConfig.uniform(3000),
           messages: const [AppLlmChatMessage(role: 'user', content: '服务器关闭')],
         ),
       );
@@ -466,7 +467,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [
             AppLlmChatMessage(role: 'system', content: '你是一位专业的小说写作助手。'),
             AppLlmChatMessage(role: 'user', content: '请帮我构思一个场景'),
@@ -501,7 +502,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [AppLlmChatMessage(role: 'user', content: 'HTML错误')],
         ),
       );
@@ -537,7 +538,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(5000),
+          timeout: const AppLlmTimeoutConfig.uniform(5000),
           messages: const [AppLlmChatMessage(role: 'user', content: '延迟测试')],
         ),
       );
@@ -546,6 +547,113 @@ void main() {
       expect(result.text, '延迟测试');
       expect(result.latencyMs, isNotNull);
       expect(result.latencyMs!, greaterThanOrEqualTo(40));
+    });
+
+    test(
+      'LlmGateway uses Anthropic adapter endpoint, headers, and body',
+      () async {
+        late final Uri requestUri;
+        late final String? authorization;
+        late final String? apiKey;
+        late final String? anthropicVersion;
+        late final Map<String, Object?> requestJson;
+        final server = await _startServer((request) async {
+          requestUri = request.uri;
+          authorization = request.headers.value(
+            HttpHeaders.authorizationHeader,
+          );
+          apiKey = request.headers.value('x-api-key');
+          anthropicVersion = request.headers.value('anthropic-version');
+          requestJson =
+              jsonDecode(await utf8.decoder.bind(request).join())
+                  as Map<String, Object?>;
+          request.response.statusCode = HttpStatus.ok;
+          request.response.headers.set(
+            'Content-Type',
+            'text/event-stream; charset=utf-8',
+          );
+          request.response.write(
+            'data: {"type":"content_block_delta","delta":{"text":"Claude "}}\n\n',
+          );
+          request.response.write(
+            'data: {"type":"content_block_delta","delta":{"text":"reply"}}\n\n',
+          );
+          request.response.write('data: [DONE]\n\n');
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final result = await LlmGateway().chat(
+          AppLlmChatRequest(
+            baseUrl: _baseUrl(server),
+            apiKey: '  sk-ant  ',
+            model: 'claude-3-5-sonnet',
+            provider: AppLlmProvider.anthropic,
+            maxTokens: 8192,
+            timeout: const AppLlmTimeoutConfig.uniform(2000),
+            messages: const [
+              AppLlmChatMessage(role: 'system', content: 'system prompt'),
+              AppLlmChatMessage(role: 'user', content: 'hello'),
+            ],
+          ),
+        );
+
+        expect(result.succeeded, isTrue);
+        expect(result.text, 'Claude reply');
+        expect(requestUri.path, '/v1/messages');
+        expect(authorization, isNull);
+        expect(apiKey, 'sk-ant');
+        expect(anthropicVersion, '2023-06-01');
+        expect(requestJson['system'], 'system prompt');
+        expect(requestJson['max_tokens'], 8192);
+        expect(requestJson['messages'], [
+          {'role': 'user', 'content': 'hello'},
+        ]);
+      },
+    );
+
+    test('LlmGateway uses MiMo adapter auth and token field', () async {
+      late final Uri requestUri;
+      late final String? authorization;
+      late final String? apiKey;
+      late final Map<String, Object?> requestJson;
+      final server = await _startServer((request) async {
+        requestUri = request.uri;
+        authorization = request.headers.value(HttpHeaders.authorizationHeader);
+        apiKey = request.headers.value('api-key');
+        requestJson =
+            jsonDecode(await utf8.decoder.bind(request).join())
+                as Map<String, Object?>;
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType('text', 'event-stream')
+          ..write(
+            'data: {"choices":[{"delta":{"content":"mimo ok"},"index":0}]}\n\n',
+          )
+          ..write('data: [DONE]\n\n');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await LlmGateway().chat(
+        AppLlmChatRequest(
+          baseUrl: '${_baseUrl(server)}/v1',
+          apiKey: '  tp-key  ',
+          model: 'mimo-v2.5-pro',
+          provider: AppLlmProvider.mimo,
+          maxTokens: 8192,
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
+          messages: const [AppLlmChatMessage(role: 'user', content: 'hello')],
+        ),
+      );
+
+      expect(result.succeeded, isTrue);
+      expect(result.text, 'mimo ok');
+      expect(requestUri.path, '/v1/chat/completions');
+      expect(authorization, isNull);
+      expect(apiKey, 'tp-key');
+      expect(requestJson['max_completion_tokens'], 8192);
+      expect(requestJson.containsKey('max_tokens'), isFalse);
     });
   });
 }

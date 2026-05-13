@@ -1,11 +1,17 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
+import '../../../app/theme/app_design_tokens.dart';
+import 'project_list_components.dart';
 
 enum ProjectListUiState {
   ready,
@@ -16,14 +22,9 @@ enum ProjectListUiState {
   deleteConfirm,
 }
 
-class ProjectListPage extends StatefulWidget {
+class ProjectListPage extends ConsumerStatefulWidget {
   const ProjectListPage({super.key, this.uiState = ProjectListUiState.ready});
 
-  static const pageTitleKey = ValueKey<String>('project-list-title');
-  static const shelfKey = ValueKey<String>('project-list-shelf');
-  static const detailKey = ValueKey<String>('project-list-selected-card');
-  static const footerKey = ValueKey<String>('project-list-footer');
-  static const importButtonKey = ValueKey<String>('project-list-import-button');
   static const newProjectButtonKey = ValueKey<String>(
     'project-list-new-project-button',
   );
@@ -31,37 +32,20 @@ class ProjectListPage extends StatefulWidget {
   static const projectNameFieldKey = ValueKey<String>(
     'project-list-name-field',
   );
-  static const continueProjectButtonKey = ValueKey<String>(
-    'project-list-continue-project-button',
-  );
-  static const openProjectButtonKey = ValueKey<String>(
-    'project-list-open-project-button',
-  );
-  static const workbenchShortcutKey = ValueKey<String>(
-    'project-list-shortcut-workbench',
-  );
-  static const readingMenuButtonKey = ValueKey<String>(
-    'project-list-reading-menu-button',
-  );
-  static const menuDrawerHandleKey = ValueKey<String>(
-    'project-list-menu-drawer-handle',
-  );
-  static const menuDrawerPanelKey = ValueKey<String>(
-    'project-list-menu-drawer-panel',
-  );
 
   final ProjectListUiState uiState;
 
   @override
-  State<ProjectListPage> createState() => _ProjectListPageState();
+  ConsumerState<ProjectListPage> createState() => _ProjectListPageState();
 }
 
-class _ProjectListPageState extends State<ProjectListPage> {
+class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isDrawerOpen = false;
-  String? _selectedProjectId;
-  int _sortIndex = 0;
+  final int _sortIndex = 0;
   int _filterIndex = 0;
+  int _headerTabIndex = 0;
+
+  static const _headerTabs = ['书架', '最近编辑', '归档'];
 
   static const _sortOptions = <AppListSortOption<ProjectRecord>>[
     AppListSortOption(label: '打开时间', compare: _compareByRecent),
@@ -78,9 +62,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
   static int _compareByGenre(ProjectRecord a, ProjectRecord b) =>
       a.genre.compareTo(b.genre);
 
-  List<AppListFilterOption<ProjectRecord>> _filterOptions(
-    BuildContext context,
-  ) {
+  List<AppListFilterOption<ProjectRecord>> _filterOptions(BuildContext context) {
     final now = DateTime.now().millisecondsSinceEpoch;
     const dayMs = 24 * 60 * 60 * 1000;
     return [
@@ -107,141 +89,300 @@ class _ProjectListPageState extends State<ProjectListPage> {
     if (widget.uiState == ProjectListUiState.databaseReadFailed) {
       return _buildDatabaseFailureShell(context);
     }
-
     final projects = _visibleProjects(_projects(context));
-    final selectedProject = _resolveSelectedProject(projects);
-
     return DesktopShellFrame(
-      header: _ProjectShelfHeader(
-        titleKey: ProjectListPage.pageTitleKey,
-        searchController: _searchController,
-        onCreateProject: _createProject,
-        onImportProject: () => _openImportExport(context),
-        onSearchChanged: (_) {
-          setState(() {});
+      header: DesktopHeaderBar(
+        tabs: _headerTabs,
+        activeTabIndex: _headerTabIndex,
+        onTabChanged: (i) {
+          setState(() {
+            _headerTabIndex = i;
+            if (i == 1) {
+              _filterIndex = 1; // 最近打开
+            } else if (i == 2) {
+              _filterIndex = 2; // 进行中（归档）
+            } else {
+              _filterIndex = 0; // 全部作品
+            }
+          });
         },
+        actions: [
+          FilledButton(
+            key: ProjectListPage.newProjectButtonKey,
+            onPressed: _createProject,
+            child: const Text('新建作品'),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            onPressed: () => AppNavigator.push(context, AppRoutes.importExport),
+            child: const Text('导入'),
+          ),
+        ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final spacing = panelSpacingFor(constraints.maxWidth);
-          final hideSidebar =
-              constraints.maxWidth < DesktopLayoutTokens.narrowBreakpoint;
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DesktopMenuDrawerRegion(
-                handleKey: ProjectListPage.menuDrawerHandleKey,
-                drawerKey: ProjectListPage.menuDrawerPanelKey,
-                isOpen: _isDrawerOpen,
-                onHandleTap: () {
-                  setState(() {
-                    _isDrawerOpen = !_isDrawerOpen;
-                  });
-                },
-                items: _menuItems(context),
-              ),
-              SizedBox(width: spacing),
-              if (!hideSidebar)
-                SizedBox(
-                  width: DesktopLayoutTokens.standardSidebarWidth,
-                  child: _ProjectFilterPanel(
-                    filterIndex: _filterIndex,
-                    sortIndex: _sortIndex,
-                    onFilterChanged: (i) => setState(() => _filterIndex = i),
-                    onSortChanged: (i) => setState(() => _sortIndex = i),
-                  ),
-                ),
-              if (!hideSidebar) SizedBox(width: spacing + 8),
-              Expanded(
-                child: Container(
-                  key: ProjectListPage.shelfKey,
-                  padding: const EdgeInsets.only(top: 4),
-                  child: _buildShelfContent(context, projects, selectedProject),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: _buildBody(context, projects),
       statusBar: DesktopStatusStrip(
-        stripKey: ProjectListPage.footerKey,
         leftText: _footerStatus(projectCount: _projects(context).length),
         rightText: '${_sortOptions[_sortIndex].label} · 本地书架',
       ),
     );
   }
 
-  Widget _buildDatabaseFailureShell(BuildContext context) {
-    final theme = Theme.of(context);
-    return DesktopShellFrame(
-      header: _ProjectShelfHeader(
-        titleKey: ProjectListPage.pageTitleKey,
-        searchController: _searchController,
-        onCreateProject: _createProject,
-        onImportProject: () => _openImportExport(context),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final spacing = panelSpacingFor(constraints.maxWidth);
-          final hideSidebar =
-              constraints.maxWidth < DesktopLayoutTokens.narrowBreakpoint;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildBody(BuildContext context, List<ProjectRecord> projects) {
+    final palette = desktopPalette(context);
+    if (widget.uiState == ProjectListUiState.empty) {
+      return _buildEmptyShelfState(context);
+    }
+    if (widget.uiState == ProjectListUiState.searchNoResults ||
+        projects.isEmpty) {
+      return _buildSearchNoResultsState(context);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(56, 36, 56, 0),
+          child: Row(
             children: [
-              DesktopMenuDrawerRegion(
-                handleKey: ProjectListPage.menuDrawerHandleKey,
-                drawerKey: ProjectListPage.menuDrawerPanelKey,
-                isOpen: _isDrawerOpen,
-                onHandleTap: () {
-                  setState(() {
-                    _isDrawerOpen = !_isDrawerOpen;
-                  });
-                },
-                items: _menuItems(context),
+              const Text(
+                '我的书架',
+                style: TextStyle(
+                  fontFamily: AppDesignTokens.fontCaption,
+                  fontSize: 13,
+                  color: Color(0xFF77736A),
+                ),
               ),
-              SizedBox(width: spacing),
-              if (!hideSidebar)
-                SizedBox(
-                  width: DesktopLayoutTokens.standardSidebarWidth,
-                  child: _ProjectFilterPanel(
-                    filterIndex: _filterIndex,
-                    sortIndex: _sortIndex,
-                    onFilterChanged: (i) => setState(() => _filterIndex = i),
-                    onSortChanged: (i) => setState(() => _sortIndex = i),
+              const Spacer(),
+              SizedBox(
+                width: 300,
+                height: 40,
+                child: TextField(
+                  key: ProjectListPage.searchFieldKey,
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: '搜索作品',
+                    hintStyle: const TextStyle(
+                      fontFamily: AppDesignTokens.fontCaption,
+                      fontSize: AppDesignTokens.fontSizeBody,
+                      color: Color(0xFF999489),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      size: 16,
+                      color: Color(0xFF999489),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    filled: true,
+                    fillColor: const Color(0xFFFBFAF6),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusLarge,
+                      ),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFD8D2C6)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusLarge,
+                      ),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFD8D2C6)),
+                    ),
                   ),
                 ),
-              if (!hideSidebar) SizedBox(width: spacing + 8),
-              Expanded(
+              ),
+            ],
+          ),
+        ),
+        if (widget.uiState == ProjectListUiState.importFailed)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 56),
+            child: ProjectInlineNoticeCard(
+              title: '导入失败',
+              message: '工程包结构不完整，当前书架内容未受影响，可修正包后重试。',
+              accent: palette.danger,
+            ),
+          ),
+        if (widget.uiState == ProjectListUiState.deleteConfirm)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 56),
+            child: ProjectInlineNoticeCard(
+              title: '删除确认',
+              message: '这会移除本地书架中的项目记录，不会删除你手动导出的工程包。',
+              accent: palette.danger,
+            ),
+          ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const crossAxisSpacing = 16.0;
+              const mainAxisSpacing = 16.0;
+              const horizontalPadding = 56.0;
+              const columns = 4;
+              final availableWidth =
+                  constraints.maxWidth - horizontalPadding * 2;
+              final cardWidth =
+                  (availableWidth - crossAxisSpacing * (columns - 1)) /
+                      columns;
+              const cardHeight = 320.0;
+              final aspectRatio = cardWidth / cardHeight;
+              return GridView.builder(
+                padding:
+                    const EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  childAspectRatio: aspectRatio,
+                  crossAxisSpacing: crossAxisSpacing,
+                  mainAxisSpacing: mainAxisSpacing,
+                ),
+                itemCount: projects.length,
+                itemBuilder: (context, index) => ProjectShelfCard(
+                  project: projects[index],
+                  onTap: () => _openWorkbench(context, projects[index]),
+                  onSecondaryTap: (offset) =>
+                      _showCardContextMenu(context, projects[index], offset),
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                 child: Container(
-                  decoration: appPanelDecoration(context),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('书架未加载', style: theme.textTheme.headlineSmall),
-                      const SizedBox(height: 12),
-                      Text(
-                        '本地数据库读取失败，请重试或从侧边导航进入导入工程。',
-                        style: theme.textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x88FFFFFF),
+                    borderRadius:
+                        BorderRadius.circular(AppDesignTokens.radiusFull),
+                    border: Border.all(
+                      color: const Color(0x99FFFFFF),
+                      width: 1,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x181F2A1D),
+                        blurRadius: 28,
+                        offset: Offset(0, 10),
                       ),
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const ProjectListPage(),
-                          ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: Color(0xFF243226),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        '卡片 hover 上浮 6px / 160ms',
+                        style: TextStyle(
+                          fontFamily: AppDesignTokens.fontCaption,
+                          fontSize: 12,
+                          color: Color(0xFF243226),
                         ),
-                        child: const Text('重试'),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
-          );
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showCardContextMenu(
+    BuildContext context,
+    ProjectRecord project,
+    Offset position,
+  ) {
+    final palette = desktopPalette(context);
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: <PopupMenuEntry<dynamic>>[
+        PopupMenuItem(
+          onTap: () => _openWorkbench(context, project),
+          child: const Text('打开作品'),
+        ),
+        PopupMenuItem(
+          onTap: () {
+            ref.read(appWorkspaceStoreProvider).openProject(project.id);
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          },
+          child: const Text('作品设定'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          onTap: () => _confirmDeleteProject(context, project),
+          child: Text('删除', style: TextStyle(color: palette.danger)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatabaseFailureShell(BuildContext context) {
+    final theme = Theme.of(context);
+    return DesktopShellFrame(
+      header: DesktopHeaderBar(
+        tabs: _headerTabs,
+        activeTabIndex: _headerTabIndex,
+        onTabChanged: (i) {
+          setState(() {
+            _headerTabIndex = i;
+            if (i == 1) {
+              _filterIndex = 1;
+            } else if (i == 2) {
+              _filterIndex = 2;
+            } else {
+              _filterIndex = 0;
+            }
+          });
         },
+      ),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('书架未加载', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 12),
+              Text(
+                '本地数据库读取失败，请重试。',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProjectListPage(),
+                  ),
+                ),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
       ),
       statusBar: const DesktopStatusStrip(
         leftText: '数据库读取失败',
@@ -250,120 +391,17 @@ class _ProjectListPageState extends State<ProjectListPage> {
     );
   }
 
-  Widget _buildShelfContent(
-    BuildContext context,
-    List<ProjectRecord> visibleProjects,
-    ProjectRecord? selectedProject,
-  ) {
-    final palette = desktopPalette(context);
-    if (widget.uiState == ProjectListUiState.empty) {
-      return _buildEmptyShelfState(context);
-    }
-
-    if (widget.uiState == ProjectListUiState.searchNoResults ||
-        visibleProjects.isEmpty) {
-      return _buildSearchNoResultsState(context);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '最近写过的作品会自动排在前面；每张卡片都可以直接继续写作。',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        if (widget.uiState == ProjectListUiState.importFailed) ...[
-          const SizedBox(height: 16),
-          _InlineNoticeCard(
-            title: '导入失败',
-            message: '工程包结构不完整，当前书架内容未受影响，可修正包后重试。',
-            accent: palette.danger,
-          ),
-        ],
-        if (widget.uiState == ProjectListUiState.deleteConfirm) ...[
-          const SizedBox(height: 16),
-          _InlineNoticeCard(
-            title: '删除确认',
-            message: '这会移除本地书架中的项目记录，不会删除你已经手动导出的工程包。',
-            accent: palette.danger,
-          ),
-        ],
-        const SizedBox(height: 20),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (selectedProject == null) {
-                return widget.uiState == ProjectListUiState.searchNoResults
-                    ? _buildSearchNoResultsState(context)
-                    : _buildEmptyShelfState(context);
-              }
-
-              final compact =
-                  constraints.maxWidth <
-                  DesktopLayoutTokens.compactPageBreakpoint;
-              final currentProject = selectedProject;
-              final shelf = _ProjectShelfPanel(
-                projects: visibleProjects,
-                selectedProject: currentProject,
-                compact: compact,
-                onCreateProject: _createProject,
-                onSelectProject: _selectProject,
-                onContinueProject: (project) =>
-                    _openWorkbench(context, project),
-              );
-              final detailPanel = _ProjectDetailPanel(
-                key: ProjectListPage.detailKey,
-                project: currentProject,
-                compact: compact,
-                onOpen: () => _openWorkbench(context, currentProject),
-                onEdit: () => _openWorkbench(context, currentProject),
-
-                onDelete: () => _confirmDeleteProject(context, currentProject),
-              );
-
-              if (compact) {
-                return ListView(
-                  children: [
-                    SizedBox(height: 336, child: detailPanel),
-                    const SizedBox(height: 16),
-                    shelf,
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: shelf),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: DesktopLayoutTokens.projectDetailWidth,
-                    child: detailPanel,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSearchNoResultsState(BuildContext context) {
     return AppEmptyState(
       style: AppEmptyStateStyle.prominent,
-      title: '没有匹配的项目',
-      message: '换个关键词试试，或直接从书架里新建一个项目。',
+      title: '没有匹配的作品',
+      message: '换个关键词试试，或直接新建一个作品。',
       actions: [
         FilledButton(
-          onPressed: () {
-            setState(() {
-              _searchController.clear();
-            });
-          },
+          onPressed: () => setState(() => _searchController.clear()),
           child: const Text('清空搜索'),
         ),
-        OutlinedButton(onPressed: _createProject, child: const Text('新建项目')),
+        OutlinedButton(onPressed: _createProject, child: const Text('新建作品')),
       ],
     );
   }
@@ -371,28 +409,12 @@ class _ProjectListPageState extends State<ProjectListPage> {
   Widget _buildEmptyShelfState(BuildContext context) {
     return AppEmptyState(
       style: AppEmptyStateStyle.prominent,
-      title: '当前还没有项目',
-      message: '可以直接从书架里新建一个项目，或从左侧导航导入工程。',
+      title: '还没有作品',
+      message: '点击右上角「新建作品」开始创作。',
       actions: [
-        FilledButton(onPressed: _createProject, child: const Text('新建项目')),
-        OutlinedButton(
-          onPressed: () {
-            setState(() {
-              _isDrawerOpen = true;
-            });
-          },
-          child: const Text('打开导航'),
-        ),
+        FilledButton(onPressed: _createProject, child: const Text('新建作品')),
       ],
     );
-  }
-
-  void _selectProject(ProjectRecord project) {
-    final store = AppWorkspaceScope.of(context);
-    setState(() {
-      store.selectProject(project.id);
-      _selectedProjectId = project.id;
-    });
   }
 
   Future<void> _confirmDeleteProject(
@@ -404,12 +426,12 @@ class _ProjectListPageState extends State<ProjectListPage> {
       barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
-          title: '确认删除项目',
+          title: '确认删除作品',
           body: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ProjectDialogField(
+              ProjectDialogField(
                 label: '删除对象',
                 child: Text(
                   project.title,
@@ -417,10 +439,10 @@ class _ProjectListPageState extends State<ProjectListPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _ProjectDialogField(
+              ProjectDialogField(
                 label: '删除说明',
                 child: Text(
-                  '删除后将移除本地数据库中的项目记录、最近写作位置和相关索引，但不会删除你手动导出的工程包。',
+                  '删除后将移除本地数据库中的作品记录和相关索引，但不会删除你手动导出的工程包。',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -439,106 +461,55 @@ class _ProjectListPageState extends State<ProjectListPage> {
         );
       },
     );
-
-    if (shouldDelete != true) {
-      return;
-    }
-
-    if (!context.mounted) {
-      return;
-    }
-
-    final store = AppWorkspaceScope.of(context);
+    if (shouldDelete != true || !context.mounted) return;
     setState(() {
-      store.deleteProject(project);
-      if (_selectedProjectId == project.id) {
-        _selectedProjectId = store.currentProjectId.isEmpty
-            ? null
-            : store.currentProjectId;
-      }
+      ref.read(appWorkspaceStoreProvider).deleteProject(project);
     });
-  }
-
-  void _openImportExport(BuildContext context) {
-    setState(() {
-      _isDrawerOpen = false;
-    });
-    AppNavigator.push(context, AppRoutes.importExport);
   }
 
   void _openWorkbench(BuildContext context, ProjectRecord project) {
-    final store = AppWorkspaceScope.of(context);
-    store.openProject(project.id);
-    setState(() {
-      _selectedProjectId = project.id;
-    });
-    AppNavigator.push(context, AppRoutes.workbench);
+    ref.read(appWorkspaceStoreProvider).openProject(project.id);
+    AppNavigator.push(context, AppRoutes.workSettingsHub);
   }
 
   Future<void> _createProject() async {
     final name = await showAppTextInputDialog(
       context: context,
-      title: '新建项目',
-      description: '为你的新作品起个名字，创建后会出现在书架中。',
-      hintText: '输入项目名称',
+      title: '新建作品',
+      description: '为你的新作品起个名字。',
+      hintText: '输入作品名称',
       fieldKey: ProjectListPage.projectNameFieldKey,
       confirmText: '创建',
     );
-    if (name == null || name.isEmpty) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    final store = AppWorkspaceScope.of(context);
+    if (name == null || name.isEmpty || !mounted) return;
     setState(() {
-      store.createProject(projectName: name);
-      _selectedProjectId = store.currentProjectId;
+      ref.read(appWorkspaceStoreProvider).createProject(projectName: name);
       _searchController.clear();
     });
   }
 
   List<ProjectRecord> _visibleProjects(List<ProjectRecord> projects) {
-    final filters = _filterOptions(context);
     return applyListFilter(
       items: projects,
       searchQuery: _searchController.text.trim(),
       searchExtractor: (p) =>
           '${p.title} ${p.genre} ${p.tag} ${p.summary} ${p.displayRecentLocation}',
-      activeFilter: filters[_filterIndex],
+      activeFilter: _filterOptions(context)[_filterIndex],
       activeSort: _sortOptions[_sortIndex],
     );
   }
 
-  ProjectRecord? _resolveSelectedProject(List<ProjectRecord> visibleProjects) {
-    final store = AppWorkspaceScope.of(context);
-    final fallbackProject = visibleProjects.isNotEmpty
-        ? visibleProjects.first
-        : (store.projects.isEmpty ? null : store.projects.first);
-    if (fallbackProject == null) {
-      return null;
-    }
-    final resolvedProjectId = _selectedProjectId ?? store.currentProjectId;
-    if (resolvedProjectId.isEmpty) {
-      return fallbackProject;
-    }
-    return visibleProjects.cast<ProjectRecord?>().firstWhere(
-      (project) => project?.id == resolvedProjectId,
-      orElse: () => fallbackProject,
-    );
-  }
-
   List<ProjectRecord> _projects(BuildContext context) =>
-      AppWorkspaceScope.of(context).projects;
+      ref.watch(appWorkspaceStoreProvider).projects;
 
   String _footerStatus({required int projectCount}) {
     switch (widget.uiState) {
       case ProjectListUiState.ready:
-        return '本地数据库正常 · 书架共 $projectCount 部作品';
+        return '本地书架';
       case ProjectListUiState.empty:
-        return '当前还没有本地项目';
+        return '当前还没有本地作品';
       case ProjectListUiState.searchNoResults:
-        return '当前搜索没有命中项目';
+        return '当前搜索没有命中作品';
       case ProjectListUiState.databaseReadFailed:
         return '数据库读取失败';
       case ProjectListUiState.importFailed:
@@ -546,704 +517,5 @@ class _ProjectListPageState extends State<ProjectListPage> {
       case ProjectListUiState.deleteConfirm:
         return '等待删除确认';
     }
-  }
-
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.shelf,
-      onShelf: () {
-        setState(() {
-          _isDrawerOpen = false;
-        });
-      },
-      onWorkbench: () {
-        final selected = _resolveSelectedProject(
-          _visibleProjects(_projects(context)),
-        );
-        if (selected == null) {
-          return;
-        }
-        _openWorkbench(context, selected);
-      },
-      onWorkSettings: () {
-        AppNavigator.push(context, AppRoutes.workSettingsHub);
-      },
-      onRevision: () {
-        AppNavigator.push(context, AppRoutes.revisionHub);
-      },
-      onReading: () {
-        AppNavigator.push(context, AppRoutes.scenes);
-      },
-      onSettings: () {
-        AppNavigator.push(context, AppRoutes.settings);
-      },
-      workbenchButtonKey: ProjectListPage.workbenchShortcutKey,
-      readingButtonKey: ProjectListPage.readingMenuButtonKey,
-    );
-  }
-}
-
-class _ProjectShelfHeader extends StatelessWidget {
-  const _ProjectShelfHeader({
-    this.titleKey,
-    required this.searchController,
-    this.onCreateProject,
-    this.onImportProject,
-    this.onSearchChanged,
-  });
-
-  final Key? titleKey;
-  final TextEditingController searchController;
-  final VoidCallback? onCreateProject;
-  final VoidCallback? onImportProject;
-  final ValueChanged<String>? onSearchChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('书架', key: titleKey, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text('选择一部作品，回到最近写作位置', style: theme.textTheme.bodySmall),
-            ],
-          ),
-        ),
-        FilledButton(
-          key: ProjectListPage.newProjectButtonKey,
-          onPressed: onCreateProject,
-          child: const Text('新建项目'),
-        ),
-        const SizedBox(width: 12),
-        OutlinedButton(
-          key: ProjectListPage.importButtonKey,
-          onPressed: onImportProject,
-          child: const Text('导入工程'),
-        ),
-        const SizedBox(width: 12),
-        DesktopSearchField(
-          width: 220,
-          hintText: '搜索作品',
-          fieldKey: ProjectListPage.searchFieldKey,
-          controller: searchController,
-          onChanged: onSearchChanged,
-        ),
-      ],
-    );
-  }
-}
-
-class _ProjectShelfCard extends StatelessWidget {
-  const _ProjectShelfCard({
-    required this.project,
-    required this.isSelected,
-    required this.isPrimary,
-    required this.onTap,
-    required this.onContinue,
-  });
-
-  final ProjectRecord project;
-  final bool isSelected;
-  final bool isPrimary;
-  final VoidCallback onTap;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final theme = Theme.of(context);
-    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
-    final background = isSelected
-        ? palette.elevated
-        : isPrimary
-        ? palette.subtle
-        : palette.surface;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          height: 188,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? palette.borderStrong : palette.border,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${project.genre}${project.tag.isNotEmpty ? ' · ${project.tag}' : ''}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: palette.secondaryText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                project.title,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                recentLocation,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  height: 1.45,
-                  color: palette.secondaryText,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: onContinue,
-                  child: const Text('继续写作'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProjectDetailPanel extends StatelessWidget {
-  const _ProjectDetailPanel({
-    super.key,
-    required this.project,
-    this.compact = false,
-    required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final ProjectRecord project;
-  final bool compact;
-  final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
-      child: compact
-          ? _CompactProjectDetailContent(
-              project: project,
-              onOpen: onOpen,
-              onEdit: onEdit,
-              onDelete: onDelete,
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '作品概览',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(project.title, style: theme.textTheme.titleLarge),
-                const SizedBox(height: 12),
-                Text(
-                  '${project.genre}\n${project.tag}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    height: 1.45,
-                    color: palette.secondaryText,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _ProjectDetailSection(
-                  title: '最近内容',
-                  body: recentLocation,
-                  bodyMaxLines: 2,
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: ProjectListPage.continueProjectButtonKey,
-                    onPressed: onEdit,
-                    child: const Text('继续写作'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    key: ProjectListPage.openProjectButtonKey,
-                    onPressed: onOpen,
-                    child: const Text('编辑'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: onDelete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: palette.danger,
-                      side: BorderSide(
-                        color: palette.danger.withValues(alpha: 0.45),
-                      ),
-                      backgroundColor: palette.danger.withValues(alpha: 0.08),
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-class _CompactProjectDetailContent extends StatelessWidget {
-  const _CompactProjectDetailContent({
-    required this.project,
-    required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final ProjectRecord project;
-  final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final recentLocation = chapterLocationLabel(project.displayRecentLocation);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '作品概览',
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          project.title,
-          style: theme.textTheme.titleMedium,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${project.genre} · ${project.tag}',
-          style: theme.textTheme.bodySmall,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '最近内容',
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          recentLocation,
-          style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            key: ProjectListPage.continueProjectButtonKey,
-            onPressed: onEdit,
-            child: const Text('继续写作'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(onPressed: onEdit, child: const Text('编辑')),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                key: ProjectListPage.openProjectButtonKey,
-                onPressed: onOpen,
-                child: const Text('打开'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onDelete,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: palette.danger,
-                  side: BorderSide(
-                    color: palette.danger.withValues(alpha: 0.45),
-                  ),
-                  backgroundColor: palette.danger.withValues(alpha: 0.08),
-                ),
-                child: const Text('删除'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _NewProjectShelfCard extends StatelessWidget {
-  const _NewProjectShelfCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          height: 188,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: palette.subtle,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: palette.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '＋',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: palette.primary,
-                  fontSize: 36,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text('新建项目', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(
-                '从空白书架里直接开始，不再额外占一整块区域。',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  height: 1.45,
-                  color: palette.secondaryText,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineNoticeCard extends StatelessWidget {
-  const _InlineNoticeCard({
-    required this.title,
-    required this.message,
-    required this.accent,
-  });
-
-  final String title;
-  final String message;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(message, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectShelfPanel extends StatelessWidget {
-  const _ProjectShelfPanel({
-    required this.projects,
-    required this.selectedProject,
-    required this.compact,
-    required this.onCreateProject,
-    required this.onSelectProject,
-    required this.onContinueProject,
-  });
-
-  final List<ProjectRecord> projects;
-  final ProjectRecord selectedProject;
-  final bool compact;
-  final VoidCallback onCreateProject;
-  final ValueChanged<ProjectRecord> onSelectProject;
-  final ValueChanged<ProjectRecord> onContinueProject;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final shelfBody = _buildShelfBody(context);
-
-    return Container(
-      decoration: appPanelDecoration(context),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('继续写作', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 6),
-          Text(
-            '书架中共有 ${projects.length} 部作品，按最近写作进度排列。',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 18),
-          if (compact) shelfBody else Expanded(child: shelfBody),
-          if (!compact) ...[
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              height: 14,
-              decoration: BoxDecoration(
-                color: desktopPalette(context).subtle,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShelfBody(BuildContext context) {
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < projects.length; i++) ...[
-            SizedBox(
-              width: double.infinity,
-              child: _ProjectShelfCard(
-                project: projects[i],
-                isSelected: projects[i] == selectedProject,
-                isPrimary: i == 0,
-                onTap: () => onSelectProject(projects[i]),
-                onContinue: () => onContinueProject(projects[i]),
-              ),
-            ),
-            if (i != projects.length - 1) const SizedBox(height: 12),
-          ],
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: _NewProjectShelfCard(onTap: onCreateProject),
-          ),
-        ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 960
-            ? 3
-            : constraints.maxWidth >= 620
-            ? 2
-            : 1;
-        return GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisExtent: 188,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: projects.length + 1,
-          itemBuilder: (context, index) {
-            if (index == projects.length) {
-              return _NewProjectShelfCard(onTap: onCreateProject);
-            }
-            final project = projects[index];
-            return _ProjectShelfCard(
-              project: project,
-              isSelected: project == selectedProject,
-              isPrimary: index == 0,
-              onTap: () => onSelectProject(project),
-              onContinue: () => onContinueProject(project),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _ProjectDetailSection extends StatelessWidget {
-  const _ProjectDetailSection({
-    required this.title,
-    required this.body,
-    this.bodyMaxLines,
-  });
-
-  final String title;
-  final String body;
-  final int? bodyMaxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).elevated,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.5),
-            maxLines: bodyMaxLines,
-            overflow: bodyMaxLines == null ? null : TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectDialogField extends StatelessWidget {
-  const _ProjectDialogField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).elevated,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 6),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectFilterPanel extends StatelessWidget {
-  const _ProjectFilterPanel({
-    required this.filterIndex,
-    required this.sortIndex,
-    required this.onFilterChanged,
-    required this.onSortChanged,
-  });
-
-  final int filterIndex;
-  final int sortIndex;
-  final ValueChanged<int> onFilterChanged;
-  final ValueChanged<int> onSortChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final filters = <AppListFilterOption<ProjectRecord>>[
-      AppListFilterOption(label: '全部作品', test: (_) => true),
-      AppListFilterOption(
-        label: '最近打开',
-        test: (p) {
-          final delta =
-              DateTime.now().millisecondsSinceEpoch - p.lastOpenedAtMs;
-          return delta < 24 * 60 * 60 * 1000;
-        },
-      ),
-      AppListFilterOption(label: '进行中', test: (p) => p.lastOpenedAtMs > 0),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: desktopPalette(context).surface.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: desktopPalette(context).border.withValues(alpha: 0.55),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('筛选书架', style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 12),
-          AppListFilterChipBar<ProjectRecord>(
-            options: filters,
-            selectedIndex: filterIndex,
-            onChanged: onFilterChanged,
-          ),
-          const SizedBox(height: 16),
-          Text('排序', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          AppListSortDropdown<ProjectRecord>(
-            options: _ProjectListPageState._sortOptions,
-            selectedIndex: sortIndex,
-            onChanged: onSortChanged,
-          ),
-        ],
-      ),
-    );
   }
 }

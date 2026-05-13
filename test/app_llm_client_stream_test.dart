@@ -15,6 +15,7 @@ void main() {
         request.response.headers.contentType = ContentType(
           'text',
           'event-stream',
+          charset: 'utf-8',
         );
         request.response.write(
           'data: {"choices":[{"delta":{"content":"Hel"},"index":0}]}\n\n',
@@ -43,7 +44,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'stream test'),
               ],
@@ -52,6 +53,61 @@ void main() {
           .toList();
 
       expect(deltas, ['Hel', 'lo ', 'Wor', 'ld']);
+    });
+
+    test('yields anthropic stream deltas through provider adapter', () async {
+      late final Uri requestUri;
+      late final String? apiKey;
+      late final String? authorization;
+      late final Map<String, Object?> requestPayload;
+      final server = await _startStreamServer((request) async {
+        requestUri = request.uri;
+        apiKey = request.headers.value('x-api-key');
+        authorization = request.headers.value(HttpHeaders.authorizationHeader);
+        requestPayload =
+            jsonDecode(await utf8.decoder.bind(request).join())
+                as Map<String, Object?>;
+        request.response.statusCode = HttpStatus.ok;
+        request.response.headers.contentType = ContentType(
+          'text',
+          'event-stream',
+          charset: 'utf-8',
+        );
+        request.response.write(
+          'data: {"type":"content_block_delta","delta":{"text":"你"}}\n\n',
+        );
+        request.response.write(
+          'data: {"type":"content_block_delta","delta":{"text":"好"}}\n\n',
+        );
+        request.response.write('data: {"type":"message_stop"}\n\n');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final deltas = await createDefaultAppLlmClient()
+          .chatStream(
+            AppLlmChatRequest(
+              baseUrl: 'http://${server.address.host}:${server.port}',
+              apiKey: 'sk-anthropic',
+              model: 'claude-3-5-sonnet',
+              provider: AppLlmProvider.anthropic,
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
+              messages: const [
+                AppLlmChatMessage(role: 'system', content: 'system prompt'),
+                AppLlmChatMessage(role: 'user', content: 'stream test'),
+              ],
+            ),
+          )
+          .toList();
+
+      expect(deltas, ['你', '好']);
+      expect(requestUri.path, '/v1/messages');
+      expect(apiKey, 'sk-anthropic');
+      expect(authorization, isNull);
+      expect(requestPayload['system'], 'system prompt');
+      expect(requestPayload['messages'], [
+        {'role': 'user', 'content': 'stream test'},
+      ]);
     });
 
     test('skips empty delta content and role-only deltas', () async {
@@ -82,7 +138,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'skip empty'),
               ],
@@ -121,7 +177,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'skip reasoning'),
               ],
@@ -154,7 +210,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'single'),
               ],
@@ -185,7 +241,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-bad',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: 'auth fail'),
           ],
@@ -220,7 +276,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'missing-model',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: 'model missing'),
           ],
@@ -254,7 +310,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(2000),
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: 'server error'),
           ],
@@ -321,7 +377,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'check stream flag'),
               ],
@@ -355,7 +411,7 @@ void main() {
               baseUrl: _baseUrl(server),
               apiKey: 'sk-test',
               model: 'gpt-5.4',
-              timeout: AppLlmTimeoutConfig.uniform(2000),
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
               messages: const [
                 AppLlmChatMessage(role: 'user', content: 'no text'),
               ],
@@ -449,7 +505,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-test',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(5000),
+          timeout: const AppLlmTimeoutConfig.uniform(5000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: 'progressive'),
           ],

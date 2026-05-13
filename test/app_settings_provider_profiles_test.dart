@@ -239,6 +239,236 @@ void main() {
     );
   });
 
+  test(
+    'provider catalog adds a provider without manual base URL entry',
+    () async {
+      await store.addProviderFromCatalog('deepseek');
+
+      final profile = store.snapshot.providerProfiles.singleWhere(
+        (p) => p.id == 'deepseek',
+      );
+      expect(profile.providerName, 'DeepSeek');
+      expect(profile.baseUrl, 'https://api.deepseek.com');
+      expect(profile.model, 'deepseek-chat');
+      expect(profile.apiKey, isEmpty);
+    },
+  );
+
+  test('provider catalog includes common Chinese service templates', () {
+    final expected = {
+      'zhipu': (
+        name: '智谱 GLM 中国按量 API',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-5.1',
+      ),
+      'zhipu-global': (
+        name: 'Z.AI GLM 国际按量 API',
+        baseUrl: 'https://api.z.ai/api/paas/v4',
+        model: 'glm-5.1',
+      ),
+      'zhipu-coding-plan-cn': (
+        name: '智谱 GLM Coding Plan 中国',
+        baseUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+        model: 'glm-4.7',
+      ),
+      'zhipu-coding-plan-global': (
+        name: 'Z.AI GLM Coding Plan 国际',
+        baseUrl: 'https://api.z.ai/api/coding/paas/v4',
+        model: 'glm-4.7',
+      ),
+      'kimi-coding-plan': (
+        name: 'Kimi Code 会员 Coding API',
+        baseUrl: 'https://api.kimi.com/coding/v1',
+        model: 'kimi-for-coding',
+      ),
+      'aliyun-dashscope': (
+        name: '阿里百炼 中国按量 API',
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        model: 'qwen-plus',
+      ),
+      'aliyun-dashscope-intl': (
+        name: '阿里百炼 国际按量 API',
+        baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+        model: 'qwen-plus',
+      ),
+      'aliyun-dashscope-us': (
+        name: '阿里百炼 美国按量 API',
+        baseUrl: 'https://dashscope-us.aliyuncs.com/compatible-mode/v1',
+        model: 'qwen-plus-us',
+      ),
+      'aliyun-coding-plan': (
+        name: '阿里百炼 Coding Plan 中国',
+        baseUrl: 'https://coding.dashscope.aliyuncs.com/v1',
+        model: 'qwen3-coder-plus',
+      ),
+      'volcengine-ark': (
+        name: '火山方舟 (Doubao)',
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        model: 'doubao-seed-1-6-250615',
+      ),
+      'volcengine-coding-plan': (
+        name: '火山方舟 Coding Plan',
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
+        model: 'ark-code-latest',
+      ),
+      'minimax': (
+        name: 'MiniMax 国际',
+        baseUrl: 'https://api.minimax.io/v1',
+        model: 'MiniMax-M2.7',
+      ),
+      'minimax-cn': (
+        name: 'MiniMax 中国',
+        baseUrl: 'https://api.minimaxi.com/v1',
+        model: 'MiniMax-M2.7',
+      ),
+      'minimax-coding-plan': (
+        name: 'MiniMax Coding Plan 国际',
+        baseUrl: 'https://api.minimax.io/v1',
+        model: 'codex-MiniMax-M2.7',
+      ),
+      'minimax-coding-plan-cn': (
+        name: 'MiniMax Coding Plan 中国',
+        baseUrl: 'https://api.minimaxi.com/v1',
+        model: 'codex-MiniMax-M2.7',
+      ),
+      'tencent-hunyuan': (
+        name: '腾讯混元',
+        baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1',
+        model: 'hunyuan-turbos-latest',
+      ),
+      'tencent-tokenhub-plan': (
+        name: '腾讯 TokenHub Token Plan',
+        baseUrl: 'https://api.lkeap.cloud.tencent.com/plan/v3',
+        model: 'hunyuan-2.0-instruct',
+      ),
+      'tencent-tokenhub-enterprise': (
+        name: '腾讯 TokenHub 企业版',
+        baseUrl: 'https://tokenhub.tencentmaas.com/plan/v3',
+        model: 'hunyuan-2.0-instruct',
+      ),
+      'meituan-longcat': (
+        name: '美团 LongCat',
+        baseUrl: 'https://api.longcat.chat/openai/v1',
+        model: 'LongCat-Flash-Chat',
+      ),
+      'mimo-usage': (
+        name: 'Xiaomi MiMo 按量 API',
+        baseUrl: 'https://api.xiaomimimo.com/v1',
+        model: 'mimo-v2-pro',
+      ),
+      'mimo': (
+        name: 'Xiaomi MiMo Token Plan CN',
+        baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+        model: 'mimo-v2.5-pro',
+      ),
+    };
+
+    for (final entry in expected.entries) {
+      final catalogEntry = appLlmProviderCatalogEntries.singleWhere(
+        (item) => item.id == entry.key,
+      );
+      expect(catalogEntry.providerName, entry.value.name);
+      expect(catalogEntry.baseUrl, entry.value.baseUrl);
+      expect(catalogEntry.model, entry.value.model);
+      expect(catalogEntry.requiresApiKey, isTrue);
+    }
+  });
+
+  test('common Chinese provider catalog entries add usable profiles', () async {
+    const ids = [
+      'zhipu',
+      'zhipu-global',
+      'zhipu-coding-plan-cn',
+      'zhipu-coding-plan-global',
+      'kimi-coding-plan',
+      'aliyun-dashscope',
+      'aliyun-dashscope-intl',
+      'aliyun-dashscope-us',
+      'aliyun-coding-plan',
+      'volcengine-ark',
+      'volcengine-coding-plan',
+      'minimax',
+      'minimax-cn',
+      'minimax-coding-plan',
+      'minimax-coding-plan-cn',
+      'tencent-hunyuan',
+      'tencent-tokenhub-plan',
+      'tencent-tokenhub-enterprise',
+      'meituan-longcat',
+      'mimo-usage',
+      'mimo',
+    ];
+
+    for (final id in ids) {
+      await store.addProviderFromCatalog(id);
+    }
+
+    expect(
+      store.snapshot.providerProfiles.map((profile) => profile.id),
+      containsAll(ids),
+    );
+    expect(
+      store.snapshot.providerProfiles
+          .singleWhere((profile) => profile.id == 'volcengine-coding-plan')
+          .model,
+      'ark-code-latest',
+    );
+  });
+
+  test(
+    'provider catalog can promote a preset to the default provider',
+    () async {
+      await store.save(
+        providerName: '旧默认',
+        baseUrl: 'https://old.example.com/v1',
+        model: 'gpt-5.4',
+        apiKey: 'old-key',
+      );
+
+      await store.addProviderFromCatalog('zhipu', setAsPrimary: true);
+
+      expect(store.snapshot.providerName, '智谱 GLM 中国按量 API');
+      expect(store.snapshot.baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
+      expect(store.snapshot.model, 'glm-5.1');
+      expect(store.snapshot.providerProfiles.first.id, 'primary');
+      expect(
+        store.snapshot.providerProfiles.first.providerName,
+        '智谱 GLM 中国按量 API',
+      );
+    },
+  );
+
+  test('existing provider profile can become the default provider', () async {
+    await store.save(
+      providerName: '默认',
+      baseUrl: 'https://default.example.com/v1',
+      model: 'gpt-5.4',
+      apiKey: 'default-key',
+    );
+    await store.upsertProviderProfile(
+      const AppLlmProviderProfile(
+        id: 'deepseek',
+        providerName: 'DeepSeek',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-chat',
+        apiKey: 'deepseek-key',
+      ),
+    );
+
+    await store.setPrimaryProviderProfile('deepseek');
+
+    expect(store.snapshot.providerName, 'DeepSeek');
+    expect(store.snapshot.baseUrl, 'https://api.deepseek.com');
+    expect(store.snapshot.model, 'deepseek-chat');
+    expect(store.snapshot.apiKey, 'deepseek-key');
+    expect(store.snapshot.providerProfiles.first.id, 'primary');
+    expect(store.snapshot.providerProfiles.first.providerName, 'DeepSeek');
+    expect(
+      store.snapshot.providerProfiles.singleWhere((p) => p.id == 'deepseek'),
+      isA<AppLlmProviderProfile>(),
+    );
+  });
+
   // ---------------------------------------------------------------------------
   // Persistence round-trip
   // ---------------------------------------------------------------------------

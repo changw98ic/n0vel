@@ -187,7 +187,8 @@ class RoleAgentController {
               'When critical context would help the decision, use:\n'
               'RETRIEVE:tool_name:param=value\n'
               'where tool_name is one of: character_profile, '
-              'relationship_history, scene_context, world_rule.\n'
+              'relationship_history, scene_context, world_rule, '
+              'search_writing_reference.\n'
               'Keep every line concrete and brief.',
         ),
         AppLlmChatMessage(

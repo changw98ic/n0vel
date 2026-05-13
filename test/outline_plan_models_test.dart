@@ -128,7 +128,7 @@ void main() {
             sequence: 1,
             beatType: 'transition',
             content: 'Time passes',
-            transitionTarget: StateTransitionTarget(
+            transitionTarget: const StateTransitionTarget(
               id: 't-01',
               fromSceneId: 'scene-01',
               toSceneId: 'scene-99',
@@ -160,7 +160,7 @@ void main() {
             sequence: 1,
             beatType: 'transition',
             content: 'Move to scene 2',
-            transitionTarget: StateTransitionTarget(
+            transitionTarget: const StateTransitionTarget(
               id: 't-01',
               fromSceneId: 'scene-01',
               toSceneId: 'scene-02',
@@ -300,7 +300,7 @@ void main() {
         sequence: 3,
         beatType: 'transition',
         content: 'Time skip to next morning',
-        transitionTarget: StateTransitionTarget(
+        transitionTarget: const StateTransitionTarget(
           id: 't-01',
           fromSceneId: 'scene-01',
           toSceneId: 'scene-02',
@@ -626,7 +626,7 @@ void main() {
                     sequence: 2,
                     beatType: 'transition',
                     content: '时间跳转到凌晨。',
-                    transitionTarget: StateTransitionTarget(
+                    transitionTarget: const StateTransitionTarget(
                       id: 't-01',
                       fromSceneId: 'scene-01',
                       toSceneId: 'scene-02',

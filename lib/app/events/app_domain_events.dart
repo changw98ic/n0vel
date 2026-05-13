@@ -59,10 +59,7 @@ class SceneChangedEvent extends AppDomainEvent {
 
 /// Fired after LLM settings are successfully saved.
 class SettingsSavedEvent extends AppDomainEvent {
-  const SettingsSavedEvent({
-    required this.providerName,
-    required this.model,
-  });
+  const SettingsSavedEvent({required this.providerName, required this.model});
 
   final String providerName;
   final String model;
@@ -107,6 +104,17 @@ class StoryGenerationFailedEvent extends AppDomainEvent {
   final String error;
 }
 
+/// Fired when a story generation session is cancelled by the author.
+class StoryGenerationCancelledEvent extends AppDomainEvent {
+  const StoryGenerationCancelledEvent({
+    required this.projectId,
+    required this.sceneId,
+  });
+
+  final String projectId;
+  final String sceneId;
+}
+
 // ---------------------------------------------------------------------------
 // User feedback notifications
 // ---------------------------------------------------------------------------
@@ -127,9 +135,4 @@ class NotificationRequestedEvent extends AppDomainEvent {
 }
 
 /// Severity levels for notifications, shared with [AppNoticeBanner].
-enum AppNoticeSeverity {
-  error,
-  warning,
-  info,
-  success,
-}
+enum AppNoticeSeverity { error, warning, info, success }

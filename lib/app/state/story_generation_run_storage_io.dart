@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
+import '../logging/app_log.dart';
 import 'app_authoring_storage_io_support.dart';
 import 'story_generation_run_storage.dart';
 
@@ -13,8 +14,26 @@ class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
   sqlite3.Database? _database;
 
   sqlite3.Database _getDatabase() {
-    if (_database != null) {
-      return _database!;
+    final existing = _database;
+    if (existing != null) {
+      try {
+        existing.select('SELECT 1');
+        return existing;
+      } catch (error) {
+        AppLog.w(
+          'Reopening stale story generation run database after health check failure: $error',
+          tag: 'StoryGenerationRunStorage',
+        );
+        _database = null;
+        try {
+          existing.dispose();
+        } catch (disposeError) {
+          AppLog.w(
+            'Failed to dispose stale story generation run database: $disposeError',
+            tag: 'StoryGenerationRunStorage',
+          );
+        }
+      }
     }
     final database = openAuthoringDatabase(_dbPath);
     database.execute('''
@@ -93,6 +112,15 @@ class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
         [sceneScopeId],
       );
     }
+  }
+
+  @override
+  Future<void> clearProject(String projectId) async {
+    final database = _getDatabase();
+    database.execute(
+      'DELETE FROM story_generation_run_state WHERE scene_scope_id = ? OR scene_scope_id LIKE ?',
+      [projectId, '$projectId::%'],
+    );
   }
 
   void dispose() {

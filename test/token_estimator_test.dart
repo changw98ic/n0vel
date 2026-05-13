@@ -38,7 +38,7 @@ void main() {
     });
 
     test('CJK characters counted by length', () {
-      final text = '你好世界测试';
+      const text = '你好世界测试';
       expect(estimator.estimate(text), (text.length / 4).ceil());
     });
 
@@ -47,7 +47,7 @@ void main() {
     });
 
     test('mixed ASCII and CJK', () {
-      final text = 'Hello你好';
+      const text = 'Hello你好';
       expect(estimator.estimate(text), (text.length / 4).ceil());
     });
   });

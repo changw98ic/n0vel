@@ -14,9 +14,9 @@ class AppDialogField extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDesignTokens.space12),
-      decoration: appPanelDecoration(
+      decoration: glassCardDecoration(
         context,
-        color: desktopPalette(context).elevated,
+        color: desktopPalette(context).glassCard,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

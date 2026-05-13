@@ -5,6 +5,9 @@ class _NoopAppSimulationStorage implements AppSimulationStorage {
   Future<void> clear({String? projectId}) async {}
 
   @override
+  Future<void> clearProject(String projectId) async {}
+
+  @override
   Future<Map<String, Object?>?> load({required String projectId}) async => null;
 
   @override

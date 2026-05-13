@@ -31,19 +31,17 @@ class AppSceneContextSnapshot {
 }
 
 class AppSceneContextStore extends AppProjectScopedStore {
-  AppSceneContextStore({AppSceneContextStorage? storage, super.workspaceStore})
+  AppSceneContextStore({AppSceneContextStorage? storage, super.workspaceStore, super.eventBus})
     : _storage =
           storage ??
-          debugStorageOverride ??
+          
           createDefaultAppSceneContextStorage(),
       super(fallbackProjectId: _defaultSceneScopeId) {
     _snapshot = _snapshotForScope(activeProjectId);
     onRestore();
   }
 
-  @visibleForTesting
-  static AppSceneContextStorage? debugStorageOverride;
-
+  
   final AppSceneContextStorage _storage;
   final Map<String, AppSceneContextSnapshot> _snapshotsByProjectId = {};
   late AppSceneContextSnapshot _snapshot;
@@ -121,6 +119,18 @@ class AppSceneContextStore extends AppProjectScopedStore {
 
   Future<void> _persist() =>
       _storage.save(exportJson(), projectId: activeProjectId);
+
+  @override
+  void onProjectDeleted(String projectId) {
+    final sceneScopePrefix = '$projectId::';
+    _snapshotsByProjectId.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 
   AppSceneContextSnapshot _snapshotForScope(String projectId) {
     return _snapshotsByProjectId.putIfAbsent(

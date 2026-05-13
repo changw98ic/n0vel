@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../state/app_settings_store.dart';
+import '../di/app_providers.dart';
+import '../theme/app_design_tokens.dart';
 import 'desktop_theme.dart';
 
 export 'app_popover.dart';
 export 'app_sheet.dart';
 export 'app_split_handle.dart';
 export 'desktop_header_widgets.dart';
-export 'desktop_menu_widgets.dart';
+
 export 'desktop_status_modal.dart';
 export 'desktop_theme.dart';
 
@@ -25,7 +27,7 @@ Future<void> copyDiagnosticToClipboard(
   messenger.showSnackBar(const SnackBar(content: Text('诊断已复制')));
 }
 
-class DesktopShellFrame extends StatelessWidget {
+class DesktopShellFrame extends ConsumerWidget {
   const DesktopShellFrame({
     super.key,
     required this.header,
@@ -45,14 +47,12 @@ class DesktopShellFrame extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
-    final settingsStore = AppSettingsScope.maybeOf(context);
-    final feedback = settingsStore?.feedback;
-    final diagnosticReport = settingsStore?.diagnosticReport;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsStore = ref.watch(appSettingsStoreProvider);
+    final feedback = settingsStore.feedback;
+    final diagnosticReport = settingsStore.diagnosticReport;
     final globalNotice =
-        settingsStore != null &&
-            settingsStore.hasPersistenceIssue &&
-            feedback != null &&
+        settingsStore.hasPersistenceIssue &&
             feedback.title != null
         ? _DesktopGlobalNotice(
             title: feedback.title!,
@@ -80,31 +80,46 @@ class DesktopShellFrame extends StatelessWidget {
       label: '应用主框架',
       explicitChildNodes: true,
       child: Scaffold(
-        body: SafeArea(
-          child: Builder(
-            builder: (context) {
-              final width = MediaQuery.sizeOf(context).width;
-              final padding = shellPaddingFor(width);
-              final spacing = panelSpacingFor(width);
-              return Padding(
-                padding: EdgeInsets.all(padding),
-                child: Column(
-                  children: [
-                    header,
-                    if (globalNotice != null) ...[
+        backgroundColor: Colors.transparent,
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppDesignTokens.gradientStart,
+                AppDesignTokens.gradientMid,
+                AppDesignTokens.gradientEnd,
+              ],
+              stops: AppDesignTokens.gradientStops,
+            ),
+          ),
+          child: SafeArea(
+            child: Builder(
+              builder: (context) {
+                final width = MediaQuery.sizeOf(context).width;
+                final padding = shellPaddingFor(width);
+                final spacing = panelSpacingFor(width);
+                return Padding(
+                  padding: EdgeInsets.all(padding),
+                  child: Column(
+                    children: [
+                      header,
+                      if (globalNotice != null) ...[
+                        SizedBox(height: spacing),
+                        globalNotice,
+                      ],
                       SizedBox(height: spacing),
-                      globalNotice,
+                      Expanded(child: body),
+                      if (statusBar != null) ...[
+                        SizedBox(height: spacing),
+                        statusBar!,
+                      ],
                     ],
-                    SizedBox(height: spacing),
-                    Expanded(child: body),
-                    if (statusBar != null) ...[
-                      SizedBox(height: spacing),
-                      statusBar!,
-                    ],
-                  ],
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

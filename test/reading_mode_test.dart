@@ -1,47 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:novel_writer/app/state/app_ai_history_storage.dart';
-import 'package:novel_writer/app/state/app_draft_storage.dart';
-import 'package:novel_writer/app/state/app_draft_store.dart';
-import 'package:novel_writer/app/state/app_scene_context_store.dart';
-import 'package:novel_writer/app/state/app_scene_context_storage.dart';
-import 'package:novel_writer/app/state/app_settings_storage.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/app/state/app_simulation_storage.dart';
-import 'package:novel_writer/app/state/app_simulation_store.dart';
-import 'package:novel_writer/app/state/app_version_storage.dart';
-import 'package:novel_writer/app/state/app_version_store.dart';
-import 'package:novel_writer/app/state/app_workspace_storage.dart';
-import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/main.dart';
+import 'test_support/test_registry.dart';
 
 void main() {
   setUp(() {
-    AppAiHistoryStore.debugStorageOverride = InMemoryAppAiHistoryStorage();
-    AppDraftStore.debugStorageOverride = InMemoryAppDraftStorage();
-    AppSceneContextStore.debugStorageOverride =
-        InMemoryAppSceneContextStorage();
-    AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
-    AppSimulationStore.debugStorageOverride = InMemoryAppSimulationStorage();
-    AppVersionStore.debugStorageOverride = InMemoryAppVersionStorage();
-    AppWorkspaceStore.debugStorageOverride = InMemoryAppWorkspaceStorage();
+    NovelWriterApp.debugRegistryOverride = createTestRegistry();
   });
 
   tearDown(() {
-    AppAiHistoryStore.debugStorageOverride = null;
-    AppDraftStore.debugStorageOverride = null;
-    AppSceneContextStore.debugStorageOverride = null;
-    AppSettingsStore.debugStorageOverride = null;
-    AppSimulationStore.debugStorageOverride = null;
-    AppVersionStore.debugStorageOverride = null;
-    AppWorkspaceStore.debugStorageOverride = null;
+    NovelWriterApp.debugRegistryOverride = null;
   });
 
   testWidgets('renders reading mode with chapter content', (tester) async {
     await tester.pumpWidget(
-      NovelWriterApp(
+      const NovelWriterApp(
         home: ReadingModePage(
-          session: const ReadingSessionData(
+          session: ReadingSessionData(
             projectTitle: '月潮回声',
             initialSceneId: 'scene-01',
             documents: [
@@ -66,9 +41,9 @@ void main() {
 
   testWidgets('closes reading mode on button tap', (tester) async {
     await tester.pumpWidget(
-      NovelWriterApp(
+      const NovelWriterApp(
         home: ReadingModePage(
-          session: const ReadingSessionData(
+          session: ReadingSessionData(
             projectTitle: '月潮回声',
             initialSceneId: 'scene-01',
             documents: [
@@ -88,7 +63,7 @@ void main() {
 
     // Tap close button — since this is the root route, Navigator.pop removes it.
     // We wrap in a navigator to verify the pop occurred.
-    final closeKey = ReadingModePage.closeButtonKey;
+    const closeKey = ReadingModePage.closeButtonKey;
     expect(find.byKey(closeKey), findsOneWidget);
     await tester.tap(find.byKey(closeKey));
     await tester.pumpAndSettle();

@@ -164,7 +164,7 @@ class ScenePolishPass {
   }
 
   String _polishSystemPrompt({RefinementGuidance? refinementGuidance}) {
-    final base =
+    const base =
         '你是一位中文小说语言润色编辑。\n'
         '你的任务是对已有散文稿进行语言层面的润色，方向如下：\n'
         '1. 保持已裁定的情节事实\n'

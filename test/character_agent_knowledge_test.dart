@@ -34,7 +34,7 @@ void main() {
     });
 
     test('round-trips through toStructuredText and parse', () {
-      final original = RoleplayTurn(
+      const original = RoleplayTurn(
         characterId: 'char-yueren',
         name: '岳人',
         stance: '回避',
@@ -61,14 +61,14 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      final a = RoleplayTurn(
+      const a = RoleplayTurn(
         characterId: 'x',
         name: 'y',
         stance: 's',
         action: 'a',
         taboo: 't',
       );
-      final b = RoleplayTurn(
+      const b = RoleplayTurn(
         characterId: 'x',
         name: 'y',
         stance: 's',
@@ -233,7 +233,7 @@ void main() {
 
     test('public facts are visible to all characters', () {
       final facts = [
-        KnowledgeFact(factId: 'fact-weather', content: '暴雨如注', isPublic: true),
+        const KnowledgeFact(factId: 'fact-weather', content: '暴雨如注', isPublic: true),
       ];
       final visible = filter.visibleFacts(facts, 'char-liuxi', []);
       expect(visible, hasLength(1));
@@ -241,7 +241,7 @@ void main() {
 
     test('private facts require disclosure policy', () {
       final facts = [
-        KnowledgeFact(
+        const KnowledgeFact(
           factId: 'fact-forged-manifest',
           content: '货单是伪造的',
           isPublic: false,
@@ -263,7 +263,7 @@ void main() {
 
     test('isFactVisibleTo returns correct visibility', () {
       final facts = [
-        KnowledgeFact(factId: 'fact-secret', content: '秘密', isPublic: false),
+        const KnowledgeFact(factId: 'fact-secret', content: '秘密', isPublic: false),
       ];
       final policies = [
         DisclosurePolicy(factId: 'fact-secret', knownBy: {'char-liuxi'}),
@@ -281,8 +281,8 @@ void main() {
 
     test('partitionFacts assigns correct visibility per character', () {
       final facts = [
-        KnowledgeFact(factId: 'public', content: '公开', isPublic: true),
-        KnowledgeFact(factId: 'secret', content: '秘密', isPublic: false),
+        const KnowledgeFact(factId: 'public', content: '公开', isPublic: true),
+        const KnowledgeFact(factId: 'secret', content: '秘密', isPublic: false),
       ];
       final policies = [
         DisclosurePolicy(factId: 'secret', knownBy: {'char-liuxi'}),
@@ -339,8 +339,8 @@ void main() {
 
     test('accepts all beats when no conflicts', () {
       final beats = [
-        SceneBeat(characterId: 'a', action: '观察环境'),
-        SceneBeat(characterId: 'b', action: '低声警告'),
+        const SceneBeat(characterId: 'a', action: '观察环境'),
+        const SceneBeat(characterId: 'b', action: '低声警告'),
       ];
       final delta = resolver.resolve(beats);
 
@@ -353,12 +353,12 @@ void main() {
       'accepts first and rejects later conflicting beats on same target',
       () {
         final beats = [
-          SceneBeat(
+          const SceneBeat(
             characterId: 'char-liuxi',
             action: '抓住货单',
             targetId: 'item-manifest',
           ),
-          SceneBeat(
+          const SceneBeat(
             characterId: 'char-yueren',
             action: '抢走货单',
             targetId: 'item-manifest',
@@ -380,8 +380,8 @@ void main() {
 
     test('beats without targetId never conflict', () {
       final beats = [
-        SceneBeat(characterId: 'a', action: '思考'),
-        SceneBeat(characterId: 'b', action: '思考'),
+        const SceneBeat(characterId: 'a', action: '思考'),
+        const SceneBeat(characterId: 'b', action: '思考'),
       ];
       final delta = resolver.resolve(beats);
       expect(delta.acceptedBeats, hasLength(2));
@@ -389,8 +389,8 @@ void main() {
 
     test('different targets do not conflict', () {
       final beats = [
-        SceneBeat(characterId: 'a', action: '抓住货单', targetId: 'item-manifest'),
-        SceneBeat(characterId: 'b', action: '打开门锁', targetId: 'item-door'),
+        const SceneBeat(characterId: 'a', action: '抓住货单', targetId: 'item-manifest'),
+        const SceneBeat(characterId: 'b', action: '打开门锁', targetId: 'item-door'),
       ];
       final delta = resolver.resolve(beats);
       expect(delta.acceptedBeats, hasLength(2));
@@ -398,12 +398,12 @@ void main() {
 
     test('resolveWithBeliefUpdates generates updates for rejections', () {
       final beats = [
-        SceneBeat(
+        const SceneBeat(
           characterId: 'char-liuxi',
           action: '抓住货单',
           targetId: 'item-manifest',
         ),
-        SceneBeat(
+        const SceneBeat(
           characterId: 'char-yueren',
           action: '抢走货单',
           targetId: 'item-manifest',
@@ -423,9 +423,9 @@ void main() {
 
     test('does not silently drop conflicting actions', () {
       final beats = [
-        SceneBeat(characterId: 'a', action: 'x', targetId: 't1'),
-        SceneBeat(characterId: 'b', action: 'y', targetId: 't1'),
-        SceneBeat(characterId: 'c', action: 'z', targetId: 't1'),
+        const SceneBeat(characterId: 'a', action: 'x', targetId: 't1'),
+        const SceneBeat(characterId: 'b', action: 'y', targetId: 't1'),
+        const SceneBeat(characterId: 'c', action: 'z', targetId: 't1'),
       ];
       final delta = resolver.resolve(beats);
 
@@ -446,7 +446,7 @@ void main() {
   // ---------------------------------------------------------------
   group('BeliefUpdate', () {
     test('constructs with all fields', () {
-      final update = BeliefUpdate(
+      const update = BeliefUpdate(
         characterId: 'char-yueren',
         targetId: 'char-liuxi',
         oldClaim: '柳溪不知道真相',
@@ -460,14 +460,14 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      final a = BeliefUpdate(
+      const a = BeliefUpdate(
         characterId: 'x',
         targetId: 'y',
         oldClaim: 'o',
         newClaim: 'n',
         reason: 'r',
       );
-      final b = BeliefUpdate(
+      const b = BeliefUpdate(
         characterId: 'x',
         targetId: 'y',
         oldClaim: 'o',
@@ -481,7 +481,7 @@ void main() {
 
   group('SceneStateDelta', () {
     test('acceptedBeats and rejectedBeats partition correctly', () {
-      final delta = SceneStateDelta(
+      const delta = SceneStateDelta(
         resolvedBeats: [
           ResolvedBeat(
             beat: SceneBeat(characterId: 'a', action: 'x'),
@@ -500,7 +500,7 @@ void main() {
     });
 
     test('empty delta has empty partitions', () {
-      final delta = SceneStateDelta(resolvedBeats: []);
+      const delta = SceneStateDelta(resolvedBeats: []);
       expect(delta.acceptedBeats, isEmpty);
       expect(delta.rejectedBeats, isEmpty);
       expect(delta.beliefUpdates, isEmpty);
@@ -538,7 +538,7 @@ void main() {
         baseUrl: 'https://test.example.com/v1',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(60000),
+        timeout: const AppLlmTimeoutConfig.uniform(60000),
         maxConcurrentRequests: 2,
       );
 
@@ -595,7 +595,7 @@ void main() {
         baseUrl: 'https://test.example.com/v1',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(60000),
+        timeout: const AppLlmTimeoutConfig.uniform(60000),
         maxConcurrentRequests: 2,
       );
 
@@ -645,7 +645,7 @@ void main() {
         baseUrl: 'https://test.example.com/v1',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(60000),
+        timeout: const AppLlmTimeoutConfig.uniform(60000),
         maxConcurrentRequests: 2,
       );
 
@@ -674,7 +674,7 @@ void main() {
       final draft = EditorialDraft(
         text: '柳溪抓住了货单，发现上面盖着伪造的海关章。',
         acceptedBeats: [
-          ResolvedBeat(
+          const ResolvedBeat(
             beat: SceneBeat(characterId: 'char-liuxi', action: '抓住货单'),
             resolution: BeatResolution.accepted,
             reason: 'ok',
@@ -689,7 +689,7 @@ void main() {
       final draft = EditorialDraft(
         text: '暴风雨中，柳溪抓住了货单。',
         acceptedBeats: [
-          ResolvedBeat(
+          const ResolvedBeat(
             beat: SceneBeat(characterId: 'char-liuxi', action: '抓住货单'),
             resolution: BeatResolution.accepted,
             reason: 'ok',
@@ -710,12 +710,12 @@ void main() {
       final draft = EditorialDraft(
         text: 'prose',
         acceptedBeats: [
-          ResolvedBeat(
+          const ResolvedBeat(
             beat: SceneBeat(characterId: 'a', action: 'action-a'),
             resolution: BeatResolution.accepted,
             reason: 'ok',
           ),
-          ResolvedBeat(
+          const ResolvedBeat(
             beat: SceneBeat(characterId: 'b', action: 'action-b'),
             resolution: BeatResolution.accepted,
             reason: 'ok',
@@ -750,12 +750,12 @@ void main() {
         baseUrl: 'https://test.example.com/v1',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(60000),
+        timeout: const AppLlmTimeoutConfig.uniform(60000),
         maxConcurrentRequests: 2,
       );
 
       final editor = SceneEditor(settingsStore: settingsStore);
-      final delta = SceneStateDelta(
+      const delta = SceneStateDelta(
         resolvedBeats: [
           ResolvedBeat(
             beat: SceneBeat(characterId: 'char-liuxi', action: '抓住货单'),
@@ -792,12 +792,12 @@ void main() {
         baseUrl: 'https://test.example.com/v1',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(60000),
+        timeout: const AppLlmTimeoutConfig.uniform(60000),
         maxConcurrentRequests: 2,
       );
 
       final editor = SceneEditor(settingsStore: settingsStore);
-      final delta = SceneStateDelta(
+      const delta = SceneStateDelta(
         resolvedBeats: [
           ResolvedBeat(
             beat: SceneBeat(characterId: 'a', action: 'act'),
@@ -823,7 +823,7 @@ void main() {
   // ---------------------------------------------------------------
   group('RolePromptPacket', () {
     test('JSON round-trip preserves all fields', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'char-liuxi',
         characterName: '柳溪',
         characterRole: '调查记者',
@@ -845,7 +845,7 @@ void main() {
     });
 
     test('JSON round-trip handles empty optional fields', () {
-      final packet = RolePromptPacket(
+      const packet = RolePromptPacket(
         characterId: 'char-a',
         characterName: 'A',
         characterRole: '角色',
@@ -861,14 +861,14 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      final a = RolePromptPacket(
+      const a = RolePromptPacket(
         characterId: 'x',
         characterName: 'n',
         characterRole: 'r',
         currentUnderstanding: 'u',
         sourceAtomIds: ['a1'],
       );
-      final b = RolePromptPacket(
+      const b = RolePromptPacket(
         characterId: 'x',
         characterName: 'n',
         characterRole: 'r',
@@ -880,13 +880,13 @@ void main() {
     });
 
     test('different fields produce unequal packets', () {
-      final a = RolePromptPacket(
+      const a = RolePromptPacket(
         characterId: 'x',
         characterName: 'n',
         characterRole: 'r',
         currentFeeling: 'angry',
       );
-      final b = RolePromptPacket(
+      const b = RolePromptPacket(
         characterId: 'x',
         characterName: 'n',
         characterRole: 'r',
@@ -1201,7 +1201,7 @@ void main() {
         characterId: 'char-liuxi',
         name: '柳溪',
         role: '调查记者',
-        presentation: PresentationState(
+        presentation: const PresentationState(
           characterId: 'char-liuxi',
           displayedEmotion: '镇定',
           hiddenEmotion: '极度恐惧',

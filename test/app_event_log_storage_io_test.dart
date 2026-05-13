@@ -462,9 +462,9 @@ void main() {
       logsDirectory: logsDirectory,
     );
 
-    final categories = AppEventLogCategory.values;
-    final statuses = AppEventLogStatus.values;
-    final levels = AppEventLogLevel.values;
+    const categories = AppEventLogCategory.values;
+    const statuses = AppEventLogStatus.values;
+    const levels = AppEventLogLevel.values;
 
     for (var i = 0; i < categories.length; i++) {
       await storage.write(

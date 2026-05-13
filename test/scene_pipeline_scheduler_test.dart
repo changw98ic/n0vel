@@ -7,7 +7,7 @@ void main() {
   test(
     'starts the initial director window without waiting for release',
     () async {
-      final scheduler = ScenePipelineScheduler<String, String>(
+      const scheduler = ScenePipelineScheduler<String, String>(
         maxConcurrentScenes: 2,
       );
       final started = <String>[];
@@ -47,7 +47,7 @@ void main() {
   test(
     'chains speculative releases without waiting for earlier scene commit',
     () async {
-      final scheduler = ScenePipelineScheduler<String, String>(
+      const scheduler = ScenePipelineScheduler<String, String>(
         maxConcurrentScenes: 3,
       );
       final started = <String>[];
@@ -89,7 +89,7 @@ void main() {
   );
 
   test('respects the active scene concurrency limit', () async {
-    final scheduler = ScenePipelineScheduler<String, String>(
+    const scheduler = ScenePipelineScheduler<String, String>(
       maxConcurrentScenes: 2,
     );
     final started = <String>[];

@@ -17,11 +17,7 @@ class AiHistoryEntry {
   final String prompt;
 
   Map<String, Object?> toJson() {
-    return {
-      'sequence': sequence,
-      'mode': mode,
-      'prompt': prompt,
-    };
+    return {'sequence': sequence, 'mode': mode, 'prompt': prompt};
   }
 
   static AiHistoryEntry fromJson(Map<Object?, Object?> json) {
@@ -34,22 +30,14 @@ class AiHistoryEntry {
 }
 
 class AppAiHistoryStore extends AppProjectScopedStore {
-  AppAiHistoryStore({
-    AppAiHistoryStorage? storage,
-    super.workspaceStore,
-  }) : _storage =
-           storage ??
-           debugStorageOverride ??
-           createDefaultAppAiHistoryStorage(),
-       super(
-         fallbackProjectId: 'project-yuechao::scene-05-witness-room',
-       ) {
+  AppAiHistoryStore({AppAiHistoryStorage? storage, super.workspaceStore, super.eventBus})
+    : _storage =
+          storage ?? createDefaultAppAiHistoryStorage(),
+      super(fallbackProjectId: '') {
     onRestore();
   }
 
-  @visibleForTesting
-  static AppAiHistoryStorage? debugStorageOverride;
-
+  
   final AppAiHistoryStorage _storage;
   final Map<String, List<AiHistoryEntry>> _entriesByProjectId = {};
   final Map<String, int> _nextSequenceByProjectId = {};
@@ -109,8 +97,9 @@ class AppAiHistoryStore extends AppProjectScopedStore {
         if (item is Map<Object?, Object?>) AiHistoryEntry.fromJson(item),
     ];
     _entriesByProjectId[activeProjectId] = decoded;
-    _nextSequenceByProjectId[activeProjectId] =
-        decoded.isEmpty ? 1 : decoded.first.sequence + 1;
+    _nextSequenceByProjectId[activeProjectId] = decoded.isEmpty
+        ? 1
+        : decoded.first.sequence + 1;
     unawaited(_persist());
     notifyListeners();
   }
@@ -143,12 +132,28 @@ class AppAiHistoryStore extends AppProjectScopedStore {
         if (item is Map<Object?, Object?>) AiHistoryEntry.fromJson(item),
     ];
     _entriesByProjectId[activeProjectId] = decoded;
-    _nextSequenceByProjectId[activeProjectId] =
-        decoded.isEmpty ? 1 : decoded.first.sequence + 1;
+    _nextSequenceByProjectId[activeProjectId] = decoded.isEmpty
+        ? 1
+        : decoded.first.sequence + 1;
   }
 
   Future<void> _persist() =>
       _storage.save(exportJson(), projectId: activeProjectId);
+
+  @override
+  void onProjectDeleted(String projectId) {
+    final sceneScopePrefix = '$projectId::';
+    _entriesByProjectId.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
+    _nextSequenceByProjectId.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 }
 
 class AppAiHistoryScope extends InheritedNotifier<AppAiHistoryStore> {

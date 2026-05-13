@@ -1,27 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/state/app_draft_store.dart';
-import '../../../app/state/app_version_store.dart';
+import '../../../app/di/app_providers.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/desktop_shell.dart';
 
-class VersionHistoryPage extends StatefulWidget {
+class VersionHistoryPage extends ConsumerStatefulWidget {
   const VersionHistoryPage({super.key});
 
   static const versionListKey = ValueKey<String>('version-history-list');
 
   @override
-  State<VersionHistoryPage> createState() => _VersionHistoryPageState();
+  ConsumerState<VersionHistoryPage> createState() => _VersionHistoryPageState();
 }
 
-class _VersionHistoryPageState extends State<VersionHistoryPage> {
+class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
   int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final versionStore = AppVersionScope.of(context);
+    final versionStore = ref.watch(appVersionStoreProvider);
     final entries = versionStore.entries;
+    if (entries.isEmpty) {
+      return const DesktopShellFrame(
+        header: DesktopHeaderBar(
+          title: '章节版本',
+          subtitle: '查看当前章节的本地版本池并恢复较早版本',
+          showBackButton: true,
+        ),
+        body: Center(child: Text('暂无版本记录')),
+      );
+    }
     final selectedIndex = _selectedIndex.clamp(0, entries.length - 1);
     final selectedEntry = entries[selectedIndex];
     final hasRestorableHistory = entries.length > 1;
@@ -160,9 +170,7 @@ class _VersionHistoryPageState extends State<VersionHistoryPage> {
                             if (!confirmed || !context.mounted) {
                               return;
                             }
-                            AppDraftScope.of(
-                              context,
-                            ).updateText(selectedEntry.content);
+                            ref.read(appDraftStoreProvider).updateText(selectedEntry.content);
                             versionStore.restoreEntry(selectedEntry);
                             setState(() {
                               _selectedIndex = 0;

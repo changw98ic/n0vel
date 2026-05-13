@@ -1,6 +1,7 @@
 import 'context_capsule_compressor.dart';
 import '../domain/pipeline_models.dart';
 import '../domain/memory_models.dart';
+import 'knowledge_tool_registry.dart';
 import 'story_memory_retriever.dart';
 
 /// Describes the outcome of a single agent turn with retrieval context.
@@ -34,6 +35,7 @@ class AgentTurnController {
     this.maxRetrievalRounds = 2,
     this.capsuleCharBudget = 500,
     this.memoryRetriever,
+    this.toolRegistry,
   }) : _compressor = capsuleCompressor ?? ContextCapsuleCompressor();
 
   final ContextCapsuleCompressor _compressor;
@@ -42,6 +44,9 @@ class AgentTurnController {
 
   /// Optional memory retriever for evidence-backed capsule generation.
   final StoryMemoryRetriever? memoryRetriever;
+
+  /// Optional application-level registry for roleplay material tools.
+  final KnowledgeToolRegistry? toolRegistry;
 
   /// Runs the agent turn loop.
   ///
@@ -81,6 +86,16 @@ class AgentTurnController {
             rounds++;
             continue;
           }
+        }
+
+        if (toolRegistry != null && toolRegistry!.hasTool(intent.toolName)) {
+          final capsule = await toolRegistry!.call(
+            intent.toolName,
+            _toolParameters(intent),
+          );
+          capsules.add(capsule);
+          rounds++;
+          continue;
         }
 
         final rawContent = await retrievalFn(intent);
@@ -126,6 +141,16 @@ class AgentTurnController {
     );
 
     return memoryRetriever!.retrieve(query);
+  }
+
+  Map<String, Object?> _toolParameters(RetrievalIntent intent) {
+    final parameters = Map<String, Object?>.from(intent.parameters);
+    parameters.putIfAbsent('characterId', () => intent.characterId);
+    parameters.putIfAbsent('viewerId', () => intent.characterId);
+    if (intent.reasoning.trim().isNotEmpty) {
+      parameters.putIfAbsent('query', () => intent.reasoning);
+    }
+    return parameters;
   }
 
   StoryMemoryQueryType _toolNameToQueryType(String toolName) {

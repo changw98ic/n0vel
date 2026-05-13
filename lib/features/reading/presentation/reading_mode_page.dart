@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/reading_route_data.dart';
-import '../../../app/state/app_draft_store.dart';
-import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/desktop_theme.dart';
+import '../../../domain/scene_location_parts.dart';
 
-class ReadingModePage extends StatefulWidget {
+import 'reading_mode_components.dart';
+
+class ReadingModePage extends ConsumerStatefulWidget {
   const ReadingModePage({super.key, this.session});
 
   static const pageBodyKey = ValueKey<String>('reading-mode-page-body');
@@ -23,15 +26,15 @@ class ReadingModePage extends StatefulWidget {
   final ReadingSessionData? session;
 
   @override
-  State<ReadingModePage> createState() => _ReadingModePageState();
+  ConsumerState<ReadingModePage> createState() => _ReadingModePageState();
 }
 
-class _ReadingModePageState extends State<ReadingModePage> {
+class _ReadingModePageState extends ConsumerState<ReadingModePage> {
   static const int _pageCharThreshold = 220;
 
   final FocusNode _pageFocusNode = FocusNode();
   ReadingSessionData? _activeSession;
-  List<_ReadingDocumentPages> _documents = const [];
+  List<ReadingDocumentPages> _documents = const [];
   int _sceneIndex = 0;
   int _pageIndex = 0;
   String? _edgeFeedback;
@@ -122,7 +125,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _ReadingHotzone(
+                      ReadingHotzone(
                         zoneKey: ReadingModePage.previousHotzoneKey,
                         label: previousLabel,
                         enabled: _canGoPrevious(),
@@ -159,7 +162,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                                   ),
                                   if (inlineNotice != null) ...[
                                     const SizedBox(height: 18),
-                                    _ReadingInlineNoticeCard(
+                                    ReadingInlineNoticeCard(
                                       data: inlineNotice,
                                     ),
                                   ],
@@ -170,7 +173,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      _ReadingHotzone(
+                      ReadingHotzone(
                         zoneKey: ReadingModePage.nextHotzoneKey,
                         label: nextLabel,
                         enabled: _canGoNext(),
@@ -240,7 +243,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
     _activeSession = session;
     _documents = [
       for (final document in session.documents)
-        _ReadingDocumentPages(
+        ReadingDocumentPages(
           sceneId: document.sceneId,
           locationLabel: document.locationLabel,
           pages: _paginate(document.text),
@@ -255,8 +258,8 @@ class _ReadingModePageState extends State<ReadingModePage> {
   }
 
   ReadingSessionData _fallbackSession(BuildContext context) {
-    final draft = AppDraftScope.of(context).snapshot;
-    final workspace = AppWorkspaceScope.of(context);
+    final draft = ref.read(appDraftStoreProvider).snapshot;
+    final workspace = ref.read(appWorkspaceStoreProvider);
     return ReadingSessionData(
       projectTitle: workspace.currentProject.title,
       initialSceneId: workspace.currentProject.sceneId,
@@ -381,7 +384,7 @@ class _ReadingModePageState extends State<ReadingModePage> {
     return '末页后进入下一章 · 退出后回到进入前位置';
   }
 
-  _ReadingInlineNoticeData? _inlineNoticeData() {
+  ReadingInlineNoticeData? _inlineNoticeData() {
     final currentDocument = _documents[_sceneIndex];
     final isSinglePage = currentDocument.pages.length == 1;
     final isFirstPage = _pageIndex == 0;
@@ -390,31 +393,31 @@ class _ReadingModePageState extends State<ReadingModePage> {
     final hasNextScene = _sceneIndex < _documents.length - 1;
 
     if (isSinglePage) {
-      return const _ReadingInlineNoticeData(
+      return const ReadingInlineNoticeData(
         title: '单页阅读',
         message: '当前章节内容较短或无需拆分页，因此以整章单页方式展示。',
       );
     }
     if (isFirstPage && hasPreviousScene) {
-      return const _ReadingInlineNoticeData(
+      return const ReadingInlineNoticeData(
         title: '章节边界',
         message: '当前为本章第一页。继续向左翻页时，将进入上一章最后一页。',
       );
     }
     if (isLastPage && hasNextScene) {
-      return const _ReadingInlineNoticeData(
+      return const ReadingInlineNoticeData(
         title: '章节边界',
         message: '当前为本章最后一页。继续向右翻页时，将进入下一章第一页。',
       );
     }
     if (isFirstPage && !hasPreviousScene) {
-      return const _ReadingInlineNoticeData(
+      return const ReadingInlineNoticeData(
         title: '章节边界',
         message: '当前已是整部作品的第一章第一页，再向前翻页不会继续跳转。',
       );
     }
     if (isLastPage && !hasNextScene) {
-      return const _ReadingInlineNoticeData(
+      return const ReadingInlineNoticeData(
         title: '章节边界',
         message: '当前已是整部作品的最后一章最后一页，再向后翻页不会继续跳转。',
       );
@@ -453,113 +456,4 @@ class _ReadingModePageState extends State<ReadingModePage> {
     }
     return '下一页';
   }
-}
-
-class _ReadingHotzone extends StatelessWidget {
-  const _ReadingHotzone({
-    required this.zoneKey,
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final Key zoneKey;
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  bool get _isPrevious {
-    final k = zoneKey is ValueKey<String>
-        ? (zoneKey as ValueKey<String>).value
-        : '';
-    return k.contains('previous');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SizedBox(
-      width: 36,
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        label: label,
-        child: GestureDetector(
-          key: zoneKey,
-          behavior: HitTestBehavior.opaque,
-          onTap: enabled ? onTap : null,
-          child: Opacity(
-            opacity: enabled ? 1.0 : 0.0,
-            child: Tooltip(
-              message: label,
-              child: Icon(
-                _isPrevious
-                    ? Icons.chevron_left_rounded
-                    : Icons.chevron_right_rounded,
-                size: 28,
-                color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ReadingInlineNoticeCard extends StatelessWidget {
-  const _ReadingInlineNoticeCard({required this.data});
-
-  final _ReadingInlineNoticeData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0EBE2),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            data.title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: palette.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            data.message,
-            style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReadingDocumentPages {
-  const _ReadingDocumentPages({
-    required this.sceneId,
-    required this.locationLabel,
-    required this.pages,
-  });
-
-  final String sceneId;
-  final String locationLabel;
-  final List<String> pages;
-}
-
-class _ReadingInlineNoticeData {
-  const _ReadingInlineNoticeData({required this.title, required this.message});
-
-  final String title;
-  final String message;
 }

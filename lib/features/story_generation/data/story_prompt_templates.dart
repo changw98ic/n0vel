@@ -20,7 +20,11 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:novel_writer/app/llm/app_llm_prompt_version.dart';
+
 import 'prompt_language.dart';
+import '../../../domain/prompt_language.dart';
 
 const Object _promptLanguageZoneKey = Object();
 
@@ -28,15 +32,59 @@ class StoryPromptTemplates {
   StoryPromptTemplates._();
 
   // ---------------------------------------------------------------------------
+  // Prompt versions
+  // ---------------------------------------------------------------------------
+
+  /// 当前所有 prompt 模板的版本标识。
+  ///
+  /// 每次 prompt 内容变更时应递增版本号，以便追踪和回放。
+  static const PromptVersion versionSceneProse = PromptVersion(
+    templateId: 'scene_prose',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionSceneDirector = PromptVersion(
+    templateId: 'scene_director',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionSceneEditorial = PromptVersion(
+    templateId: 'scene_editorial',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionSceneReview = PromptVersion(
+    templateId: 'scene_review',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionDynamicRoleAgent = PromptVersion(
+    templateId: 'dynamic_role_agent',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionSceneBeatResolve = PromptVersion(
+    templateId: 'scene_beat_resolve',
+    version: '1.0.0',
+  );
+
+  static const PromptVersion versionThoughtExtraction = PromptVersion(
+    templateId: 'thought_extraction',
+    version: '1.0.0',
+  );
+
+  // ---------------------------------------------------------------------------
   // Language switch
   // ---------------------------------------------------------------------------
 
-  /// Current prompt language. Defaults to [PromptLanguage.zh].
+  /// Default prompt language used when no Zone override is active.
+  /// Production code should use [runWithLanguage] for per-run isolation.
   static PromptLanguage _language = PromptLanguage.zh;
 
   static PromptLanguage get language =>
       Zone.current[_promptLanguageZoneKey] as PromptLanguage? ?? _language;
 
+  @visibleForTesting
   static set language(PromptLanguage value) {
     _language = value;
   }

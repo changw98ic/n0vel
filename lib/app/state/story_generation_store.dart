@@ -1,36 +1,37 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
+import 'app_store_listenable.dart';
 import 'app_workspace_store.dart';
 import 'story_generation_storage.dart';
 import 'story_generation_types.dart';
 
 export 'story_generation_types.dart';
 
-class StoryGenerationStore extends ChangeNotifier {
+class StoryGenerationStore extends AppStoreListenable {
   StoryGenerationStore({
     StoryGenerationStorage? storage,
     AppWorkspaceStore? workspaceStore,
     AppEventBus? eventBus,
   }) : _storage =
            storage ??
-           debugStorageOverride ??
+           
            createDefaultStoryGenerationStorage(),
        _workspaceStore = workspaceStore,
-       _eventBus = eventBus ?? AppEventBus.current {
+       _eventBus = eventBus {
     _activeProjectId = _resolveProjectId(workspaceStore);
     _snapshot = StoryGenerationSnapshot.empty(_activeProjectId);
     _workspaceStore?.addListener(_handleWorkspaceChanged);
+    _projectDeletedSubscription = _eventBus?.listen<ProjectDeletedEvent>(
+      _handleProjectDeleted,
+    );
     _readyFuture = _restore();
     unawaited(_readyFuture);
   }
 
-  @visibleForTesting
-  static StoryGenerationStorage? debugStorageOverride;
-
+  
   final StoryGenerationStorage _storage;
   final AppWorkspaceStore? _workspaceStore;
   final AppEventBus? _eventBus;
@@ -39,6 +40,7 @@ class StoryGenerationStore extends ChangeNotifier {
   late StoryGenerationSnapshot _snapshot;
   Future<void> _readyFuture = Future<void>.value();
   int _mutationVersion = 0;
+  StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
 
   StoryGenerationSnapshot get snapshot => _snapshot.deepCopy();
   String get activeProjectId => _activeProjectId;
@@ -70,8 +72,7 @@ class StoryGenerationStore extends ChangeNotifier {
     _mutationVersion += 1;
     _snapshot = snapshot.deepCopy().copyWith(projectId: _activeProjectId);
     _snapshotsByProjectId[_activeProjectId] = _snapshot.deepCopy();
-    _readyFuture = Future<void>.value();
-    unawaited(_persist());
+    _readyFuture = _persist();
     _publishGenerationEvents(previousSnapshot, _snapshot);
     notifyListeners();
   }
@@ -109,6 +110,12 @@ class StoryGenerationStore extends ChangeNotifier {
   Future<void> _persist() =>
       _storage.save(_snapshot.toJson(), projectId: _activeProjectId);
 
+  void _handleProjectDeleted(ProjectDeletedEvent event) {
+    _mutationVersion += 1;
+    _snapshotsByProjectId.remove(event.projectId);
+    unawaited(_storage.clearProject(event.projectId));
+  }
+
   static String _resolveProjectId(AppWorkspaceStore? workspaceStore) {
     if (workspaceStore == null || workspaceStore.currentProjectId.isEmpty) {
       return fallbackStoryGenerationProjectId;
@@ -125,74 +132,114 @@ class StoryGenerationStore extends ChangeNotifier {
       return;
     }
     final projectId = _activeProjectId;
-    final previousActiveStatus = _activeStatus(previous);
-    final currentActiveStatus = _activeStatus(current);
-    if (previousActiveStatus == currentActiveStatus) {
+    final event = _activeEvent(previous, current);
+    if (event == null) {
       return;
     }
-    final sceneId = _activeSceneId(current) ?? _activeSceneId(previous) ?? '';
     try {
-      if (currentActiveStatus == _GenerationPhase.running) {
-        bus.publish(StoryGenerationStartedEvent(
-          projectId: projectId,
-          sceneId: sceneId,
-        ));
-      } else if (currentActiveStatus == _GenerationPhase.completed) {
-        bus.publish(StoryGenerationCompletedEvent(
-          projectId: projectId,
-          sceneId: sceneId,
-        ));
-      } else if (currentActiveStatus == _GenerationPhase.failed) {
-        bus.publish(StoryGenerationFailedEvent(
-          projectId: projectId,
-          sceneId: sceneId,
-          error: '',
-        ));
+      if (event.phase == _GenerationPhase.running) {
+        bus.publish(
+          StoryGenerationStartedEvent(
+            projectId: projectId,
+            sceneId: event.sceneId,
+          ),
+        );
+      } else if (event.phase == _GenerationPhase.completed) {
+        bus.publish(
+          StoryGenerationCompletedEvent(
+            projectId: projectId,
+            sceneId: event.sceneId,
+          ),
+        );
+      } else if (event.phase == _GenerationPhase.failed) {
+        bus.publish(
+          StoryGenerationFailedEvent(
+            projectId: projectId,
+            sceneId: event.sceneId,
+            error: '',
+          ),
+        );
+      } else if (event.phase == _GenerationPhase.cancelled) {
+        bus.publish(
+          StoryGenerationCancelledEvent(
+            projectId: projectId,
+            sceneId: event.sceneId,
+          ),
+        );
       }
     } on StateError {
       // Event delivery should not break generation mutations.
     }
   }
 
-  static _GenerationPhase _activeStatus(StoryGenerationSnapshot snapshot) {
-    for (final chapter in snapshot.chapters) {
-      for (final scene in chapter.scenes) {
-        switch (scene.status) {
-          case StorySceneGenerationStatus.directing:
-          case StorySceneGenerationStatus.roleRunning:
-          case StorySceneGenerationStatus.drafting:
-          case StorySceneGenerationStatus.reviewing:
-            return _GenerationPhase.running;
-          case StorySceneGenerationStatus.blocked:
-            return _GenerationPhase.failed;
-          case StorySceneGenerationStatus.passed:
-            return _GenerationPhase.completed;
-          case StorySceneGenerationStatus.pending:
-          case StorySceneGenerationStatus.invalidated:
-            continue;
-        }
-      }
+  static _GenerationEvent? _activeEvent(
+    StoryGenerationSnapshot previous,
+    StoryGenerationSnapshot current,
+  ) {
+    final previousStatuses = <String, _GenerationPhase>{};
+    for (final scene in _scenes(previous)) {
+      previousStatuses[scene.sceneId] = _phaseForScene(scene);
     }
-    return _GenerationPhase.idle;
+
+    _GenerationEvent? terminalEvent;
+    for (final scene in _scenes(current)) {
+      final currentPhase = _phaseForScene(scene);
+      if (previousStatuses[scene.sceneId] == currentPhase ||
+          currentPhase == _GenerationPhase.idle) {
+        continue;
+      }
+
+      final event = _GenerationEvent(scene.sceneId, currentPhase);
+      if (currentPhase == _GenerationPhase.running) {
+        return event;
+      }
+      terminalEvent ??= event;
+    }
+    return terminalEvent;
   }
 
-  static String? _activeSceneId(StoryGenerationSnapshot snapshot) {
+  static Iterable<StorySceneGenerationState> _scenes(
+    StoryGenerationSnapshot snapshot,
+  ) sync* {
     for (final chapter in snapshot.chapters) {
-      for (final scene in chapter.scenes) {
-        if (scene.status != StorySceneGenerationStatus.pending &&
-            scene.status != StorySceneGenerationStatus.invalidated) {
-          return scene.sceneId;
-        }
-      }
+      yield* chapter.scenes;
     }
-    return null;
+  }
+
+  static _GenerationPhase _phaseForScene(StorySceneGenerationState scene) {
+    switch (scene.status) {
+      case StorySceneGenerationStatus.directing:
+      case StorySceneGenerationStatus.roleRunning:
+      case StorySceneGenerationStatus.drafting:
+      case StorySceneGenerationStatus.reviewing:
+        return _GenerationPhase.running;
+      case StorySceneGenerationStatus.blocked:
+        if (scene.terminalReason == 'cancelled') {
+          return _GenerationPhase.cancelled;
+        }
+        return _GenerationPhase.failed;
+      case StorySceneGenerationStatus.passed:
+        return _GenerationPhase.completed;
+      case StorySceneGenerationStatus.pending:
+      case StorySceneGenerationStatus.invalidated:
+        return _GenerationPhase.idle;
+    }
   }
 
   @override
   void dispose() {
     _workspaceStore?.removeListener(_handleWorkspaceChanged);
+    unawaited(_projectDeletedSubscription?.cancel());
+    _projectDeletedSubscription = null;
     super.dispose();
   }
 }
 
-enum _GenerationPhase { idle, running, completed, failed }
+enum _GenerationPhase { idle, running, completed, failed, cancelled }
+
+class _GenerationEvent {
+  const _GenerationEvent(this.sceneId, this.phase);
+
+  final String sceneId;
+  final _GenerationPhase phase;
+}

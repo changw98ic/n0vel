@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:sqlite3/sqlite3.dart';
 
+import '../logging/app_log.dart';
 import 'app_simulation_storage.dart';
 import 'sql_identifier.dart';
 
@@ -139,6 +140,31 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
     }
   }
 
+  @override
+  Future<void> clearProject(String projectId) async {
+    final file = File(_dbPath);
+    if (!await file.exists()) {
+      return;
+    }
+    final database = _openDatabase();
+    try {
+      database.execute(
+        'DELETE FROM simulation_chat_messages WHERE run_id IN (SELECT id FROM simulation_runs WHERE scope_key = ? OR scope_key LIKE ?)',
+        [projectId, '$projectId::%'],
+      );
+      database.execute(
+        'DELETE FROM simulation_participant_prompts WHERE run_id IN (SELECT id FROM simulation_runs WHERE scope_key = ? OR scope_key LIKE ?)',
+        [projectId, '$projectId::%'],
+      );
+      database.execute(
+        'DELETE FROM simulation_runs WHERE scope_key = ? OR scope_key LIKE ?',
+        [projectId, '$projectId::%'],
+      );
+    } finally {
+      database.dispose();
+    }
+  }
+
   Database _openDatabase() {
     final file = File(_dbPath);
     file.parent.createSync(recursive: true);
@@ -234,8 +260,11 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
             projectId: _legacyProjectId,
           );
         }
-      } catch (_) {
-        // Ignore malformed legacy payloads and continue with a clean schema.
+      } catch (error) {
+        AppLog.w(
+          'Skipped malformed legacy simulation_state payload during migration: $error',
+          tag: 'SimulationStorage',
+        );
       }
     }
     database.execute('DROP TABLE simulation_state');
@@ -318,8 +347,13 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
       }
 
       database.execute('COMMIT');
-    } catch (_) {
+    } catch (error) {
       database.execute('ROLLBACK');
+      AppLog.e(
+        'Failed to write simulation state; transaction rolled back',
+        tag: 'SimulationStorage',
+        error: error,
+      );
       rethrow;
     }
   }

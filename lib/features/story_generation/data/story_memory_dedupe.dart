@@ -5,7 +5,7 @@ const double defaultThoughtConfidenceThreshold = 0.72;
 
 /// Similarity and redundancy guard for chunks and thoughts.
 ///
-/// Uses deterministic token overlap until embeddings are available.
+/// Uses deterministic token overlap so dedupe stays local and explainable.
 class StoryMemoryDedupe {
   /// Checks whether a candidate thought is redundant against existing ones.
   bool isDuplicate(ThoughtAtom candidate, List<ThoughtAtom> existing) {

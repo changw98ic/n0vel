@@ -31,6 +31,8 @@ void main() {
     addTearDown(sceneContextStore.dispose);
     addTearDown(simulationStore.dispose);
 
+    workspaceStore.createProject();
+
     final firstProjectId = workspaceStore.currentProjectId;
     aiHistoryStore.addEntry(mode: '改写', prompt: '项目一意图');
     sceneContextStore.syncContext();
@@ -55,7 +57,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
     expect(aiHistoryStore.entries.first.prompt, '项目一意图');
-    expect(sceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
+    expect(sceneContextStore.snapshot.sceneSummary, contains('等待命名'));
     expect(simulationStore.snapshot.status, SimulationStatus.completed);
 
     workspaceStore.openProject(secondProjectId);
@@ -87,6 +89,10 @@ void main() {
     addTearDown(sceneContextStore.dispose);
     addTearDown(simulationStore.dispose);
 
+    workspaceStore.createProject();
+
+    final defaultSceneId = workspaceStore.currentProject.sceneId;
+
     aiHistoryStore.addEntry(mode: '改写', prompt: '场景 05 历史');
     sceneContextStore.syncContext();
     simulationStore.startSuccessfulRun();
@@ -107,13 +113,13 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 650));
 
     workspaceStore.updateCurrentScene(
-      sceneId: 'scene-05-witness-room',
-      recentLocation: '第 3 章 / 场景 05 · 证人房间对峙',
+      sceneId: defaultSceneId,
+      recentLocation: '第 1 章 / 场景 01 · 等待命名',
     );
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
     expect(aiHistoryStore.entries.first.prompt, '场景 05 历史');
-    expect(sceneContextStore.snapshot.sceneSummary, contains('证人房间对峙'));
+    expect(sceneContextStore.snapshot.sceneSummary, contains('等待命名'));
     expect(simulationStore.snapshot.status, SimulationStatus.completed);
   });
 }

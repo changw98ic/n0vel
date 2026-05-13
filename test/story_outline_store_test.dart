@@ -24,6 +24,15 @@ void main() {
       addTearDown(workspaceStore.dispose);
       addTearDown(outlineStore.dispose);
 
+      // Use non-const source so metadata maps are mutable for tampering tests.
+      final sourceAction = [
+        'waits',
+        'under',
+        'the',
+        'leaking',
+        'dock',
+        'awning',
+      ].join(' ');
       final sourceSnapshot = StoryOutlineSnapshot(
         projectId: workspaceStore.currentProjectId,
         chapters: [
@@ -42,7 +51,7 @@ void main() {
                     name: '柳溪',
                     role: '调查记者',
                     metadata: {
-                      'action': 'waits under the leaking dock awning',
+                      'action': sourceAction,
                       'flags': ['pov'],
                     },
                   ),
@@ -56,8 +65,9 @@ void main() {
       );
 
       outlineStore.replaceSnapshot(sourceSnapshot);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
+      // Mutating the source snapshot should not affect the stored snapshot.
       sourceSnapshot.chapters.first.scenes.first.cast.first.metadata['action'] =
           'tampered source';
       sourceSnapshot.chapters.first.scenes.add(
@@ -72,9 +82,10 @@ void main() {
       expect(firstView.chapters, hasLength(1));
       expect(
         firstView.chapters.first.scenes.first.cast.first.metadata['action'],
-        'waits under the leaking dock awning',
+        sourceAction,
       );
 
+      // Mutating the view should not affect the stored snapshot.
       firstView.chapters.first.scenes.first.cast.first.metadata['action'] =
           'tampered view';
       firstView.chapters.add(
@@ -89,11 +100,11 @@ void main() {
       expect(secondView.chapters, hasLength(1));
       expect(
         secondView.chapters.first.scenes.first.cast.first.metadata['action'],
-        'waits under the leaking dock awning',
+        sourceAction,
       );
 
       final persisted = await outlineStorage.load(
-        projectId: workspaceStore.currentProjectId,
+        projectId: outlineStore.activeProjectId,
       );
       final chapters = persisted?['chapters'] as List<Object?>;
       final firstChapter = chapters.first as Map<String, Object?>;
@@ -101,7 +112,7 @@ void main() {
       final firstScene = scenes.first as Map<String, Object?>;
       final cast = firstScene['cast'] as List<Object?>;
       expect((cast.first as Map<String, Object?>)['metadata'], {
-        'action': 'waits under the leaking dock awning',
+        'action': sourceAction,
         'flags': ['pov'],
       });
     },
@@ -131,6 +142,9 @@ void main() {
       addTearDown(workspaceStore.dispose);
       addTearDown(outlineStore.dispose);
 
+      // WorkspaceData.empty() has no default project; create one explicitly.
+      workspaceStore.createProject();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
       final firstProjectId = workspaceStore.currentProjectId;
       outlineStore.importJson({
         'chapters': [
@@ -306,7 +320,7 @@ void main() {
     });
 
     test('snapshot with executable plan serializes and deserializes', () {
-      final transition = StateTransitionTarget(
+      const transition = StateTransitionTarget(
         id: 'trans-01',
         fromSceneId: 'scene-01',
         toSceneId: 'scene-02',
@@ -354,7 +368,7 @@ void main() {
         projectId: 'project-test',
         executablePlan: plan,
         chapters: [
-          StoryOutlineChapterSnapshot(
+          const StoryOutlineChapterSnapshot(
             id: 'ch-01',
             title: '第一章',
             summary: '旧格式摘要',
@@ -409,11 +423,7 @@ void main() {
             'title': '第一章',
             'summary': '旧摘要',
             'scenes': [
-              {
-                'id': 's-01',
-                'title': '场景',
-                'summary': '旧场景摘要',
-              },
+              {'id': 's-01', 'title': '场景', 'summary': '旧场景摘要'},
             ],
           },
         ],
@@ -484,78 +494,80 @@ void main() {
       expect(snapshot.projectId, 'project-guard');
     });
 
-    test('store round-trips snapshot with executable plan via storage',
-    () async {
-      final directory = await Directory.systemTemp.createTemp(
-        'novel_writer_executable_plan_store_test',
-      );
-      addTearDown(() async {
-        if (await directory.exists()) {
-          await directory.delete(recursive: true);
-        }
-      });
+    test(
+      'store round-trips snapshot with executable plan via storage',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'novel_writer_executable_plan_store_test',
+        );
+        addTearDown(() async {
+          if (await directory.exists()) {
+            await directory.delete(recursive: true);
+          }
+        });
 
-      final dbPath = '${directory.path}/authoring.db';
-      final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: dbPath);
-      final outlineStorage = SqliteStoryOutlineStorage(dbPath: dbPath);
+        final dbPath = '${directory.path}/authoring.db';
+        final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+        final outlineStorage = SqliteStoryOutlineStorage(dbPath: dbPath);
 
-      final workspaceStore = AppWorkspaceStore(storage: workspaceStorage);
-      final outlineStore = StoryOutlineStore(
-        storage: outlineStorage,
-        workspaceStore: workspaceStore,
-      );
-      addTearDown(workspaceStore.dispose);
-      addTearDown(outlineStore.dispose);
+        final workspaceStore = AppWorkspaceStore(storage: workspaceStorage);
+        final outlineStore = StoryOutlineStore(
+          storage: outlineStorage,
+          workspaceStore: workspaceStore,
+        );
+        addTearDown(workspaceStore.dispose);
+        addTearDown(outlineStore.dispose);
 
-      final plan = NovelPlan(
-        id: 'plan-store',
-        projectId: workspaceStore.currentProjectId,
-        title: '存储测试计划',
-        premise: '验证持久化',
-        chapters: [
-          ChapterPlan(
-            id: 'ch-store',
-            novelPlanId: 'plan-store',
-            title: '第一章',
-            summary: '存储摘要',
-            scenes: [
-              ScenePlan(
-                id: 's-store',
-                chapterPlanId: 'ch-store',
-                title: '持久化场景',
-                summary: '存储场景摘要',
-                povCharacterId: 'char-01',
-              ),
-            ],
-          ),
-        ],
-      );
+        final plan = NovelPlan(
+          id: 'plan-store',
+          projectId: workspaceStore.currentProjectId,
+          title: '存储测试计划',
+          premise: '验证持久化',
+          chapters: [
+            ChapterPlan(
+              id: 'ch-store',
+              novelPlanId: 'plan-store',
+              title: '第一章',
+              summary: '存储摘要',
+              scenes: [
+                ScenePlan(
+                  id: 's-store',
+                  chapterPlanId: 'ch-store',
+                  title: '持久化场景',
+                  summary: '存储场景摘要',
+                  povCharacterId: 'char-01',
+                ),
+              ],
+            ),
+          ],
+        );
 
-      final snapshot = StoryOutlineSnapshot(
-        projectId: workspaceStore.currentProjectId,
-        executablePlan: plan,
-      );
-      outlineStore.replaceSnapshot(snapshot);
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        final snapshot = StoryOutlineSnapshot(
+          projectId: workspaceStore.currentProjectId,
+          executablePlan: plan,
+        );
+        outlineStore.replaceSnapshot(snapshot);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      // Restore from a fresh store.
-      final restoredWorkspaceStore = AppWorkspaceStore(
-        storage: workspaceStorage,
-      );
-      final restoredOutlineStore = StoryOutlineStore(
-        storage: outlineStorage,
-        workspaceStore: restoredWorkspaceStore,
-      );
-      addTearDown(restoredWorkspaceStore.dispose);
-      addTearDown(restoredOutlineStore.dispose);
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+        // Restore from a fresh store.
+        final restoredWorkspaceStore = AppWorkspaceStore(
+          storage: workspaceStorage,
+        );
+        final restoredOutlineStore = StoryOutlineStore(
+          storage: outlineStorage,
+          workspaceStore: restoredWorkspaceStore,
+        );
+        addTearDown(restoredWorkspaceStore.dispose);
+        addTearDown(restoredOutlineStore.dispose);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      final restored = restoredOutlineStore.snapshot;
-      expect(restored.hasExecutablePlan, isTrue);
-      expect(restored.executablePlan!.id, 'plan-store');
-      expect(restored.executablePlan!.title, '存储测试计划');
-      expect(restored.scenePlans, hasLength(1));
-      expect(restored.scenePlans.first.id, 's-store');
-    });
+        final restored = restoredOutlineStore.snapshot;
+        expect(restored.hasExecutablePlan, isTrue);
+        expect(restored.executablePlan!.id, 'plan-store');
+        expect(restored.executablePlan!.title, '存储测试计划');
+        expect(restored.scenePlans, hasLength(1));
+        expect(restored.scenePlans.first.id, 's-store');
+      },
+    );
   });
 }

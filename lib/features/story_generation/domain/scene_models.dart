@@ -32,6 +32,7 @@ class SceneQualityScore {
     required this.character,
     required this.completeness,
     this.summary = '',
+    this.warning,
   });
 
   final double overall;
@@ -40,6 +41,7 @@ class SceneQualityScore {
   final double character;
   final double completeness;
   final String summary;
+  final String? warning;
 
   Map<String, Object?> toJson() {
     return {
@@ -49,6 +51,7 @@ class SceneQualityScore {
       'character': character,
       'completeness': completeness,
       'summary': summary,
+      if (warning != null && warning!.isNotEmpty) 'warning': warning,
     };
   }
 
@@ -60,6 +63,7 @@ class SceneQualityScore {
       character: _parseDouble(json['character']),
       completeness: _parseDouble(json['completeness']),
       summary: json['summary']?.toString() ?? '',
+      warning: json['warning']?.toString(),
     );
   }
 
@@ -72,12 +76,20 @@ class SceneQualityScore {
         other.coherence == coherence &&
         other.character == character &&
         other.completeness == completeness &&
-        other.summary == summary;
+        other.summary == summary &&
+        other.warning == warning;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(overall, prose, coherence, character, completeness, summary);
+  int get hashCode => Object.hash(
+    overall,
+    prose,
+    coherence,
+    character,
+    completeness,
+    summary,
+    warning,
+  );
 }
 
 double _parseDouble(Object? raw) {

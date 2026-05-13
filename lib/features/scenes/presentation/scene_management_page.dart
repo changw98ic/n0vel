@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
@@ -10,7 +12,7 @@ import 'scene_management_widgets.dart';
 export 'scene_management_dialogs.dart';
 export 'scene_management_widgets.dart';
 
-class SceneManagementPage extends StatefulWidget {
+class SceneManagementPage extends ConsumerStatefulWidget {
   const SceneManagementPage({super.key});
 
   static const newSceneButtonKey = ValueKey<String>('scene-management-new');
@@ -47,11 +49,10 @@ class SceneManagementPage extends StatefulWidget {
   );
 
   @override
-  State<SceneManagementPage> createState() => _SceneManagementPageState();
+  ConsumerState<SceneManagementPage> createState() => _SceneManagementPageState();
 }
 
-class _SceneManagementPageState extends State<SceneManagementPage> {
-  bool _isDrawerOpen = false;
+class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -64,7 +65,7 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
-    final store = AppWorkspaceScope.of(context);
+    final store = ref.watch(appWorkspaceStoreProvider).projectSceneFacade;
     final scenes = _visibleScenes(store.scenes);
     final groupedScenes = _groupScenesByChapter(scenes);
     final currentScene = store.currentScene;
@@ -72,7 +73,6 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
     return DesktopShellFrame(
       header: DesktopHeaderBar(
         title: '章节管理',
-        subtitle: '维护当前项目的章节列表、标题与顺序',
         showBackButton: true,
         actions: [
           FilledButton(
@@ -91,15 +91,6 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DesktopMenuDrawerRegion(
-            isOpen: _isDrawerOpen,
-            onHandleTap: () {
-              setState(() {
-                _isDrawerOpen = !_isDrawerOpen;
-              });
-            },
-            items: _menuItems(context),
-          ),
           const SizedBox(width: 16),
           SizedBox(
             width: 220,
@@ -368,20 +359,4 @@ class _SceneManagementPageState extends State<SceneManagementPage> {
     ];
   }
 
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.scenes,
-      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onWorkSettings: () =>
-          AppNavigator.push(context, AppRoutes.workSettingsHub),
-      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
-      onReading: () {
-        setState(() {
-          _isDrawerOpen = false;
-        });
-      },
-      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
-    );
-  }
 }

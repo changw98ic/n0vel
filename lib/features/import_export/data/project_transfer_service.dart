@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../../app/logging/app_event_log.dart';
-import '../../../app/state/app_authoring_storage_io_support.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
@@ -12,88 +11,12 @@ import '../../../app/state/app_workspace_store.dart';
 import '../../../app/state/storage_validation.dart';
 import '../../../app/state/story_generation_store.dart';
 import '../../../app/state/story_outline_store.dart';
-import '../../story_generation/data/character_memory_store_io.dart';
-import '../../story_generation/data/roleplay_audit_report.dart';
-import '../../story_generation/data/roleplay_session_store_io.dart';
+import 'export_config.dart';
+import 'export_dtos.dart';
+import 'project_transfer_models.dart';
+import 'store_payload_contributor.dart';
 
-class ProjectPackageManifest {
-  const ProjectPackageManifest({
-    required this.packageName,
-    required this.projectId,
-    required this.projectTitle,
-    required this.schemaMajor,
-    required this.schemaMinor,
-    required this.exportedAtMs,
-    required this.contentSummary,
-  });
-
-  final String packageName;
-  final String projectId;
-  final String projectTitle;
-  final int schemaMajor;
-  final int schemaMinor;
-  final int exportedAtMs;
-  final String contentSummary;
-
-  String get schemaLabel => 'v$schemaMajor.$schemaMinor';
-
-  Map<String, Object?> toJson() {
-    return {
-      'name': packageName,
-      'project_id': projectId,
-      'project_title': projectTitle,
-      'schema_major': schemaMajor,
-      'schema_minor': schemaMinor,
-      'exported_at_ms': exportedAtMs,
-      'content_summary': contentSummary,
-    };
-  }
-
-  static ProjectPackageManifest fromJson(Map<String, Object?> json) {
-    return ProjectPackageManifest(
-      packageName: (json['name'] as String?) ?? '小说工程包',
-      projectId: (json['project_id'] as String?) ?? '',
-      projectTitle: _fallbackManifestText(
-        json['project_title'],
-        fallback: '导入项目',
-      ),
-      schemaMajor: (json['schema_major'] as int?) ?? 1,
-      schemaMinor: (json['schema_minor'] as int?) ?? 0,
-      exportedAtMs: (json['exported_at_ms'] as int?) ?? 0,
-      contentSummary:
-          (json['content_summary'] as String?) ?? '正文 / 资料 / 风格 / 版本',
-    );
-  }
-}
-
-String _fallbackManifestText(Object? raw, {required String fallback}) {
-  final trimmed = raw?.toString().trim() ?? '';
-  return trimmed.isEmpty ? fallback : trimmed;
-}
-
-class ProjectPackageInspection {
-  const ProjectPackageInspection({
-    required this.state,
-    required this.packagePath,
-    this.manifest,
-  });
-
-  final ProjectTransferState state;
-  final String packagePath;
-  final ProjectPackageManifest? manifest;
-}
-
-class ProjectTransferResult {
-  const ProjectTransferResult({
-    required this.state,
-    required this.packagePath,
-    this.manifest,
-  });
-
-  final ProjectTransferState state;
-  final String packagePath;
-  final ProjectPackageManifest? manifest;
-}
+export 'project_transfer_models.dart';
 
 class ProjectTransferService {
   ProjectTransferService({
@@ -152,6 +75,7 @@ class ProjectTransferService {
     AppSimulationStore? simulationStore,
     StoryOutlineStore? storyOutlineStore,
     StoryGenerationStore? storyGenerationStore,
+    ExportConfig config = ExportConfig.full,
   }) async {
     final correlationId = _eventLog.newCorrelationId('project-export');
     await _logTransferEvent(
@@ -201,78 +125,49 @@ class ProjectTransferService {
       'novel_writer_project_export',
     );
     try {
+      final storePayloads = _storePayloadContributors(
+        draftStore: draftStore,
+        versionStore: versionStore,
+        aiHistoryStore: aiHistoryStore,
+        sceneContextStore: sceneContextStore,
+        simulationStore: simulationStore,
+        storyOutlineStore: storyOutlineStore,
+        storyGenerationStore: storyGenerationStore,
+      );
+
+      // Apply ExportConfig filtering to workspace JSON.
+      final rawWorkspaceJson = workspaceStore.exportCurrentProjectJson();
+      final filteredWorkspaceJson = ExportFilter.filterWorkspaceJson(
+        rawWorkspaceJson,
+        config,
+      );
+
+      // Build sync payload contributors filtered by config.
+      final filteredPayloads = _filterPayloadsByConfig(storePayloads, config);
+
+      // Build async payload contributors filtered by config.
+      final asyncPayloads = _asyncStorePayloadContributors();
+      final filteredAsyncPayloads = _filterAsyncPayloadsByConfig(
+        asyncPayloads,
+        config,
+      );
+
       final exportFutures = <Future<void>>[
         File(
           '${stagingDirectory.path}/manifest.json',
         ).writeAsString(jsonEncode(manifest.toJson())),
         File(
           '${stagingDirectory.path}/workspace.json',
-        ).writeAsString(jsonEncode(workspaceStore.exportCurrentProjectJson())),
-        File(
-          '${stagingDirectory.path}/draft.json',
-        ).writeAsString(jsonEncode(draftStore.exportJson())),
-        File(
-          '${stagingDirectory.path}/versions.json',
-        ).writeAsString(jsonEncode(versionStore.exportJson())),
-        if (aiHistoryStore != null)
-          File(
-            '${stagingDirectory.path}/ai_history.json',
-          ).writeAsString(jsonEncode(aiHistoryStore.exportJson())),
-        if (sceneContextStore != null)
-          File(
-            '${stagingDirectory.path}/scene_context.json',
-          ).writeAsString(jsonEncode(sceneContextStore.exportJson())),
-        if (simulationStore != null)
-          File(
-            '${stagingDirectory.path}/simulation.json',
-          ).writeAsString(jsonEncode(simulationStore.exportJson())),
-        if (storyOutlineStore != null)
-          File(
-            '${stagingDirectory.path}/outline.json',
-          ).writeAsString(jsonEncode(storyOutlineStore.exportJson())),
-        if (storyGenerationStore != null)
-          File(
-            '${stagingDirectory.path}/generation_state.json',
-          ).writeAsString(jsonEncode(storyGenerationStore.exportJson())),
+        ).writeAsString(jsonEncode(filteredWorkspaceJson)),
+        for (final payload in filteredPayloads)
+          _writeFilteredStorePayload(stagingDirectory, payload, config),
+        _writeFilteredAsyncStorePayloads(
+          stagingDirectory,
+          filteredAsyncPayloads,
+          currentProject.id,
+          config,
+        ),
       ];
-
-      // Story memory: fetch async data, then append write future
-      if (storyMemoryExport != null) {
-        final memoryData = await storyMemoryExport!(currentProject.id);
-        if (memoryData != null) {
-          exportFutures.add(
-            File(
-              '${stagingDirectory.path}/story_memory.json',
-            ).writeAsString(jsonEncode(memoryData)),
-          );
-        }
-      }
-      final roleplayExporter =
-          roleplayStateExport ?? exportRoleplayStateForProject;
-      final roleplayStateData = await roleplayExporter(currentProject.id);
-      if (roleplayStateData != null) {
-        exportFutures.add(
-          File(
-            '${stagingDirectory.path}/roleplay_state.json',
-          ).writeAsString(jsonEncode(roleplayStateData)),
-        );
-        final auditReports = roleplayStateData['auditReports'];
-        if (auditReports is List && auditReports.isNotEmpty) {
-          exportFutures.add(
-            File(
-              '${stagingDirectory.path}/roleplay_audit.json',
-            ).writeAsString(jsonEncode({'reports': auditReports})),
-          );
-        }
-        final auditMarkdown = roleplayStateData['auditMarkdown'];
-        if (auditMarkdown is String && auditMarkdown.trim().isNotEmpty) {
-          exportFutures.add(
-            File(
-              '${stagingDirectory.path}/roleplay_audit.md',
-            ).writeAsString(auditMarkdown),
-          );
-        }
-      }
 
       await Future.wait(exportFutures);
 
@@ -596,11 +491,12 @@ class ProjectTransferService {
       }
 
       final workspaceFile = File('${extraction.path}/workspace.json');
-      final draftFile = File('${extraction.path}/draft.json');
-      final versionsFile = File('${extraction.path}/versions.json');
+      final requiredStorePayloads = _requiredStorePayloadContributors(
+        draftStore: draftStore,
+        versionStore: versionStore,
+      );
       if (!await workspaceFile.exists() ||
-          !await draftFile.exists() ||
-          !await versionsFile.exists()) {
+          !await _hasRequiredStorePayloads(extraction, requiredStorePayloads)) {
         await _logTransferEvent(
           action: 'project.import.failed',
           status: AppEventLogStatus.failed,
@@ -636,14 +532,9 @@ class ProjectTransferService {
         );
       }
 
-      final requiredJson = await Future.wait([
-        workspaceFile.readAsString(),
-        draftFile.readAsString(),
-        versionsFile.readAsString(),
-      ]);
-      final workspaceJson = _decodeObjectMap(jsonDecode(requiredJson[0]));
-      final draftJson = _decodeObjectMap(jsonDecode(requiredJson[1]));
-      final versionsJson = _decodeObjectMap(jsonDecode(requiredJson[2]));
+      final workspaceJson = _decodeObjectMap(
+        jsonDecode(await workspaceFile.readAsString()),
+      );
 
       final validationErrors = WorkspaceDataValidator().validateWorkspaceData(
         workspaceJson,
@@ -673,52 +564,22 @@ class ProjectTransferService {
         workspaceJson,
         overwriteExisting: overwriteExisting,
       );
-      draftStore.importJson(draftJson);
-      versionStore.importJson(versionsJson);
-
-      // Read and apply optional stores in parallel
-      final optionalImports = await Future.wait([
-        _readOptionalImport(extraction, 'ai_history.json'),
-        _readOptionalImport(extraction, 'scene_context.json'),
-        _readOptionalImport(extraction, 'simulation.json'),
-        _readOptionalImport(extraction, 'outline.json'),
-        _readOptionalImport(extraction, 'generation_state.json'),
-      ]);
-      if (aiHistoryStore != null && optionalImports[0] != null) {
-        aiHistoryStore.importJson(optionalImports[0]!);
-      }
-      if (sceneContextStore != null && optionalImports[1] != null) {
-        sceneContextStore.importJson(optionalImports[1]!);
-      }
-      if (simulationStore != null && optionalImports[2] != null) {
-        simulationStore.importJson(optionalImports[2]!);
-      }
-      if (storyOutlineStore != null && optionalImports[3] != null) {
-        storyOutlineStore.importJson(optionalImports[3]!);
-      }
-      if (storyGenerationStore != null && optionalImports[4] != null) {
-        storyGenerationStore.importJson(optionalImports[4]!);
-      }
-
-      // Story memory section (backward compatible: absent = empty)
-      final memoryFile = File('${extraction.path}/story_memory.json');
-      if (storyMemoryImport != null &&
-          manifest != null &&
-          await memoryFile.exists()) {
-        await storyMemoryImport!(
-          manifest.projectId,
-          _decodeObjectMap(jsonDecode(await memoryFile.readAsString())),
-        );
-      }
-      final roleplayStateFile = File('${extraction.path}/roleplay_state.json');
-      final roleplayImporter =
-          roleplayStateImport ?? importRoleplayStateForProject;
-      if (manifest != null && await roleplayStateFile.exists()) {
-        await roleplayImporter(
-          manifest.projectId,
-          _decodeObjectMap(jsonDecode(await roleplayStateFile.readAsString())),
-        );
-      }
+      await _importStorePayloads(extraction, requiredStorePayloads);
+      await _importStorePayloads(
+        extraction,
+        _optionalStorePayloadContributors(
+          aiHistoryStore: aiHistoryStore,
+          sceneContextStore: sceneContextStore,
+          simulationStore: simulationStore,
+          storyOutlineStore: storyOutlineStore,
+          storyGenerationStore: storyGenerationStore,
+        ),
+      );
+      await _importAsyncStorePayloads(
+        extraction,
+        _asyncStorePayloadContributors(),
+        manifest?.projectId,
+      );
 
       await _logTransferEvent(
         action: overwriteExisting
@@ -815,13 +676,339 @@ class ProjectTransferService {
     return decodeProjectTransferObjectMap(raw);
   }
 
-  Future<Map<String, Object?>?> _readOptionalImport(
-    Directory extraction,
-    String filename,
+  List<StorePayloadContributor> _storePayloadContributors({
+    required AppDraftStore draftStore,
+    required AppVersionStore versionStore,
+    AppAiHistoryStore? aiHistoryStore,
+    AppSceneContextStore? sceneContextStore,
+    AppSimulationStore? simulationStore,
+    StoryOutlineStore? storyOutlineStore,
+    StoryGenerationStore? storyGenerationStore,
+  }) {
+    return [
+      ..._requiredStorePayloadContributors(
+        draftStore: draftStore,
+        versionStore: versionStore,
+      ),
+      ..._optionalStorePayloadContributors(
+        aiHistoryStore: aiHistoryStore,
+        sceneContextStore: sceneContextStore,
+        simulationStore: simulationStore,
+        storyOutlineStore: storyOutlineStore,
+        storyGenerationStore: storyGenerationStore,
+      ),
+    ];
+  }
+
+  List<StorePayloadContributor> _requiredStorePayloadContributors({
+    required AppDraftStore draftStore,
+    required AppVersionStore versionStore,
+  }) {
+    return [
+      JsonStorePayloadContributor(
+        filename: 'draft.json',
+        exportJson: draftStore.exportJson,
+        importJson: draftStore.importJson,
+      ),
+      JsonStorePayloadContributor(
+        filename: 'versions.json',
+        exportJson: versionStore.exportJson,
+        importJson: versionStore.importJson,
+      ),
+    ];
+  }
+
+  List<StorePayloadContributor> _optionalStorePayloadContributors({
+    AppAiHistoryStore? aiHistoryStore,
+    AppSceneContextStore? sceneContextStore,
+    AppSimulationStore? simulationStore,
+    StoryOutlineStore? storyOutlineStore,
+    StoryGenerationStore? storyGenerationStore,
+  }) {
+    return [
+      if (aiHistoryStore != null)
+        JsonStorePayloadContributor(
+          filename: 'ai_history.json',
+          exportJson: aiHistoryStore.exportJson,
+          importJson: aiHistoryStore.importJson,
+        ),
+      if (sceneContextStore != null)
+        JsonStorePayloadContributor(
+          filename: 'scene_context.json',
+          exportJson: sceneContextStore.exportJson,
+          importJson: sceneContextStore.importJson,
+        ),
+      if (simulationStore != null)
+        JsonStorePayloadContributor(
+          filename: 'simulation.json',
+          exportJson: simulationStore.exportJson,
+          importJson: simulationStore.importJson,
+        ),
+      if (storyOutlineStore != null)
+        JsonStorePayloadContributor(
+          filename: 'outline.json',
+          exportJson: storyOutlineStore.exportJson,
+          importJson: storyOutlineStore.importJson,
+        ),
+      if (storyGenerationStore != null)
+        JsonStorePayloadContributor(
+          filename: 'generation_state.json',
+          exportJson: storyGenerationStore.exportJson,
+          importJson: storyGenerationStore.importJson,
+        ),
+    ];
+  }
+
+  List<AsyncStorePayloadContributor> _asyncStorePayloadContributors() {
+    return [
+      _storyMemoryPayloadContributor(),
+      _roleplayStatePayloadContributor(),
+    ];
+  }
+
+  AsyncStorePayloadContributor _storyMemoryPayloadContributor() {
+    return AsyncJsonStorePayloadContributor(
+      filename: 'story_memory.json',
+      exportJson: (projectId) async {
+        final exporter = storyMemoryExport;
+        if (exporter == null) return null;
+        return exporter(projectId);
+      },
+      importJson: (projectId, data) async {
+        final importer = storyMemoryImport;
+        if (importer == null) return;
+        await importer(projectId, data);
+      },
+    );
+  }
+
+  AsyncStorePayloadContributor _roleplayStatePayloadContributor() {
+    return AsyncJsonStorePayloadContributor(
+      filename: 'roleplay_state.json',
+      exportJson: (projectId) {
+        final exporter = roleplayStateExport ?? exportRoleplayStateForProject;
+        return exporter(projectId);
+      },
+      importJson: (projectId, data) {
+        final importer = roleplayStateImport ?? importRoleplayStateForProject;
+        return importer(projectId, data);
+      },
+      exportSidecars: _roleplayStateSidecars,
+    );
+  }
+
+  Iterable<StorePayloadSidecar> _roleplayStateSidecars(
+    Map<String, Object?> data,
+  ) {
+    final auditReports = data['auditReports'];
+    final auditMarkdown = data['auditMarkdown'];
+    return [
+      if (auditReports is List && auditReports.isNotEmpty)
+        StorePayloadSidecar.json(
+          filename: 'roleplay_audit.json',
+          data: {'reports': auditReports},
+        ),
+      if (auditMarkdown is String && auditMarkdown.trim().isNotEmpty)
+        StorePayloadSidecar.text(
+          filename: 'roleplay_audit.md',
+          content: auditMarkdown,
+        ),
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Config-aware payload filtering
+  // ---------------------------------------------------------------------------
+
+  /// Map each sync payload filename to its [ExportEntityType].
+  static ExportEntityType? _entityTypeForFilename(String filename) {
+    return switch (filename) {
+      'draft.json' => ExportEntityType.drafts,
+      'versions.json' => ExportEntityType.versions,
+      'ai_history.json' => ExportEntityType.aiHistory,
+      'scene_context.json' => ExportEntityType.sceneContext,
+      'simulation.json' => ExportEntityType.simulations,
+      'outline.json' => ExportEntityType.outlines,
+      'generation_state.json' => ExportEntityType.generationState,
+      _ => null,
+    };
+  }
+
+  /// Map each async payload filename to its [ExportEntityType].
+  static ExportEntityType? _asyncEntityTypeForFilename(String filename) {
+    return switch (filename) {
+      'story_memory.json' => ExportEntityType.storyMemory,
+      'roleplay_state.json' => ExportEntityType.roleplayState,
+      _ => null,
+    };
+  }
+
+  /// Filter sync payloads by [config], excluding entities the config skips.
+  List<StorePayloadContributor> _filterPayloadsByConfig(
+    List<StorePayloadContributor> payloads,
+    ExportConfig config,
+  ) {
+    return [
+      for (final payload in payloads)
+        if (_entityTypeForFilename(payload.filename)
+            case final type?
+            when config.shouldExport(type))
+          payload,
+    ];
+  }
+
+  /// Filter async payloads by [config], excluding entities the config skips.
+  List<AsyncStorePayloadContributor> _filterAsyncPayloadsByConfig(
+    List<AsyncStorePayloadContributor> payloads,
+    ExportConfig config,
+  ) {
+    return [
+      for (final payload in payloads)
+        if (_asyncEntityTypeForFilename(payload.filename)
+            case final type?
+            when config.shouldExport(type))
+          payload,
+    ];
+  }
+
+  /// Write a sync payload, applying field filtering from [config].
+  Future<void> _writeFilteredStorePayload(
+    Directory stagingDirectory,
+    StorePayloadContributor payload,
+    ExportConfig config,
   ) async {
-    final file = File('${extraction.path}/$filename');
+    final entityType = _entityTypeForFilename(payload.filename);
+    if (entityType == null) {
+      // Unknown payload type – write unfiltered for forward compatibility.
+      return _writeStorePayload(stagingDirectory, payload);
+    }
+    final rawJson = payload.exportJson();
+    final filteredJson = ExportFilter.filterStorePayload(
+      rawJson,
+      entityType,
+      config,
+    );
+    if (filteredJson.isEmpty) return;
+    await File(
+      '${stagingDirectory.path}/${payload.filename}',
+    ).writeAsString(jsonEncode(filteredJson));
+  }
+
+  /// Write async payloads with filtering.
+  Future<void> _writeFilteredAsyncStorePayloads(
+    Directory stagingDirectory,
+    List<AsyncStorePayloadContributor> payloads,
+    String projectId,
+    ExportConfig config,
+  ) async {
+    for (final payload in payloads) {
+      final data = await payload.exportJson(projectId);
+      if (data == null) continue;
+
+      final entityType = _asyncEntityTypeForFilename(payload.filename);
+      final filteredData = entityType != null
+          ? ExportFilter.filterStorePayload(data, entityType, config)
+          : data;
+      if (filteredData.isEmpty) continue;
+
+      await Future.wait([
+        File(
+          '${stagingDirectory.path}/${payload.filename}',
+        ).writeAsString(jsonEncode(filteredData)),
+        for (final sidecar in payload.exportSidecars(data))
+          _writeStorePayloadSidecar(stagingDirectory, sidecar),
+      ]);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Store payload I/O
+  // ---------------------------------------------------------------------------
+
+  Future<void> _writeStorePayload(
+    Directory stagingDirectory,
+    StorePayloadContributor payload,
+  ) {
+    return File(
+      '${stagingDirectory.path}/${payload.filename}',
+    ).writeAsString(jsonEncode(payload.exportJson()));
+  }
+
+  Future<void> _writeStorePayloadSidecar(
+    Directory stagingDirectory,
+    StorePayloadSidecar sidecar,
+  ) {
+    final content = switch (sidecar.encoding) {
+      StorePayloadSidecarEncoding.json => jsonEncode(sidecar.jsonData),
+      StorePayloadSidecarEncoding.text => sidecar.text ?? '',
+    };
+    return File(
+      '${stagingDirectory.path}/${sidecar.filename}',
+    ).writeAsString(content);
+  }
+
+  Future<bool> _hasRequiredStorePayloads(
+    Directory extraction,
+    List<StorePayloadContributor> payloads,
+  ) async {
+    for (final payload in payloads) {
+      final file = File('${extraction.path}/${payload.filename}');
+      if (!await file.exists()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _importStorePayloads(
+    Directory extraction,
+    List<StorePayloadContributor> payloads,
+  ) async {
+    final imports = await Future.wait([
+      for (final payload in payloads) _readStorePayload(extraction, payload),
+    ]);
+    for (final item in imports) {
+      if (item == null) {
+        continue;
+      }
+      item.payload.importJson(item.data);
+    }
+  }
+
+  Future<void> _importAsyncStorePayloads(
+    Directory extraction,
+    List<AsyncStorePayloadContributor> payloads,
+    String? projectId,
+  ) async {
+    if (projectId == null || projectId.isEmpty) return;
+    for (final payload in payloads) {
+      await _readAsyncStorePayload(extraction, payload, projectId);
+    }
+  }
+
+  Future<DecodedStorePayload?> _readStorePayload(
+    Directory extraction,
+    StorePayloadContributor payload,
+  ) async {
+    final file = File('${extraction.path}/${payload.filename}');
     if (!await file.exists()) return null;
-    return _decodeObjectMap(jsonDecode(await file.readAsString()));
+    return DecodedStorePayload(
+      payload: payload,
+      data: _decodeObjectMap(jsonDecode(await file.readAsString())),
+    );
+  }
+
+  Future<void> _readAsyncStorePayload(
+    Directory extraction,
+    AsyncStorePayloadContributor payload,
+    String projectId,
+  ) async {
+    final file = File('${extraction.path}/${payload.filename}');
+    if (!await file.exists()) return;
+    await payload.importJson(
+      projectId,
+      _decodeObjectMap(jsonDecode(await file.readAsString())),
+    );
   }
 
   static Directory _defaultExportsDirectory() {
@@ -858,97 +1045,4 @@ class ProjectTransferService {
       metadata: metadata,
     );
   }
-}
-
-Future<Map<String, Object?>?> exportRoleplayStateForProject(
-  String projectId,
-) async {
-  final database = openAuthoringDatabase(resolveAuthoringDbPath());
-  try {
-    final roleplayData = await RoleplaySessionStoreIO(
-      db: database,
-    ).exportProjectJson(projectId);
-    final roleplayStore = RoleplaySessionStoreIO(db: database);
-    final sessions = await roleplayStore.loadProjectSessions(
-      projectId: projectId,
-    );
-    final auditReports = const RoleplayAuditReportBuilder().buildAll(sessions);
-    final memoryData = await CharacterMemoryStoreIO(
-      db: database,
-    ).exportProjectJson(projectId);
-    if (roleplayData == null && memoryData == null && auditReports.isEmpty) {
-      return null;
-    }
-    return {
-      if (roleplayData != null) 'roleplaySessions': roleplayData,
-      if (memoryData != null) 'characterMemories': memoryData,
-      if (auditReports.isNotEmpty)
-        'auditReports': [for (final report in auditReports) report.toJson()],
-      if (auditReports.isNotEmpty)
-        'auditMarkdown': auditReports
-            .map((report) => report.toMarkdown())
-            .join('\n\n'),
-    };
-  } finally {
-    database.dispose();
-  }
-}
-
-Future<void> importRoleplayStateForProject(
-  String projectId,
-  Map<String, Object?> data,
-) async {
-  final database = openAuthoringDatabase(resolveAuthoringDbPath());
-  try {
-    final roleplayRaw = data['roleplaySessions'];
-    if (roleplayRaw is Map) {
-      await RoleplaySessionStoreIO(
-        db: database,
-      ).importProjectJson(projectId, Map<String, Object?>.from(roleplayRaw));
-    }
-    final memoryRaw = data['characterMemories'];
-    if (memoryRaw is Map) {
-      await CharacterMemoryStoreIO(
-        db: database,
-      ).importProjectJson(projectId, Map<String, Object?>.from(memoryRaw));
-    }
-  } finally {
-    database.dispose();
-  }
-}
-
-Map<String, Object?> decodeProjectTransferObjectMap(Object? raw) {
-  if (raw is Map<String, Object?>) {
-    return raw;
-  }
-  if (raw is Map) {
-    return {for (final entry in raw.entries) entry.key.toString(): entry.value};
-  }
-  throw const FormatException('Expected object map payload.');
-}
-
-String computePayloadChecksum(String content) {
-  final bytes = utf8.encode(content);
-  var hash = 0x811c9dc5;
-  for (final b in bytes) {
-    hash ^= b;
-    hash = (hash * 0x01000193) & 0xFFFFFFFF;
-  }
-  return hash.toUnsigned(32).toRadixString(16).padLeft(8, '0');
-}
-
-Directory resolveProjectTransferExportsDirectory({String? homeOverride}) {
-  final home = homeOverride ?? Platform.environment['HOME'];
-  if (home == null || home.isEmpty) {
-    return Directory('./exports');
-  }
-  return Directory('$home/Documents/NovelWriter/exports');
-}
-
-Directory resolveProjectTransferImportsDirectory({String? homeOverride}) {
-  final home = homeOverride ?? Platform.environment['HOME'];
-  if (home == null || home.isEmpty) {
-    return Directory('./imports');
-  }
-  return Directory('$home/Documents/NovelWriter/imports');
 }

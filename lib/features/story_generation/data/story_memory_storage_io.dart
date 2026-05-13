@@ -59,21 +59,13 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
     List<StoryMemorySource> sources,
   ) async {
     await ensureTables();
-    final existing = await loadSources(projectId);
-    final existingIds = {for (final s in existing) s.id};
     for (final source in sources) {
       final json = jsonEncode(source.toJson());
-      if (existingIds.contains(source.id)) {
-        db.execute(
-          'UPDATE story_memory_sources SET data = ? WHERE id = ?',
-          [json, source.id],
-        );
-      } else {
-        db.execute(
-          'INSERT INTO story_memory_sources (id, project_id, data) VALUES (?, ?, ?)',
-          [source.id, projectId, json],
-        );
-      }
+      db.execute(
+        'INSERT INTO story_memory_sources (id, project_id, data) VALUES (?, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET data = excluded.data',
+        [source.id, projectId, json],
+      );
     }
   }
 
@@ -98,21 +90,13 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
     List<StoryMemoryChunk> chunks,
   ) async {
     await ensureTables();
-    final existing = await loadChunks(projectId);
-    final existingIds = {for (final c in existing) c.id};
     for (final chunk in chunks) {
       final json = jsonEncode(chunk.toJson());
-      if (existingIds.contains(chunk.id)) {
-        db.execute(
-          'UPDATE story_memory_chunks SET data = ? WHERE id = ?',
-          [json, chunk.id],
-        );
-      } else {
-        db.execute(
-          'INSERT INTO story_memory_chunks (id, project_id, data) VALUES (?, ?, ?)',
-          [chunk.id, projectId, json],
-        );
-      }
+      db.execute(
+        'INSERT INTO story_memory_chunks (id, project_id, data) VALUES (?, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET data = excluded.data',
+        [chunk.id, projectId, json],
+      );
     }
   }
 
@@ -137,21 +121,13 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
     List<ThoughtAtom> thoughts,
   ) async {
     await ensureTables();
-    final existing = await loadThoughts(projectId);
-    final existingIds = {for (final t in existing) t.id};
     for (final thought in thoughts) {
       final json = jsonEncode(thought.toJson());
-      if (existingIds.contains(thought.id)) {
-        db.execute(
-          'UPDATE story_thought_atoms SET data = ? WHERE id = ?',
-          [json, thought.id],
-        );
-      } else {
-        db.execute(
-          'INSERT INTO story_thought_atoms (id, project_id, data) VALUES (?, ?, ?)',
-          [thought.id, projectId, json],
-        );
-      }
+      db.execute(
+        'INSERT INTO story_thought_atoms (id, project_id, data) VALUES (?, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET data = excluded.data',
+        [thought.id, projectId, json],
+      );
     }
   }
 

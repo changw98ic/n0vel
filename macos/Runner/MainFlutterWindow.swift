@@ -16,4 +16,21 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
   }
+
+  override func performKeyEquivalent(with event: NSEvent) -> Bool {
+    if let vc = contentViewController as? FlutterViewController {
+      if vc.performKeyEquivalent(with: event) {
+        return true
+      }
+    }
+    return super.performKeyEquivalent(with: event)
+  }
+
+  override func keyDown(with event: NSEvent) {
+    if let vc = contentViewController as? FlutterViewController {
+      vc.keyDown(with: event)
+    } else {
+      super.keyDown(with: event)
+    }
+  }
 }

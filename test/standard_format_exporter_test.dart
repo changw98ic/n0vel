@@ -143,7 +143,7 @@ void main() {
     });
 
     test('includes outline when present', () {
-      final outline = StoryOutlineSnapshot(
+      const outline = StoryOutlineSnapshot(
         projectId: 'project-test',
         chapters: [
           StoryOutlineChapterSnapshot(
@@ -179,8 +179,8 @@ void main() {
     });
 
     test('omits empty sections', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: '空项目',
@@ -189,9 +189,9 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [],
+        scenes: [],
+        worldNodes: [],
       );
       final result = exporter.export(input, StandardExportFormat.markdown);
       expect(result, contains('# 空项目'));
@@ -210,7 +210,7 @@ void main() {
 
   group('Manuscript export', () {
     test('markdown exports a submission-ready manuscript only', () {
-      final outline = StoryOutlineSnapshot(
+      const outline = StoryOutlineSnapshot(
         projectId: 'project-test',
         chapters: [
           StoryOutlineChapterSnapshot(
@@ -282,7 +282,7 @@ void main() {
     test(
       'single outline chapter is used as body heading when draft has none',
       () {
-        final outline = StoryOutlineSnapshot(
+        const outline = StoryOutlineSnapshot(
           projectId: 'project-test',
           chapters: [
             StoryOutlineChapterSnapshot(
@@ -342,7 +342,7 @@ void main() {
     });
 
     test('includes outline when present', () {
-      final outline = StoryOutlineSnapshot(
+      const outline = StoryOutlineSnapshot(
         projectId: 'project-test',
         chapters: [
           StoryOutlineChapterSnapshot(
@@ -378,8 +378,8 @@ void main() {
     });
 
     test('omits outline and draft sections when empty', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: '测试',
@@ -388,9 +388,9 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [],
+        scenes: [],
+        worldNodes: [],
       );
       final result = exporter.export(input, StandardExportFormat.plainText);
       expect(result, isNot(contains('========== 大纲 ==========')));
@@ -424,7 +424,7 @@ void main() {
     });
 
     test('includes outline when present', () {
-      final outline = StoryOutlineSnapshot(
+      const outline = StoryOutlineSnapshot(
         projectId: 'project-test',
         chapters: [
           StoryOutlineChapterSnapshot(id: 'ch-1', title: '第一章', summary: '摘要'),
@@ -459,8 +459,8 @@ void main() {
 
   group('edge cases', () {
     test('empty project exports without errors', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p-empty',
           sceneId: 's-empty',
           title: '空',
@@ -469,9 +469,9 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [],
+        scenes: [],
+        worldNodes: [],
       );
 
       for (final format in StandardExportFormat.values) {
@@ -481,8 +481,8 @@ void main() {
     });
 
     test('character with minimal fields exports cleanly', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: 'T',
@@ -491,17 +491,17 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [CharacterRecord(id: 'c1')],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [CharacterRecord(id: 'c1')],
+        scenes: [],
+        worldNodes: [],
       );
       final md = exporter.export(input, StandardExportFormat.markdown);
       expect(md, contains('### 新角色'));
     });
 
     test('world node with minimal fields exports cleanly', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: 'T',
@@ -510,9 +510,9 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [WorldNodeRecord(id: 'w1')],
+        characters: [],
+        scenes: [],
+        worldNodes: [WorldNodeRecord(id: 'w1')],
       );
       final md = exporter.export(input, StandardExportFormat.markdown);
       expect(md, contains('### 新节点'));
@@ -564,8 +564,8 @@ void main() {
     });
 
     test('escapes HTML special characters', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: 'A <B> "C" & D',
@@ -574,16 +574,16 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [],
+        scenes: [],
+        worldNodes: [],
       );
       final result = exporter.export(input, StandardExportFormat.html);
       expect(result, contains('A &lt;B&gt; &quot;C&quot; &amp; D'));
     });
 
     test('manuscript mode includes word count and TOC', () {
-      final outline = StoryOutlineSnapshot(
+      const outline = StoryOutlineSnapshot(
         projectId: 'project-test',
         chapters: [
           StoryOutlineChapterSnapshot(id: 'ch-1', title: '第一章', summary: ''),
@@ -603,8 +603,8 @@ void main() {
     });
 
     test('omits sections when data is empty', () {
-      final input = StandardExportInput(
-        project: const ProjectRecord(
+      const input = StandardExportInput(
+        project: ProjectRecord(
           id: 'p1',
           sceneId: 's1',
           title: '空项目',
@@ -613,9 +613,9 @@ void main() {
           recentLocation: '',
           lastOpenedAtMs: 0,
         ),
-        characters: const [],
-        scenes: const [],
-        worldNodes: const [],
+        characters: [],
+        scenes: [],
+        worldNodes: [],
       );
       final result = exporter.export(input, StandardExportFormat.html);
       expect(result, isNot(contains('<h2>角色</h2>')));

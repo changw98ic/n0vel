@@ -34,8 +34,8 @@ void main() {
       final theme = AppTheme.dark();
       final palette = theme.extension<DesktopPalette>();
       expect(palette, isNotNull);
-      expect(palette!.primary, const Color(0xFF91A78A));
-      expect(palette.canvas, const Color(0xFF221D1A));
+      expect(palette!.primary, const Color(0xFF8DAA95));
+      expect(palette.canvas, const Color(0xFF1B1F1C));
     });
 
     test('light and dark themes have different primary colors', () {
@@ -59,14 +59,15 @@ void main() {
       expect(theme.scaffoldBackgroundColor, palette.canvas);
     });
 
-    test('typography uses Inter and Geist font families', () {
+    test('typography configures correct text styles', () {
       final theme = AppTheme.light();
-      expect(theme.textTheme.headlineSmall?.fontFamily, 'Inter');
-      expect(theme.textTheme.titleMedium?.fontFamily, 'Inter');
-      expect(theme.textTheme.titleSmall?.fontFamily, 'Inter');
-      expect(theme.textTheme.bodyMedium?.fontFamily, 'Geist');
-      expect(theme.textTheme.bodySmall?.fontFamily, 'Inter');
-      expect(theme.textTheme.labelMedium?.fontFamily, 'Inter');
+      expect(theme.textTheme.headlineSmall?.fontSize, 24);
+      expect(theme.textTheme.headlineSmall?.fontWeight, FontWeight.w600);
+      expect(theme.textTheme.titleMedium?.fontSize, 18);
+      expect(theme.textTheme.titleSmall?.fontSize, 16);
+      expect(theme.textTheme.bodyMedium?.fontSize, 14);
+      expect(theme.textTheme.bodySmall?.fontSize, 13);
+      expect(theme.textTheme.labelMedium?.fontSize, 12);
     });
 
     test('input decoration uses palette border and elevated colors', () {

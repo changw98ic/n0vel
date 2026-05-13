@@ -722,9 +722,9 @@ class SceneRoleplayRuntime {
 
   int? _metadataInt(Object? raw) {
     return switch (raw) {
-      int value => value,
-      num value => value.toInt(),
-      String value => int.tryParse(value.trim()),
+      final int value => value,
+      final num value => value.toInt(),
+      final String value => int.tryParse(value.trim()),
       _ => null,
     };
   }
@@ -761,9 +761,9 @@ class SceneRoleplayRuntime {
         taskCard?.metadata['roleplayRounds'] ??
         brief.metadata['roleplayRounds'];
     final parsed = switch (raw) {
-      int value => value,
-      num value => value.toInt(),
-      String value => int.tryParse(value.trim()),
+      final int value => value,
+      final num value => value.toInt(),
+      final String value => int.tryParse(value.trim()),
       _ => null,
     };
     return (parsed ?? defaultMaxRounds).clamp(1, 5).toInt();
@@ -932,9 +932,9 @@ class SceneRoleplaySpeakerScheduler {
 
   int? _metadataInt(Object? raw) {
     return switch (raw) {
-      int value => value,
-      num value => value.toInt(),
-      String value => int.tryParse(value.trim()),
+      final int value => value,
+      final num value => value.toInt(),
+      final String value => int.tryParse(value.trim()),
       _ => null,
     };
   }

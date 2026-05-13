@@ -59,3 +59,6 @@ docs/pencil-dark-mode/.omx/
 # Local workflow artifacts
 .claude/
 artifacts/
+.codex_tmp_pen_exports/
+editor.pen
+manual-test-assets/

@@ -150,7 +150,7 @@ void main() {
 
   group('SocialPositionSlice', () {
     test('constructs with defaults', () {
-      final pos = SocialPositionSlice(
+      const pos = SocialPositionSlice(
         characterId: 'liuxi',
         contextId: 'scene-03',
         role: '调查者',
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('serializes round-trip', () {
-      final original = SocialPositionSlice(
+      const original = SocialPositionSlice(
         characterId: 'fuxingzhou',
         contextId: 'scene-03',
         role: '保全主管',
@@ -220,7 +220,7 @@ void main() {
   });
 
   group('CharacterCognitionSnapshot', () {
-    final liuxi = CharacterRecord(
+    const liuxi = CharacterRecord(
       id: 'character-liuxi',
       name: '柳溪',
       role: '调查记者',
@@ -319,13 +319,13 @@ void main() {
         name: '柳溪',
         role: '调查记者',
         socialPositions: [
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'liuxi',
             contextId: 'scene-03',
             role: '追索者',
             rank: 2,
           ),
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'liuxi',
             contextId: 'scene-05',
             role: '对峙方',
@@ -362,7 +362,7 @@ void main() {
           ),
         ],
         socialPositions: [
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'liuxi',
             contextId: 'scene-03',
             role: '追索者',
@@ -437,7 +437,7 @@ void main() {
   });
 
   group('CharacterCognitionSnapshotBuilder', () {
-    final liuxi = CharacterRecord(
+    const liuxi = CharacterRecord(
       id: 'character-liuxi',
       name: '柳溪',
       role: '调查记者',
@@ -445,7 +445,7 @@ void main() {
       need: '承认她也会判断失误',
       summary: '冷静、急迫、对线索高度敏感',
     );
-    final yueren = CharacterRecord(
+    const yueren = CharacterRecord(
       id: 'character-yueren',
       name: '岳人',
       role: '线人',
@@ -527,12 +527,12 @@ void main() {
           ),
         ],
         socialPositions: [
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'character-liuxi',
             contextId: 'scene-03',
             role: '追索者',
           ),
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'character-yueren',
             contextId: 'scene-05',
             role: '信息源',
@@ -571,12 +571,12 @@ void main() {
         characters: [liuxi],
         sceneId: 'scene-03',
         socialPositions: [
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'character-liuxi',
             contextId: 'scene-03',
             role: '追索者',
           ),
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'character-liuxi',
             contextId: 'scene-05',
             role: '对峙方',
@@ -593,7 +593,7 @@ void main() {
         characters: [liuxi],
         sceneId: 'scene-03',
         socialPositions: [
-          SocialPositionSlice(
+          const SocialPositionSlice(
             characterId: 'character-liuxi',
             contextId: '',
             role: '全局观察者',

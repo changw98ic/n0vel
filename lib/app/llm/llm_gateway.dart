@@ -7,13 +7,15 @@ import 'package:dio/dio.dart';
 import 'app_http_client.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
+import 'app_llm_provider_adapters.dart';
 import 'app_llm_response_decoding.dart';
 import 'token_usage.dart';
 
 class LlmGateway implements AppLlmClient {
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
-    final endpoint = _chatCompletionsUri(request.baseUrl);
+    final adapter = AppLlmProviderAdapters.of(request.provider);
+    final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
     if (endpoint == null) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.network,
@@ -28,23 +30,17 @@ class LlmGateway implements AppLlmClient {
       final result = await (() async {
         final response = await dio.postUri<ResponseBody>(
           endpoint,
-          data: <String, Object?>{
-            'model': request.model,
-            'messages': [
-              for (final message in request.messages) message.toJson(),
-            ],
-            'stream': true,
-          },
+          data: adapter.buildBody(
+            model: request.model,
+            messages: request.messages,
+            maxTokens: request.effectiveMaxTokens,
+          ),
           options: Options(
             connectTimeout: Duration(milliseconds: request.timeoutMs),
             receiveTimeout: Duration(milliseconds: request.timeoutMs),
             sendTimeout: Duration(milliseconds: request.timeoutMs),
             responseType: ResponseType.stream,
-            headers: {
-              if (request.apiKey.trim().isNotEmpty)
-                HttpHeaders.authorizationHeader:
-                    'Bearer ${request.apiKey.trim()}',
-            },
+            headers: adapter.buildHeaders(request.apiKey),
           ),
         );
         final statusCode = response.statusCode ?? 0;
@@ -71,6 +67,14 @@ class LlmGateway implements AppLlmClient {
           );
         }
 
+        if (statusCode == HttpStatus.tooManyRequests) {
+          return AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.rateLimited,
+            statusCode: statusCode,
+            detail: _normalizeDetail(streamed.rawBody),
+          );
+        }
+
         if (statusCode < 200 || statusCode >= 300) {
           return AppLlmChatResult.failure(
             failureKind: AppLlmFailureKind.server,
@@ -81,7 +85,7 @@ class LlmGateway implements AppLlmClient {
 
         final text = streamed.text.trim();
         if (text.isEmpty) {
-          final fallbackText = _decodeNonStreamedText(streamed.rawBody);
+          final fallbackText = adapter.decodeOutputText(streamed.rawBody);
           if (fallbackText == null || fallbackText.trim().isEmpty) {
             return AppLlmChatResult.failure(
               failureKind: AppLlmFailureKind.invalidResponse,
@@ -238,22 +242,14 @@ class LlmGateway implements AppLlmClient {
     }
   }
 
-  Uri? _chatCompletionsUri(String baseUrl) {
+  Uri? _resolveEndpoint(String baseUrl, String endpointPath) {
     final trimmed = baseUrl.trim();
     if (trimmed.isEmpty) return null;
     final baseUri = Uri.tryParse(trimmed);
     if (baseUri == null) return null;
     final needsTrailingSlash = trimmed.endsWith('/');
     final normalized = needsTrailingSlash ? trimmed : '$trimmed/';
-    return Uri.tryParse('${normalized}chat/completions');
-  }
-
-  String? _decodeNonStreamedText(String body) {
-    try {
-      return decodeOpenAiChatResponseBody(body)?.text;
-    } on FormatException {
-      return null;
-    }
+    return Uri.tryParse('$normalized$endpointPath');
   }
 
   String? _normalizeDetail(String body) {

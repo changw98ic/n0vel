@@ -38,7 +38,7 @@ void main() {
           baseUrl: _baseUrl(server, suffix: '/v1'),
           apiKey: '  sk-real-key  ',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [
             AppLlmChatMessage(role: 'system', content: '你是写作助手'),
             AppLlmChatMessage(role: 'user', content: '请给我一句建议'),
@@ -98,7 +98,7 @@ void main() {
             baseUrl: _baseUrl(server),
             apiKey: '   ',
             model: 'gpt-5.4-mini',
-            timeout: AppLlmTimeoutConfig.uniform(1000),
+            timeout: const AppLlmTimeoutConfig.uniform(1000),
             messages: const [
               AppLlmChatMessage(role: 'user', content: '拼接返回文本'),
             ],
@@ -128,7 +128,7 @@ void main() {
           baseUrl: _baseUrl(server, withTrailingSlash: true),
           apiKey: 'sk-response',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: '走 response 分支'),
           ],
@@ -248,7 +248,7 @@ void main() {
             baseUrl: _baseUrl(unauthorizedServer),
             apiKey: 'sk-bad',
             model: 'gpt-5.4',
-            timeout: AppLlmTimeoutConfig.uniform(1000),
+            timeout: const AppLlmTimeoutConfig.uniform(1000),
             messages: const [AppLlmChatMessage(role: 'user', content: '鉴权失败')],
           ),
         );
@@ -273,7 +273,7 @@ void main() {
             baseUrl: _baseUrl(missingModelServer),
             apiKey: 'sk-ok',
             model: 'missing-model',
-            timeout: AppLlmTimeoutConfig.uniform(1000),
+            timeout: const AppLlmTimeoutConfig.uniform(1000),
             messages: const [AppLlmChatMessage(role: 'user', content: '模型不存在')],
           ),
         );
@@ -303,7 +303,7 @@ void main() {
             baseUrl: _baseUrl(malformedServer),
             apiKey: 'sk-ok',
             model: 'gpt-5.4',
-            timeout: AppLlmTimeoutConfig.uniform(1000),
+            timeout: const AppLlmTimeoutConfig.uniform(1000),
             messages: const [
               AppLlmChatMessage(role: 'user', content: '坏 json'),
             ],
@@ -337,7 +337,7 @@ void main() {
             baseUrl: _baseUrl(emptyBodyServer),
             apiKey: 'sk-ok',
             model: 'gpt-5.4',
-            timeout: AppLlmTimeoutConfig.uniform(1000),
+            timeout: const AppLlmTimeoutConfig.uniform(1000),
             messages: const [AppLlmChatMessage(role: 'user', content: '空响应')],
           ),
         );
@@ -378,7 +378,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4-mini',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: '请只回复 pong'),
           ],
@@ -417,7 +417,7 @@ void main() {
             baseUrl: _baseUrl(slowServer),
             apiKey: 'sk-ok',
             model: 'gpt-5.4',
-            timeout: AppLlmTimeoutConfig.uniform(20),
+            timeout: const AppLlmTimeoutConfig.uniform(20),
             messages: const [AppLlmChatMessage(role: 'user', content: '超时')],
           ),
         );
@@ -488,7 +488,7 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [AppLlmChatMessage(role: 'user', content: '服务端错误')],
         ),
       );
@@ -509,7 +509,7 @@ void main() {
           baseUrl: 'http://127.0.0.1:$port/v1',
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [AppLlmChatMessage(role: 'user', content: '关闭端口')],
         ),
       );
@@ -696,7 +696,7 @@ void main() {
           baseUrl: 'http://127.0.0.1:${server.port}/v1',
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: AppLlmTimeoutConfig.uniform(1000),
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
           messages: const [
             AppLlmChatMessage(role: 'user', content: '坏 http 响应'),
           ],

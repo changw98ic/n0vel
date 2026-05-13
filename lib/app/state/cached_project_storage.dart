@@ -69,6 +69,20 @@ class CachedProjectStorage implements ProjectStorage {
     await _delegate.clear(projectId: projectId);
   }
 
+  @override
+  Future<void> clearProject(String projectId) async {
+    _writeTimer?.cancel();
+    _writeTimer = null;
+    final sceneScopePrefix = '$projectId::';
+    _cache.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
+    _pending.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
+    await _delegate.clearProject(projectId);
+  }
+
   /// Forces all pending writes to disk immediately.
   Future<void> flush() async {
     _writeTimer?.cancel();

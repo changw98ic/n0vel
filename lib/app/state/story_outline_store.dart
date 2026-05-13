@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:novel_writer/features/story_generation/domain/outline_plan_models.dart';
 
 import 'app_project_scoped_store.dart';
@@ -298,9 +297,9 @@ class StoryOutlineSnapshot {
 }
 
 class StoryOutlineStore extends AppProjectScopedStore {
-  StoryOutlineStore({StoryOutlineStorage? storage, super.workspaceStore})
+  StoryOutlineStore({StoryOutlineStorage? storage, super.workspaceStore, super.eventBus})
     : _storage =
-          storage ?? debugStorageOverride ?? createDefaultStoryOutlineStorage(),
+          storage ?? createDefaultStoryOutlineStorage(),
       super(
         scopeMode: AppStoreScopeMode.project,
         fallbackProjectId: _fallbackStoryOutlineProjectId,
@@ -309,9 +308,7 @@ class StoryOutlineStore extends AppProjectScopedStore {
     onRestore();
   }
 
-  @visibleForTesting
-  static StoryOutlineStorage? debugStorageOverride;
-
+  
   final StoryOutlineStorage _storage;
   final Map<String, StoryOutlineSnapshot> _snapshotsByProjectId = {};
   late StoryOutlineSnapshot _snapshot;
@@ -361,6 +358,15 @@ class StoryOutlineStore extends AppProjectScopedStore {
 
   Future<void> _persist() =>
       _storage.save(_snapshot.toJson(), projectId: activeProjectId);
+
+  @override
+  void onProjectDeleted(String projectId) {
+    _snapshotsByProjectId.remove(projectId);
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 }
 
 Map<String, Object?> _asStringObjectMap(Object? value) {

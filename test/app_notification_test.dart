@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/events/app_domain_events.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
-import 'package:novel_writer/app/events/app_event_bus_scope.dart';
 import 'package:novel_writer/app/theme/app_theme.dart';
 import 'package:novel_writer/app/widgets/app_notification.dart';
 
@@ -20,8 +21,10 @@ void main() {
 
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
-      AppEventBusScope(
-        bus: eventBus,
+      ProviderScope(
+        overrides: [
+          appEventBusProvider.overrideWithValue(eventBus),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           builder: (context, child) =>
@@ -160,8 +163,10 @@ void main() {
 
   testWidgets('publishes event via event bus directly', (tester) async {
     await tester.pumpWidget(
-      AppEventBusScope(
-        bus: eventBus,
+      ProviderScope(
+        overrides: [
+          appEventBusProvider.overrideWithValue(eventBus),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           builder: (context, child) =>

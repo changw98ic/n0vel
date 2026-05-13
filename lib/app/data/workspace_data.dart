@@ -1,5 +1,4 @@
 import '../state/app_workspace_defaults.dart';
-import '../state/app_workspace_records.dart';
 import 'workspace_validator.dart';
 
 class WorkspaceData {

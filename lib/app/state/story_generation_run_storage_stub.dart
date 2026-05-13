@@ -13,6 +13,9 @@ class _NoopStoryGenerationRunStorage implements StoryGenerationRunStorage {
 
   @override
   Future<void> clear({String? sceneScopeId}) async {}
+
+  @override
+  Future<void> clearProject(String projectId) async {}
 }
 
 StoryGenerationRunStorage createStoryGenerationRunStorage() =>

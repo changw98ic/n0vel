@@ -1,20 +1,24 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
-import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/theme/app_design_tokens.dart';
+import 'work_settings_hub_components.dart';
 
-class WorkSettingsHubPage extends StatelessWidget {
+class WorkSettingsHubPage extends ConsumerWidget {
   const WorkSettingsHubPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final workspaceStore = AppWorkspaceScope.of(context);
-    final sceneContextStore = AppSceneContextScope.of(context);
-    final draftStore = AppDraftScope.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+    final sceneContextStore = ref.watch(appSceneContextStoreProvider);
+    final draftStore = ref.watch(appDraftStoreProvider);
     final merged = Listenable.merge([
       workspaceStore,
       sceneContextStore,
@@ -32,102 +36,182 @@ class WorkSettingsHubPage extends StatelessWidget {
 
         return DesktopShellFrame(
           header: DesktopHeaderBar(
-            title: '作品设定',
-            subtitle: summary.headerSubtitle,
-            showBackButton: true,
+            tabs: const ['书架', '作品资料', '编辑'],
+            activeTabIndex: 1,
+            onTabChanged: (i) {
+              if (i == 0) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              } else if (i == 2) {
+                AppNavigator.push(context, AppRoutes.workbench);
+              }
+            },
+            actions: [
+              DesignActionButton(
+                icon: Icons.edit_note,
+                label: '进入编辑',
+                onPressed: () => AppNavigator.push(context, AppRoutes.workbench),
+              ),
+            ],
           ),
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final cardWidth = constraints.maxWidth > 960
-                  ? 280.0
-                  : constraints.maxWidth > 600
-                  ? 240.0
-                  : double.infinity;
+              final theme = Theme.of(context);
+              final palette = desktopPalette(context);
 
-              return SingleChildScrollView(
+              return Padding(
                 padding: const EdgeInsets.symmetric(
-                  vertical: AppDesignTokens.space8,
+                  horizontal: AppDesignTokens.space24,
+                  vertical: AppDesignTokens.space20,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
-                            icon: Icons.edit_note_outlined,
-                            title: '当前进度',
-                            body: summary.writingSummary,
+                    // Left: Overview sidebar (330px glass)
+                    SizedBox(
+                      width: 330,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(
+                            sigmaX: AppDesignTokens.glassBlurRadius,
+                            sigmaY: AppDesignTokens.glassBlurRadius,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: frostedSidebarDecoration(context),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Project title
+                                  Text(
+                                    summary.headerSubtitle,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.primary,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  // Stat chips
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: palette.subtle.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
+                                    ),
+                                    child: Wrap(
+                                      spacing: 24,
+                                      runSpacing: 6,
+                                      children: [
+                                        WorkSettingsStatChip(
+                                          icon: Icons.edit_note_outlined,
+                                          label: '进度',
+                                          value: summary.writingSummary,
+                                        ),
+                                        WorkSettingsStatChip(
+                                          icon: Icons.history_edu_outlined,
+                                          label: '设定',
+                                          value: summary.recentSettings,
+                                        ),
+                                        WorkSettingsStatChip(
+                                          icon: Icons.playlist_add_check_outlined,
+                                          label: '下一步',
+                                          value: summary.nextStep,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    '下一步建议',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.secondaryText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    summary.nextStep,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: palette.tertiaryText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
-                            icon: Icons.history_edu_outlined,
-                            title: '最近设定',
-                            body: summary.recentSettings,
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
-                            icon: Icons.playlist_add_check_outlined,
-                            title: '下一步',
-                            body: summary.nextStep,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: AppDesignTokens.space16),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.people_outline,
-                            title: '角色库',
-                            subtitle: summary.characterSubtitle,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              AppRoutes.characters,
+                    const SizedBox(width: 28),
+                    // Right: Main content (fill)
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(
+                            sigmaX: AppDesignTokens.glassBlurRadius,
+                            sigmaY: AppDesignTokens.glassBlurRadius,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: glassCardDecoration(context),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '作品资料',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  WorkSettingsNavItem(
+                                    icon: Icons.people_outline,
+                                    title: '角色库',
+                                    subtitle: summary.characterSubtitle,
+                                    onTap: () => AppNavigator.push(
+                                      context,
+                                      AppRoutes.characters,
+                                    ),
+                                  ),
+                                  WorkSettingsNavItem(
+                                    icon: Icons.public_outlined,
+                                    title: '世界观',
+                                    subtitle: summary.worldSubtitle,
+                                    onTap: () => AppNavigator.push(
+                                      context,
+                                      AppRoutes.worldbuilding,
+                                    ),
+                                  ),
+                                  WorkSettingsNavItem(
+                                    icon: Icons.auto_stories_outlined,
+                                    title: '参考资料',
+                                    subtitle: summary.styleSubtitle,
+                                    onTap: () =>
+                                        AppNavigator.push(context, AppRoutes.style),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.public_outlined,
-                            title: '世界观',
-                            subtitle: summary.worldSubtitle,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              AppRoutes.worldbuilding,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.palette_outlined,
-                            title: '风格面板',
-                            subtitle: summary.styleSubtitle,
-                            onTap: () =>
-                                AppNavigator.push(context, AppRoutes.style),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               );
             },
           ),
-          statusBar: DesktopStatusStrip(leftText: summary.statusText),
+          statusBar: BottomSpecBar(description: summary.statusText),
         );
       },
     );
@@ -198,8 +282,7 @@ class _WorkSettingsSummary {
       for (final node in worldNodes.take(2))
         _joinNonEmpty([node.title, node.type]),
     ]);
-    final styleProfile = workspaceStore.selectedStyleProfile;
-    final styleName = _fallback(styleProfile?.name, '未绑定风格');
+    const styleName = '东方含蓄文青风';
     final draftState = hasDraft
         ? '正文已有 ${draftText.trim().length} 字'
         : '正文尚未生成';
@@ -233,7 +316,7 @@ class _WorkSettingsSummary {
       worldSubtitle: worldNodes.isEmpty
           ? '尚未建立世界观节点'
           : '维护 ${worldNodes.length} 个节点，当前相关 ${linkedWorldNodes.length} 个',
-      styleSubtitle: '当前风格 $styleName · 强度 ${workspaceStore.styleIntensity}',
+      styleSubtitle: '11 个角色原型 · 东方含蓄文青风',
       statusText: '$projectTitle · $draftState',
     );
   }
@@ -358,104 +441,3 @@ bool _isWhitespace(int codeUnit) {
       codeUnit == 0x20;
 }
 
-class _ContextCard extends StatelessWidget {
-  const _ContextCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDesignTokens.space16),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 22, color: palette.primary),
-          const SizedBox(width: AppDesignTokens.space8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleSmall),
-                const SizedBox(height: AppDesignTokens.space4),
-                Text(
-                  body,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HubCard extends StatelessWidget {
-  const _HubCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-
-    return Material(
-      color: palette.elevated,
-      borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppDesignTokens.space20),
-          decoration: BoxDecoration(
-            border: Border.all(color: palette.border),
-            borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 32, color: palette.primary),
-              const SizedBox(height: AppDesignTokens.space12),
-              Text(title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: AppDesignTokens.space4),
-              Text(
-                subtitle,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

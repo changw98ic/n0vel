@@ -1,12 +1,6 @@
-import 'dart:math';
-
 import '../domain/memory_models.dart';
 import 'story_memory_storage.dart';
-import 'story_embedding_provider.dart';
 import '../domain/story_pipeline_interfaces.dart';
-
-/// Weight applied to semantic cosine similarity when embeddings are present.
-const double _semanticWeight = 5.0;
 
 /// Tag value marking a chunk as private/internal to a character.
 const String _privateTag = 'private';
@@ -20,10 +14,7 @@ const String _selfStateTag = 'selfstate';
 /// receive results. An invalid context (empty IDs) causes fail-fast
 /// empty results, preventing accidental information leaks across characters.
 class ViewerContext {
-  const ViewerContext({
-    required this.viewerId,
-    required this.characterId,
-  });
+  const ViewerContext({required this.viewerId, required this.characterId});
 
   /// The project-scoped viewer identifier (e.g. scene cast member ID).
   final String viewerId;
@@ -35,20 +26,15 @@ class ViewerContext {
   bool get isValid => viewerId.isNotEmpty && characterId.isNotEmpty;
 
   @override
-  String toString() => 'ViewerContext(viewerId: $viewerId, characterId: $characterId)';
+  String toString() =>
+      'ViewerContext(viewerId: $viewerId, characterId: $characterId)';
 }
 
-/// Runs lexical scoring, optional semantic scoring, and returns compact
-/// retrieval packs.
+/// Runs lexical scoring and returns compact retrieval packs.
 class StoryMemoryRetriever implements StoryMemoryRetrieverService {
-  StoryMemoryRetriever({
-    required this.storage,
-    this.embeddingProvider,
-    this.maxResults = 10,
-  });
+  StoryMemoryRetriever({required this.storage, this.maxResults = 10});
 
   final StoryMemoryStorage storage;
-  final StoryEmbeddingProvider? embeddingProvider;
   final int maxResults;
 
   /// Retrieves memory chunks and thoughts matching the given query.
@@ -86,26 +72,11 @@ class StoryMemoryRetriever implements StoryMemoryRetrieverService {
 
     final allHits = [...chunkHits, ...thoughtHits];
 
-    // Optionally compute embeddings for semantic scoring
-    List<double>? semanticScores;
-    if (embeddingProvider != null && allHits.isNotEmpty) {
-      final queryVec = await embeddingProvider!.embedText(query.text);
-      final texts = allHits.map((h) => h.chunk.content).toList();
-      final chunkVecs = await embeddingProvider!.embedBatch(texts);
-      semanticScores = [
-        for (int i = 0; i < chunkVecs.length; i++)
-          _cosineSimilarity(queryVec, chunkVecs[i]),
-      ];
-    }
-
     // Score each hit
     final scored = <StoryMemoryHit>[];
     for (int i = 0; i < allHits.length; i++) {
       final hit = allHits[i];
-      var score = _lexicalScore(hit, query);
-      if (semanticScores != null) {
-        score += semanticScores[i] * _semanticWeight;
-      }
+      final score = _lexicalScore(hit, query);
       scored.add(hit.copyWith(score: score));
     }
 
@@ -195,7 +166,10 @@ class StoryMemoryRetriever implements StoryMemoryRetrieverService {
   /// 2. Chunks scoped to the viewer's own character are always visible.
   /// 3. Chunks with `selfState` tag are only visible to the owning character.
   /// 4. Chunks tagged `private` are only visible to the owning character.
-  static bool _isVisibleToViewer(StoryMemoryChunk chunk, String viewerCharacterId) {
+  static bool _isVisibleToViewer(
+    StoryMemoryChunk chunk,
+    String viewerCharacterId,
+  ) {
     // Rule 1: public observable is always visible
     if (chunk.visibility == MemoryVisibility.publicObservable) {
       // But selfState-tagged public chunks are still restricted
@@ -246,7 +220,8 @@ class StoryMemoryRetriever implements StoryMemoryRetrieverService {
         ? (chunk.tokenCostEstimate - query.tokenBudget) * 0.1
         : 0.0;
 
-    var score = keywordOverlap * 4.0 +
+    var score =
+        keywordOverlap * 4.0 +
         tagOverlap * 6.0 +
         priority * 2.0 +
         recencyBoost -
@@ -307,9 +282,11 @@ class StoryMemoryRetriever implements StoryMemoryRetrieverService {
     if (hits.isEmpty) return '';
     final parts = hits
         .take(3)
-        .map((h) => h.chunk.content.length > 80
-            ? '${h.chunk.content.substring(0, 77)}...'
-            : h.chunk.content)
+        .map(
+          (h) => h.chunk.content.length > 80
+              ? '${h.chunk.content.substring(0, 77)}...'
+              : h.chunk.content,
+        )
         .toList();
     return parts.join(' | ');
   }
@@ -322,18 +299,5 @@ class StoryMemoryRetriever implements StoryMemoryRetrieverService {
       ThoughtType.foreshadowing => MemorySourceKind.outlineBeat,
       ThoughtType.style => MemorySourceKind.reviewFinding,
     };
-  }
-
-  /// Cosine similarity between two equal-length vectors.
-  static double _cosineSimilarity(List<double> a, List<double> b) {
-    if (a.length != b.length || a.isEmpty) return 0.0;
-    double dot = 0, magA = 0, magB = 0;
-    for (int i = 0; i < a.length; i++) {
-      dot += a[i] * b[i];
-      magA += a[i] * a[i];
-      magB += b[i] * b[i];
-    }
-    if (magA == 0 || magB == 0) return 0.0;
-    return dot / (sqrt(magA) * sqrt(magB));
   }
 }

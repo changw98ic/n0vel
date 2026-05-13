@@ -1,11 +1,16 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
-import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
+import 'worldbuilding_components.dart';
 
 enum WorldbuildingUiState {
   ready,
@@ -15,7 +20,7 @@ enum WorldbuildingUiState {
   deleteParentConfirm,
 }
 
-class WorldbuildingPage extends StatefulWidget {
+class WorldbuildingPage extends ConsumerStatefulWidget {
   const WorldbuildingPage({
     super.key,
     this.uiState = WorldbuildingUiState.ready,
@@ -33,15 +38,17 @@ class WorldbuildingPage extends StatefulWidget {
   static const summaryFieldKey = ValueKey<String>(
     'worldbuilding-summary-field',
   );
+  static const deleteButtonKey = ValueKey<String>(
+    'worldbuilding-delete-button',
+  );
 
   final WorldbuildingUiState uiState;
 
   @override
-  State<WorldbuildingPage> createState() => _WorldbuildingPageState();
+  ConsumerState<WorldbuildingPage> createState() => _WorldbuildingPageState();
 }
 
-class _WorldbuildingPageState extends State<WorldbuildingPage> {
-  bool _isDrawerOpen = false;
+class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   int _selectedIndex = 0;
   int _sortIndex = 0;
   final TextEditingController _searchController = TextEditingController();
@@ -70,67 +77,104 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final store = AppWorkspaceScope.of(context);
-    final nodes = _nodes(context);
+    final workspace = ref.watch(appWorkspaceStoreProvider);
+    final resources = workspace.resourceLibraryFacade;
+    final projectScenes = workspace.projectSceneFacade;
+    final nodes = resources.worldNodes;
     final visibleNodes = _visibleNodes(nodes);
     final selectedIndex = _resolveSelectedIndex(nodes, visibleNodes);
     final current = visibleNodes.isEmpty ? null : nodes[selectedIndex];
-    final body = Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        DesktopMenuDrawerRegion(
-          isOpen: _isDrawerOpen,
-          onHandleTap: () {
-            setState(() {
-              _isDrawerOpen = !_isDrawerOpen;
-            });
-          },
-          items: _menuItems(context),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 220,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildTree(theme, visibleNodes, selectedIndex),
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignTokens.space24,
+        vertical: AppDesignTokens.space20,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Left: Category tree (260px glass)
+          SizedBox(
+            width: 260,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppDesignTokens.glassBlurRadius,
+                  sigmaY: AppDesignTokens.glassBlurRadius,
+                ),
+                child: Container(
+                  decoration: frostedSidebarDecoration(context),
+                  padding: const EdgeInsets.all(18),
+                  child: _buildTree(theme, nodes, visibleNodes, selectedIndex),
+                ),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildDetail(theme, store, current),
+          const SizedBox(width: 24),
+          // Center: Detail (fill)
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppDesignTokens.glassBlurRadius,
+                  sigmaY: AppDesignTokens.glassBlurRadius,
+                ),
+                child: Container(
+                  decoration: glassCardDecoration(context),
+                  padding: const EdgeInsets.all(20),
+                  child: _buildDetail(theme, resources, current),
+                ),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 320,
-          child: Container(
-            decoration: appPanelDecoration(context),
-            padding: const EdgeInsets.all(16),
-            child: _buildRules(theme, store, current),
+          const SizedBox(width: 24),
+          // Right: Rules panel (320px)
+          SizedBox(
+            width: 320,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppDesignTokens.glassBlurRadius,
+                  sigmaY: AppDesignTokens.glassBlurRadius,
+                ),
+                child: Container(
+                  decoration: glassCardDecoration(context),
+                  padding: const EdgeInsets.all(20),
+                  child: _buildRules(theme, resources, projectScenes, current),
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '作品设定 · 世界观',
-        subtitle: '地点、组织与规则设定',
-        showBackButton: true,
+        tabs: const ['作品资料', '设定资料', '编辑'],
+        activeTabIndex: 1,
+        onTabChanged: (i) {
+          if (i == 0) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          } else if (i == 2) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            AppNavigator.push(context, AppRoutes.workbench);
+          }
+        },
         actions: [
           OutlinedButton(
             onPressed: current == null
                 ? null
-                : () => _appendRulePrompt(store, current),
+                : () => _appendRulePrompt(resources, current),
             child: const Text('新增规则'),
           ),
-          FilledButton(
+          DesignActionButton(
             key: WorldbuildingPage.newNodeButtonKey,
-            onPressed: () => _createNode(store),
-            child: const Text('新建节点'),
+            icon: Icons.add,
+            label: '新增设定',
+            onPressed: () => _createNode(resources),
           ),
         ],
       ),
@@ -142,19 +186,19 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
             body,
           if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
             Positioned.fill(
-              child: _WorldDeleteOverlay(nodeTitle: current?.title ?? '当前节点'),
+              child: WorldbuildingDeleteOverlay(nodeTitle: current?.title ?? '当前节点'),
             ),
         ],
       ),
-      statusBar: const DesktopStatusStrip(
-        leftText: '作品设定 · 世界观资料已保存',
-        rightText: '第 3 章',
+      statusBar: const BottomSpecBar(
+        description: '作品设定 · 世界观资料已保存',
       ),
     );
   }
 
   Widget _buildTree(
     ThemeData theme,
+    List<WorldNodeRecord> nodes,
     List<WorldNodeRecord> visibleNodes,
     int selectedIndex,
   ) {
@@ -176,7 +220,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           const SizedBox(height: 8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
-          const _InfoBlock(title: '没有匹配节点', message: '试试更短的地名、组织名或规则关键词。'),
+          const WorldbuildingInfoBlock(title: '没有匹配节点', message: '试试更短的地名、组织名或规则关键词。'),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -215,14 +259,14 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           )
         else
           for (final node in visibleNodes) ...[
-            _ListButton(
+            WorldbuildingListButton(
               buttonKey: node.title == '码头风暴'
                   ? WorldbuildingPage.stormNodeKey
                   : null,
               label: node.title,
-              selected: _nodes(context)[selectedIndex] == node,
+              selected: nodes[selectedIndex] == node,
               onPressed: () => setState(() {
-                _selectedIndex = _nodes(context).indexOf(node);
+                _selectedIndex = nodes.indexOf(node);
               }),
             ),
             const SizedBox(height: 8),
@@ -233,11 +277,11 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
 
   Widget _buildDetail(
     ThemeData theme,
-    AppWorkspaceStore store,
+    WorkspaceResourceLibraryFacade store,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
-      return _CallToActionState(
+      return WorldbuildingCallToActionState(
         title: '创建第一个世界观节点',
         message: '先建立地点、组织或关键物件，再补限制条件与引用场景。',
         buttonLabel: '新建节点',
@@ -251,7 +295,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           Text('节点详情', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           const Expanded(
-            child: _CenteredPanelState(
+            child: WorldbuildingCenteredPanelState(
               title: '未选中节点',
               message: '当前筛选没有结果，因此这里不显示节点详情。',
             ),
@@ -266,7 +310,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           children: [
             Text('节点详情', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            const _StateCard(
+            const WorldbuildingStateCard(
               title: '缺少必填类型',
               message: '当前素材尚未指定类型，因此本轮暂不写入世界观索引，也不会同步规则引用。',
               accent: Color(0xFF51624D),
@@ -287,7 +331,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           Text('节点详情', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           const Expanded(
-            child: _CenteredPanelState(
+            child: WorldbuildingCenteredPanelState(
               title: '没有可展示的节点',
               message: '请先搜索或新建一个世界观节点。',
             ),
@@ -300,7 +344,19 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('节点详情', style: theme.textTheme.titleMedium),
+          Row(
+            children: [
+              Text('节点详情', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              IconButton(
+                key: WorldbuildingPage.deleteButtonKey,
+                onPressed: () => _confirmDeleteNode(context, store, current),
+                tooltip: '删除节点',
+                color: appDangerColor,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           _buildNodeFields(store, current),
         ],
@@ -331,7 +387,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     return nodes.indexOf(visibleNodes.first);
   }
 
-  void _createNode(AppWorkspaceStore store) {
+  void _createNode(WorkspaceResourceLibraryFacade store) {
     setState(() {
       store.createWorldNode();
       _selectedIndex = 0;
@@ -339,22 +395,65 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     });
   }
 
-  List<WorldNodeRecord> _nodes(BuildContext context) =>
-      AppWorkspaceScope.of(context).worldNodes;
-
-  void _appendRulePrompt(AppWorkspaceStore store, WorldNodeRecord current) {
+  void _appendRulePrompt(
+    WorkspaceResourceLibraryFacade store,
+    WorldNodeRecord current,
+  ) {
     final nextRule = current.ruleSummary.trim().isEmpty
         ? '新增规则：'
         : '${current.ruleSummary.trim()}\n新增规则：';
     setState(() {
       store.updateWorldNode(nodeId: current.id, ruleSummary: nextRule);
-      AppSceneContextScope.of(context).syncContext();
+      ref.read(appSceneContextStoreProvider).syncContext();
     });
+  }
+
+  Future<void> _confirmDeleteNode(
+    BuildContext context,
+    WorkspaceResourceLibraryFacade store,
+    WorldNodeRecord node,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        return DesktopModalDialog(
+          title: '删除节点',
+          description: '删除后，世界观资料和场景引用关系都会被移除。',
+          body: Text(node.title, style: Theme.of(context).textTheme.bodyMedium),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldDelete == true) {
+      setState(() {
+        store.deleteWorldNode(node.id);
+        final visible = _visibleNodes(store.worldNodes);
+        _selectedIndex = visible.isEmpty
+            ? 0
+            : store.worldNodes
+                  .indexOf(visible.first)
+                  .clamp(0, store.worldNodes.length - 1);
+      });
+      if (context.mounted) {
+        ref.read(appSceneContextStoreProvider).syncContext();
+      }
+    }
   }
 
   Widget _buildRules(
     ThemeData theme,
-    AppWorkspaceStore store,
+    WorkspaceResourceLibraryFacade store,
+    WorkspaceProjectSceneFacade projectScenes,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
@@ -363,7 +462,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const _InfoBlock(title: '引用场景', message: '创建节点后，这里会同步展示规则摘要与关联场景。'),
+          const WorldbuildingInfoBlock(title: '引用场景', message: '创建节点后，这里会同步展示规则摘要与关联场景。'),
         ],
       );
     }
@@ -373,9 +472,9 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const _InfoBlock(title: '改筛建议', message: '可尝试地点名、组织名、物件名或规则关键词。'),
+          const WorldbuildingInfoBlock(title: '改筛建议', message: '可尝试地点名、组织名、物件名或规则关键词。'),
           const SizedBox(height: 8),
-          const _InfoBlock(title: '引用场景', message: '筛选无结果时，不展示引用片段。'),
+          const WorldbuildingInfoBlock(title: '引用场景', message: '筛选无结果时，不展示引用片段。'),
         ],
       );
     }
@@ -385,7 +484,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const _InfoBlock(title: '规则摘要', message: '类型缺失时，暂不把这条素材纳入规则摘要或引用索引。'),
+          const WorldbuildingInfoBlock(title: '规则摘要', message: '类型缺失时，暂不把这条素材纳入规则摘要或引用索引。'),
         ],
       );
     }
@@ -403,14 +502,14 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           if (current == null)
             const AppEmptyState(title: '暂无规则摘要', message: '请先搜索或新建一个节点。')
           else ...[
-            _InfoBlock(
+            WorldbuildingInfoBlock(
               title: '引用场景',
               message: current.linkedSceneIds.isEmpty
                   ? '暂未绑定场景，可在下方选择相关场景。'
                   : '已绑定 ${current.linkedSceneIds.length} 个场景，规则会同步到写作工作台。',
             ),
             const SizedBox(height: 8),
-            _EditableTextField(
+            WorldbuildingEditableTextField(
               fieldKey: ValueKey<String>(
                 'worldbuilding-rule-field-${current.id}',
               ),
@@ -419,11 +518,11 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
               maxLines: 3,
               onChanged: (value) {
                 store.updateWorldNode(nodeId: current.id, ruleSummary: value);
-                AppSceneContextScope.of(context).syncContext();
+                ref.read(appSceneContextStoreProvider).syncContext();
               },
             ),
             const SizedBox(height: 8),
-            _InfoBlock(
+            WorldbuildingInfoBlock(
               title: '引用摘要',
               message: current.referenceSummary.isEmpty
                   ? current.summary
@@ -434,7 +533,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final scene in store.scenes)
+                for (final scene in projectScenes.scenes)
                   FilterChip(
                     label: Text(scene.title),
                     selected: current.linkedSceneIds.contains(scene.id),
@@ -459,7 +558,10 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     return _searchController.text.trim().isNotEmpty && visibleNodes.isEmpty;
   }
 
-  Widget _buildNodeFields(AppWorkspaceStore store, WorldNodeRecord current) {
+  Widget _buildNodeFields(
+    WorkspaceResourceLibraryFacade store,
+    WorldNodeRecord current,
+  ) {
     void onFieldChanged(
       String nodeId, {
       String? title,
@@ -478,13 +580,13 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
         summary: summary,
         ruleSummary: ruleSummary,
       );
-      AppSceneContextScope.of(context).syncContext();
+      ref.read(appSceneContextStoreProvider).syncContext();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _EditableTextField(
+        WorldbuildingEditableTextField(
           fieldKey: ValueKey<String>(
             '${WorldbuildingPage.titleFieldKey.value}-${current.id}',
           ),
@@ -493,7 +595,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           onChanged: (value) => onFieldChanged(current.id, title: value),
         ),
         const SizedBox(height: 8),
-        _EditableTextField(
+        WorldbuildingEditableTextField(
           fieldKey: ValueKey<String>(
             '${WorldbuildingPage.locationFieldKey.value}-${current.id}',
           ),
@@ -502,7 +604,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           onChanged: (value) => onFieldChanged(current.id, location: value),
         ),
         const SizedBox(height: 8),
-        _EditableTextField(
+        WorldbuildingEditableTextField(
           fieldKey: ValueKey<String>(
             '${WorldbuildingPage.typeFieldKey.value}-${current.id}',
           ),
@@ -511,7 +613,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           onChanged: (value) => onFieldChanged(current.id, type: value),
         ),
         const SizedBox(height: 8),
-        _EditableTextField(
+        WorldbuildingEditableTextField(
           fieldKey: ValueKey<String>(
             '${WorldbuildingPage.detailFieldKey.value}-${current.id}',
           ),
@@ -521,7 +623,7 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
           onChanged: (value) => onFieldChanged(current.id, detail: value),
         ),
         const SizedBox(height: 8),
-        _EditableTextField(
+        WorldbuildingEditableTextField(
           fieldKey: ValueKey<String>(
             '${WorldbuildingPage.summaryFieldKey.value}-${current.id}',
           ),
@@ -534,263 +636,5 @@ class _WorldbuildingPageState extends State<WorldbuildingPage> {
     );
   }
 
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.worldbuilding,
-      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onWorkSettings: () {
-        setState(() {
-          _isDrawerOpen = false;
-        });
-      },
-      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
-      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
-      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
-    );
-  }
 }
 
-class _ListButton extends StatelessWidget {
-  const _ListButton({
-    this.buttonKey,
-    required this.label,
-    this.selected = false,
-    required this.onPressed,
-  });
-
-  final Key? buttonKey;
-  final String label;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    if (selected) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          key: buttonKey,
-          onPressed: onPressed,
-          child: Text(label),
-        ),
-      );
-    }
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        key: buttonKey,
-        onPressed: onPressed,
-        child: Text(label),
-      ),
-    );
-  }
-}
-
-class _InfoBlock extends StatelessWidget {
-  const _InfoBlock({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).subtle,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text(message, style: Theme.of(context).textTheme.bodyMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _EditableTextField extends StatelessWidget {
-  const _EditableTextField({
-    required this.fieldKey,
-    required this.label,
-    required this.initialValue,
-    required this.onChanged,
-    this.maxLines = 1,
-  });
-
-  final Key fieldKey;
-  final String label;
-  final String initialValue;
-  final ValueChanged<String> onChanged;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      key: fieldKey,
-      initialValue: initialValue,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-    );
-  }
-}
-
-class _StateCard extends StatelessWidget {
-  const _StateCard({
-    required this.title,
-    required this.message,
-    required this.accent,
-  });
-
-  final String title;
-  final String message;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: desktopPalette(context).subtle,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: desktopPalette(context).borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(message, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _CallToActionState extends StatelessWidget {
-  const _CallToActionState({
-    required this.title,
-    required this.message,
-    required this.buttonLabel,
-    required this.onPressed,
-  });
-
-  final String title;
-  final String message;
-  final String buttonLabel;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
-        ],
-      ),
-    );
-  }
-}
-
-class _CenteredPanelState extends StatelessWidget {
-  const _CenteredPanelState({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).subtle,
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 300),
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorldDeleteOverlay extends StatelessWidget {
-  const _WorldDeleteOverlay({required this.nodeTitle});
-
-  final String nodeTitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0x99F6F0E6),
-      child: Center(
-        child: Container(
-          width: 760,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: desktopPalette(context).surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: desktopPalette(context).borderStrong),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('删除父节点？', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
-              Text(
-                '节点“$nodeTitle”仍包含子节点或关联规则。删除该父节点可能会连带影响地点树、规则摘要与引用场景。\n\n请选择先取消、或在未来版本中进入连带删除流程。',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              _InfoBlock(title: '当前层级', message: '$nodeTitle\n规则摘要\n引用场景'),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(onPressed: () {}, child: const Text('取消')),
-                  const SizedBox(width: 10),
-                  FilledButton(onPressed: () {}, child: const Text('查看影响后再删')),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

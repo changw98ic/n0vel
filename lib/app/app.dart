@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'di/app_providers.dart';
 import 'di/service_registration.dart';
 import 'di/service_registry.dart';
-import 'di/service_scope.dart';
-import 'logging/app_event_log.dart';
 import 'navigation/route_registration.dart';
-import 'state/app_ai_history_store.dart';
 import 'state/app_auto_backup.dart';
-import 'state/app_draft_store.dart';
-import 'state/app_scene_context_store.dart';
-import 'state/app_settings_store.dart';
-import 'state/app_simulation_store.dart';
-import 'state/app_version_store.dart';
-import 'state/app_workspace_store.dart';
 import 'state/crash_detector.dart';
-import '../features/projects/presentation/project_list_page.dart';
-import '../features/author_feedback/data/author_feedback_store.dart';
-import '../features/review_tasks/data/review_task_store.dart';
 import 'theme/app_theme.dart';
 import 'widgets/crash_recovery_dialog.dart';
 
+import '../features/projects/presentation/project_list_page.dart';
+
+typedef CrashRecoveryDialogPresenter =
+    Future<bool> Function(
+      BuildContext context, {
+      required List<BackupEntry> backups,
+    });
+
 class NovelWriterApp extends StatefulWidget {
-  const NovelWriterApp({super.key, this.home});
+  const NovelWriterApp({super.key, this.home, this.crashDetector});
 
   final Widget? home;
+  final CrashDetector? crashDetector;
+
+  static AutoBackupService Function() debugCreateAutoBackupService =
+      createDefaultAutoBackupService;
+  static CrashRecoveryDialogPresenter debugShowRecoveryDialog =
+      showCrashRecoveryDialog;
+
+  /// When non-null, used by [initState] instead of creating a fresh registry.
+  /// Set in test setUp / cleared in tearDown to inject in-memory storages.
+  static ServiceRegistry? debugRegistryOverride;
 
   @override
   State<NovelWriterApp> createState() => _NovelWriterAppState();
@@ -32,17 +40,21 @@ class NovelWriterApp extends StatefulWidget {
 class _NovelWriterAppState extends State<NovelWriterApp>
     with WidgetsBindingObserver {
   late final ServiceRegistry _registry;
-  final CrashDetector _crashDetector = CrashDetector();
+  late final CrashDetector _crashDetector;
   bool _crashDetected = false;
   bool _restoringBackup = false;
+  bool _cleanShutdownMarked = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     registerAppRoutes();
-    _registry = ServiceRegistry();
-    registerAppServices(_registry);
+    _registry = NovelWriterApp.debugRegistryOverride ?? ServiceRegistry();
+    if (NovelWriterApp.debugRegistryOverride == null) {
+      registerAppServices(_registry);
+    }
+    _crashDetector = widget.crashDetector ?? CrashDetector();
 
     // Check for dirty shutdown before the widget tree builds.
     _crashDetected = _crashDetector.wasDirtyShutdown();
@@ -50,7 +62,7 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 
   @override
   void dispose() {
-    _crashDetector.markCleanShutdown();
+    _markCleanShutdownOnce();
     WidgetsBinding.instance.removeObserver(this);
     _registry.disposeAll();
     super.dispose();
@@ -58,85 +70,48 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // On desktop, going to inactive/hidden means the app is being
-    // backgrounded or the window is closing.  Write the marker so a
-    // subsequent crash kill will be detected.
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.paused) {
-      _crashDetector.markCleanShutdown();
+    // Backgrounding, hiding, or pausing is not a clean process shutdown.
+    if (state == AppLifecycleState.detached) {
+      _markCleanShutdownOnce();
     }
+  }
+
+  void _markCleanShutdownOnce() {
+    if (_cleanShutdownMarked) {
+      return;
+    }
+    _cleanShutdownMarked = true;
+    _crashDetector.markCleanShutdown();
   }
 
   @override
   Widget build(BuildContext context) {
-    final eventLog = _registry.resolve<AppEventLog>();
-    final settingsStore = _registry.resolve<AppSettingsStore>();
-    final workspaceStore = _registry.resolve<AppWorkspaceStore>();
-    final aiHistoryStore = _registry.resolve<AppAiHistoryStore>();
-    final sceneContextStore = _registry.resolve<AppSceneContextStore>();
-    final simulationStore = _registry.resolve<AppSimulationStore>();
-    final draftStore = _registry.resolve<AppDraftStore>();
-    final versionStore = _registry.resolve<AppVersionStore>();
-    final authorFeedbackStore = _registry.resolve<AuthorFeedbackStore>();
-    final reviewTaskStore = _registry.resolve<ReviewTaskStore>();
-
-    return ServiceScope(
-      registry: _registry,
-      child: AppEventLogScope(
-        log: eventLog,
-        child: AppDraftScope(
-          store: draftStore,
-          child: AppAiHistoryScope(
-            store: aiHistoryStore,
-            child: AppVersionScope(
-              store: versionStore,
-              child: AppSceneContextScope(
-                store: sceneContextStore,
-                child: AppSettingsScope(
-                  store: settingsStore,
-                  child: AuthorFeedbackScope(
-                    store: authorFeedbackStore,
-                    child: ReviewTaskScope(
-                      store: reviewTaskStore,
-                      child: AppSimulationScope(
-                        store: simulationStore,
-                        child: ListenableBuilder(
-                          listenable: settingsStore,
-                          builder: (context, child) {
-                            return AppWorkspaceScope(
-                              store: workspaceStore,
-                              child: MaterialApp(
-                                debugShowCheckedModeBanner: false,
-                                title: '小说工作台',
-                                theme: AppTheme.light(),
-                                darkTheme: AppTheme.dark(),
-                                themeMode: settingsStore.snapshot.themeMode,
-                                home: widget.home ?? const ProjectListPage(),
-                                builder: (context, child) {
-                                  return _CrashRecoveryOverlay(
-                                    crashDetected: _crashDetected,
-                                    restoringBackup: _restoringBackup,
-                                    onRestoreComplete: () {
-                                      setState(() {
-                                        _restoringBackup = false;
-                                      });
-                                    },
-                                    child: child!,
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+    return ProviderScope(
+      overrides: [serviceRegistryProvider.overrideWithValue(_registry)],
+      child: Consumer(
+        builder: (context, ref, child) {
+          final settingsStore = ref.watch(appSettingsStoreProvider);
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: '小说工作台',
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: settingsStore.snapshot.themeMode,
+            home: widget.home ?? const ProjectListPage(),
+            builder: (context, child) {
+              return _CrashRecoveryOverlay(
+                crashDetected: _crashDetected,
+                restoringBackup: _restoringBackup,
+                onRestoreComplete: () {
+                  setState(() {
+                    _restoringBackup = false;
+                  });
+                },
+                child: child!,
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -174,11 +149,11 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
   }
 
   Future<void> _offerRecovery() async {
-    final backupService = createDefaultAutoBackupService();
+    final backupService = NovelWriterApp.debugCreateAutoBackupService();
     final backups = await backupService.listBackups();
     if (backups.isEmpty || !mounted) return;
 
-    final shouldRestore = await showCrashRecoveryDialog(
+    final shouldRestore = await NovelWriterApp.debugShowRecoveryDialog(
       context,
       backups: backups,
     );
@@ -186,7 +161,11 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 
     if (shouldRestore) {
       final latest = backups.first;
-      await backupService.restoreBackup(latest.id);
+      try {
+        await backupService.restoreBackup(latest.id);
+      } catch (_) {
+        // A failed restore should leave the app running on the current data.
+      }
       if (!mounted) return;
     }
 

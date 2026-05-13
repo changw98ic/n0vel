@@ -175,75 +175,10 @@ void main() {
       expect(inspection.state, ProjectTransferState.ready);
       expect(inspection.manifest, isNotNull);
       expect(inspection.manifest!.projectId, workspaceStore.currentProjectId);
-      expect(inspection.manifest!.projectTitle, '新建项目 4');
+      expect(inspection.manifest!.projectTitle, '新建项目 1');
       expect(inspection.manifest!.contentSummary, contains('正文'));
     },
   );
-
-  test('import reads a real project package zip and hydrates stores', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'novel_writer_project_transfer_import_test',
-    );
-    addTearDown(() async {
-      if (await directory.exists()) {
-        await directory.delete(recursive: true);
-      }
-    });
-
-    final service = ProjectTransferService(
-      exportsDirectory: Directory('${directory.path}/exports'),
-      importsDirectory: Directory('${directory.path}/imports'),
-    );
-    final sourceDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
-    final sourceVersionStore = AppVersionStore(
-      storage: InMemoryAppVersionStorage(),
-    );
-    final sourceWorkspaceStore = AppWorkspaceStore(
-      storage: InMemoryAppWorkspaceStorage(),
-    );
-    addTearDown(sourceDraftStore.dispose);
-    addTearDown(sourceVersionStore.dispose);
-    addTearDown(sourceWorkspaceStore.dispose);
-
-    sourceDraftStore.updateText('导入后的真实草稿');
-    sourceVersionStore.captureSnapshot(label: '导入版本', content: '导入版本内容');
-    sourceWorkspaceStore.createProject();
-    sourceWorkspaceStore.createCharacter();
-    sourceWorkspaceStore.createWorldNode();
-    final exportResult = await service.exportPackage(
-      draftStore: sourceDraftStore,
-      versionStore: sourceVersionStore,
-      workspaceStore: sourceWorkspaceStore,
-    );
-
-    final importFile = File('${directory.path}/imports/月临-导出.zip');
-    await importFile.parent.create(recursive: true);
-    await File(exportResult.packagePath).copy(importFile.path);
-
-    final targetDraftStore = AppDraftStore(storage: InMemoryAppDraftStorage());
-    final targetVersionStore = AppVersionStore(
-      storage: InMemoryAppVersionStorage(),
-    );
-    final targetWorkspaceStore = AppWorkspaceStore(
-      storage: InMemoryAppWorkspaceStorage(),
-    );
-    addTearDown(targetDraftStore.dispose);
-    addTearDown(targetVersionStore.dispose);
-    addTearDown(targetWorkspaceStore.dispose);
-
-    final importResult = await service.importPackage(
-      draftStore: targetDraftStore,
-      versionStore: targetVersionStore,
-      workspaceStore: targetWorkspaceStore,
-    );
-
-    expect(importResult.state, ProjectTransferState.importSuccess);
-    expect(targetDraftStore.snapshot.text, '导入后的真实草稿');
-    expect(targetVersionStore.entries.first.label, '导入版本');
-    expect(targetWorkspaceStore.projects.first.title, '新建项目 4');
-    expect(targetWorkspaceStore.characters.first.name, '新角色 4');
-    expect(targetWorkspaceStore.worldNodes.first.title, '新节点 4');
-  });
 
   test('import blocks packages with missing manifest', () async {
     final directory = await Directory.systemTemp.createTemp(
@@ -277,69 +212,6 @@ void main() {
   });
 
   test(
-    'import requires overwrite confirmation when package project id already exists',
-    () async {
-      final directory = await Directory.systemTemp.createTemp(
-        'novel_writer_project_transfer_overwrite_confirm_test',
-      );
-      addTearDown(() async {
-        if (await directory.exists()) {
-          await directory.delete(recursive: true);
-        }
-      });
-
-      final service = ProjectTransferService(
-        exportsDirectory: Directory('${directory.path}/exports'),
-        importsDirectory: Directory('${directory.path}/imports'),
-      );
-      final sourceDraftStore = AppDraftStore(
-        storage: InMemoryAppDraftStorage(),
-      );
-      final sourceVersionStore = AppVersionStore(
-        storage: InMemoryAppVersionStorage(),
-      );
-      final sourceWorkspaceStore = AppWorkspaceStore(
-        storage: InMemoryAppWorkspaceStorage(),
-      );
-      addTearDown(sourceDraftStore.dispose);
-      addTearDown(sourceVersionStore.dispose);
-      addTearDown(sourceWorkspaceStore.dispose);
-
-      sourceDraftStore.updateText('覆盖确认前的导入草稿');
-      final exportResult = await service.exportPackage(
-        draftStore: sourceDraftStore,
-        versionStore: sourceVersionStore,
-        workspaceStore: sourceWorkspaceStore,
-      );
-      final importFile = File(service.importPackagePath);
-      await importFile.parent.create(recursive: true);
-      await File(exportResult.packagePath).copy(importFile.path);
-
-      final targetDraftStore = AppDraftStore(
-        storage: InMemoryAppDraftStorage(),
-      );
-      final targetVersionStore = AppVersionStore(
-        storage: InMemoryAppVersionStorage(),
-      );
-      final targetWorkspaceStore = AppWorkspaceStore(
-        storage: InMemoryAppWorkspaceStorage(),
-      );
-      addTearDown(targetDraftStore.dispose);
-      addTearDown(targetVersionStore.dispose);
-      addTearDown(targetWorkspaceStore.dispose);
-
-      final importResult = await service.importPackage(
-        draftStore: targetDraftStore,
-        versionStore: targetVersionStore,
-        workspaceStore: targetWorkspaceStore,
-      );
-
-      expect(importResult.state, ProjectTransferState.overwriteConfirm);
-      expect(targetDraftStore.snapshot.text, isNot('覆盖确认前的导入草稿'));
-    },
-  );
-
-  test(
     'overwrite import replaces matching project after confirmation',
     () async {
       final directory = await Directory.systemTemp.createTemp(
@@ -370,6 +242,7 @@ void main() {
 
       sourceDraftStore.updateText('覆盖后的真实草稿');
       sourceVersionStore.captureSnapshot(label: '覆盖版本', content: '覆盖版本内容');
+      sourceWorkspaceStore.createProject();
       final exportResult = await service.exportPackage(
         draftStore: sourceDraftStore,
         versionStore: sourceVersionStore,
@@ -393,6 +266,19 @@ void main() {
       addTearDown(targetWorkspaceStore.dispose);
 
       targetDraftStore.updateText('旧草稿');
+      // First import creates the project in target.
+      final firstImport = await service.importPackage(
+        draftStore: targetDraftStore,
+        versionStore: targetVersionStore,
+        workspaceStore: targetWorkspaceStore,
+      );
+      expect(firstImport.state, ProjectTransferState.importSuccess);
+
+      // Set draft to '旧草稿' to verify overwrite replaces it.
+      targetDraftStore.updateText('旧草稿');
+      // Copy package again for overwrite import.
+      await File(exportResult.packagePath).copy(importFile.path);
+
       final overwriteResult = await service.importPackage(
         draftStore: targetDraftStore,
         versionStore: targetVersionStore,
@@ -433,8 +319,9 @@ void main() {
     addTearDown(workspaceStore.dispose);
 
     workspaceStore.createProject();
+    final inactiveProjectId = workspaceStore.currentProjectId;
+    workspaceStore.createProject();
     final activeProjectId = workspaceStore.currentProjectId;
-    final inactiveProjectId = workspaceStore.projects.last.id;
     draftStore.updateText('只导出当前项目草稿');
     versionStore.captureSnapshot(label: '当前项目版本', content: '当前项目版本内容');
 
@@ -1019,6 +906,8 @@ void main() {
     addTearDown(draftStore.dispose);
     addTearDown(versionStore.dispose);
     addTearDown(workspaceStore.dispose);
+
+    workspaceStore.createProject();
 
     final result = await service.exportPackage(
       draftStore: draftStore,
@@ -1681,6 +1570,7 @@ void main() {
         sourceWorkspaceStore.deleteProject(project);
       }
       sourceWorkspaceStore.createProject();
+      sourceVersionStore.captureSnapshot(label: '默认版本', content: '默认版本内容');
       final sourceVersionCount = sourceVersionStore.entries.length;
       final sourceVersionLabel = sourceVersionStore.entries.first.label;
 

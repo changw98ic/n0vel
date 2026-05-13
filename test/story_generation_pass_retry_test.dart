@@ -12,7 +12,7 @@ import 'package:novel_writer/features/story_generation/data/story_generation_pas
 void main() {
   group('isRetryableStoryGenerationTransportFailure', () {
     test('returns false for successful results', () {
-      final result = AppLlmChatResult.success(text: 'hello');
+      const result = AppLlmChatResult.success(text: 'hello');
       expect(isRetryableStoryGenerationTransportFailure(result), isFalse);
     });
 
@@ -113,7 +113,7 @@ void main() {
     });
 
     test('retryable detail matching is case-insensitive', () {
-      final result = AppLlmChatResult.failure(
+      const result = AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
         statusCode: 502,
         detail: 'BROKEN PIPE',
@@ -128,15 +128,11 @@ void main() {
 
     setUp(() {
       fakeLlm = _SequencedFakeLlmClient();
-      AppSettingsStore.debugLlmClientOverride = fakeLlm;
       settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
+        llmClient: fakeLlm,
         eventLog: AppEventLog(storage: _DiscardingAppEventLogStorage()),
       );
-    });
-
-    tearDown(() {
-      AppSettingsStore.debugLlmClientOverride = null;
     });
 
     test('returns successful result immediately without retry', () async {
@@ -366,7 +362,7 @@ void main() {
         baseUrl: 'http://localhost',
         model: 'test-model',
         apiKey: 'sk-test',
-        timeout: AppLlmTimeoutConfig.uniform(5000),
+        timeout: const AppLlmTimeoutConfig.uniform(5000),
         maxConcurrentRequests: 1,
       );
 

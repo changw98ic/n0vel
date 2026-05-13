@@ -1,19 +1,23 @@
-name: MVP Docs Check
+name: Docs Check
 
 on:
   push:
     paths:
-      - "docs/mvp/**"
+      - "docs/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
       - "Makefile"
       - ".github/workflows/mvp-docs-check.yml"
   pull_request:
     paths:
-      - "docs/mvp/**"
+      - "docs/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
       - "Makefile"
       - ".github/workflows/mvp-docs-check.yml"
 
 jobs:
-  validate-mvp-docs:
+  validate-docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,5 +28,5 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run MVP docs validation
-        run: make mvp-docs-check
+      - name: Run docs bundle validation
+        run: make docs-check

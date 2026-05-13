@@ -8,6 +8,8 @@ abstract class StoryGenerationRunStorage {
   Future<void> save(Map<String, Object?> data, {required String sceneScopeId});
 
   Future<void> clear({String? sceneScopeId});
+
+  Future<void> clearProject(String projectId) => clear(sceneScopeId: projectId);
 }
 
 class InMemoryStoryGenerationRunStorage implements StoryGenerationRunStorage {
@@ -34,6 +36,14 @@ class InMemoryStoryGenerationRunStorage implements StoryGenerationRunStorage {
       return;
     }
     _records.remove(sceneScopeId);
+  }
+
+  @override
+  Future<void> clearProject(String projectId) async {
+    final sceneScopePrefix = '$projectId::';
+    _records.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
   }
 }
 

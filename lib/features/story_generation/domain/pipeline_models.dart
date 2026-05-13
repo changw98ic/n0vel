@@ -19,6 +19,7 @@ class RetrievalIntent {
     'relationship_history',
     'scene_context',
     'world_rule',
+    'search_writing_reference',
   };
 
   bool get isToolAllowed => allowedTools.contains(toolName);
@@ -68,8 +69,12 @@ class RetrievalIntent {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(characterId, toolName, Object.hashAllUnordered(parameters.entries), reasoning);
+  int get hashCode => Object.hash(
+    characterId,
+    toolName,
+    Object.hashAllUnordered(parameters.entries),
+    reasoning,
+  );
 }
 
 /// Compressed retrieval result, bounded in size. Injected into prompts
@@ -82,11 +87,11 @@ class ContextCapsule {
     required this.charBudget,
     this.createdAtMs = 0,
     Map<String, Object?> metadata = const {},
-  })  : assert(charBudget > 0, 'charBudget must be positive'),
-        summary = summary.length > charBudget
-            ? '${summary.substring(0, charBudget - 3)}...'
-            : summary,
-        metadata = _immutableMap(metadata);
+  }) : assert(charBudget > 0, 'charBudget must be positive'),
+       summary = summary.length > charBudget
+           ? '${summary.substring(0, charBudget - 3)}...'
+           : summary,
+       metadata = _immutableMap(metadata);
 
   final String id;
   final String sourceTool;
@@ -153,21 +158,21 @@ class ContextCapsule {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        sourceTool,
-        summary,
-        charBudget,
-        createdAtMs,
-        Object.hashAllUnordered(metadata.entries),
-      );
+    id,
+    sourceTool,
+    summary,
+    charBudget,
+    createdAtMs,
+    Object.hashAllUnordered(metadata.entries),
+  );
 }
 
 /// Enforces prompt size limits by tracking character budget allocation.
 class PromptBudget {
   PromptBudget({required this.maxChars, int reservedChars = 0})
-      : assert(maxChars > 0, 'maxChars must be positive'),
-        assert(reservedChars >= 0, 'reservedChars must be non-negative'),
-        _allocated = reservedChars.clamp(0, maxChars - 1);
+    : assert(maxChars > 0, 'maxChars must be positive'),
+      assert(reservedChars >= 0, 'reservedChars must be non-negative'),
+      _allocated = reservedChars.clamp(0, maxChars - 1);
 
   final int maxChars;
   int _allocated;
@@ -192,12 +197,7 @@ class PromptBudget {
 }
 
 /// Pipeline stages that require telemetry tracking.
-enum ScenePipelineStage {
-  retrieval,
-  capsuleCompression,
-  resolution,
-  editorial,
-}
+enum ScenePipelineStage { retrieval, capsuleCompression, resolution, editorial }
 
 /// A single telemetry record for a pipeline stage execution.
 class ScenePipelineTelemetryEntry {
@@ -252,8 +252,7 @@ class ScenePipelineTelemetryEntry {
 
 Map<String, Object?> _immutableMap(Map<String, Object?> value) {
   return Map<String, Object?>.unmodifiable({
-    for (final entry in cloneStorageMap(value).entries)
-      entry.key: entry.value,
+    for (final entry in cloneStorageMap(value).entries) entry.key: entry.value,
   });
 }
 

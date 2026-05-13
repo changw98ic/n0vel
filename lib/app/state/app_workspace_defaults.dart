@@ -1,124 +1,8 @@
 import 'dart:convert';
 
-import 'app_workspace_records.dart';
+import 'workspace_types.dart';
 
-class ProjectStyleState {
-  const ProjectStyleState({
-    required this.inputMode,
-    required this.intensity,
-    required this.bindingFeedback,
-    required this.questionnaireDraft,
-    required this.jsonDraft,
-    required this.profiles,
-    required this.selectedProfileId,
-    required this.workflowState,
-    required this.workflowMessage,
-    required this.warningMessages,
-  });
-
-  final StyleInputMode inputMode;
-  final int intensity;
-  final String bindingFeedback;
-  final Map<String, Object?> questionnaireDraft;
-  final String jsonDraft;
-  final List<StyleProfileRecord> profiles;
-  final String selectedProfileId;
-  final StyleWorkflowState workflowState;
-  final String workflowMessage;
-  final List<String> warningMessages;
-
-  Map<String, Object?> toJson() {
-    return {
-      'styleInputMode': inputMode.name,
-      'styleIntensity': intensity,
-      'styleBindingFeedback': bindingFeedback,
-      'questionnaireDraft': questionnaireDraft,
-      'styleJsonDraft': jsonDraft,
-      'styleProfiles': [for (final profile in profiles) profile.toJson()],
-      'selectedStyleProfileId': selectedProfileId,
-      'styleWorkflowState': workflowState.name,
-      'styleWorkflowMessage': workflowMessage,
-      'styleWarningMessages': warningMessages,
-    };
-  }
-
-  ProjectStyleState copyWith({
-    StyleInputMode? inputMode,
-    int? intensity,
-    String? bindingFeedback,
-    Map<String, Object?>? questionnaireDraft,
-    String? jsonDraft,
-    List<StyleProfileRecord>? profiles,
-    String? selectedProfileId,
-    StyleWorkflowState? workflowState,
-    String? workflowMessage,
-    List<String>? warningMessages,
-  }) {
-    return ProjectStyleState(
-      inputMode: inputMode ?? this.inputMode,
-      intensity: intensity ?? this.intensity,
-      bindingFeedback: bindingFeedback ?? this.bindingFeedback,
-      questionnaireDraft: questionnaireDraft ?? this.questionnaireDraft,
-      jsonDraft: jsonDraft ?? this.jsonDraft,
-      profiles: profiles ?? this.profiles,
-      selectedProfileId: selectedProfileId ?? this.selectedProfileId,
-      workflowState: workflowState ?? this.workflowState,
-      workflowMessage: workflowMessage ?? this.workflowMessage,
-      warningMessages: warningMessages ?? this.warningMessages,
-    );
-  }
-}
-
-class ProjectAuditUiState {
-  const ProjectAuditUiState({
-    required this.selectedIssueId,
-    required this.selectedIssueIndex,
-    required this.filter,
-    required this.actionFeedback,
-  });
-
-  final String selectedIssueId;
-  final int selectedIssueIndex;
-  final AuditIssueFilter filter;
-  final String actionFeedback;
-
-  Map<String, Object?> toJson() {
-    return {
-      'selectedAuditIssueId': selectedIssueId,
-      'selectedAuditIssueIndex': selectedIssueIndex,
-      'auditFilter': filter.name,
-      'auditActionFeedback': actionFeedback,
-    };
-  }
-
-  ProjectAuditUiState copyWith({
-    String? selectedIssueId,
-    int? selectedIssueIndex,
-    AuditIssueFilter? filter,
-    String? actionFeedback,
-  }) {
-    return ProjectAuditUiState(
-      selectedIssueId: selectedIssueId ?? this.selectedIssueId,
-      selectedIssueIndex: selectedIssueIndex ?? this.selectedIssueIndex,
-      filter: filter ?? this.filter,
-      actionFeedback: actionFeedback ?? this.actionFeedback,
-    );
-  }
-}
-
-class StyleValidationResult {
-  const StyleValidationResult({
-    required this.state,
-    required this.message,
-    required this.warningMessages,
-    required this.profileJson,
-  });
-
-  final StyleWorkflowState state;
-  final String message;
-  final List<String> warningMessages;
-  final Map<String, Object?> profileJson;
-}
+export 'workspace_types.dart';
 
 const defaultStyleBindingFeedback = '反馈会说明当前绑定范围、已同步的规则集和强度建议。';
 const defaultAuditActionFeedback = '等待处理';
@@ -237,42 +121,7 @@ const defaultStyleQuestionnaireDraft = <String, Object?>{
   'suspense_release_rate': 'slow',
 };
 
-List<ProjectRecord> buildDefaultProjects() {
-  final now = DateTime.now();
-  return [
-    ProjectRecord(
-      id: 'project-yuechao',
-      sceneId: 'scene-05-witness-room',
-      title: '月潮回声',
-      genre: '悬疑 / 8.7 万字',
-      summary: '证人房间的对峙停在最危险的地方，只差最后一步就会撬开旧港城的暗线。',
-      recentLocation: '第 3 章 / 场景 05 · 证人房间对峙',
-      lastOpenedAtMs: now.millisecondsSinceEpoch,
-    ),
-    ProjectRecord(
-      id: 'project-yangang',
-      sceneId: 'scene-12-warehouse-talk',
-      title: '盐港档案',
-      genre: '都市现实 / 4.3 万字',
-      summary: '仓库夜谈刚写到一半，线人给出的口供还没有被彻底拆开。',
-      recentLocation: '第 1 卷 / 场景 12 · 仓库夜谈',
-      lastOpenedAtMs: now
-          .subtract(const Duration(days: 1))
-          .millisecondsSinceEpoch,
-    ),
-    ProjectRecord(
-      id: 'project-huijin',
-      sceneId: 'scene-03-platform-farewell',
-      title: '灰烬天气',
-      genre: '成长 / 2.1 万字',
-      summary: '站台告别之后的那场沉默还没补完，整段情绪需要再收紧一次。',
-      recentLocation: '第 2 章 / 场景 03 · 站台告别',
-      lastOpenedAtMs: now
-          .subtract(const Duration(days: 3))
-          .millisecondsSinceEpoch,
-    ),
-  ];
-}
+List<ProjectRecord> buildDefaultProjects() => const [];
 
 Map<String, List<CharacterRecord>> buildDefaultProjectCharacters(
   List<ProjectRecord> projects,
@@ -366,14 +215,7 @@ List<SceneRecord> defaultScenesForProject(ProjectRecord project) {
         ),
       ];
     default:
-      return [
-        SceneRecord(
-          id: project.sceneId,
-          chapterLabel: chapterLabelFromRecentLocation(project.recentLocation),
-          title: sceneTitleFromRecentLocation(project.recentLocation),
-          summary: '等待补充章节目标、冲突和收束条件。',
-        ),
-      ];
+      return const [];
   }
 }
 

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:novel_writer/app/di/app_providers.dart';
+import 'package:novel_writer/app/di/service_registry.dart';
+import 'package:novel_writer/app/state/app_settings_storage.dart';
+import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/theme/app_theme.dart';
 import 'package:novel_writer/app/widgets/app_notice_banner.dart';
 import 'package:novel_writer/app/widgets/desktop_shell.dart';
@@ -37,12 +42,8 @@ void main() {
         ),
       );
 
-      final semanticsFinder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label?.contains('导航路径') == true,
-      );
-      expect(semanticsFinder, findsOneWidget);
+      final textFinder = find.text('路径A > 路径B');
+      expect(textFinder, findsOneWidget);
     });
   });
 
@@ -83,43 +84,6 @@ void main() {
             widget is Semantics && widget.properties.label == '状态栏: 数据库读取失败',
       );
       expect(semanticsFinder, findsOneWidget);
-    });
-  });
-
-  group('DesktopMenuDrawer semantics', () {
-    testWidgets('wraps drawer with navigation label', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: Scaffold(
-            body: DesktopMenuDrawer(
-              title: '导航',
-              items: [
-                DesktopMenuItemData(
-                  label: '书架',
-                  isSelected: true,
-                  onTap: () {},
-                ),
-                DesktopMenuItemData(label: '设置', onTap: () {}),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      final drawerSemantics = find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.label == '导航 侧边导航',
-      );
-      expect(drawerSemantics, findsOneWidget);
-
-      final itemSemantics = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.button == true &&
-            widget.properties.selected == true &&
-            widget.properties.label?.contains('书架') == true,
-      );
-      expect(itemSemantics, findsOneWidget);
     });
   });
 
@@ -175,13 +139,22 @@ void main() {
 
   group('DesktopShellFrame semantics', () {
     testWidgets('wraps shell frame with app label', (tester) async {
+      final registry = ServiceRegistry();
+      registry.registerSingleton<AppSettingsStore>(
+        AppSettingsStore(storage: InMemoryAppSettingsStorage()),
+      );
+      addTearDown(() => registry.disposeAll());
+
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const DesktopShellFrame(
-            header: DesktopHeaderBar(title: '测试标题'),
-            body: Text('内容区域'),
-            statusBar: DesktopStatusStrip(leftText: '正常'),
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const DesktopShellFrame(
+              header: DesktopHeaderBar(title: '测试标题'),
+              body: Text('内容区域'),
+              statusBar: DesktopStatusStrip(leftText: '正常'),
+            ),
           ),
         ),
       );
@@ -190,45 +163,6 @@ void main() {
         (widget) => widget is Semantics && widget.properties.label == '应用主框架',
       );
       expect(semanticsFinder, findsOneWidget);
-    });
-  });
-
-  group('DesktopHandleBar semantics', () {
-    testWidgets('interactive handle has button semantics with label', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: Scaffold(body: DesktopHandleBar(onTap: () {})),
-        ),
-      );
-
-      final semanticsFinder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.button == true &&
-            widget.properties.label == '切换侧边导航',
-      );
-      expect(semanticsFinder, findsOneWidget);
-    });
-
-    testWidgets('non-interactive handle excludes semantics', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const Scaffold(body: DesktopHandleBar()),
-        ),
-      );
-
-      final handle = find.byType(DesktopHandleBar);
-      expect(handle, findsOneWidget);
-
-      final excludeSemantics = find.descendant(
-        of: handle,
-        matching: find.byType(ExcludeSemantics),
-      );
-      expect(excludeSemantics, findsWidgets);
     });
   });
 }

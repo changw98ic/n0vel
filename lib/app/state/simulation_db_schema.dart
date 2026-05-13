@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart';
 
+import '../logging/app_log.dart';
 import 'db_schema_manager.dart';
 
 const List<SchemaMigration> simulationSchemaMigrations = [
   SchemaMigration(
     version: 1,
-    description: 'Initial simulation schema: runs, participant_prompts, '
+    description:
+        'Initial simulation schema: runs, participant_prompts, '
         'chat_messages tables + legacy state migration.',
     migrate: _migrateSimulationV1,
   ),
@@ -70,8 +72,11 @@ void _migrateLegacySimulationState(Database db) {
       if (decoded is Map<String, Object?>) {
         writeSimulationData(db, decoded, projectId: legacySimulationProjectId);
       }
-    } catch (_) {
-      // Ignore malformed legacy payloads and continue with a clean schema.
+    } catch (error) {
+      AppLog.w(
+        'Skipped malformed legacy simulation_state payload during schema migration: $error',
+        tag: 'SimulationSchema',
+      );
     }
   }
   db.execute('DROP TABLE simulation_state');
@@ -104,19 +109,16 @@ void writeSimulationData(
     [projectId, templateName, updatedAt, updatedAt],
   );
 
-  final runId = db.select(
-    'SELECT id FROM simulation_runs WHERE scope_key = ?',
-    [projectId],
-  ).first['id'] as int;
+  final runId =
+      db.select('SELECT id FROM simulation_runs WHERE scope_key = ?', [
+            projectId,
+          ]).first['id']
+          as int;
 
-  db.execute(
-    'DELETE FROM simulation_participant_prompts WHERE run_id = ?',
-    [runId],
-  );
-  db.execute(
-    'DELETE FROM simulation_chat_messages WHERE run_id = ?',
-    [runId],
-  );
+  db.execute('DELETE FROM simulation_participant_prompts WHERE run_id = ?', [
+    runId,
+  ]);
+  db.execute('DELETE FROM simulation_chat_messages WHERE run_id = ?', [runId]);
 
   for (final entry in promptOverrides.entries) {
     db.execute(

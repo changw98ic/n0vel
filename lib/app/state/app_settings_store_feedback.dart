@@ -1,6 +1,6 @@
-import 'app_settings_models.dart';
 import 'app_settings_storage.dart';
 import 'app_settings_store_utils.dart';
+import 'settings/settings_models.dart';
 
 ({
   AppSettingsPersistenceIssue issue,

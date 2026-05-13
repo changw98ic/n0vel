@@ -1,68 +1,107 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/app.dart';
+import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
-import 'package:novel_writer/app/state/app_ai_history_storage.dart';
 import 'package:novel_writer/app/state/app_ai_history_store.dart';
-import 'package:novel_writer/app/state/app_draft_storage.dart';
+import 'package:novel_writer/app/state/app_auto_backup.dart';
 import 'package:novel_writer/app/state/app_draft_store.dart';
-import 'package:novel_writer/app/state/app_scene_context_storage.dart';
 import 'package:novel_writer/app/state/app_scene_context_store.dart';
-import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/app/state/app_simulation_storage.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
-import 'package:novel_writer/app/state/app_version_storage.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
-import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
+import 'package:novel_writer/app/state/crash_detector.dart';
+import 'package:novel_writer/app/widgets/crash_recovery_dialog.dart';
 import 'package:novel_writer/features/projects/presentation/project_list_page.dart';
 
-import 'test_support/fake_app_llm_client.dart';
+import 'test_support/test_registry.dart';
 
-void _installInMemoryStorages() {
-  AppAiHistoryStore.debugStorageOverride = InMemoryAppAiHistoryStorage();
-  AppDraftStore.debugStorageOverride = InMemoryAppDraftStorage();
-  AppSceneContextStore.debugStorageOverride = InMemoryAppSceneContextStorage();
-  AppSettingsStore.debugStorageOverride = InMemoryAppSettingsStorage();
-  AppSettingsStore.debugLlmClientOverride = FakeAppLlmClient();
-  AppSimulationStore.debugStorageOverride = InMemoryAppSimulationStorage();
-  AppVersionStore.debugStorageOverride = InMemoryAppVersionStorage();
-  AppWorkspaceStore.debugStorageOverride = InMemoryAppWorkspaceStorage();
+class _FakeCrashDetector implements CrashDetector {
+  _FakeCrashDetector({this.dirtyShutdown = false});
+
+  final bool dirtyShutdown;
+  var cleanShutdownMarks = 0;
+
+  @override
+  bool wasDirtyShutdown() => dirtyShutdown;
+
+  @override
+  void markCleanShutdown() {
+    cleanShutdownMarks++;
+  }
+}
+
+class _ThrowingRestoreBackupService implements AutoBackupService {
+  var restoreAttempts = 0;
+
+  @override
+  Future<BackupEntry> createBackup() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteBackup(String id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<BackupEntry>> listBackups() async {
+    return const [BackupEntry(id: 'latest', sizeBytes: 3, createdAtMs: 1)];
+  }
+
+  @override
+  Future<int> pruneBackups({int keepCount = 10}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> restoreBackup(String id) async {
+    restoreAttempts++;
+    throw StateError('restore failed');
+  }
+}
+
+void _installTestRegistry() {
+  NovelWriterApp.debugRegistryOverride = createTestRegistry();
 }
 
 void _clearOverrides() {
-  AppAiHistoryStore.debugStorageOverride = null;
-  AppDraftStore.debugStorageOverride = null;
-  AppSceneContextStore.debugStorageOverride = null;
-  AppSettingsStore.debugStorageOverride = null;
-  AppSettingsStore.debugLlmClientOverride = null;
-  AppSimulationStore.debugStorageOverride = null;
-  AppVersionStore.debugStorageOverride = null;
-  AppWorkspaceStore.debugStorageOverride = null;
+  NovelWriterApp.debugRegistryOverride = null;
+  NovelWriterApp.debugCreateAutoBackupService = createDefaultAutoBackupService;
+  NovelWriterApp.debugShowRecoveryDialog = showCrashRecoveryDialog;
 }
 
 void main() {
-  setUp(_installInMemoryStorages);
+  setUp(_installTestRegistry);
   tearDown(_clearOverrides);
 
   group('NovelWriterApp initialization', () {
-    testWidgets('mounts all eight scope widgets', (tester) async {
+    testWidgets('all eight stores resolve via Riverpod providers', (
+      tester,
+    ) async {
       await tester.pumpWidget(const NovelWriterApp());
       await tester.pump();
 
-      expect(find.byType(AppEventLogScope), findsOneWidget);
-      expect(find.byType(AppDraftScope), findsOneWidget);
-      expect(find.byType(AppAiHistoryScope), findsOneWidget);
-      expect(find.byType(AppVersionScope), findsOneWidget);
-      expect(find.byType(AppSceneContextScope), findsOneWidget);
-      expect(find.byType(AppSettingsScope), findsOneWidget);
-      expect(find.byType(AppSimulationScope), findsOneWidget);
-      expect(find.byType(AppWorkspaceScope), findsOneWidget);
+      // Use a descendant context — ProviderScope.containerOf requires a
+      // context that sits *inside* the ProviderScope, not the scope itself.
+      final element = tester.element(find.byType(MaterialApp));
+      final container = ProviderScope.containerOf(element);
+
+      // All eight core providers must resolve without throwing.
+      expect(container.read(appEventLogProvider), isNotNull);
+      expect(container.read(appDraftStoreProvider), isNotNull);
+      expect(container.read(appAiHistoryStoreProvider), isNotNull);
+      expect(container.read(appVersionStoreProvider), isNotNull);
+      expect(container.read(appSceneContextStoreProvider), isNotNull);
+      expect(container.read(appSettingsStoreProvider), isNotNull);
+      expect(container.read(appSimulationStoreProvider), isNotNull);
+      expect(container.read(appWorkspaceStoreProvider), isNotNull);
     });
 
-    testWidgets('all scopes are reachable from leaf widgets', (tester) async {
+    testWidgets('all stores are reachable from leaf widgets', (tester) async {
       AppEventLog? eventLog;
       AppDraftStore? draftStore;
       AppAiHistoryStore? aiHistoryStore;
@@ -76,14 +115,15 @@ void main() {
         NovelWriterApp(
           home: Builder(
             builder: (context) {
-              eventLog = AppEventLogScope.of(context);
-              draftStore = AppDraftScope.of(context);
-              aiHistoryStore = AppAiHistoryScope.of(context);
-              versionStore = AppVersionScope.of(context);
-              sceneContextStore = AppSceneContextScope.of(context);
-              settingsStore = AppSettingsScope.of(context);
-              simulationStore = AppSimulationScope.of(context);
-              workspaceStore = AppWorkspaceScope.of(context);
+              final container = ProviderScope.containerOf(context);
+              eventLog = container.read(appEventLogProvider);
+              draftStore = container.read(appDraftStoreProvider);
+              aiHistoryStore = container.read(appAiHistoryStoreProvider);
+              versionStore = container.read(appVersionStoreProvider);
+              sceneContextStore = container.read(appSceneContextStoreProvider);
+              settingsStore = container.read(appSettingsStoreProvider);
+              simulationStore = container.read(appSimulationStoreProvider);
+              workspaceStore = container.read(appWorkspaceStoreProvider);
               return const SizedBox.shrink();
             },
           ),
@@ -113,13 +153,14 @@ void main() {
         NovelWriterApp(
           home: Builder(
             builder: (context) {
-              // Access every scope to force resolution.
-              AppAiHistoryScope.of(context);
-              AppSceneContextScope.of(context);
-              AppSimulationScope.of(context);
-              AppDraftScope.of(context);
-              AppVersionScope.of(context);
-              AppWorkspaceScope.of(context);
+              // Access every provider to force resolution.
+              final container = ProviderScope.containerOf(context);
+              container.read(appAiHistoryStoreProvider);
+              container.read(appSceneContextStoreProvider);
+              container.read(appSimulationStoreProvider);
+              container.read(appDraftStoreProvider);
+              container.read(appVersionStoreProvider);
+              container.read(appWorkspaceStoreProvider);
               return const Text('ok', textDirection: TextDirection.ltr);
             },
           ),
@@ -139,7 +180,9 @@ void main() {
 
     testWidgets('custom home replaces default', (tester) async {
       await tester.pumpWidget(
-        const NovelWriterApp(home: Text('custom home', textDirection: TextDirection.ltr)),
+        const NovelWriterApp(
+          home: Text('custom home', textDirection: TextDirection.ltr),
+        ),
       );
       await tester.pump();
 
@@ -154,7 +197,8 @@ void main() {
         NovelWriterApp(
           home: Builder(
             builder: (context) {
-              settingsStore = AppSettingsScope.of(context);
+              final container = ProviderScope.containerOf(context);
+              settingsStore = container.read(appSettingsStoreProvider);
               return const SizedBox.shrink();
             },
           ),
@@ -162,18 +206,13 @@ void main() {
       );
       await tester.pump();
 
-      final materialApp = tester.widget<MaterialApp>(
-        find.byType(MaterialApp),
-      );
-      expect(
-        materialApp.themeMode,
-        settingsStore!.snapshot.themeMode,
-      );
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.themeMode, settingsStore!.snapshot.themeMode);
       expect(materialApp.theme, isNotNull);
       expect(materialApp.darkTheme, isNotNull);
     });
 
-    testWidgets('disposes all ChangeNotifier stores without errors', (
+    testWidgets('disposes all registry-owned stores without errors', (
       tester,
     ) async {
       await tester.pumpWidget(const NovelWriterApp());
@@ -186,6 +225,87 @@ void main() {
       // If dispose threw, the test framework would have already failed.
       // This test verifies no exceptions propagate during teardown.
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'ordinary background lifecycle states do not mark clean shutdown',
+      (tester) async {
+        final crashDetector = _FakeCrashDetector();
+
+        await tester.pumpWidget(NovelWriterApp(crashDetector: crashDetector));
+        await tester.pump();
+
+        final binding = TestWidgetsFlutterBinding.ensureInitialized();
+        for (final state in [
+          AppLifecycleState.inactive,
+          AppLifecycleState.hidden,
+          AppLifecycleState.paused,
+        ]) {
+          binding.handleAppLifecycleStateChanged(state);
+          await tester.pump();
+
+          expect(crashDetector.cleanShutdownMarks, 0);
+        }
+
+        // Resume through valid intermediate states.
+        for (final state in [
+          AppLifecycleState.hidden,
+          AppLifecycleState.inactive,
+          AppLifecycleState.resumed,
+        ]) {
+          binding.handleAppLifecycleStateChanged(state);
+          await tester.pump();
+        }
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+
+        expect(crashDetector.cleanShutdownMarks, 1);
+      },
+    );
+
+    testWidgets('detached lifecycle waits for dispose to mark clean shutdown', (
+      tester,
+    ) async {
+      final crashDetector = _FakeCrashDetector();
+
+      await tester.pumpWidget(NovelWriterApp(crashDetector: crashDetector));
+      await tester.pump();
+
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
+      await tester.pump();
+
+      expect(crashDetector.cleanShutdownMarks, 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      expect(crashDetector.cleanShutdownMarks, 1);
+    });
+
+    testWidgets('restore backup errors do not crash startup recovery overlay', (
+      tester,
+    ) async {
+      final crashDetector = _FakeCrashDetector(dirtyShutdown: true);
+      final backupService = _ThrowingRestoreBackupService();
+      NovelWriterApp.debugCreateAutoBackupService = () => backupService;
+      NovelWriterApp.debugShowRecoveryDialog =
+          (context, {required backups}) async {
+            return true;
+          };
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: crashDetector,
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(backupService.restoreAttempts, 1);
+      expect(find.text('ready'), findsOneWidget);
     });
   });
 }

@@ -1,9 +1,4 @@
-/// Language preference for story-generation prompt templates.
-///
-/// Controls both the system prompts sent to the LLM and the format labels
-/// used to parse structured LLM output (e.g. plan lines, review decisions,
-/// beat tags).
-enum PromptLanguage { zh, en }
+import '../../../domain/prompt_language.dart';
 
 /// Language-dependent strings used by the story-generation pipeline.
 ///
@@ -341,7 +336,7 @@ class PromptLocale {
         '禁忌：...\n'
         '检索：tool_name|query|purpose (optional, repeat for multiple)\n'
         'Retrieval tool options: character_profile, relationship, world_setting, '
-        'past_event\n'
+        'past_event, search_writing_reference\n'
         'Keep every line concrete and brief.',
     sysSceneBeatResolve:
         'You are a scene beat resolver for a Chinese novel. '
@@ -493,7 +488,7 @@ class PromptLocale {
         'Taboo: ...\n'
         'Retrieval: tool_name|query|purpose (optional, repeat for multiple)\n'
         'Retrieval tool options: character_profile, relationship, world_setting, '
-        'past_event\n'
+        'past_event, search_writing_reference\n'
         'Keep every line concrete and brief.',
     sysSceneBeatResolve:
         'You are a scene beat resolver for an English novel. '

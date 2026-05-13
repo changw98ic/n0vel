@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
+import 'package:novel_writer/domain/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
@@ -61,7 +62,7 @@ void main() {
     });
 
     test('zh locale beat tags match original Chinese labels', () {
-      final zh = PromptLocale.zh;
+      const zh = PromptLocale.zh;
       expect(zh.beatFact, '事实');
       expect(zh.beatDialogue, '对白');
       expect(zh.beatAction, '动作');
@@ -70,7 +71,7 @@ void main() {
     });
 
     test('en locale beat tags are English', () {
-      final en = PromptLocale.en;
+      const en = PromptLocale.en;
       expect(en.beatFact, 'Fact');
       expect(en.beatDialogue, 'Dialogue');
       expect(en.beatAction, 'Action');
@@ -333,7 +334,7 @@ void main() {
   // ===========================================================================
   group('PromptLocale user prompt field labels', () {
     test('zh locale has all user prompt labels', () {
-      final zh = PromptLocale.zh;
+      const zh = PromptLocale.zh;
       expect(zh.taskLabel, '任务');
       expect(zh.sceneLabel, '场景');
       expect(zh.sceneShortLabel, '场');
@@ -360,7 +361,7 @@ void main() {
     });
 
     test('en locale has all user prompt labels', () {
-      final en = PromptLocale.en;
+      const en = PromptLocale.en;
       expect(en.taskLabel, 'Task');
       expect(en.sceneLabel, 'Scene');
       expect(en.sceneShortLabel, 'Scene');
@@ -522,7 +523,7 @@ void main() {
 
     test('parses Chinese role agent output in zh mode', () {
       StoryPromptTemplates.language = PromptLanguage.zh;
-      final output = DynamicRoleAgentOutput(
+      const output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
         text: '立场：坚定\n动作：转身离开\n禁忌：妥协',
@@ -535,7 +536,7 @@ void main() {
 
     test('parses English role agent output in en mode', () {
       StoryPromptTemplates.language = PromptLanguage.en;
-      final output = DynamicRoleAgentOutput(
+      const output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
         text: 'Stance: firm\nAction: turns and leaves\nTaboo: compromise',
@@ -548,7 +549,7 @@ void main() {
 
     test('parses Chinese retrieval intent in zh mode', () {
       StoryPromptTemplates.language = PromptLanguage.zh;
-      final output = DynamicRoleAgentOutput(
+      const output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
         text: '立场：怀疑\n动作：质问\n禁忌：暴力\n检索：character_profile|主角背景|确认动机',
@@ -561,7 +562,7 @@ void main() {
 
     test('parses English retrieval intent in en mode', () {
       StoryPromptTemplates.language = PromptLanguage.en;
-      final output = DynamicRoleAgentOutput(
+      const output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
         text:
@@ -574,7 +575,7 @@ void main() {
 
     test('wrong language format yields empty fields', () {
       StoryPromptTemplates.language = PromptLanguage.en;
-      final output = DynamicRoleAgentOutput(
+      const output = DynamicRoleAgentOutput(
         characterId: 'char01',
         name: 'Alice',
         text: '立场：坚定\n动作：转身离开\n禁忌：妥协',

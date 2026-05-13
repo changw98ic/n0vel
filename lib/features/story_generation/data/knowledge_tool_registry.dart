@@ -3,6 +3,7 @@ import '../domain/pipeline_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/roleplay_models.dart';
 import 'story_memory_retriever.dart';
+import 'material_reference_retriever.dart';
 
 /// A named retrieval tool that produces [ContextCapsule] objects for agents.
 class KnowledgeTool {
@@ -15,7 +16,7 @@ class KnowledgeTool {
   final String name;
   final String description;
   final Future<ContextCapsule> Function(Map<String, Object?> parameters)
-      retrieve;
+  retrieve;
 }
 
 /// Registry of named retrieval tools available to role agents.
@@ -24,7 +25,21 @@ class KnowledgeTool {
 /// executes the retrieval, and returns a compressed capsule.
 class KnowledgeToolRegistry {
   KnowledgeToolRegistry({List<KnowledgeTool>? tools})
-      : _tools = {for (final t in tools ?? const []) t.name: t};
+    : _tools = {for (final t in tools ?? const []) t.name: t};
+
+  factory KnowledgeToolRegistry.roleplayDefaults({
+    StoryMemoryRetriever? memoryRetriever,
+    MaterialReferenceRetriever? materialReferenceRetriever,
+    bool enableWritingReference = true,
+  }) {
+    return KnowledgeToolRegistry(
+      tools: [
+        if (memoryRetriever != null) ...createMemoryTools(memoryRetriever),
+        if (enableWritingReference)
+          ...createMaterialReferenceTools(retriever: materialReferenceRetriever),
+      ],
+    );
+  }
 
   final Map<String, KnowledgeTool> _tools;
 
@@ -100,9 +115,9 @@ class KnowledgeToolRegistry {
 
     final dialogueTendency = _joinField(grouped[CognitionKind.intent]!);
 
-    final sourceAtomIds = List<String>.unmodifiable(
-      [for (final atom in mine) atom.id],
-    );
+    final sourceAtomIds = List<String>.unmodifiable([
+      for (final atom in mine) atom.id,
+    ]);
 
     return RolePromptPacket(
       characterId: snapshot.characterId,
@@ -135,7 +150,8 @@ List<KnowledgeTool> createMemoryTools(StoryMemoryRetriever retriever) {
   return [
     KnowledgeTool(
       name: 'get_plot_memory',
-      description: 'Retrieves plot-relevant memory: outline beats, accepted states, and causality thoughts.',
+      description:
+          'Retrieves plot-relevant memory: outline beats, accepted states, and causality thoughts.',
       retrieve: (params) => _retrieveToCapsule(
         retriever: retriever,
         queryType: StoryMemoryQueryType.causality,
@@ -186,6 +202,25 @@ List<KnowledgeTool> createMemoryTools(StoryMemoryRetriever retriever) {
   ];
 }
 
+/// Creates the local curated writing-reference retrieval tool.
+///
+/// The returned capsule contains only retrieval-safe labels and a short
+/// excerpt; source guidance fields are stripped by [MaterialReferenceRetriever].
+List<KnowledgeTool> createMaterialReferenceTools({
+  MaterialReferenceRetriever? retriever,
+}) {
+  final materialRetriever = retriever ?? MaterialReferenceRetriever();
+  return [
+    KnowledgeTool(
+      name: kWritingReferenceToolName,
+      description:
+          'Searches curated Jianlai writing reference labels and short excerpts for roleplay/material inspiration.',
+      retrieve: (params) async =>
+          materialRetriever.searchToDomainCapsule(params),
+    ),
+  ];
+}
+
 Future<ContextCapsule> _retrieveToCapsule({
   required StoryMemoryRetriever retriever,
   required StoryMemoryQueryType queryType,
@@ -211,9 +246,11 @@ Future<ContextCapsule> _retrieveToCapsule({
 
   final salientFacts = pack.hits
       .take(5)
-      .map((h) => h.chunk.content.length > 100
-          ? '${h.chunk.content.substring(0, 97)}...'
-          : h.chunk.content)
+      .map(
+        (h) => h.chunk.content.length > 100
+            ? '${h.chunk.content.substring(0, 97)}...'
+            : h.chunk.content,
+      )
       .toList();
 
   final sourceRefIds = <String>[
@@ -229,8 +266,7 @@ Future<ContextCapsule> _retrieveToCapsule({
     metadata: {
       'salientFacts': salientFacts,
       'uncertainties': [
-        if (pack.deferredHitCount > 0)
-          '${pack.deferredHitCount} deferred hits',
+        if (pack.deferredHitCount > 0) '${pack.deferredHitCount} deferred hits',
       ],
       'sourceRefIds': sourceRefIds,
       'visibilityScopes': viewerId != null ? [viewerId] : <String>[],

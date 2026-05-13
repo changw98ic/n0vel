@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
-import '../../../app/state/app_workspace_records.dart';
+import '../../../app/state/app_authoring_storage_io_support.dart';
+import '../../../domain/workspace_models.dart';
+import '../../story_generation/data/character_memory_store_io.dart';
+import '../../story_generation/data/roleplay_audit_report.dart';
+import '../../story_generation/data/roleplay_session_store_io.dart';
+import 'store_payload_contributor.dart';
 
 class ProjectPackageManifest {
   const ProjectPackageManifest({
@@ -39,7 +45,7 @@ class ProjectPackageManifest {
     return ProjectPackageManifest(
       packageName: (json['name'] as String?) ?? '小说工程包',
       projectId: (json['project_id'] as String?) ?? '',
-      projectTitle: _fallbackManifestText(
+      projectTitle: fallbackManifestText(
         json['project_title'],
         fallback: '导入项目',
       ),
@@ -52,7 +58,7 @@ class ProjectPackageManifest {
   }
 }
 
-String _fallbackManifestText(Object? raw, {required String fallback}) {
+String fallbackManifestText(Object? raw, {required String fallback}) {
   final trimmed = raw?.toString().trim() ?? '';
   return trimmed.isEmpty ? fallback : trimmed;
 }
@@ -105,4 +111,78 @@ Directory resolveProjectTransferImportsDirectory({String? homeOverride}) {
     return Directory('./imports');
   }
   return Directory('$home/Documents/NovelWriter/imports');
+}
+
+class DecodedStorePayload {
+  const DecodedStorePayload({required this.payload, required this.data});
+
+  final StorePayloadContributor payload;
+  final Map<String, Object?> data;
+}
+
+String computePayloadChecksum(String content) {
+  final bytes = utf8.encode(content);
+  var hash = 0x811c9dc5;
+  for (final b in bytes) {
+    hash ^= b;
+    hash = (hash * 0x01000193) & 0xFFFFFFFF;
+  }
+  return hash.toUnsigned(32).toRadixString(16).padLeft(8, '0');
+}
+
+Future<Map<String, Object?>?> exportRoleplayStateForProject(
+  String projectId,
+) async {
+  final database = openAuthoringDatabase(resolveAuthoringDbPath());
+  try {
+    final roleplayData = await RoleplaySessionStoreIO(
+      db: database,
+    ).exportProjectJson(projectId);
+    final roleplayStore = RoleplaySessionStoreIO(db: database);
+    final sessions = await roleplayStore.loadProjectSessions(
+      projectId: projectId,
+    );
+    final auditReports = const RoleplayAuditReportBuilder().buildAll(sessions);
+    final memoryData = await CharacterMemoryStoreIO(
+      db: database,
+    ).exportProjectJson(projectId);
+    if (roleplayData == null && memoryData == null && auditReports.isEmpty) {
+      return null;
+    }
+    return {
+      if (roleplayData != null) 'roleplaySessions': roleplayData,
+      if (memoryData != null) 'characterMemories': memoryData,
+      if (auditReports.isNotEmpty)
+        'auditReports': [for (final report in auditReports) report.toJson()],
+      if (auditReports.isNotEmpty)
+        'auditMarkdown': auditReports
+            .map((report) => report.toMarkdown())
+            .join('\n\n'),
+    };
+  } finally {
+    database.dispose();
+  }
+}
+
+Future<void> importRoleplayStateForProject(
+  String projectId,
+  Map<String, Object?> data,
+) async {
+  final database = openAuthoringDatabase(resolveAuthoringDbPath());
+  try {
+    final roleplayRaw = data['roleplaySessions'];
+    if (roleplayRaw is Map) {
+      await RoleplaySessionStoreIO(
+        db: database,
+      ).importProjectJson(projectId, Map<String, Object?>.from(roleplayRaw));
+    }
+    final memoryRaw = data['characterMemories'];
+    if (memoryRaw is Map) {
+      await CharacterMemoryStoreIO(
+        db: database,
+      ).importProjectJson(projectId, Map<String, Object?>.from(memoryRaw));
+    }
+  } finally {
+    database.dispose();
+  }
 }

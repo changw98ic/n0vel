@@ -1,6 +1,6 @@
 import 'package:sqlite3/sqlite3.dart';
 
-import 'app_workspace_records.dart';
+import 'package:novel_writer/domain/workspace_models.dart';
 import 'db_schema_manager.dart';
 import 'sql_identifier.dart';
 

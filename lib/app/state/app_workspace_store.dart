@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
+import 'app_store_listenable.dart';
 import 'app_workspace_storage.dart';
 import 'workspace_codec_utils.dart';
 import 'workspace_types.dart';
@@ -15,17 +16,20 @@ part 'workspace_codec.dart';
 part 'workspace_project_scene_ops.dart';
 part 'workspace_resource_style_ops.dart';
 part 'workspace_audit_transfer_ops.dart';
+part 'workspace_facades/workspace_facades.dart';
 
 // ============================================================================
 // Fields & Infrastructure Mixin
 // ============================================================================
 
-mixin _WorkspaceFields on ChangeNotifier {
+mixin _WorkspaceFields on AppStoreListenable {
   // -------------------------------------------------------------------------
   // Abstract Fields
   // -------------------------------------------------------------------------
 
   AppWorkspaceStorage get _storage;
+  Iterable<Future<void> Function(String projectId)>
+  get _projectDeletionCleaners;
 
   abstract List<ProjectRecord> _projects;
   abstract Map<String, List<CharacterRecord>> _charactersByProjectId;
@@ -110,7 +114,15 @@ mixin _WorkspaceFields on ChangeNotifier {
       return project;
     }
     if (_projects.isEmpty) {
-      throw StateError('No current project is available.');
+      return const ProjectRecord(
+        id: '',
+        sceneId: '',
+        title: '新建项目',
+        genre: '',
+        summary: '',
+        recentLocation: '',
+        lastOpenedAtMs: 0,
+      );
     }
     return _projects.first;
   }
@@ -147,7 +159,12 @@ mixin _WorkspaceFields on ChangeNotifier {
   SceneRecord _currentSceneFallback() {
     final project = currentProjectOrNull;
     if (project == null) {
-      throw StateError('No current scene is available.');
+      return const SceneRecord(
+        id: '',
+        chapterLabel: '',
+        title: '',
+        summary: '',
+      );
     }
     final scenesForProject = _scenesForProject(project.id);
     if (scenesForProject.isNotEmpty) {
@@ -157,7 +174,12 @@ mixin _WorkspaceFields on ChangeNotifier {
     if (fallbackScenes.isNotEmpty) {
       return fallbackScenes.first;
     }
-    throw StateError('No fallback scene is available.');
+    return SceneRecord(
+      id: project.sceneId,
+      chapterLabel: '',
+      title: '',
+      summary: '',
+    );
   }
 
   int get selectedAuditIssueIndex =>
@@ -331,9 +353,7 @@ mixin _WorkspaceFields on ChangeNotifier {
       _charactersForProject(_currentProjectId);
 
   List<CharacterRecord> _charactersForProject(String projectId) =>
-      List<CharacterRecord>.from(
-        _charactersByProjectId[projectId] ?? defaultCharacters,
-      );
+      List<CharacterRecord>.from(_charactersByProjectId[projectId] ?? const []);
 
   List<SceneRecord> _scenesForCurrentProject() =>
       _scenesForProject(_currentProjectId);
@@ -348,9 +368,7 @@ mixin _WorkspaceFields on ChangeNotifier {
       _worldNodesForProject(_currentProjectId);
 
   List<WorldNodeRecord> _worldNodesForProject(String projectId) =>
-      List<WorldNodeRecord>.from(
-        _worldNodesByProjectId[projectId] ?? defaultWorldNodes,
-      );
+      List<WorldNodeRecord>.from(_worldNodesByProjectId[projectId] ?? const []);
 
   List<AuditIssueRecord> _auditIssuesForCurrentProject() =>
       _auditIssuesForProject(_currentProjectId);
@@ -407,45 +425,64 @@ mixin _WorkspaceFields on ChangeNotifier {
 // Concrete Store
 // ============================================================================
 
-class AppWorkspaceStore extends ChangeNotifier
+class AppWorkspaceStore extends AppStoreListenable
     with
         _WorkspaceFields,
         _WorkspaceCodec,
         _ProjectSceneOps,
         _ResourceStyleOps,
         _AuditTransferOps {
-  AppWorkspaceStore({AppWorkspaceStorage? storage, AppEventBus? eventBus})
-    : _storage =
-          storage ?? debugStorageOverride ?? createDefaultAppWorkspaceStorage(),
-      _eventBus = eventBus ?? AppEventBus.current,
-      _projects = sortProjects(buildDefaultProjects()),
-      _charactersByProjectId = buildDefaultProjectCharacters(
-        buildDefaultProjects(),
-      ),
-      _scenesByProjectId = buildDefaultProjectScenes(buildDefaultProjects()),
-      _worldNodesByProjectId = buildDefaultProjectWorldNodes(
-        buildDefaultProjects(),
-      ),
-      _auditIssuesByProjectId = buildDefaultProjectAuditIssues(
-        buildDefaultProjects(),
-      ),
-      _styleByProjectId = buildDefaultProjectStyles(buildDefaultProjects()),
-      _auditUiByProjectId = buildDefaultProjectAuditUi(buildDefaultProjects()),
-      _currentProjectId = (() {
-        final projects = sortProjects(buildDefaultProjects());
-        return projects.isEmpty ? '' : projects.first.id;
-      })() {
+  AppWorkspaceStore({
+    AppWorkspaceStorage? storage,
+    AppEventBus? eventBus,
+    Iterable<Future<void> Function(String projectId)> projectDeletionCleaners =
+        const [],
+  }) : _storage =
+           storage ??
+           
+           createDefaultAppWorkspaceStorage(),
+       _eventBus = eventBus,
+       _projectDeletionCleaners = projectDeletionCleaners,
+       _projects = sortProjects(buildDefaultProjects()),
+       _charactersByProjectId = buildDefaultProjectCharacters(
+         buildDefaultProjects(),
+       ),
+       _scenesByProjectId = buildDefaultProjectScenes(buildDefaultProjects()),
+       _worldNodesByProjectId = buildDefaultProjectWorldNodes(
+         buildDefaultProjects(),
+       ),
+       _auditIssuesByProjectId = buildDefaultProjectAuditIssues(
+         buildDefaultProjects(),
+       ),
+       _styleByProjectId = buildDefaultProjectStyles(buildDefaultProjects()),
+       _auditUiByProjectId = buildDefaultProjectAuditUi(buildDefaultProjects()),
+       _currentProjectId = (() {
+         final projects = sortProjects(buildDefaultProjects());
+         return projects.isEmpty ? '' : projects.first.id;
+       })() {
     _restore();
   }
 
-  @visibleForTesting
-  static AppWorkspaceStorage? debugStorageOverride;
+  
+  WorkspaceProjectSceneFacade get projectSceneFacade =>
+      _AppWorkspaceProjectSceneFacade(this);
+
+  WorkspaceResourceLibraryFacade get resourceLibraryFacade =>
+      _AppWorkspaceResourceLibraryFacade(this);
+
+  WorkspaceStyleFacade get styleFacade => _AppWorkspaceStyleFacade(this);
+
+  WorkspaceAuditFacade get auditFacade => _AppWorkspaceAuditFacade(this);
 
   @override
   final AppWorkspaceStorage _storage;
 
   @override
   final AppEventBus? _eventBus;
+
+  @override
+  final Iterable<Future<void> Function(String projectId)>
+  _projectDeletionCleaners;
 
   @override
   List<ProjectRecord> _projects;

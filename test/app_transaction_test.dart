@@ -55,7 +55,7 @@ void main() {
       expect(
         () => runInTransaction(db, () {
           db.execute("INSERT INTO strict_tbl (val) VALUES ('ok')");
-          db.execute("INSERT INTO strict_tbl (val) VALUES (NULL)");
+          db.execute('INSERT INTO strict_tbl (val) VALUES (NULL)');
         }),
         throwsA(anything),
       );
@@ -84,7 +84,7 @@ void main() {
     test('commits and returns result', () {
       final count = withAuthoringDbInTxn(dbPath, (db) {
         db.execute(
-          "INSERT INTO draft_documents (project_id, text_body, updated_at_ms) "
+          'INSERT INTO draft_documents (project_id, text_body, updated_at_ms) '
           "VALUES ('p1', 'hello', 1000)",
         );
         return db.select('SELECT count(*) AS c FROM draft_documents').first['c']
@@ -97,7 +97,7 @@ void main() {
       expect(
         () => withAuthoringDbInTxn(dbPath, (db) {
           db.execute(
-            "INSERT INTO draft_documents (project_id, text_body, updated_at_ms) "
+            'INSERT INTO draft_documents (project_id, text_body, updated_at_ms) '
             "VALUES ('p1', 'hello', 1000)",
           );
           throw StateError('fail');

@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
+import '../events/app_event_bus.dart';
+import '../state/app_store_listenable.dart';
+
 typedef ServiceFactory<T> = T Function(ServiceRegistry registry);
 
 class _ServiceRegistration {
@@ -63,15 +66,17 @@ class ServiceRegistry {
   bool isRegistered<T>() =>
       _registrations.containsKey(T) || _instances.containsKey(T);
 
-  /// Dispose all [ChangeNotifier] instances in reverse creation order,
-  /// then clear the registry.
+  /// Dispose all registry-owned services in reverse creation order, then clear
+  /// the registry.
   @mustCallSuper
   void disposeAll() {
     for (final type in _creationOrder.reversed) {
       final instance = _instances[type];
-      if (instance is ChangeNotifier) {
+      if (instance is AppStoreListenable) {
         instance.dispose();
       } else if (instance is sqlite3.Database) {
+        instance.dispose();
+      } else if (instance is AppEventBus) {
         instance.dispose();
       }
     }

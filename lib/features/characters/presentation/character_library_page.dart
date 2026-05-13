@@ -1,12 +1,16 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
-import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
+import 'character_library_components.dart';
 
 enum CharacterLibraryUiState {
   ready,
@@ -16,7 +20,7 @@ enum CharacterLibraryUiState {
   deleteReferencedConfirm,
 }
 
-class CharacterLibraryPage extends StatefulWidget {
+class CharacterLibraryPage extends ConsumerStatefulWidget {
   const CharacterLibraryPage({
     super.key,
     this.uiState = CharacterLibraryUiState.ready,
@@ -34,15 +38,17 @@ class CharacterLibraryPage extends StatefulWidget {
   static const summaryFieldKey = ValueKey<String>(
     'character-library-summary-field',
   );
+  static const deleteButtonKey = ValueKey<String>(
+    'character-library-delete-button',
+  );
 
   final CharacterLibraryUiState uiState;
 
   @override
-  State<CharacterLibraryPage> createState() => _CharacterLibraryPageState();
+  ConsumerState<CharacterLibraryPage> createState() => _CharacterLibraryPageState();
 }
 
-class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
-  bool _isDrawerOpen = false;
+class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
   int _selectedIndex = 0;
   int _sortIndex = 0;
   final TextEditingController _searchController = TextEditingController();
@@ -67,8 +73,10 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final store = AppWorkspaceScope.of(context);
-    final characters = _characters(context);
+    final workspace = ref.watch(appWorkspaceStoreProvider);
+    final resources = workspace.resourceLibraryFacade;
+    final projectScenes = workspace.projectSceneFacade;
+    final characters = resources.characters;
     final visibleCharacters = _visibleCharacters(characters);
     final selectedIndex = _resolveSelectedIndex(characters, visibleCharacters);
     final current = visibleCharacters.isEmpty
@@ -76,62 +84,77 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         : characters[selectedIndex];
     return DesktopShellFrame(
       header: DesktopHeaderBar(
-        title: '作品设定 · 角色库',
-        subtitle: '人物资料与引用关系',
-        showBackButton: true,
+        tabs: const ['设定资料', '编辑资料', '正文'],
+        activeTabIndex: 0,
+        onTabChanged: (i) {
+          if (i == 1) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          } else if (i == 2) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            AppNavigator.push(context, AppRoutes.workbench);
+          }
+        },
         actions: [
-          FilledButton(
+          DesignActionButton(
             key: CharacterLibraryPage.newCharacterButtonKey,
-            onPressed: () => _createCharacter(store),
-            child: const Text('新建角色'),
+            icon: Icons.check,
+            label: '保存设定',
+            onPressed: () => _createCharacter(resources),
           ),
         ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final showSummary =
-              constraints.maxWidth >= AppDesignTokens.breakpointNarrow;
-          final body = Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DesktopMenuDrawerRegion(
-                isOpen: _isDrawerOpen,
-                onHandleTap: () {
-                  setState(() {
-                    _isDrawerOpen = !_isDrawerOpen;
-                  });
-                },
-                items: _menuItems(context),
-              ),
-              const SizedBox(width: AppDesignTokens.space16),
-              SizedBox(
-                width: 220,
-                child: Container(
-                  decoration: appPanelDecoration(context),
-                  padding: const EdgeInsets.all(AppDesignTokens.space16),
-                  child: _buildList(theme, visibleCharacters, selectedIndex),
-                ),
-              ),
-              const SizedBox(width: AppDesignTokens.space16),
-              Expanded(
-                child: Container(
-                  decoration: appPanelDecoration(context),
-                  padding: const EdgeInsets.all(AppDesignTokens.space16),
-                  child: _buildDetail(theme, store, current),
-                ),
-              ),
-              if (showSummary) ...[
-                const SizedBox(width: AppDesignTokens.space16),
+          final body = Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDesignTokens.space24,
+              vertical: AppDesignTokens.space20,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 SizedBox(
-                  width: 320,
-                  child: Container(
-                    decoration: appPanelDecoration(context),
-                    padding: const EdgeInsets.all(AppDesignTokens.space16),
-                    child: _buildSummary(theme, store, current),
+                  width: 260,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: AppDesignTokens.glassBlurRadius,
+                        sigmaY: AppDesignTokens.glassBlurRadius,
+                      ),
+                      child: Container(
+                        decoration: frostedSidebarDecoration(context),
+                        padding: const EdgeInsets.all(18),
+                        child: _buildList(
+                          theme,
+                          characters,
+                          visibleCharacters,
+                          selectedIndex,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: AppDesignTokens.glassBlurRadius,
+                        sigmaY: AppDesignTokens.glassBlurRadius,
+                      ),
+                      child: Container(
+                        decoration: glassCardDecoration(context),
+                        padding: const EdgeInsets.all(20),
+                        child: _buildDetail(theme, resources, projectScenes, current),
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ],
+            ),
           );
           return Stack(
             children: [
@@ -143,24 +166,24 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
               if (widget.uiState ==
                   CharacterLibraryUiState.deleteReferencedConfirm)
                 Positioned.fill(
-                  child: _CharacterDeleteOverlay(
+                  child: CharacterDeleteOverlay(
                     characterName: current?.name ?? '当前角色',
-                    sceneLabel: _linkedSceneTag(store, current),
+                    sceneLabel: _linkedSceneTag(projectScenes, current),
                   ),
                 ),
             ],
           );
         },
       ),
-      statusBar: const DesktopStatusStrip(
-        leftText: '作品设定 · 人物资料已保存',
-        rightText: '第 3 章',
+      statusBar: const BottomSpecBar(
+        description: '作品设定 · 人物资料已保存',
       ),
     );
   }
 
   Widget _buildList(
     ThemeData theme,
+    List<CharacterRecord> characters,
     List<CharacterRecord> visibleCharacters,
     int selectedIndex,
   ) {
@@ -182,7 +205,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           const SizedBox(height: AppDesignTokens.space8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
           const SizedBox(height: AppDesignTokens.space12),
-          const _InfoBlock(title: '没有找到匹配角色', message: '试试更短的名字、别名或身份关键词。'),
+          const CharacterInfoBlock(title: '没有找到匹配角色', message: '试试更短的名字、别名或身份关键词。'),
           const SizedBox(height: AppDesignTokens.space12),
           SizedBox(
             width: double.infinity,
@@ -221,14 +244,14 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           )
         else
           for (final character in visibleCharacters) ...[
-            _ListButton(
+            CharacterListButton(
               buttonKey: character.name == '岳人'
                   ? CharacterLibraryPage.yueRenKey
                   : null,
               label: character.name,
-              selected: _characters(context)[selectedIndex] == character,
+              selected: characters[selectedIndex] == character,
               onPressed: () => setState(() {
-                _selectedIndex = _characters(context).indexOf(character);
+                _selectedIndex = characters.indexOf(character);
               }),
             ),
             const SizedBox(height: AppDesignTokens.space8),
@@ -239,11 +262,12 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
 
   Widget _buildDetail(
     ThemeData theme,
-    AppWorkspaceStore store,
+    WorkspaceResourceLibraryFacade store,
+    WorkspaceProjectSceneFacade projectScenes,
     CharacterRecord? current,
   ) {
     if (widget.uiState == CharacterLibraryUiState.empty) {
-      return _CallToActionState(
+      return CharacterCallToActionState(
         title: '创建第一个角色',
         message: '先建立主要人物，再为其填写角色定位、Fear、Need 和引用场景。',
         buttonLabel: '新建角色',
@@ -257,7 +281,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           Text('角色详情', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppDesignTokens.space12),
           const Expanded(
-            child: _CenteredPanelState(
+            child: CharacterCenteredPanelState(
               title: '未选中角色',
               message: '当前搜索没有结果，因此这里不显示角色详情。',
             ),
@@ -272,7 +296,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           children: [
             Text('角色详情', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppDesignTokens.space12),
-            const _StateCard(
+            const CharacterStateCard(
               title: '缺少必填字段',
               message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
               accent: Color(0xFF51624D),
@@ -293,7 +317,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           Text('角色详情', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppDesignTokens.space12),
           const Expanded(
-            child: _CenteredPanelState(
+            child: CharacterCenteredPanelState(
               title: '没有可展示的角色',
               message: '请先搜索或新建一个角色。',
             ),
@@ -306,17 +330,39 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('角色详情', style: theme.textTheme.titleMedium),
+          Row(
+            children: [
+              Text('角色详情', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              IconButton(
+                key: CharacterLibraryPage.deleteButtonKey,
+                onPressed: () =>
+                    _confirmDeleteCharacter(context, store, current),
+                tooltip: '删除角色',
+                color: appDangerColor,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
           const SizedBox(height: AppDesignTokens.space12),
           _buildCharacterFields(store, current),
-          const SizedBox(height: AppDesignTokens.space12),
+          const SizedBox(height: AppDesignTokens.space16),
+          if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+            CharacterInfoBlock(
+              title: '引用摘要',
+              message: current.referenceSummary.isEmpty
+                  ? current.summary
+                  : current.referenceSummary,
+            ),
+          if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+            const SizedBox(height: AppDesignTokens.space12),
           Text('引用场景', style: theme.textTheme.bodySmall),
           const SizedBox(height: AppDesignTokens.space4),
           Wrap(
             spacing: AppDesignTokens.space8,
             runSpacing: AppDesignTokens.space8,
             children: [
-              for (final scene in store.scenes)
+              for (final scene in projectScenes.scenes)
                 FilterChip(
                   label: Text(scene.displayLocation),
                   selected: current.linkedSceneIds.contains(scene.id),
@@ -356,7 +402,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     return characters.indexOf(visibleCharacters.first);
   }
 
-  void _createCharacter(AppWorkspaceStore store) {
+  void _createCharacter(WorkspaceResourceLibraryFacade store) {
     setState(() {
       store.createCharacter();
       _selectedIndex = 0;
@@ -364,96 +410,49 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     });
   }
 
-  List<CharacterRecord> _characters(BuildContext context) =>
-      AppWorkspaceScope.of(context).characters;
-
-  Widget _buildSummary(
-    ThemeData theme,
-    AppWorkspaceStore store,
-    CharacterRecord? current,
-  ) {
-    if (widget.uiState == CharacterLibraryUiState.empty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space12),
-          const _InfoBlock(
-            title: '引用场景',
-            message: '当前还没有角色引用，创建角色后可以从这里快速跳回工作台。',
+  Future<void> _confirmDeleteCharacter(
+    BuildContext context,
+    WorkspaceResourceLibraryFacade store,
+    CharacterRecord character,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        return DesktopModalDialog(
+          title: '删除角色',
+          description: '删除后，角色资料和场景引用关系都会被移除。',
+          body: Text(
+            character.name,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ],
-      );
-    }
-    if (_showSearchNoResults(const <CharacterRecord>[])) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space12),
-          const _InfoBlock(title: '改搜建议', message: '试试角色名、关系称谓、标签或登场场景关键词。'),
-          const SizedBox(height: AppDesignTokens.space8),
-          const _InfoBlock(title: '引用场景', message: '搜索无结果时，不展示引用片段。'),
-        ],
-      );
-    }
-    if (widget.uiState == CharacterLibraryUiState.missingRequiredFields) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space12),
-          const _InfoBlock(
-            title: '人物摘要',
-            message: '缺少姓名时，暂不整理角色摘要，也不会同步到写作工作台。',
-          ),
-        ],
-      );
-    }
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('人物摘要', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space12),
-          if (current == null)
-            const AppEmptyState(title: '暂无摘要', message: '请先搜索或新建一个角色。')
-          else ...[
-            _InfoBlock(
-              title: '引用摘要',
-              message: current.referenceSummary.isEmpty
-                  ? current.summary
-                  : current.referenceSummary,
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
             ),
-            const SizedBox(height: AppDesignTokens.space8),
-            if (current.linkedSceneIds.isEmpty)
-              const AppEmptyState(
-                title: '暂无引用场景',
-                message: '勾选左侧场景后，可直接跳回工作台定位。',
-              )
-            else
-              Wrap(
-                spacing: AppDesignTokens.space8,
-                runSpacing: AppDesignTokens.space8,
-                children: [
-                  for (final scene in store.scenes)
-                    if (current.linkedSceneIds.contains(scene.id))
-                      TextButton(
-                        onPressed: () {
-                          store.updateCurrentScene(
-                            sceneId: scene.id,
-                            recentLocation: scene.displayLocation,
-                          );
-                          AppNavigator.push(context, AppRoutes.workbench);
-                        },
-                        child: Text('查看 ${scene.title}'),
-                      ),
-                ],
-              ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('删除'),
+            ),
           ],
-        ],
-      ),
+        );
+      },
     );
+    if (shouldDelete == true) {
+      setState(() {
+        store.deleteCharacter(character.id);
+        final visible = _visibleCharacters(store.characters);
+        _selectedIndex = visible.isEmpty
+            ? 0
+            : store.characters
+                  .indexOf(visible.first)
+                  .clamp(0, store.characters.length - 1);
+      });
+      if (context.mounted) {
+        ref.read(appSceneContextStoreProvider).syncContext();
+      }
+    }
   }
 
   bool _showSearchNoResults(List<CharacterRecord> visibleCharacters) {
@@ -464,7 +463,10 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         visibleCharacters.isEmpty;
   }
 
-  String _linkedSceneTag(AppWorkspaceStore store, CharacterRecord? current) {
+  String _linkedSceneTag(
+    WorkspaceProjectSceneFacade store,
+    CharacterRecord? current,
+  ) {
     if (current == null || current.linkedSceneIds.isEmpty) {
       return '第 3 章 / 场景 05';
     }
@@ -488,7 +490,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
   }
 
   Widget _buildCharacterFields(
-    AppWorkspaceStore store,
+    WorkspaceResourceLibraryFacade store,
     CharacterRecord current,
   ) {
     void onFieldChanged(
@@ -507,13 +509,13 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
         need: need,
         summary: summary,
       );
-      AppSceneContextScope.of(context).syncContext();
+      ref.read(appSceneContextStoreProvider).syncContext();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _EditableTextField(
+        CharacterEditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.nameFieldKey.value}-${current.id}',
           ),
@@ -522,7 +524,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           onChanged: (value) => onFieldChanged(current.id, name: value),
         ),
         const SizedBox(height: AppDesignTokens.space8),
-        _EditableTextField(
+        CharacterEditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.roleFieldKey.value}-${current.id}',
           ),
@@ -531,7 +533,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           onChanged: (value) => onFieldChanged(current.id, role: value),
         ),
         const SizedBox(height: AppDesignTokens.space8),
-        _EditableTextField(
+        CharacterEditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.noteFieldKey.value}-${current.id}',
           ),
@@ -541,7 +543,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           onChanged: (value) => onFieldChanged(current.id, note: value),
         ),
         const SizedBox(height: AppDesignTokens.space8),
-        _EditableTextField(
+        CharacterEditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.needFieldKey.value}-${current.id}',
           ),
@@ -551,7 +553,7 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
           onChanged: (value) => onFieldChanged(current.id, need: value),
         ),
         const SizedBox(height: AppDesignTokens.space8),
-        _EditableTextField(
+        CharacterEditableTextField(
           fieldKey: ValueKey<String>(
             '${CharacterLibraryPage.summaryFieldKey.value}-${current.id}',
           ),
@@ -564,267 +566,4 @@ class _CharacterLibraryPageState extends State<CharacterLibraryPage> {
     );
   }
 
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.characters,
-      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onWorkSettings: () {
-        setState(() {
-          _isDrawerOpen = false;
-        });
-      },
-      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
-      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
-      onSettings: () => AppNavigator.push(context, AppRoutes.settings),
-    );
-  }
-}
-
-class _ListButton extends StatelessWidget {
-  const _ListButton({
-    this.buttonKey,
-    required this.label,
-    this.selected = false,
-    required this.onPressed,
-  });
-
-  final Key? buttonKey;
-  final String label;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    if (selected) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          key: buttonKey,
-          onPressed: onPressed,
-          child: Text(label),
-        ),
-      );
-    }
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        key: buttonKey,
-        onPressed: onPressed,
-        child: Text(label),
-      ),
-    );
-  }
-}
-
-class _InfoBlock extends StatelessWidget {
-  const _InfoBlock({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDesignTokens.space12),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).subtle,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: AppDesignTokens.space4),
-          Text(message, style: Theme.of(context).textTheme.bodyMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _EditableTextField extends StatelessWidget {
-  const _EditableTextField({
-    required this.fieldKey,
-    required this.label,
-    required this.initialValue,
-    required this.onChanged,
-    this.maxLines = 1,
-  });
-
-  final Key fieldKey;
-  final String label;
-  final String initialValue;
-  final ValueChanged<String> onChanged;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      key: fieldKey,
-      initialValue: initialValue,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-    );
-  }
-}
-
-class _StateCard extends StatelessWidget {
-  const _StateCard({
-    required this.title,
-    required this.message,
-    required this.accent,
-  });
-
-  final String title;
-  final String message;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDesignTokens.space12),
-      decoration: BoxDecoration(
-        color: desktopPalette(context).subtle,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-        border: Border.all(color: desktopPalette(context).borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space8),
-          Text(message, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _CallToActionState extends StatelessWidget {
-  const _CallToActionState({
-    required this.title,
-    required this.message,
-    required this.buttonLabel,
-    required this.onPressed,
-  });
-
-  final String title;
-  final String message;
-  final String buttonLabel;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: AppDesignTokens.space8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: AppDesignTokens.space16),
-          FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
-        ],
-      ),
-    );
-  }
-}
-
-class _CenteredPanelState extends StatelessWidget {
-  const _CenteredPanelState({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).subtle,
-      ),
-      padding: const EdgeInsets.all(AppDesignTokens.space24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 280),
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CharacterDeleteOverlay extends StatelessWidget {
-  const _CharacterDeleteOverlay({
-    required this.characterName,
-    required this.sceneLabel,
-  });
-
-  final String characterName;
-  final String sceneLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0x99F6F0E6),
-      child: Center(
-        child: Container(
-          width: 728,
-          padding: const EdgeInsets.all(AppDesignTokens.space20),
-          decoration: BoxDecoration(
-            color: desktopPalette(context).surface,
-            borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
-            border: Border.all(color: desktopPalette(context).borderStrong),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('删除被引用角色？', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppDesignTokens.space16),
-              Text(
-                '角色"$characterName"仍被 $sceneLabel 引用。继续删除会导致相关场景失去角色绑定。\n\n建议先回到工作台或角色库移除引用，再执行删除。',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppDesignTokens.space16),
-              _InfoBlock(title: '引用场景', message: sceneLabel),
-              const SizedBox(height: AppDesignTokens.space16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(onPressed: () {}, child: const Text('取消')),
-                  const SizedBox(width: 10),
-                  FilledButton(onPressed: () {}, child: const Text('查看引用后再删')),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

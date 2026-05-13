@@ -5,6 +5,47 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
+resolve_flutter_bin() {
+  if [[ -n "${FLUTTER_BIN:-}" ]]; then
+    echo "$FLUTTER_BIN"
+    return
+  fi
+
+  local package_config=".dart_tool/package_config.json"
+  if [[ -f "$package_config" ]]; then
+    local flutter_root
+    flutter_root="$(
+      python3 - "$package_config" <<'PY'
+import json
+import sys
+import urllib.parse
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        data = json.load(handle)
+    root = data.get("flutterRoot")
+    if isinstance(root, str):
+        if root.startswith("file://"):
+            print(urllib.parse.unquote(urllib.parse.urlparse(root).path))
+        else:
+            print(root)
+except Exception:
+    pass
+PY
+    )"
+
+    if [[ -n "$flutter_root" && -x "$flutter_root/bin/flutter" ]]; then
+      echo "$flutter_root/bin/flutter"
+      return
+    fi
+  fi
+
+  command -v flutter
+}
+
+flutter_cmd="$(resolve_flutter_bin)"
+echo "Using Flutter: $flutter_cmd"
+
 arch_name="$(uname -m)"
 case "$arch_name" in
   arm64|x86_64)
@@ -18,7 +59,7 @@ esac
 echo "== flutter pub get =="
 pub_log="$(mktemp)"
 set +e
-flutter pub get >"$pub_log" 2>&1
+"$flutter_cmd" pub get >"$pub_log" 2>&1
 pub_status=$?
 set -e
 
@@ -32,10 +73,10 @@ echo "Dependencies resolved."
 rm -f "$pub_log"
 
 echo "== flutter analyze =="
-flutter analyze --no-pub
+"$flutter_cmd" analyze --no-pub
 
 echo "== flutter test =="
-flutter test --no-pub -r compact
+"$flutter_cmd" test --no-pub -r compact
 
 echo "== verify xcodebuild log filter =="
 python3 scripts/test_filter_xcodebuild_test_output.py
@@ -44,7 +85,7 @@ echo "== clean release artifacts for xcodebuild test =="
 rm -rf build/macos/Build/Products/Release
 
 echo "== generate macOS Flutter project config =="
-flutter build macos --debug --config-only --no-pub
+"$flutter_cmd" build macos --debug --config-only --no-pub
 
 echo "== xcodebuild test (platform=macOS,arch=$arch_name) =="
 xcode_log="$(mktemp)"
@@ -69,7 +110,7 @@ fi
 echo "== flutter build macos =="
 build_log="$(mktemp)"
 set +e
-flutter build macos --no-pub >"$build_log" 2>&1
+"$flutter_cmd" build macos --no-pub >"$build_log" 2>&1
 build_status=$?
 set -e
 

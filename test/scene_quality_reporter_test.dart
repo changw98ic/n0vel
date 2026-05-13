@@ -18,13 +18,13 @@ void main() {
       director: const SceneDirectorOutput(text: 'plan'),
       roleOutputs: const [],
       prose: const SceneProseDraft(text: '正文内容', attempt: 1),
-      review: SceneReviewResult(
-        judge: const SceneReviewPassResult(
+      review: const SceneReviewResult(
+        judge: SceneReviewPassResult(
           status: SceneReviewStatus.pass,
           reason: '冲突成立',
           rawText: '决定：PASS\n原因：冲突成立',
         ),
-        consistency: const SceneReviewPassResult(
+        consistency: SceneReviewPassResult(
           status: SceneReviewStatus.pass,
           reason: '设定一致',
           rawText: '决定：PASS\n原因：设定一致',
@@ -40,6 +40,7 @@ void main() {
         character: 90,
         completeness: 82,
         summary: '张力稳定。',
+        warning: 'quality scorer used fallback dimensions',
       ),
     );
 
@@ -48,6 +49,7 @@ void main() {
     expect(markdown, contains('综合'));
     expect(markdown, contains('86'));
     expect(markdown, contains('张力稳定。'));
+    expect(markdown, contains('quality scorer used fallback dimensions'));
     expect(markdown, contains('pass'));
     expect(markdown, contains('冲突成立'));
 
@@ -57,6 +59,10 @@ void main() {
     final scene = scenes.single as Map;
     expect(scene['sceneId'], 'scene-01');
     expect((scene['qualityScore'] as Map)['overall'], 86);
+    expect(
+      (scene['qualityScore'] as Map)['warning'],
+      'quality scorer used fallback dimensions',
+    );
     expect((scene['review'] as Map)['decision'], 'pass');
   });
 }

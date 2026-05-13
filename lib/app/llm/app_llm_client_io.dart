@@ -313,7 +313,11 @@ class _IoAppLlmClient implements AppLlmClient {
         );
       }
 
-      yield* _parseSseDeltas(body, request.timeout.effectiveIdleTimeoutMs);
+      yield* _parseSseDeltas(
+        body,
+        request.timeout.effectiveIdleTimeoutMs,
+        adapter,
+      );
     } on AppLlmStreamException {
       rethrow;
     } on DioException catch (error) {
@@ -333,7 +337,11 @@ class _IoAppLlmClient implements AppLlmClient {
     }
   }
 
-  Stream<String> _parseSseDeltas(ResponseBody body, int timeoutMs) {
+  Stream<String> _parseSseDeltas(
+    ResponseBody body,
+    int timeoutMs,
+    AppLlmProviderAdapter adapter,
+  ) {
     return body.stream
         .cast<List<int>>()
         .transform(utf8.decoder)
@@ -353,19 +361,27 @@ class _IoAppLlmClient implements AppLlmClient {
 
           try {
             final decoded = jsonDecode(payload);
-            if (decoded is! Map) return <String>[];
-            final choices = decoded['choices'];
-            if (choices is! List || choices.isEmpty) return <String>[];
-            final firstChoice = choices.first;
-            if (firstChoice is! Map) return <String>[];
-            final delta = firstChoice['delta'];
-            if (delta is! Map) return <String>[];
-            final content = normalizeLlmContent(delta['content']);
-            if (content != null && content.isNotEmpty) {
-              return <String>[content];
+            if (decoded is Map) {
+              final choices = decoded['choices'];
+              if (choices is List && choices.isNotEmpty) {
+                final firstChoice = choices.first;
+                if (firstChoice is Map) {
+                  final delta = firstChoice['delta'];
+                  if (delta is Map) {
+                    final content = normalizeLlmContent(delta['content']);
+                    if (content != null && content.isNotEmpty) {
+                      return <String>[content];
+                    }
+                  }
+                }
+              }
             }
           } on FormatException {
             // Skip malformed SSE payload.
+          }
+          final adapterText = adapter.decodeOutputText('data: $payload\n\n');
+          if (adapterText != null && adapterText.isNotEmpty) {
+            return <String>[adapterText];
           }
           return <String>[];
         });
@@ -458,16 +474,19 @@ class _IoAppLlmClient implements AppLlmClient {
       }
       buffer.write(text.substring(index, bearerIndex));
       var tokenStart = bearerIndex + 'bearer'.length;
-      if (tokenStart >= text.length || !_isWhitespace(text.codeUnitAt(tokenStart))) {
+      if (tokenStart >= text.length ||
+          !_isWhitespace(text.codeUnitAt(tokenStart))) {
         buffer.write(text[bearerIndex]);
         index = bearerIndex + 1;
         continue;
       }
-      while (tokenStart < text.length && _isWhitespace(text.codeUnitAt(tokenStart))) {
+      while (tokenStart < text.length &&
+          _isWhitespace(text.codeUnitAt(tokenStart))) {
         tokenStart += 1;
       }
       var tokenEnd = tokenStart;
-      while (tokenEnd < text.length && !_isWhitespace(text.codeUnitAt(tokenEnd))) {
+      while (tokenEnd < text.length &&
+          !_isWhitespace(text.codeUnitAt(tokenEnd))) {
         tokenEnd += 1;
       }
       buffer
@@ -489,7 +508,8 @@ class _IoAppLlmClient implements AppLlmClient {
       }
       buffer.write(text.substring(index, tokenIndex));
       var tokenEnd = tokenIndex + 3;
-      while (tokenEnd < text.length && _isAlphaNumeric(text.codeUnitAt(tokenEnd))) {
+      while (tokenEnd < text.length &&
+          _isAlphaNumeric(text.codeUnitAt(tokenEnd))) {
         tokenEnd += 1;
       }
       final token = text.substring(tokenIndex, tokenEnd);

@@ -93,7 +93,7 @@ class AppLoadingOverlay extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    AppLoadingIndicator(variant: AppLoadingVariant.overlay),
+                    const AppLoadingIndicator(variant: AppLoadingVariant.overlay),
                     if (message != null && message!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Text(

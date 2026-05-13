@@ -100,6 +100,19 @@ class SqliteAppAiHistoryStorage implements AppAiHistoryStorage {
     }
   }
 
+  @override
+  Future<void> clearProject(String projectId) async {
+    final database = _openDatabase();
+    try {
+      database.execute(
+        'DELETE FROM ai_history_entries WHERE project_id = ? OR project_id LIKE ?',
+        [projectId, '$projectId::%'],
+      );
+    } finally {
+      database.dispose();
+    }
+  }
+
   sqlite3.Database _openDatabase() {
     final database = openAuthoringDatabase(_dbPath);
     database.execute('''

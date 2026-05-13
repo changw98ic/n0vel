@@ -1,18 +1,41 @@
-import 'app_settings_models.dart';
+import '../llm/app_llm_client.dart';
+import 'settings/settings_models.dart';
 
 AppSettingsFeedback? validateInputs({
   required String baseUrl,
   required String model,
   required String apiKey,
-  required int timeoutMs,
+  required AppLlmTimeoutConfig timeout,
   required int maxConcurrentRequests,
   required bool forConnectionTest,
+  required bool Function(String) isLocalCompatibleEndpoint,
   required bool Function(String) isSupportedModel,
 }) {
-  if (timeoutMs <= 0) {
+  if (timeout.connectTimeoutMs <= 0) {
     return const AppSettingsFeedback(
-      title: '超时时间必须大于 0',
-      message: '请填写有效的等待时间，再继续保存或测试连接。',
+      title: '连接超时必须大于 0',
+      message: '请填写有效的连接超时时间（ms）。',
+      tone: AppSettingsFeedbackTone.error,
+    );
+  }
+  if (timeout.sendTimeoutMs <= 0) {
+    return const AppSettingsFeedback(
+      title: '发送超时必须大于 0',
+      message: '请填写有效的发送超时时间（ms）。',
+      tone: AppSettingsFeedbackTone.error,
+    );
+  }
+  if (timeout.receiveTimeoutMs <= 0) {
+    return const AppSettingsFeedback(
+      title: '接收超时必须大于 0',
+      message: '请填写有效的接收超时时间（ms）。',
+      tone: AppSettingsFeedbackTone.error,
+    );
+  }
+  if (timeout.idleTimeoutMs != null && timeout.idleTimeoutMs! <= 0) {
+    return const AppSettingsFeedback(
+      title: '空闲超时必须大于 0',
+      message: '请填写有效的空闲超时时间（ms）。',
       tone: AppSettingsFeedbackTone.error,
     );
   }
@@ -26,7 +49,7 @@ AppSettingsFeedback? validateInputs({
   final allowsEmptyApiKey = isLocalCompatibleEndpoint(baseUrl);
   if (apiKey.trim().isEmpty && !allowsEmptyApiKey) {
     return AppSettingsFeedback(
-        title: forConnectionTest ? '测试连接前请先填写密钥' : '请先填写密钥',
+      title: forConnectionTest ? '测试连接前请先填写密钥' : '请先填写密钥',
       message: forConnectionTest
           ? '补全密钥后才能发起最小化连接测试。'
           : '接口地址与模型名称可以保留当前值，但保存前必须补全密钥。',
@@ -41,7 +64,7 @@ AppSettingsFeedback? validateInputs({
       uri.hasAuthority;
   if (!hasValidBaseUrl) {
     return AppSettingsFeedback(
-        title: '请输入有效的接口地址',
+      title: '请输入有效的接口地址',
       message: forConnectionTest
           ? '修正接口地址后再测试连接。'
           : '接口地址需要是完整的 http 或 https 地址。',
@@ -61,7 +84,7 @@ AppSettingsFeedback? validateInputs({
     return const AppSettingsFeedback(
       title: '模型不受支持',
       message:
-          '请改用受支持模型：gpt-4.1-mini、gpt-5.4-mini、kimi-k2.6、mimo-v2.5-pro 或 glm-5.1。',
+          '请改用一键供应商目录中的模型，或使用 OpenAI、Kimi、DeepSeek、MiMo、GLM、Qwen、Doubao、MiniMax、Hunyuan、LongCat 系列模型。',
       tone: AppSettingsFeedbackTone.error,
     );
   }
@@ -75,6 +98,7 @@ AppSettingsConnectionTestOutcome validationOutcomeFor({
   required String apiKey,
   int? maxConcurrentRequests,
   required int fallbackMaxConcurrentRequests,
+  required bool Function(String) isLocalCompatibleEndpoint,
   required bool Function(String) isSupportedModel,
 }) {
   if ((maxConcurrentRequests ?? fallbackMaxConcurrentRequests) <= 0) {
@@ -99,13 +123,4 @@ AppSettingsConnectionTestOutcome validationOutcomeFor({
     return AppSettingsConnectionTestOutcome.unsupportedModel;
   }
   return AppSettingsConnectionTestOutcome.none;
-}
-
-bool isLocalCompatibleEndpoint(String baseUrl) {
-  final uri = Uri.tryParse(baseUrl.trim());
-  if (uri == null || !uri.hasAuthority) {
-    return false;
-  }
-  final host = uri.host.toLowerCase();
-  return host == 'localhost' || host == '127.0.0.1' || host == '::1';
 }

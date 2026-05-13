@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'app_llm_circuit_breaker.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
 
@@ -9,11 +10,17 @@ class AppLlmClientGateway implements AppLlmClient {
     required AppLlmClient delegate,
     this.maxRetries = 3,
     this.baseDelayMs = 1000,
-  }) : _delegate = delegate;
+    AppLlmCircuitBreaker? circuitBreaker,
+  }) : _delegate = delegate,
+       _circuitBreaker = circuitBreaker ?? AppLlmCircuitBreaker();
 
   final AppLlmClient _delegate;
   final int maxRetries;
   final int baseDelayMs;
+  final AppLlmCircuitBreaker _circuitBreaker;
+
+  /// 暴露 circuit breaker 供外部可观测。
+  AppLlmCircuitBreaker get circuitBreaker => _circuitBreaker;
 
   static final _rng = Random();
 
@@ -45,34 +52,62 @@ class AppLlmClientGateway implements AppLlmClient {
     _lastProvider = request.provider;
     _lastTimeoutMs = request.timeoutMs;
 
-    var attempt = 0;
-    while (true) {
-      final result = await _delegate.chat(request);
-      if (result.succeeded) {
-        _setConnectionState(AppLlmConnectionState.connected);
-        _stopReconnectLoop();
-        return result;
-      }
-      if (_isConnectionLost(result.failureKind)) {
-        _setConnectionState(AppLlmConnectionState.disconnected);
-      }
-      if (!_isRetryable(result.failureKind)) {
-        return result;
-      }
-      attempt++;
-      if (attempt >= maxRetries) {
-        if (_isConnectionLost(result.failureKind)) {
-          _startReconnectLoop();
+    return _circuitBreaker.guard(() async {
+      var attempt = 0;
+      while (true) {
+        final result = await _delegate.chat(request);
+        if (result.succeeded) {
+          _setConnectionState(AppLlmConnectionState.connected);
+          _stopReconnectLoop();
+          return result;
         }
-        return result;
+        if (_isConnectionLost(result.failureKind)) {
+          _setConnectionState(AppLlmConnectionState.disconnected);
+        }
+        if (!_isRetryable(result.failureKind)) {
+          return result;
+        }
+        attempt++;
+        if (attempt >= maxRetries) {
+          if (_isConnectionLost(result.failureKind)) {
+            _startReconnectLoop();
+          }
+          return result;
+        }
+        await Future<void>.delayed(
+          Duration(milliseconds: _backoffMs(attempt)),
+        );
       }
-      await Future<void>.delayed(Duration(milliseconds: _backoffMs(attempt)));
-    }
+    });
   }
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) {
-    return _delegate.chatStream(request);
+    final effective = _circuitBreaker.state;
+    if (effective == AppLlmCircuitState.open) {
+      return Stream.error(
+        AppLlmStreamException(
+          failureKind: AppLlmFailureKind.server,
+          detail: 'Circuit breaker is open - '
+              '${_circuitBreaker.consecutiveFailures} consecutive failures, '
+              'retry after ${const Duration(seconds: 30)}',
+        ),
+      );
+    }
+
+    return _delegate.chatStream(request).transform(
+      StreamTransformer<String, String>.fromHandlers(
+        handleData: (data, sink) => sink.add(data),
+        handleError: (error, stackTrace, sink) {
+          _circuitBreaker.recordStreamFailure();
+          sink.addError(error, stackTrace);
+        },
+        handleDone: (sink) {
+          _circuitBreaker.recordStreamSuccess();
+          sink.close();
+        },
+      ),
+    );
   }
 
   void _startReconnectLoop() {

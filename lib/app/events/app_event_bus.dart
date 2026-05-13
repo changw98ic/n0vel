@@ -28,11 +28,7 @@ import 'app_domain_events.dart';
 /// Each event type gets its own [StreamController] to avoid type casting
 /// overhead on the hot path.
 class AppEventBus {
-  AppEventBus() {
-    current = this;
-  }
-
-  static AppEventBus? current;
+  AppEventBus();
 
   final Map<Type, StreamController<AppDomainEvent>> _controllers = {};
   bool _disposed = false;
@@ -56,8 +52,8 @@ class AppEventBus {
 
   /// Convenience: subscribe with a callback, returns a [StreamSubscription].
   ///
-  /// Useful in [ChangeNotifier] subclasses that want to react to events
-  /// without managing [Stream] directly.
+  /// Useful in mutable stores that want to react to events without managing
+  /// [Stream] directly.
   StreamSubscription<E> listen<E extends AppDomainEvent>(
     void Function(E) onEvent,
   ) {
@@ -69,9 +65,6 @@ class AppEventBus {
   /// After disposal, [publish] and [on] will throw [StateError].
   void dispose() {
     _disposed = true;
-    if (identical(current, this)) {
-      current = null;
-    }
     for (final controller in _controllers.values) {
       controller.close();
     }

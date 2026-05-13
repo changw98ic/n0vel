@@ -5,11 +5,11 @@ import 'story_generation_storage.dart';
 
 class SqliteStoryGenerationStorage implements StoryGenerationStorage {
   SqliteStoryGenerationStorage({String? dbPath})
-      : _impl = SqliteJsonBlobStorage(
-          dbPath: dbPath ?? resolveAuthoringDbPath(),
-          tableName: 'story_generation_state',
-          jsonColumn: 'payload_json',
-        );
+    : _impl = SqliteJsonBlobStorage(
+        dbPath: dbPath ?? resolveAuthoringDbPath(),
+        tableName: 'story_generation_state',
+        jsonColumn: 'payload_json',
+      );
 
   final SqliteJsonBlobStorage _impl;
 
@@ -23,12 +23,15 @@ class SqliteStoryGenerationStorage implements StoryGenerationStorage {
 
   @override
   Future<void> clear({String? projectId}) => _impl.clear(projectId: projectId);
+
+  @override
+  Future<void> clearProject(String projectId) => _impl.clearProject(projectId);
 }
 
 class _CachedSqliteStoryGenerationStorage extends CachedProjectStorage
     implements StoryGenerationStorage {
   _CachedSqliteStoryGenerationStorage({String? dbPath})
-      : super(SqliteStoryGenerationStorage(dbPath: dbPath));
+    : super(SqliteStoryGenerationStorage(dbPath: dbPath));
 }
 
 StoryGenerationStorage createStoryGenerationStorage() =>

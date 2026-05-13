@@ -8,7 +8,7 @@ import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/features/story_generation/data/prompt_language.dart';
+import 'package:novel_writer/domain/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/story_prompt_templates.dart';
 import 'test_support/app_settings_fake_storages.dart';
 
@@ -297,6 +297,29 @@ void main() {
     expect(store.isSupportedModel('glm-5'), isTrue);
     expect(store.isSupportedModel('glm-4.7'), isTrue);
     expect(store.isSupportedModel('glm-4.6'), isTrue);
+  });
+
+  test('common Chinese provider catalog models are accepted', () async {
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: _CapturingLlmClient(),
+    );
+    addTearDown(store.dispose);
+
+    expect(store.isSupportedModel('qwen-plus'), isTrue);
+    expect(store.isSupportedModel('qwen3.6-plus'), isTrue);
+    expect(store.isSupportedModel('qwen-plus-us'), isTrue);
+    expect(store.isSupportedModel('qwen3-coder-plus'), isTrue);
+    expect(store.isSupportedModel('doubao-seed-1-6-250615'), isTrue);
+    expect(store.isSupportedModel('ark-code-latest'), isTrue);
+    expect(store.isSupportedModel('kimi-for-coding'), isTrue);
+    expect(store.isSupportedModel('MiniMax-M2.7'), isTrue);
+    expect(store.isSupportedModel('codex-MiniMax-M2.7'), isTrue);
+    expect(store.isSupportedModel('hunyuan-turbos-latest'), isTrue);
+    expect(store.isSupportedModel('hunyuan-2.0-instruct'), isTrue);
+    expect(store.isSupportedModel('LongCat-Flash-Chat'), isTrue);
+    expect(store.isSupportedModel('glm-6-preview'), isTrue);
+    expect(store.isSupportedModel('xiaomi/mimo-v2-pro'), isTrue);
   });
 
   test('provider routing config round-trips through settings json', () {
@@ -819,6 +842,89 @@ void main() {
       }
     },
   );
+
+  test('limits failover requests by fallback provider pool', () async {
+    final llmClient = _FailoverBlockingLlmClient();
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: llmClient,
+    );
+    addTearDown(store.dispose);
+
+    await store.save(
+      providerName: 'Primary Cloud',
+      baseUrl: 'https://primary.example.com/v1',
+      model: 'primary-model',
+      apiKey: 'primary-key',
+      maxConcurrentRequests: 1,
+      providerProfiles: const [
+        AppLlmProviderProfile(
+          id: 'fallback',
+          providerName: 'Fallback Cloud',
+          baseUrl: 'https://fallback.example.com/v1',
+          model: 'fallback-model',
+          apiKey: 'fallback-key',
+        ),
+      ],
+    );
+
+    final futures = [
+      store.requestAiCompletion(
+        messages: const [AppLlmChatMessage(role: 'user', content: 'first')],
+      ),
+      store.requestAiCompletion(
+        messages: const [AppLlmChatMessage(role: 'user', content: 'second')],
+      ),
+    ];
+
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    try {
+      expect(llmClient.callsForModel('primary-model'), 2);
+      expect(llmClient.activeForModel('fallback-model'), 1);
+
+      llmClient.completeOneFallback();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(llmClient.callsForModel('primary-model'), 2);
+      expect(llmClient.activeForModel('fallback-model'), 1);
+    } finally {
+      llmClient.completeAllFallbacks();
+      await Future.wait(futures);
+    }
+  });
+
+  test('tries primary provider before local fallback provider', () async {
+    final llmClient = _OrderedFailoverLlmClient();
+    final store = AppSettingsStore(
+      storage: InMemoryAppSettingsStorage(),
+      llmClient: llmClient,
+    );
+    addTearDown(store.dispose);
+
+    await store.save(
+      providerName: 'Primary Cloud',
+      baseUrl: 'https://primary.example.com/v1',
+      model: 'primary-model',
+      apiKey: 'primary-key',
+      providerProfiles: const [
+        AppLlmProviderProfile(
+          id: 'local-fallback',
+          providerName: 'Local Fallback',
+          baseUrl: 'http://127.0.0.1:11434/v1',
+          model: 'local-model',
+          apiKey: '',
+        ),
+      ],
+    );
+
+    final result = await store.requestAiCompletion(
+      messages: const [AppLlmChatMessage(role: 'user', content: 'order')],
+    );
+
+    expect(result.succeeded, isTrue);
+    expect(llmClient.models, ['primary-model', 'local-model']);
+  });
 }
 
 class _CapturingLlmClient implements AppLlmClient {
@@ -1071,6 +1177,94 @@ class _BlockingByModelLlmClient implements AppLlmClient {
     } finally {
       _activeByModel.update(request.model, (count) => count - 1);
     }
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) {
+    throw UnimplementedError('chatStream');
+  }
+}
+
+class _FailoverBlockingLlmClient implements AppLlmClient {
+  final _callsByModel = <String, int>{};
+  final _activeByModel = <String, int>{};
+  final _pendingFallbacks = <Completer<AppLlmChatResult>>[];
+  bool _completeFallbacksImmediately = false;
+
+  int callsForModel(String model) => _callsByModel[model] ?? 0;
+  int activeForModel(String model) => _activeByModel[model] ?? 0;
+
+  void completeOneFallback() {
+    if (_pendingFallbacks.isEmpty) return;
+    final completer = _pendingFallbacks.removeAt(0);
+    if (!completer.isCompleted) {
+      completer.complete(const AppLlmChatResult.success(text: 'fallback done'));
+    }
+  }
+
+  void completeAllFallbacks() {
+    _completeFallbacksImmediately = true;
+    for (final completer in List<Completer<AppLlmChatResult>>.from(
+      _pendingFallbacks,
+    )) {
+      if (!completer.isCompleted) {
+        completer.complete(
+          const AppLlmChatResult.success(text: 'fallback done'),
+        );
+      }
+    }
+    _pendingFallbacks.clear();
+  }
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    _callsByModel.update(
+      request.model,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    _activeByModel.update(
+      request.model,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    try {
+      if (request.model == 'primary-model') {
+        return const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.invalidResponse,
+          detail: 'primary returned invalid response',
+        );
+      }
+      if (_completeFallbacksImmediately) {
+        return const AppLlmChatResult.success(text: 'fallback done');
+      }
+      final completer = Completer<AppLlmChatResult>();
+      _pendingFallbacks.add(completer);
+      return await completer.future;
+    } finally {
+      _activeByModel.update(request.model, (count) => count - 1);
+    }
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) {
+    throw UnimplementedError('chatStream');
+  }
+}
+
+class _OrderedFailoverLlmClient implements AppLlmClient {
+  final models = <String>[];
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    models.add(request.model);
+    if (request.model == 'primary-model') {
+      return const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.invalidResponse,
+        detail: 'primary returned invalid response',
+      );
+    }
+    return const AppLlmChatResult.success(text: 'fallback done');
   }
 
   @override

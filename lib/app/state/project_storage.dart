@@ -11,6 +11,8 @@ abstract class ProjectStorage {
   Future<void> save(Map<String, Object?> data, {required String projectId});
 
   Future<void> clear({String? projectId});
+
+  Future<void> clearProject(String projectId) => clear(projectId: projectId);
 }
 
 /// In-memory implementation of [ProjectStorage] for testing and web targets.
@@ -24,7 +26,10 @@ class InMemoryProjectStorage implements ProjectStorage {
   }
 
   @override
-  Future<void> save(Map<String, Object?> data, {required String projectId}) async {
+  Future<void> save(
+    Map<String, Object?> data, {
+    required String projectId,
+  }) async {
     _records[projectId] = cloneStorageMap(data);
   }
 
@@ -35,5 +40,13 @@ class InMemoryProjectStorage implements ProjectStorage {
       return;
     }
     _records.remove(projectId);
+  }
+
+  @override
+  Future<void> clearProject(String projectId) async {
+    final sceneScopePrefix = '$projectId::';
+    _records.removeWhere(
+      (key, _) => key == projectId || key.startsWith(sceneScopePrefix),
+    );
   }
 }

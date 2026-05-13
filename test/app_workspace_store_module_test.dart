@@ -73,6 +73,7 @@ void main() {
         final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
         addTearDown(store.dispose);
 
+        store.createProject();
         final originalProjectId = store.currentProjectId;
         store.selectProject('missing-project');
         store.openProject('missing-project');
@@ -114,17 +115,18 @@ void main() {
         store.moveCurrentSceneDown();
         expect(store.scenes.single.id, 'scene-real');
 
-        store.selectProject('project-yangang');
+        // project-yangang and project-yuechao no longer exist as defaults.
+        // Use the created project for single-scene and multi-scene tests.
+        store.selectProject(originalProjectId);
+        store.createScene('首场景');
         expect(store.canDeleteCurrentScene, isFalse);
         final singleSceneId = store.currentProject.sceneId;
         store.deleteCurrentScene();
         expect(store.currentProject.sceneId, singleSceneId);
 
-        store.selectProject('project-yuechao');
-        final initialSceneCount = store.scenes.length;
         store.createScene('新增场景');
         final createdSceneId = store.currentProject.sceneId;
-        expect(store.scenes, hasLength(initialSceneCount + 1));
+        expect(store.scenes, hasLength(2));
         expect(store.currentScene.title, '新增场景');
 
         store.renameCurrentScene('   ');
@@ -167,6 +169,7 @@ void main() {
       () {
         final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
         addTearDown(store.dispose);
+        store.createProject();
 
         store.createCharacter();
         final createdCharacter = store.characters.first;
@@ -246,11 +249,171 @@ void main() {
       },
     );
 
+    test('deleting resources removes only current-project records', () {
+      final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
+      addTearDown(store.dispose);
+      store.createProject();
+
+      final originalProjectId = store.currentProjectId;
+      store.createCharacter();
+      final characterId = store.characters.first.id;
+      store.setCharacterSceneLinked(
+        characterId: characterId,
+        sceneId: store.currentScene.id,
+        linked: true,
+      );
+      store.createWorldNode();
+      final nodeId = store.worldNodes.first.id;
+      store.setWorldNodeSceneLinked(
+        nodeId: nodeId,
+        sceneId: store.currentScene.id,
+        linked: true,
+      );
+
+      store.createProject(projectName: '隔离项目');
+      expect(store.currentProjectId, isNot(originalProjectId));
+      expect(
+        store.characters.any((character) => character.id == characterId),
+        isFalse,
+      );
+      expect(store.worldNodes.any((node) => node.id == nodeId), isFalse);
+
+      store.selectProject(originalProjectId);
+      store.resourceLibraryFacade.deleteCharacter(characterId);
+      store.resourceLibraryFacade.deleteWorldNode(nodeId);
+
+      expect(
+        store.characters.any((character) => character.id == characterId),
+        isFalse,
+      );
+      expect(store.worldNodes.any((node) => node.id == nodeId), isFalse);
+    });
+
+    test('deleting a scene clears resource links in the current project', () {
+      final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
+      addTearDown(store.dispose);
+      store.createProject();
+      store.createScene('保留场景');
+      store.createScene('待删场景');
+
+      final deletedSceneId = store.currentProject.sceneId;
+      store.createCharacter();
+      final characterId = store.characters.first.id;
+      store.setCharacterSceneLinked(
+        characterId: characterId,
+        sceneId: deletedSceneId,
+        linked: true,
+      );
+      store.createWorldNode();
+      final nodeId = store.worldNodes.first.id;
+      store.setWorldNodeSceneLinked(
+        nodeId: nodeId,
+        sceneId: deletedSceneId,
+        linked: true,
+      );
+
+      store.deleteCurrentScene();
+
+      expect(
+        store.characters
+            .firstWhere((character) => character.id == characterId)
+            .linkedSceneIds,
+        isNot(contains(deletedSceneId)),
+      );
+      expect(
+        store.worldNodes.firstWhere((node) => node.id == nodeId).linkedSceneIds,
+        isNot(contains(deletedSceneId)),
+      );
+      expect(store.scenes.any((scene) => scene.id == deletedSceneId), isFalse);
+    });
+
+    test(
+      'project deletion cascades workspace partitions and persists',
+      () async {
+        final storage = InMemoryAppWorkspaceStorage();
+        final cleanedExternalProjects = <String>[];
+        final store = AppWorkspaceStore(
+          storage: storage,
+          projectDeletionCleaners: [
+            (projectId) async => cleanedExternalProjects.add(projectId),
+          ],
+        );
+        addTearDown(store.dispose);
+
+        store.createProject(projectName: '待删除项目');
+        final deletedProject = store.currentProject;
+        store.createCharacter();
+        store.createWorldNode();
+        store.createScene('待删除场景');
+
+        expect(
+          store.exportJson()['charactersByProject'],
+          contains(deletedProject.id),
+        );
+        expect(
+          store.exportJson()['worldNodesByProject'],
+          contains(deletedProject.id),
+        );
+        expect(
+          store.exportJson()['scenesByProject'],
+          contains(deletedProject.id),
+        );
+
+        store.deleteProject(deletedProject);
+        await Future<void>.delayed(Duration.zero);
+
+        final exported = store.exportJson();
+        expect(
+          exported['projects'].toString(),
+          isNot(contains(deletedProject.id)),
+        );
+        expect(
+          exported['charactersByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(
+          exported['worldNodesByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(exported['scenesByProject'], isNot(contains(deletedProject.id)));
+        expect(
+          exported['auditIssuesByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(exported['projectStyles'], isNot(contains(deletedProject.id)));
+        expect(
+          exported['projectAuditStates'],
+          isNot(contains(deletedProject.id)),
+        );
+
+        final persisted = await storage.load();
+        expect(persisted, isNotNull);
+        expect(
+          persisted!['projects'].toString(),
+          isNot(contains(deletedProject.id)),
+        );
+        expect(
+          persisted['charactersByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(
+          persisted['worldNodesByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(
+          persisted['scenesByProject'],
+          isNot(contains(deletedProject.id)),
+        );
+        expect(cleanedExternalProjects, contains(deletedProject.id));
+      },
+    );
+
     test(
       'style workflow validates questionnaire and json imports, profile selection, and intensity bounds',
       () {
         final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
         addTearDown(store.dispose);
+        store.createProject();
 
         final defaultProfileId = store.selectedStyleProfileId;
         store.selectStyleProfile('missing-profile');
@@ -258,6 +421,16 @@ void main() {
 
         store.setStyleInputMode(StyleInputMode.questionnaire);
         expect(store.styleInputMode, StyleInputMode.questionnaire);
+
+        // Ensure all required questionnaire fields are filled.
+        store.updateStyleQuestionnaireField('profile_name', '测试风格');
+        store.updateStyleQuestionnaireField('pov_mode', 'third_person_limited');
+        store.updateStyleQuestionnaireField('dialogue_ratio', 'medium');
+        store.updateStyleQuestionnaireField('description_density', 'medium');
+        store.updateStyleQuestionnaireField('emotional_intensity', 'medium');
+        store.updateStyleQuestionnaireField('rhythm_profile', 'tight');
+        store.updateStyleQuestionnaireField('taboo_patterns', const ['过度抒情']);
+
         store.toggleStyleQuestionnaireTag('genre_tags', '奇幻');
         expect(
           store.styleQuestionnaireDraft['genre_tags'] as List<Object?>,
@@ -358,6 +531,65 @@ void main() {
       () {
         final store = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
         addTearDown(store.dispose);
+
+        // Import workspace with predefined scenes and audit issues.
+        store.importJson({
+          'projects': [
+            <String, Object?>{
+              'id': 'project-yuechao',
+              'sceneId': 'scene-03-rainy-dock',
+              'title': '月临旧港',
+              'genre': '悬疑',
+              'summary': '测试摘要',
+              'recentLocation': '第 3 章 / 场景 03 · 雨夜码头',
+              'lastOpenedAtMs': 1,
+            },
+          ],
+          'charactersByProject': const <String, Object?>{},
+          'scenesByProject': {
+            'project-yuechao': [
+              <String, Object?>{
+                'id': 'scene-03-rainy-dock',
+                'chapterLabel': '第 3 章 / 场景 03',
+                'title': '雨夜码头',
+                'summary': '柳溪在雨夜码头继续追索失效脚本的前情。',
+              },
+              <String, Object?>{
+                'id': 'scene-05-witness-room',
+                'chapterLabel': '第 3 章 / 场景 05',
+                'title': '证人房间对峙',
+                'summary': '证人与柳溪的对峙停在最危险的地方。',
+              },
+            ],
+          },
+          'worldNodesByProject': const <String, Object?>{},
+          'auditIssuesByProject': {
+            'project-yuechao': [
+              <String, Object?>{
+                'id': 'audit-motive-conflict',
+                'title': '角色动机冲突',
+                'evidence': '角色上一场景处于防御姿态，但当前段落突然主动进攻，且动机说明不足。',
+                'target': '场景 05',
+              },
+              <String, Object?>{
+                'id': 'audit-warehouse-floor',
+                'title': '误把仓库当一层',
+                'evidence': '仓库层数认知与旧港地图不一致，可能导致后续追逐段空间关系错位。',
+                'target': '场景 99',
+              },
+              <String, Object?>{
+                'id': 'audit-timeline-gap',
+                'title': '时间线跳跃',
+                'evidence': '同一小时内出现了两次不可能同时成立的行动记录。',
+                'target': '场景 04',
+              },
+            ],
+          },
+          'projectStyles': const <String, Object?>{},
+          'projectAuditStates': const <String, Object?>{},
+          'projectTransferState': 'ready',
+          'currentProjectId': 'project-yuechao',
+        });
 
         final initialSelectedId = store.selectedAuditIssue.id;
         store.selectAuditIssue(-1);

@@ -25,13 +25,13 @@ void main() {
 
     test('isEmpty is false when any list has content', () {
       final snapshots = [
-        ProjectMaterialSnapshot(worldFacts: ['a']),
-        ProjectMaterialSnapshot(characterProfiles: ['a']),
-        ProjectMaterialSnapshot(relationshipHints: ['a']),
-        ProjectMaterialSnapshot(outlineBeats: ['a']),
-        ProjectMaterialSnapshot(sceneSummaries: ['a']),
-        ProjectMaterialSnapshot(acceptedStates: ['a']),
-        ProjectMaterialSnapshot(reviewFindings: ['a']),
+        const ProjectMaterialSnapshot(worldFacts: ['a']),
+        const ProjectMaterialSnapshot(characterProfiles: ['a']),
+        const ProjectMaterialSnapshot(relationshipHints: ['a']),
+        const ProjectMaterialSnapshot(outlineBeats: ['a']),
+        const ProjectMaterialSnapshot(sceneSummaries: ['a']),
+        const ProjectMaterialSnapshot(acceptedStates: ['a']),
+        const ProjectMaterialSnapshot(reviewFindings: ['a']),
       ];
       for (final s in snapshots) {
         expect(s.isEmpty, isFalse, reason: '${s.runtimeType} with one element should not be empty');
@@ -84,7 +84,7 @@ void main() {
         materialSnapshot: const ProjectMaterialSnapshot(),
       );
       expect(assembly.retrievalPack, isNull);
-      final pack = StoryRetrievalPack(
+      const pack = StoryRetrievalPack(
         query: StoryMemoryQuery(
           projectId: 'p',
           scopeId: 's',

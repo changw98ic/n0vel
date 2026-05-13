@@ -7,8 +7,14 @@ mixin _ResourceStyleOps on _WorkspaceFields {
 
   void createCharacter() {
     final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
     final existing = _charactersForProject(projectId);
-    final nextIndex = existing.length + 1;
+    final nextIndex = _nextNumberedIndex(
+      existing.map((character) => character.name),
+      prefix: '新角色',
+    );
     _charactersByProjectId[projectId] = [
       CharacterRecord(
         id: generateScopedRecordId('character'),
@@ -33,8 +39,12 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     String? summary,
     String? referenceSummary,
   }) {
-    _charactersByProjectId[_currentProjectId] = [
-      for (final character in _charactersForCurrentProject())
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    _charactersByProjectId[projectId] = [
+      for (final character in _charactersForProject(projectId))
         if (character.id == characterId)
           character.copyWith(
             name: normalizeOptionalText(name, fallback: character.name),
@@ -61,8 +71,12 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     required String sceneId,
     required bool linked,
   }) {
-    _charactersByProjectId[_currentProjectId] = [
-      for (final character in _charactersForCurrentProject())
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    _charactersByProjectId[projectId] = [
+      for (final character in _charactersForProject(projectId))
         if (character.id == characterId)
           character.copyWith(
             linkedSceneIds: toggleSceneId(
@@ -77,14 +91,37 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     _commitMutation();
   }
 
+  void deleteCharacter(String characterId) {
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    final current = _charactersForProject(projectId);
+    final remaining = [
+      for (final character in current)
+        if (character.id != characterId) character,
+    ];
+    if (remaining.length == current.length) {
+      return;
+    }
+    _charactersByProjectId[projectId] = remaining;
+    _commitMutation();
+  }
+
   // ---------------------------------------------------------------------------
   // World Node Management
   // ---------------------------------------------------------------------------
 
   void createWorldNode() {
     final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
     final existing = _worldNodesForProject(projectId);
-    final nextIndex = existing.length + 1;
+    final nextIndex = _nextNumberedIndex(
+      existing.map((node) => node.title),
+      prefix: '新节点',
+    );
     _worldNodesByProjectId[projectId] = [
       WorldNodeRecord(
         id: generateScopedRecordId('world'),
@@ -111,8 +148,12 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     String? ruleSummary,
     String? referenceSummary,
   }) {
-    _worldNodesByProjectId[_currentProjectId] = [
-      for (final node in _worldNodesForCurrentProject())
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    _worldNodesByProjectId[projectId] = [
+      for (final node in _worldNodesForProject(projectId))
         if (node.id == nodeId)
           node.copyWith(
             title: normalizeOptionalText(title, fallback: node.title),
@@ -140,8 +181,12 @@ mixin _ResourceStyleOps on _WorkspaceFields {
     required String sceneId,
     required bool linked,
   }) {
-    _worldNodesByProjectId[_currentProjectId] = [
-      for (final node in _worldNodesForCurrentProject())
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    _worldNodesByProjectId[projectId] = [
+      for (final node in _worldNodesForProject(projectId))
         if (node.id == nodeId)
           node.copyWith(
             linkedSceneIds: toggleSceneId(
@@ -154,6 +199,39 @@ mixin _ResourceStyleOps on _WorkspaceFields {
           node,
     ];
     _commitMutation();
+  }
+
+  void deleteWorldNode(String nodeId) {
+    final projectId = _currentProjectId;
+    if (projectId.isEmpty) {
+      return;
+    }
+    final current = _worldNodesForProject(projectId);
+    final remaining = [
+      for (final node in current)
+        if (node.id != nodeId) node,
+    ];
+    if (remaining.length == current.length) {
+      return;
+    }
+    _worldNodesByProjectId[projectId] = remaining;
+    _commitMutation();
+  }
+
+  int _nextNumberedIndex(Iterable<String> labels, {required String prefix}) {
+    final pattern = RegExp('^${RegExp.escape(prefix)}\\s+(\\d+)\$');
+    var maxIndex = 0;
+    for (final label in labels) {
+      final match = pattern.firstMatch(label.trim());
+      if (match == null) {
+        continue;
+      }
+      final index = int.tryParse(match.group(1) ?? '');
+      if (index != null && index > maxIndex) {
+        maxIndex = index;
+      }
+    }
+    return maxIndex + 1;
   }
 
   // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
-import 'app_workspace_records.dart';
+import 'package:novel_writer/domain/workspace_models.dart';
 import 'sql_identifier.dart';
 
 class WorkspaceSchema {
@@ -95,9 +95,63 @@ class WorkspaceSchema {
     );
     _ensureColumn(
       database,
+      tableName: 'workspace_characters',
+      columnName: 'id',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_characters',
+      columnName: 'reference_summary',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
       tableName: 'workspace_world_nodes',
       columnName: 'linked_scene_ids',
       definition: "TEXT NOT NULL DEFAULT '[]'",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_world_nodes',
+      columnName: 'id',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_world_nodes',
+      columnName: 'rule_summary',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_world_nodes',
+      columnName: 'reference_summary',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_audit_issues',
+      columnName: 'id',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_audit_issues',
+      columnName: 'status',
+      definition: "TEXT NOT NULL DEFAULT 'open'",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_audit_issues',
+      columnName: 'ignore_reason',
+      definition: "TEXT NOT NULL DEFAULT ''",
+    );
+    _ensureColumn(
+      database,
+      tableName: 'workspace_audit_issues',
+      columnName: 'last_action',
+      definition: "TEXT NOT NULL DEFAULT ''",
     );
     _ensureIndexes(database);
   }

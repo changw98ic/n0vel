@@ -21,7 +21,7 @@ class SceneReviewCoordinator implements SceneReviewService {
   final AppSettingsStore _settingsStore;
   final StoryGenerationFormatterTraceSink? _formatterTraceSink;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
-  final SceneTypePrompts _typePrompts = SceneTypePrompts();
+  final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
   static const List<SceneReviewCategory> _baseCombinedCategories = [
     SceneReviewCategory.prose,

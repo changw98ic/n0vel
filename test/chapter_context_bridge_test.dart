@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_context_bridge.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage.dart';
@@ -107,7 +108,7 @@ SceneRuntimeOutput _sceneOutput({
 void main() {
   group('ChapterSummary', () {
     test('serializes to and from JSON', () {
-      final summary = ChapterSummary(
+      const summary = ChapterSummary(
         chapterId: 'chapter-01',
         chapterTitle: '第一章 雨夜码头',
         sceneCount: 3,
@@ -148,7 +149,7 @@ void main() {
     });
 
     test('is not empty when summaries exist', () {
-      final context = CrossChapterContext(
+      const context = CrossChapterContext(
         previousSummaries: [
           ChapterSummary(
             chapterId: 'ch-01',
@@ -157,7 +158,7 @@ void main() {
             plotProgress: '剧情进展',
           ),
         ],
-        carryOverThoughts: const [],
+        carryOverThoughts: [],
       );
       expect(context.isEmpty, isFalse);
     });
@@ -225,7 +226,7 @@ void main() {
 
     group('saveChapterSummary / loadChapterSummaries', () {
       test('persists and loads chapter summaries', () async {
-        final summary = ChapterSummary(
+        const summary = ChapterSummary(
           chapterId: 'chapter-01',
           chapterTitle: '第一章',
           sceneCount: 3,
@@ -244,7 +245,7 @@ void main() {
       test('updates existing summary for same chapter', () async {
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 2,
@@ -254,7 +255,7 @@ void main() {
         );
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章(修订)',
             sceneCount: 3,
@@ -272,7 +273,7 @@ void main() {
       test('loads summaries ordered by creation time', () async {
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-02',
             chapterTitle: '第二章',
             sceneCount: 1,
@@ -282,7 +283,7 @@ void main() {
         );
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 1,
@@ -301,10 +302,46 @@ void main() {
         expect(loaded, isEmpty);
       });
 
+      test('logs malformed summary sources while skipping them', () async {
+        final originalDebugPrint = debugPrint;
+        final messages = <String>[];
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            messages.add(message);
+          }
+        };
+        addTearDown(() {
+          debugPrint = originalDebugPrint;
+        });
+
+        await storage.saveSources('project-1', const [
+          StoryMemorySource(
+            id: 'bad-summary',
+            projectId: 'project-1',
+            scopeId: '__chapter_summaries',
+            kind: MemorySourceKind.sceneSummary,
+            content: '{not json',
+            tags: ['chapter-summary'],
+          ),
+        ]);
+
+        final loaded = await bridge.loadChapterSummaries('project-1');
+
+        expect(loaded, isEmpty);
+        expect(
+          messages,
+          contains(
+            contains(
+              'WARN [ChapterContextBridge] Skipped malformed chapter summary source bad-summary',
+            ),
+          ),
+        );
+      });
+
       test('isolates summaries between projects', () async {
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 1,
@@ -314,7 +351,7 @@ void main() {
         );
         await bridge.saveChapterSummary(
           'project-2',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 2,
@@ -345,7 +382,7 @@ void main() {
       test('loads summaries from previous chapters', () async {
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 3,
@@ -367,7 +404,7 @@ void main() {
       test('excludes current chapter from previous summaries', () async {
         await bridge.saveChapterSummary(
           'project-1',
-          ChapterSummary(
+          const ChapterSummary(
             chapterId: 'ch-01',
             chapterTitle: '第一章',
             sceneCount: 1,
@@ -413,7 +450,7 @@ void main() {
         () async {
           await bridge.saveChapterSummary(
             'project-1',
-            ChapterSummary(
+            const ChapterSummary(
               chapterId: 'ch-01',
               chapterTitle: '第一章',
               sceneCount: 1,
@@ -423,7 +460,7 @@ void main() {
           );
 
           await storage.saveThoughts('ch-01', [
-            ThoughtAtom(
+            const ThoughtAtom(
               id: 't1',
               projectId: 'ch-01',
               scopeId: 'ch-01:scene-01',
@@ -433,7 +470,7 @@ void main() {
               abstractionLevel: 2.0,
               createdAtMs: 1100,
             ),
-            ThoughtAtom(
+            const ThoughtAtom(
               id: 't2',
               projectId: 'ch-01',
               scopeId: 'ch-01:scene-01',
@@ -470,7 +507,7 @@ void main() {
 
       test('injects chapter summaries into scene summaries', () {
         const base = ProjectMaterialSnapshot(sceneSummaries: ['场景1']);
-        final context = CrossChapterContext(
+        const context = CrossChapterContext(
           previousSummaries: [
             ChapterSummary(
               chapterId: 'ch-01',
@@ -479,7 +516,7 @@ void main() {
               plotProgress: '柳溪逼近岳刃，账单线索浮现',
             ),
           ],
-          carryOverThoughts: const [],
+          carryOverThoughts: [],
         );
 
         final enriched = bridge.enrichMaterialSnapshot(base, context);
@@ -492,7 +529,7 @@ void main() {
 
       test('injects character states and unresolved threads', () {
         const base = ProjectMaterialSnapshot(acceptedStates: ['现有状态']);
-        final context = CrossChapterContext(
+        const context = CrossChapterContext(
           previousSummaries: [
             ChapterSummary(
               chapterId: 'ch-01',
@@ -503,7 +540,7 @@ void main() {
               unresolvedThreads: ['账本去向'],
             ),
           ],
-          carryOverThoughts: const [],
+          carryOverThoughts: [],
         );
 
         final enriched = bridge.enrichMaterialSnapshot(base, context);
@@ -515,8 +552,8 @@ void main() {
 
       test('injects carry-over thoughts as scene summaries', () {
         const base = ProjectMaterialSnapshot();
-        final context = CrossChapterContext(
-          previousSummaries: const [],
+        const context = CrossChapterContext(
+          previousSummaries: [],
           carryOverThoughts: [
             ThoughtAtom(
               id: 't1',
@@ -546,7 +583,7 @@ void main() {
           outlineBeats: ['大纲1'],
           reviewFindings: ['评审1'],
         );
-        final context = CrossChapterContext(
+        const context = CrossChapterContext(
           previousSummaries: [
             ChapterSummary(
               chapterId: 'ch-01',
@@ -555,7 +592,7 @@ void main() {
               plotProgress: '进展',
             ),
           ],
-          carryOverThoughts: const [],
+          carryOverThoughts: [],
         );
 
         final enriched = bridge.enrichMaterialSnapshot(base, context);
@@ -650,11 +687,11 @@ void main() {
 
     group('validateEntry', () {
       test('passes for consistent state', () {
-        final exitState = ChapterExitState(
+        const exitState = ChapterExitState(
           chapterId: 'ch-01',
           chapterTitle: '第一章',
           outgoingTransitions: [
-            const TransitionSummary(
+            TransitionSummary(
               transitionId: 't1',
               kind: 'time_skip',
               fromSceneId: 'scene-02',
@@ -675,7 +712,7 @@ void main() {
       });
 
       test('detects chapter ID mismatch when same chapter', () {
-        final exitState = ChapterExitState(
+        const exitState = ChapterExitState(
           chapterId: 'ch-01',
           chapterTitle: '第一章',
         );
@@ -690,7 +727,7 @@ void main() {
       });
 
       test('detects empty nextChapterId', () {
-        final exitState = ChapterExitState(
+        const exitState = ChapterExitState(
           chapterId: 'ch-01',
           chapterTitle: '第一章',
         );
@@ -848,10 +885,10 @@ void main() {
 
   group('ChapterExitState', () {
     test('serializes to and from JSON (round-trip)', () {
-      final exitState = ChapterExitState(
+      const exitState = ChapterExitState(
         chapterId: 'ch-01',
         chapterTitle: '第一章 雨夜码头',
-        outgoingTransitions: const [
+        outgoingTransitions: [
           TransitionSummary(
             transitionId: 't1',
             kind: 'time_skip',
@@ -861,7 +898,7 @@ void main() {
           ),
         ],
         unresolvedThreads: ['账本去向未明'],
-        unresolvedCognitionDeltas: const [
+        unresolvedCognitionDeltas: [
           CognitionDelta(
             characterId: 'char-01',
             characterName: '柳溪',
@@ -936,11 +973,11 @@ void main() {
 
   group('ChapterHandoffPayload', () {
     test('serializes to and from JSON (round-trip)', () {
-      final payload = ChapterHandoffPayload(
+      const payload = ChapterHandoffPayload(
         exitState: ChapterExitState(
           chapterId: 'ch-01',
           chapterTitle: '第一章',
-          outgoingTransitions: const [
+          outgoingTransitions: [
             TransitionSummary(
               transitionId: 't1',
               kind: 'exit',
@@ -950,7 +987,7 @@ void main() {
             ),
           ],
           unresolvedThreads: ['悬念1'],
-          unresolvedCognitionDeltas: const [
+          unresolvedCognitionDeltas: [
             CognitionDelta(
               characterId: 'c1',
               characterName: '柳溪',
@@ -960,7 +997,7 @@ void main() {
             ),
           ],
         ),
-        entryValidation: const ChapterEntryValidation(
+        entryValidation: ChapterEntryValidation(
           chapterId: 'ch-02',
           isConsistent: true,
           issues: [],

@@ -20,15 +20,45 @@ AppEventLogStorage createAppEventLogStorage({
   );
 }
 
+/// Maximum size of a single JSONL file before rotation occurs.
+const int _defaultMaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
+
 class IoAppEventLogStorage implements AppEventLogStorage {
-  IoAppEventLogStorage({String? sqlitePath, Directory? logsDirectory})
-    : _sqlitePath = sqlitePath ?? resolveTelemetryDbPath(),
-      _logsDirectory = logsDirectory ?? resolveTelemetryLogsDirectory();
+  IoAppEventLogStorage({
+    String? sqlitePath,
+    Directory? logsDirectory,
+    int maxFileSizeBytes = _defaultMaxFileSizeBytes,
+  }) : _sqlitePath = sqlitePath ?? resolveTelemetryDbPath(),
+       _logsDirectory = logsDirectory ?? resolveTelemetryLogsDirectory(),
+       _maxFileSizeBytes = maxFileSizeBytes;
 
   final String _sqlitePath;
   final Directory _logsDirectory;
+  final int _maxFileSizeBytes;
   Future<void> _pendingWrite = Future<void>.value();
 
+  // --- Lazy SQLite connection (Step 4) ---
+  Database? _database;
+  bool _schemaEnsured = false;
+
+  Database _ensureDatabase() {
+    var db = _database;
+    if (db != null) {
+      return db;
+    }
+    db = openTelemetryDatabase(_sqlitePath);
+    _database = db;
+    return db;
+  }
+
+  /// Callers should invoke this when the storage is no longer needed
+  /// (e.g. on app shutdown) to release the SQLite connection.
+  void dispose() {
+    _database?.dispose();
+    _database = null;
+  }
+
+  // --- Public write API (unchanged) ---
   @override
   Future<void> write(AppEventLogEntry entry) {
     final next = _pendingWrite
@@ -38,6 +68,7 @@ class IoAppEventLogStorage implements AppEventLogStorage {
     return next;
   }
 
+  // --- Best-effort dual write ---
   Future<void> _writeBestEffort(AppEventLogEntry entry) async {
     Object? writeError;
 
@@ -58,49 +89,49 @@ class IoAppEventLogStorage implements AppEventLogStorage {
     }
   }
 
+  // --- SQLite write with lazy connection (Step 4) ---
   void _writeToSqlite(AppEventLogEntry entry) {
-    final database = openTelemetryDatabase(_sqlitePath);
-    try {
+    final database = _ensureDatabase();
+    if (!_schemaEnsured) {
       _ensureSchema(database);
-      database.execute(
-        '''
-        INSERT INTO app_event_log_entries (
-          event_id,
-          timestamp_ms,
-          level,
-          category,
-          action,
-          status,
-          session_id,
-          correlation_id,
-          project_id,
-          scene_id,
-          message,
-          error_code,
-          error_detail,
-          metadata_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''',
-        <Object?>[
-          entry.eventId,
-          entry.timestampMs,
-          entry.level.name,
-          appEventLogCategoryName(entry.category),
-          entry.action,
-          entry.status.name,
-          entry.sessionId,
-          entry.correlationId,
-          entry.projectId,
-          entry.sceneId,
-          entry.message,
-          entry.errorCode,
-          entry.errorDetail,
-          jsonEncode(entry.metadata),
-        ],
-      );
-    } finally {
-      database.dispose();
+      _schemaEnsured = true;
     }
+    database.execute(
+      '''
+      INSERT INTO app_event_log_entries (
+        event_id,
+        timestamp_ms,
+        level,
+        category,
+        action,
+        status,
+        session_id,
+        correlation_id,
+        project_id,
+        scene_id,
+        message,
+        error_code,
+        error_detail,
+        metadata_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''',
+      <Object?>[
+        entry.eventId,
+        entry.timestampMs,
+        entry.level.name,
+        appEventLogCategoryName(entry.category),
+        entry.action,
+        entry.status.name,
+        entry.sessionId,
+        entry.correlationId,
+        entry.projectId,
+        entry.sceneId,
+        entry.message,
+        entry.errorCode,
+        entry.errorDetail,
+        jsonEncode(entry.metadata),
+      ],
+    );
   }
 
   void _ensureSchema(Database database) {
@@ -136,15 +167,65 @@ class IoAppEventLogStorage implements AppEventLogStorage {
     );
   }
 
+  // --- JSONL append ---
   Future<void> _appendJsonl(AppEventLogEntry entry) async {
     await _logsDirectory.create(recursive: true);
-    final file = File(
-      '${_logsDirectory.path}/${_dailyFileName(entry.timestampMs)}',
-    );
+    final fileName = _dailyFileName(entry.timestampMs);
+    final file = File('${_logsDirectory.path}/$fileName');
+
+    // Rotate if file exceeds size limit (Step 3).
+    await _rotateIfNeeded(file, fileName);
+
     await file.writeAsString(
       '${jsonEncode(entry.toJson())}\n',
       mode: FileMode.append,
+      flush: true,
     );
+  }
+
+  // --- JSONL file rotation (Step 3) ---
+  Future<void> _rotateIfNeeded(File file, String baseName) async {
+    if (!await file.exists()) return;
+    final stat = await file.stat();
+    if (stat.size < _maxFileSizeBytes) return;
+
+    // Find next available rotation suffix: .1.jsonl, .2.jsonl, ...
+    var suffix = 1;
+    while (true) {
+      final rotatedName = baseName.replaceFirst(
+        '.jsonl',
+        '.$suffix.jsonl',
+      );
+      final rotatedFile = File('${_logsDirectory.path}/$rotatedName');
+      if (!await rotatedFile.exists()) {
+        await file.rename(rotatedFile.path);
+        return;
+      }
+      suffix++;
+    }
+  }
+
+  /// Manually rotate all JSONL files that exceed the size limit.
+  /// Safe to call at any time (e.g. on app startup or maintenance).
+  Future<void> rotateLogFiles() async {
+    if (!await _logsDirectory.exists()) return;
+    await for (final entity in _logsDirectory.list()) {
+      if (entity is! File) continue;
+      if (!entity.path.endsWith('.jsonl')) continue;
+      // Skip already-rotated files (e.g. 2025-01-01.1.jsonl).
+      final baseName = entity.path.split('/').last;
+      if (_isRotatedName(baseName)) continue;
+      final stat = await entity.stat();
+      if (stat.size >= _maxFileSizeBytes) {
+        await _rotateIfNeeded(entity, baseName);
+      }
+    }
+  }
+
+  bool _isRotatedName(String name) {
+    // Rotated names look like: 2025-01-01.1.jsonl
+    final dotPattern = RegExp(r'\.\d+\.jsonl$');
+    return dotPattern.hasMatch(name);
   }
 
   String _dailyFileName(int timestampMs) {

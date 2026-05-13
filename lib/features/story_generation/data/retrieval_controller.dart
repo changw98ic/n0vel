@@ -1,7 +1,17 @@
 import 'scene_pipeline_models.dart';
+import 'material_reference_retriever.dart';
 
-/// Allowed retrieval tool names.
-const _allowedTools = <String>{
+/// Allowed retrieval tool names when writing reference is enabled.
+const _allowedToolsWithWritingRef = <String>{
+  RetrievalIntent.kToolCharacterProfile,
+  RetrievalIntent.kToolRelationship,
+  RetrievalIntent.kToolWorldSetting,
+  RetrievalIntent.kToolPastEvent,
+  RetrievalIntent.kToolWritingReference,
+};
+
+/// Allowed retrieval tool names when writing reference is disabled.
+const _allowedToolsWithoutWritingRef = <String>{
   RetrievalIntent.kToolCharacterProfile,
   RetrievalIntent.kToolRelationship,
   RetrievalIntent.kToolWorldSetting,
@@ -22,7 +32,14 @@ const int _capsuleSummaryCharBudget = 120;
 /// 3. Compresses results into [ContextCapsule] summaries.
 /// 4. Returns capsules for injection into active prompts.
 class RetrievalController {
-  const RetrievalController();
+  const RetrievalController({
+    MaterialReferenceRetriever? materialReferenceRetriever,
+    bool enableWritingReference = true,
+  }) : _materialReferenceRetriever = materialReferenceRetriever,
+       _enableWritingReference = enableWritingReference;
+
+  final MaterialReferenceRetriever? _materialReferenceRetriever;
+  final bool _enableWritingReference;
 
   /// Process all retrieval intents from [turns] against [taskCard].
   ///
@@ -34,10 +51,13 @@ class RetrievalController {
   }) {
     final seen = <String>{};
     final capsules = <ContextCapsule>[];
+    final allowedTools = _enableWritingReference
+        ? _allowedToolsWithWritingRef
+        : _allowedToolsWithoutWritingRef;
 
     for (final turn in turns) {
       for (final intent in turn.retrievalIntents) {
-        if (!_allowedTools.contains(intent.toolName)) continue;
+        if (!allowedTools.contains(intent.toolName)) continue;
         final key = '${intent.toolName}:${intent.query}';
         if (seen.contains(key)) continue;
         seen.add(key);
@@ -45,11 +65,13 @@ class RetrievalController {
         final summary = _executeTool(taskCard: taskCard, intent: intent);
         if (summary.isEmpty) continue;
 
-        capsules.add(ContextCapsule(
-          intent: intent,
-          summary: _compress(summary),
-          tokenBudget: _capsuleSummaryCharBudget,
-        ));
+        capsules.add(
+          ContextCapsule(
+            intent: intent,
+            summary: _compress(summary),
+            tokenBudget: _capsuleSummaryCharBudget,
+          ),
+        );
 
         if (capsules.length >= _maxCapsulesPerCycle) {
           return List<ContextCapsule>.unmodifiable(capsules);
@@ -82,8 +104,17 @@ class RetrievalController {
         taskCard: taskCard,
         query: intent.query,
       ),
+      RetrievalIntent.kToolWritingReference => _retrieveWritingReference(
+        intent: intent,
+      ),
       _ => '',
     };
+  }
+
+  String _retrieveWritingReference({required RetrievalIntent intent}) {
+    final retriever =
+        _materialReferenceRetriever ?? MaterialReferenceRetriever();
+    return retriever.searchToSceneSummary(intent);
   }
 
   String _retrieveProfile({
@@ -92,14 +123,11 @@ class RetrievalController {
   }) {
     final parts = <String>[];
     for (final member in taskCard.cast) {
-      if (_matches(query, member.name) ||
-          _matches(query, member.characterId)) {
+      if (_matches(query, member.name) || _matches(query, member.characterId)) {
         parts.add('${member.name}(${member.role})');
         final beliefs = taskCard.beliefsFor(member.characterId);
         if (beliefs.isNotEmpty) {
-          parts.add(beliefs
-              .map((b) => '${b.aspect}：${b.value}')
-              .join('；'));
+          parts.add(beliefs.map((b) => '${b.aspect}：${b.value}').join('；'));
         }
         final sp = taskCard.socialPositionFor(member.characterId);
         if (sp != null) {

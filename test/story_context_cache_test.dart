@@ -35,7 +35,7 @@ void main() {
             kind: MemorySourceKind.worldFact,
             content: worldFacts.first,
             sourceRefs: [
-              MemorySourceRef(
+              const MemorySourceRef(
                 sourceId: 'ch1_wf_0',
                 sourceType: MemorySourceKind.worldFact,
               ),
@@ -185,7 +185,7 @@ void main() {
     });
 
     test('fingerprint detects changes in any material category', () {
-      final base = const ProjectMaterialSnapshot(worldFacts: ['a']);
+      const base = ProjectMaterialSnapshot(worldFacts: ['a']);
       final variants = [
         const ProjectMaterialSnapshot(worldFacts: ['b']),
         const ProjectMaterialSnapshot(characterProfiles: ['c']),

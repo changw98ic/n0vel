@@ -502,11 +502,13 @@ void main() {
             restored['charactersByProject'] as Map<Object?, Object?>;
         expect(characters['project-a'], [
           {
+            'id': '',
             'name': '角色 A',
             'role': '主角',
             'note': '备注',
             'need': '需求',
             'summary': '角色摘要',
+            'referenceSummary': '',
             'linkedSceneIds': <String>[],
           },
         ]);

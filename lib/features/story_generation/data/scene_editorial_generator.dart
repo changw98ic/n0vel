@@ -76,8 +76,7 @@ class SceneEditorialGenerator {
             ],
             _formatBeats(resolvedBeats),
             if (_stageCapsules(capsules).isNotEmpty)
-              '场景旁白/舞台信息（权威场景源）：'
-                  '${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
+              '场景旁白/舞台信息（权威场景源）：${PromptStringUtils.mapJoin(_stageCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
             if (_retrievalCapsules(capsules).isNotEmpty)
               '${l.contextLabel}${l.colon}${PromptStringUtils.mapJoin(_retrievalCapsules(capsules), (c) => c.summary, separator: l.listSeparator)}',
             if (roleplaySession != null && !roleplaySession.isEmpty)

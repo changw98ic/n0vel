@@ -21,9 +21,9 @@ void main() {
     }
   });
 
-  SqliteAppWorkspaceStorage _storage() => SqliteAppWorkspaceStorage(dbPath: dbPath);
+  SqliteAppWorkspaceStorage storage0() => SqliteAppWorkspaceStorage(dbPath: dbPath);
 
-  Map<String, Object?> _projectAData() => {
+  Map<String, Object?> projectAData() => {
     'projects': [
       {
         'id': 'project-A',
@@ -60,7 +60,7 @@ void main() {
     'auditIssuesByProject': {},
   };
 
-  Map<String, Object?> _projectBData() => {
+  Map<String, Object?> projectBData() => {
     'projects': [
       {
         'id': 'project-B',
@@ -97,7 +97,7 @@ void main() {
     'auditIssuesByProject': {},
   };
 
-  Map<String, Object?> _bothProjectsData() => {
+  Map<String, Object?> bothProjectsData() => {
     'projects': [
       {
         'id': 'project-A',
@@ -161,17 +161,17 @@ void main() {
   };
 
   test('save project A then B, both preserved on load', () async {
-    final storage = _storage();
+    final storage = storage0();
 
     // Save project A.
-    await storage.save(_projectAData());
+    await storage.save(projectAData());
     var loaded = await storage.load();
     expect(loaded, isNotNull);
     var projects = loaded!['projects'] as List<Object?>;
     expect(projects.length, 1);
 
     // Save both projects.
-    await storage.save(_bothProjectsData());
+    await storage.save(bothProjectsData());
     loaded = await storage.load();
     expect(loaded, isNotNull);
     projects = loaded!['projects'] as List<Object?>;
@@ -184,13 +184,13 @@ void main() {
   });
 
   test('modify project A does not affect project B data', () async {
-    final storage = _storage();
+    final storage = storage0();
 
     // Save both projects.
-    await storage.save(_bothProjectsData());
+    await storage.save(bothProjectsData());
 
     // Modify project A's title.
-    final modified = _bothProjectsData();
+    final modified = bothProjectsData();
     (modified['projects'] as List).removeWhere(
       (p) => (p as Map)['id'] == 'project-A',
     );
@@ -225,13 +225,13 @@ void main() {
   });
 
   test('delete project A leaves project B intact', () async {
-    final storage = _storage();
+    final storage = storage0();
 
     // Save both.
-    await storage.save(_bothProjectsData());
+    await storage.save(bothProjectsData());
 
     // Save only project B data (effectively deleting A).
-    await storage.save(_projectBData());
+    await storage.save(projectBData());
 
     final loaded = await storage.load();
     expect(loaded, isNotNull);
@@ -246,13 +246,13 @@ void main() {
   });
 
   test('rapid switch A → B → A → B preserves final state', () async {
-    final storage = _storage();
+    final storage = storage0();
 
     // Rapid saves simulating quick project switches.
-    await storage.save(_projectAData());
-    await storage.save(_projectBData());
-    await storage.save(_bothProjectsData());
-    await storage.save(_projectAData());
+    await storage.save(projectAData());
+    await storage.save(projectBData());
+    await storage.save(bothProjectsData());
+    await storage.save(projectAData());
 
     // Final state should be project A only.
     final loaded = await storage.load();
@@ -263,9 +263,9 @@ void main() {
   });
 
   test('save and load preserves scene data per project', () async {
-    final storage = _storage();
+    final storage = storage0();
 
-    await storage.save(_bothProjectsData());
+    await storage.save(bothProjectsData());
     final loaded = await storage.load();
 
     final scenes = loaded!['scenesByProject'] as Map<String, Object?>;

@@ -92,6 +92,8 @@ void main() {
       );
       addTearDown(workspaceStore.dispose);
       addTearDown(generationStore.dispose);
+
+      workspaceStore.createProject();
       await generationStore.waitUntilReady();
 
       final firstProjectId = workspaceStore.currentProjectId;

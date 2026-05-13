@@ -6,8 +6,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
   // ---------------------------------------------------------------------------
 
   void createProject({String? projectName}) {
-    final nextIndex = _projects.length + 1;
-    final sourceProjectId = _currentProjectId;
+    final nextIndex = _nextNewProjectIndex();
     _projects = sortProjects([
       ProjectRecord(
         id: generateProjectId(),
@@ -24,10 +23,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     _scenesByProjectId[_currentProjectId] = defaultScenesForProject(
       _projects.first,
     );
-    _cloneProjectResources(
-      sourceProjectId: sourceProjectId,
-      targetProjectId: _currentProjectId,
-    );
+    _initializeProjectResources(_currentProjectId);
     _commitMutation();
     _publishWorkspaceEvent(ProjectCreatedEvent(projectId: _currentProjectId));
     _publishWorkspaceEvent(
@@ -40,7 +36,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
 
   void deleteProject(ProjectRecord project) {
     final nextProjects = _projects
-        .where((candidate) => candidate != project)
+        .where((candidate) => candidate.id != project.id)
         .toList(growable: false);
     if (nextProjects.length == _projects.length) {
       return;
@@ -60,6 +56,9 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     );
     _commitMutation();
     _publishWorkspaceEvent(ProjectDeletedEvent(projectId: project.id));
+    for (final cleaner in _projectDeletionCleaners) {
+      unawaited(cleaner(project.id));
+    }
   }
 
   void selectProject(String projectId) {
@@ -128,7 +127,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
               id: sceneId,
               chapterLabel: chapterLabelFromRecentLocation(recentLocation),
               title: sceneTitleFromRecentLocation(recentLocation),
-              summary: '等待补充章节目标、冲突和收束条件。',
+              summary: '等待补充目标、冲突和收束条件。',
             ),
           for (final scene in scenes)
             if (scene.id == sceneId)
@@ -171,6 +170,26 @@ mixin _ProjectSceneOps on _WorkspaceFields {
       return;
     }
     final currentScenes = _scenesForCurrentProject();
+    if (currentScenes.length == 1 &&
+        (currentScenes.single.id != currentProject.sceneId ||
+            currentScenes.single.title.trim() == '等待命名')) {
+      final currentScene = currentScenes.single;
+      final renamedScene = SceneRecord(
+        id: currentScene.id,
+        chapterLabel: currentScene.chapterLabel,
+        title: trimmedTitle,
+        summary: currentScene.summary.trim().isEmpty
+            ? '等待补充目标、冲突和收束条件。'
+            : currentScene.summary,
+      );
+      _scenesByProjectId[_currentProjectId] = [renamedScene];
+      updateCurrentScene(
+        sceneId: renamedScene.id,
+        recentLocation: renamedScene.displayLocation,
+      );
+      notifyListeners();
+      return;
+    }
     final sceneId = generateSceneId();
     final scene = SceneRecord(
       id: sceneId,
@@ -223,8 +242,15 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     }
     final sceneSuffix = currentScene.locationParts.sceneLabel;
     final submittedParts = SceneLocationParts.fromLabel(trimmedLabel);
+    final keepSceneSuffix =
+        submittedParts.sceneLabel.isEmpty &&
+        sceneSuffix.isNotEmpty &&
+        currentScene.title.trim() != '等待命名' &&
+        !_titleLooksLikeChapterHeading(currentScene.title);
     final nextLabel =
-        submittedParts.sceneLabel.isNotEmpty || sceneSuffix.isEmpty
+        submittedParts.sceneLabel.isNotEmpty ||
+            sceneSuffix.isEmpty ||
+            !keepSceneSuffix
         ? submittedParts.fullLabel
         : '${submittedParts.chapterLabel} / $sceneSuffix';
     final currentSceneId = currentProject.sceneId;
@@ -251,9 +277,9 @@ mixin _ProjectSceneOps on _WorkspaceFields {
       return;
     }
     final trimmedSummary = summary.trim();
-    if (trimmedSummary.isEmpty) {
-      return;
-    }
+    final nextSummary = trimmedSummary.isEmpty
+        ? '等待补充目标、冲突和收束条件。'
+        : trimmedSummary;
     final currentSceneId = currentProject.sceneId;
     _scenesByProjectId[_currentProjectId] = [
       for (final scene in _scenesForCurrentProject())
@@ -262,7 +288,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
             id: scene.id,
             chapterLabel: scene.chapterLabel,
             title: scene.title,
-            summary: trimmedSummary,
+            summary: nextSummary,
           )
         else
           scene,
@@ -310,6 +336,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     if (!canDeleteCurrentScene) {
       return;
     }
+    final projectId = _currentProjectId;
     final currentSceneId = currentProject.sceneId;
     final remaining = [
       for (final scene in _scenesForCurrentProject())
@@ -318,7 +345,25 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     if (remaining.isEmpty) {
       return;
     }
-    _scenesByProjectId[_currentProjectId] = remaining;
+    _scenesByProjectId[projectId] = remaining;
+    _charactersByProjectId[projectId] = [
+      for (final character in _charactersForProject(projectId))
+        character.copyWith(
+          linkedSceneIds: [
+            for (final sceneId in character.linkedSceneIds)
+              if (sceneId != currentSceneId) sceneId,
+          ],
+        ),
+    ];
+    _worldNodesByProjectId[projectId] = [
+      for (final node in _worldNodesForProject(projectId))
+        node.copyWith(
+          linkedSceneIds: [
+            for (final sceneId in node.linkedSceneIds)
+              if (sceneId != currentSceneId) sceneId,
+          ],
+        ),
+    ];
     updateCurrentScene(
       sceneId: remaining.first.id,
       recentLocation: remaining.first.displayLocation,
@@ -326,28 +371,45 @@ mixin _ProjectSceneOps on _WorkspaceFields {
   }
 
   // ---------------------------------------------------------------------------
-  // Clone Resources (used by createProject)
+  // Initialize Resources (used by createProject)
   // ---------------------------------------------------------------------------
 
-  void _cloneProjectResources({
-    required String sourceProjectId,
-    required String targetProjectId,
-  }) {
-    _charactersByProjectId[targetProjectId] = _charactersForProject(
-      sourceProjectId,
+  void _initializeProjectResources(String targetProjectId) {
+    _charactersByProjectId[targetProjectId] = List<CharacterRecord>.from(
+      defaultCharacters,
     );
     _scenesByProjectId[targetProjectId] = defaultScenesForProject(
       projectById(targetProjectId) ?? currentProject,
     );
-    _worldNodesByProjectId[targetProjectId] = _worldNodesForProject(
-      sourceProjectId,
+    _worldNodesByProjectId[targetProjectId] = List<WorldNodeRecord>.from(
+      defaultWorldNodes,
     );
     _auditIssuesByProjectId[targetProjectId] = _auditIssuesForProject(
-      sourceProjectId,
+      targetProjectId,
     );
-    _styleByProjectId[targetProjectId] = _styleStateForProject(sourceProjectId);
+    _styleByProjectId[targetProjectId] = _styleStateForProject(targetProjectId);
     _auditUiByProjectId[targetProjectId] = _auditUiStateForProject(
-      sourceProjectId,
+      targetProjectId,
     );
+  }
+
+  int _nextNewProjectIndex() {
+    final pattern = RegExp(r'^新建项目\s+(\d+)$');
+    var maxIndex = 0;
+    for (final project in _projects) {
+      final match = pattern.firstMatch(project.title.trim());
+      if (match == null) {
+        continue;
+      }
+      final index = int.tryParse(match.group(1) ?? '');
+      if (index != null && index > maxIndex) {
+        maxIndex = index;
+      }
+    }
+    return maxIndex + 1;
+  }
+
+  bool _titleLooksLikeChapterHeading(String title) {
+    return RegExp(r'^第[一二三四五六七八九十百千万零〇两0-9]+章').hasMatch(title.trim());
   }
 }

@@ -579,6 +579,69 @@ void main() {
     });
   });
 
+  group('CJK keyword overlap', () {
+    test('CJK bigram tokens score Chinese content above zero', () {
+      final rag = AgenticRag();
+      const atom = RetrievalAtom(
+        id: 'cjk-1',
+        content: '黑塔是古老的建筑，隐藏在深山之中。黑塔蕴含神秘力量。',
+        sourceTool: 'worldbuilding',
+      );
+
+      final score = rag.scoreAtom(atom, '黑塔神秘', []);
+      expect(score, greaterThan(0));
+    });
+
+    test('CJK query matches semantically overlapping content', () {
+      final rag = AgenticRag();
+      const atom = RetrievalAtom(
+        id: 'cjk-2',
+        content: '刘锡是一位谨慎而富有分析力的学者。',
+        sourceTool: 'character',
+      );
+
+      final score = rag.scoreAtom(atom, '谨慎的学者', []);
+      expect(score, greaterThan(0));
+    });
+
+    test('CJK two-char term matches as bigram in content', () {
+      final rag = AgenticRag();
+      const atom = RetrievalAtom(
+        id: 'cjk-3',
+        content: '古老的黑塔矗立在山巅',
+        sourceTool: 'worldbuilding',
+      );
+
+      final score = rag.scoreAtom(atom, '黑塔', []);
+      expect(score, greaterThan(0));
+    });
+
+    test('CJK atoms rank through full query pipeline', () {
+      final rag = AgenticRag();
+      final atoms = [
+        const RetrievalAtom(
+          id: 'cjk-world',
+          content: '黑塔蕴含神秘力量，是世界的中心。',
+          sourceTool: 'worldbuilding',
+        ),
+        const RetrievalAtom(
+          id: 'cjk-char',
+          content: '刘锡经常在黑塔附近散步，观察古老的符文。',
+          sourceTool: 'character',
+        ),
+        const RetrievalAtom(
+          id: 'cjk-noise',
+          content: '今天天气晴朗，适合外出旅行。',
+          sourceTool: 'weather',
+        ),
+      ];
+
+      final ranked = rag.query(atoms, '黑塔古老符文', []);
+      expect(ranked, isNotEmpty);
+      expect(ranked.first.id, isNot(equals('cjk-noise')));
+    });
+  });
+
   group('audit', () {
     test('retrieval trace records counts correctly', () {
       const query = StoryMemoryQuery(

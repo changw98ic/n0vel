@@ -62,7 +62,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
       );
       final characters = database.select(
         '''
-        SELECT project_id, name, role, note, need_text, summary, linked_scene_ids
+        SELECT project_id, id, name, role, note, need_text, summary, reference_summary, linked_scene_ids
         FROM workspace_characters
         WHERE scope_key = ?
         ORDER BY project_id ASC, position_no ASC
@@ -71,7 +71,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
       );
       final worldNodes = database.select(
         '''
-        SELECT project_id, title, location, type, detail, summary, linked_scene_ids
+        SELECT project_id, id, title, location, type, detail, summary, rule_summary, reference_summary, linked_scene_ids
         FROM workspace_world_nodes
         WHERE scope_key = ?
         ORDER BY project_id ASC, position_no ASC
@@ -80,7 +80,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
       );
       final auditIssues = database.select(
         '''
-        SELECT project_id, title, evidence, target
+        SELECT project_id, id, title, evidence, target, status, ignore_reason, last_action
         FROM workspace_audit_issues
         WHERE scope_key = ?
         ORDER BY project_id ASC, position_no ASC
@@ -145,11 +145,13 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
         'charactersByProject': WorkspaceStorageHelpers.groupRowsByProject(
           rows: characters,
           rowMapper: (row) => {
+            'id': row['id'] as String,
             'name': row['name'] as String,
             'role': row['role'] as String,
             'note': row['note'] as String,
             'need': row['need_text'] as String,
             'summary': row['summary'] as String,
+            'referenceSummary': row['reference_summary'] as String,
             'linkedSceneIds': _decodeLinkedSceneIds(
               row['linked_scene_ids'] as String?,
             ),
@@ -167,11 +169,14 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
         'worldNodesByProject': WorkspaceStorageHelpers.groupRowsByProject(
           rows: worldNodes,
           rowMapper: (row) => {
+            'id': row['id'] as String,
             'title': row['title'] as String,
             'location': row['location'] as String,
             'type': row['type'] as String,
             'detail': row['detail'] as String,
             'summary': row['summary'] as String,
+            'ruleSummary': row['rule_summary'] as String,
+            'referenceSummary': row['reference_summary'] as String,
             'linkedSceneIds': _decodeLinkedSceneIds(
               row['linked_scene_ids'] as String?,
             ),
@@ -180,9 +185,13 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
         'auditIssuesByProject': WorkspaceStorageHelpers.groupRowsByProject(
           rows: auditIssues,
           rowMapper: (row) => {
+            'id': row['id'] as String,
             'title': row['title'] as String,
             'evidence': row['evidence'] as String,
             'target': row['target'] as String,
+            'status': row['status'] as String,
+            'ignoreReason': row['ignore_reason'] as String,
+            'lastAction': row['last_action'] as String,
           },
         ),
         'projectStyles': WorkspaceStorageHelpers.groupProjectPreferences(
@@ -289,19 +298,23 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           tableName: 'workspace_characters',
           rowsByProject: charactersByProject,
           columnNames: const [
+            'id',
             'name',
             'role',
             'note',
             'need_text',
             'summary',
+            'reference_summary',
             'linked_scene_ids',
           ],
           valuesBuilder: (row) => [
+            row['id']?.toString() ?? '',
             row['name']?.toString() ?? '',
             row['role']?.toString() ?? '',
             row['note']?.toString() ?? '',
             row['need']?.toString() ?? '',
             row['summary']?.toString() ?? '',
+            row['referenceSummary']?.toString() ?? '',
             _encodeLinkedSceneIds(row['linkedSceneIds']),
           ],
         );
@@ -324,19 +337,25 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           tableName: 'workspace_world_nodes',
           rowsByProject: worldNodesByProject,
           columnNames: const [
+            'id',
             'title',
             'location',
             'type',
             'detail',
             'summary',
+            'rule_summary',
+            'reference_summary',
             'linked_scene_ids',
           ],
           valuesBuilder: (row) => [
+            row['id']?.toString() ?? '',
             row['title']?.toString() ?? '',
             row['location']?.toString() ?? '',
             row['type']?.toString() ?? '',
             row['detail']?.toString() ?? '',
             row['summary']?.toString() ?? '',
+            row['ruleSummary']?.toString() ?? '',
+            row['referenceSummary']?.toString() ?? '',
             _encodeLinkedSceneIds(row['linkedSceneIds']),
           ],
         );
@@ -345,11 +364,23 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           scopeKey: _scopeKey,
           tableName: 'workspace_audit_issues',
           rowsByProject: auditIssuesByProject,
-          columnNames: const ['title', 'evidence', 'target'],
+          columnNames: const [
+            'id',
+            'title',
+            'evidence',
+            'target',
+            'status',
+            'ignore_reason',
+            'last_action',
+          ],
           valuesBuilder: (row) => [
+            row['id']?.toString() ?? '',
             row['title']?.toString() ?? '',
             row['evidence']?.toString() ?? '',
             row['target']?.toString() ?? '',
+            row['status']?.toString() ?? 'open',
+            row['ignoreReason']?.toString() ?? '',
+            row['lastAction']?.toString() ?? '',
           ],
         );
 

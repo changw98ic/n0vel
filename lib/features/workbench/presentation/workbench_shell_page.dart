@@ -1,132 +1,35 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
-import '../../../app/logging/app_event_log.dart';
-import '../../../app/di/service_scope.dart';
-import '../../../app/llm/app_llm_client.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/navigation/reading_route_data.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
-import '../../../app/state/app_scene_context_store.dart';
-import '../../../app/state/app_settings_store.dart';
 import '../../../app/state/app_simulation_store.dart';
-import '../../../app/state/app_version_store.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/state/story_generation_run_store.dart';
+import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
-import '../../author_feedback/data/author_feedback_store.dart';
 import '../../author_feedback/domain/author_feedback_models.dart';
-import '../../author_feedback/presentation/author_feedback_panel.dart';
-import '../../review_tasks/data/review_task_mapper.dart';
-import '../../review_tasks/data/review_task_store.dart';
-import '../../review_tasks/domain/review_task_models.dart';
-import '../../review_tasks/presentation/review_task_panel.dart';
 
+import 'workbench_ai_revision_helpers.dart';
+import 'workbench_editor_helpers.dart';
+import 'workbench_tool_window_panel.dart';
+import 'workbench_types.dart';
+import 'workbench_ai_controller.dart';
+import 'workbench_ai_review_dialog.dart';
+import 'workbench_editor_pane.dart';
+import 'workbench_orchestrator.dart';
+
+export 'workbench_types.dart';
+
+part 'workbench_shell_actions.dart';
 part 'workbench_shell_components.dart';
 
-const Color _appAccentColor = Color(0xFFB6813B);
-
-enum WorkbenchUiState {
-  defaultHidden,
-  menuDrawerOpen,
-  apiKeyMissing,
-  missingCharacterBinding,
-  missingCharacterReference,
-  missingWorldReference,
-  noSimulationYet,
-  contextSynced,
-  simulationCompleted,
-  simulationFailedSummary,
-}
-
-enum WorkbenchToolPanel { resources, ai, feedback, reviewTasks, settings }
-
-enum AiToolMode { rewrite, continueWriting }
-
-class _EditorReturnAnchor {
-  const _EditorReturnAnchor({
-    required this.sceneId,
-    required this.selection,
-    required this.scrollOffset,
-    required this.expectedText,
-  });
-
-  final String sceneId;
-  final TextSelection selection;
-  final double scrollOffset;
-  final String expectedText;
-}
-
-class _AiSelectionDraft {
-  const _AiSelectionDraft({
-    required this.start,
-    required this.end,
-    required this.prompt,
-  });
-
-  final int start;
-  final int end;
-  final String prompt;
-
-  int get length => end - start;
-
-  _AiSelectionDraft copyWith({String? prompt}) {
-    return _AiSelectionDraft(
-      start: start,
-      end: end,
-      prompt: prompt ?? this.prompt,
-    );
-  }
-}
-
-class _AiReviewBlock {
-  const _AiReviewBlock({
-    required this.blockLabel,
-    required this.previousText,
-    required this.originalText,
-    required this.nextText,
-    required this.authorPrompt,
-    required this.suggestionText,
-    this.selection,
-  });
-
-  final String blockLabel;
-  final String previousText;
-  final String originalText;
-  final String nextText;
-  final String authorPrompt;
-  final String suggestionText;
-  final _AiSelectionDraft? selection;
-}
-
-class _AiRequestMetadata {
-  const _AiRequestMetadata({
-    required this.providerSummary,
-    required this.endpointLabel,
-    required this.styleSummary,
-    required this.sceneSummary,
-    required this.characterSummary,
-    required this.worldSummary,
-    required this.simulationSummary,
-  });
-
-  final String providerSummary;
-  final String endpointLabel;
-  final String styleSummary;
-  final String sceneSummary;
-  final String characterSummary;
-  final String worldSummary;
-  final String simulationSummary;
-}
-
-class _AiRequestException implements Exception {
-  const _AiRequestException({required this.title, required this.message});
-
-  final String title;
-  final String message;
-}
-
-class WorkbenchShellPage extends StatefulWidget {
+class WorkbenchShellPage extends ConsumerStatefulWidget {
   const WorkbenchShellPage({
     super.key,
     this.uiState = WorkbenchUiState.defaultHidden,
@@ -150,6 +53,9 @@ class WorkbenchShellPage extends StatefulWidget {
     'workbench-editor-text-field',
   );
   static const toolRailKey = ValueKey<String>('workbench-tool-rail');
+  static const chapterListToggleKey = ValueKey<String>(
+    'workbench-chapter-list-toggle',
+  );
   static const toolWindowKey = ValueKey<String>('workbench-tool-window');
   static const statusBarKey = ValueKey<String>('workbench-status-bar');
   static const runSimulationButtonKey = ValueKey<String>(
@@ -170,6 +76,15 @@ class WorkbenchShellPage extends StatefulWidget {
   static const runSnapshotStageKey = ValueKey<String>(
     'workbench-run-snapshot-stage',
   );
+  static const runRecoveryPromptKey = ValueKey<String>(
+    'workbench-run-recovery-prompt',
+  );
+  static const runRecoveryRetryButtonKey = ValueKey<String>(
+    'workbench-run-recovery-retry-button',
+  );
+  static const runRecoveryDiscardButtonKey = ValueKey<String>(
+    'workbench-run-recovery-discard-button',
+  );
   static const saveVersionButtonKey = ValueKey<String>(
     'workbench-save-version-button',
   );
@@ -179,19 +94,13 @@ class WorkbenchShellPage extends StatefulWidget {
   static const resourcesToolButtonKey = ValueKey<String>(
     'workbench-tool-button-resources',
   );
-  static const createSceneButtonKey = ValueKey<String>(
-    'workbench-create-scene-button',
-  );
-  static const renameSceneButtonKey = ValueKey<String>(
-    'workbench-rename-scene-button',
-  );
-  static const deleteSceneButtonKey = ValueKey<String>(
-    'workbench-delete-scene-button',
-  );
   static const sceneTitleFieldKey = ValueKey<String>(
     'workbench-scene-title-field',
   );
   static const aiToolButtonKey = ValueKey<String>('workbench-tool-button-ai');
+  static const settingsToolButtonKey = ValueKey<String>(
+    'workbench-tool-button-settings',
+  );
   static const feedbackToolButtonKey = ValueKey<String>(
     'workbench-tool-button-feedback',
   );
@@ -225,9 +134,6 @@ class WorkbenchShellPage extends StatefulWidget {
   );
   static const readingToolButtonKey = ValueKey<String>(
     'workbench-tool-button-reading',
-  );
-  static const settingsToolButtonKey = ValueKey<String>(
-    'workbench-tool-button-settings',
   );
   static const aiRetrySecureStoreButtonKey = ValueKey<String>(
     'workbench-ai-retry-secure-store-button',
@@ -263,26 +169,23 @@ class WorkbenchShellPage extends StatefulWidget {
   final WorkbenchUiState uiState;
 
   @override
-  State<WorkbenchShellPage> createState() => _WorkbenchShellPageState();
+  ConsumerState<WorkbenchShellPage> createState() => _WorkbenchShellPageState();
 }
 
-class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
-  late bool _isDrawerOpen;
-  WorkbenchToolPanel? _activeToolPanel;
-  AiToolMode _aiToolMode = AiToolMode.rewrite;
-  bool _showContextSyncedBanner = false;
-  bool _isGeneratingAi = false;
+class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
+  WorkbenchOrchestrator? _orchestrator;
   final TextEditingController _aiPromptController = TextEditingController();
   final FocusNode _draftFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
   TextEditingController? _draftController;
   AppDraftStore? _draftStore;
-  final List<_AiSelectionDraft> _aiSelections = [];
   TextSelection _lastEditorSelection = const TextSelection.collapsed(offset: 0);
   String _lastDraftText = '';
   String? _activeDraftScopeId;
-  _EditorReturnAnchor? _pendingReturnAnchor;
-  String? _dismissedCandidateText;
+  String? _activeSceneId;
+  WorkbenchEditorReturnAnchor? _pendingReturnAnchor;
+
+  WorkbenchOrchestrator get _orb => _orchestrator!;
 
   bool get _isInteractiveDefault =>
       widget.uiState == WorkbenchUiState.defaultHidden;
@@ -297,19 +200,39 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
   @override
   void initState() {
     super.initState();
-    _isDrawerOpen = widget.uiState == WorkbenchUiState.menuDrawerOpen;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_orchestrator == null) {
+      _orchestrator = WorkbenchOrchestrator(
+        draftStore: ref.read(appDraftStoreProvider),
+        versionStore: ref.read(appVersionStoreProvider),
+        settingsStore: ref.read(appSettingsStoreProvider),
+        workspaceStore: ref.read(appWorkspaceStoreProvider),
+        historyStore: ref.read(appAiHistoryStoreProvider),
+        sceneContextStore: ref.read(appSceneContextStoreProvider),
+        simulationStore: ref.read(appSimulationStoreProvider),
+        authorFeedbackStore: ref.read(authorFeedbackStoreProvider),
+        reviewTaskStore: ref.read(reviewTaskStoreProvider),
+        storyRunStore: ref.read(storyGenerationRunStoreProvider),
+        eventLog: ref.read(appEventLogProvider),
+      );
+      _orchestrator!.addListener(_onOrchestratorChanged);
+    }
+    final draftStore = ref.read(appDraftStoreProvider);
+    final workspace = ref.read(appWorkspaceStoreProvider);
+    final sceneId = workspace.currentProjectOrNull?.sceneId;
+
     if (_draftController == null) {
-      _draftStore = AppDraftScope.of(context);
+      _draftStore = draftStore;
       _draftController = TextEditingController(
         text: _draftStore!.snapshot.text,
       );
       _lastDraftText = _draftStore!.snapshot.text;
       _activeDraftScopeId = _draftStore!.activeProjectId;
+      _activeSceneId = sceneId;
       _draftController!.addListener(() {
         final next = _draftController!.text;
         if (_pendingReturnAnchor == null) {
@@ -317,30 +240,36 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         }
         if (_lastDraftText != next) {
           _lastDraftText = next;
-          if (_aiSelections.isNotEmpty) {
-            setState(() {
-              _aiSelections.clear();
-            });
-          }
+          _orb.clearSelectionsIfNotEmpty();
         }
         if (_draftStore!.snapshot.text != next) {
           _draftStore!.updateText(next);
         }
       });
       _lastEditorSelection = _draftController!.selection;
+    } else if (sceneId != _activeSceneId) {
+      _activeSceneId = sceneId;
+      _draftStore = draftStore;
+      final newText = draftStore.snapshot.text;
+      _draftController!.text = newText;
+      _lastDraftText = newText;
     }
+  }
+
+  void _onOrchestratorChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant WorkbenchShellPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.uiState != widget.uiState && !_isInteractiveDefault) {
-      _isDrawerOpen = widget.uiState == WorkbenchUiState.menuDrawerOpen;
-    }
+    if (oldWidget.uiState != widget.uiState && !_isInteractiveDefault) {}
   }
 
   @override
   void dispose() {
+    _orchestrator?.removeListener(_onOrchestratorChanged);
+    _orchestrator?.dispose();
     _aiPromptController.dispose();
     _draftFocusNode.dispose();
     _editorScrollController.dispose();
@@ -348,1237 +277,15 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     super.dispose();
   }
 
-  Future<void> _showSceneDialog(
-    BuildContext context, {
-    required String title,
-    required String initialValue,
-    required ValueChanged<String> onConfirm,
-  }) async {
-    final controller = TextEditingController(text: initialValue);
-    final result = await showDialog<String>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: title,
-          description: '创建后会出现在当前项目的章节列表中，并立即可在工作台中继续写作。',
-          body: _WorkbenchDialogField(
-            label: '章节标题',
-            child: TextField(
-              key: WorkbenchShellPage.sceneTitleFieldKey,
-              controller: controller,
-              decoration: const InputDecoration(hintText: '输入章节标题'),
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(controller.text.trim()),
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
-    );
-    if (result == null || result.trim().isEmpty) {
-      return;
-    }
-    onConfirm(result);
-  }
-
-  Future<void> _confirmDeleteScene(
-    BuildContext context,
-    VoidCallback onConfirm,
-  ) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: '删除章节',
-          description: '删除后会从当前项目的章节列表中移除，工作台会自动切换到相邻章节，并同步刷新相关引用摘要。',
-          body: _WorkbenchDialogField(
-            label: '当前章节',
-            child: Text(
-              AppWorkspaceScope.of(context).currentScene.title,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
-    );
-    if (shouldDelete == true) {
-      onConfirm();
-    }
-  }
-
-  Future<void> _openSettingsAndRestoreAnchor({
-    bool closeToolPanel = false,
-  }) async {
-    final anchor = _captureReturnAnchor();
-    if (closeToolPanel) {
-      setState(() {
-        _activeToolPanel = null;
-      });
-    }
-    await AppNavigator.push(context, AppRoutes.settings);
-    if (!mounted) {
-      return;
-    }
-    await _restoreReturnAnchor(anchor);
-  }
-
-  Future<void> _openReadingMode() async {
-    final workspace = AppWorkspaceScope.of(context);
-    final draftStore = AppDraftScope.of(context);
-    final anchor = _captureReturnAnchor();
-    final documents = <ReadingSceneDocument>[];
-    for (final scene in workspace.scenes) {
-      final scopeId = '${workspace.currentProject.id}::${scene.id}';
-      final text = await draftStore.readTextForScope(scopeId);
-      documents.add(
-        ReadingSceneDocument(
-          sceneId: scene.id,
-          locationLabel: scene.displayLocation,
-          text: text,
-        ),
-      );
-    }
-    if (!mounted) {
-      return;
-    }
-    await AppNavigator.push(
-      context,
-      AppRoutes.reading,
-      arguments: ReadingSessionData(
-        projectTitle: workspace.currentProject.title,
-        initialSceneId: workspace.currentProject.sceneId,
-        documents: documents,
-      ),
-    );
-    if (!mounted) {
-      return;
-    }
-    await _restoreReturnAnchor(anchor);
-  }
-
-  String _authorBreadcrumb(AppWorkspaceStore workspace) {
-    return '${workspace.currentProject.title} / '
-        '${chapterLocationLabel(workspace.currentProject.displayRecentLocation)}';
-  }
-
-  _EditorReturnAnchor _captureReturnAnchor() {
-    final workspace = AppWorkspaceScope.of(context);
-    final selection = _clampSelection(
-      _draftController?.selection ?? _lastEditorSelection,
-      _draftController?.text.length ?? 0,
-    );
-    final scrollOffset = _editorScrollController.hasClients
-        ? _editorScrollController.offset
-        : 0.0;
-    return _EditorReturnAnchor(
-      sceneId: workspace.currentProjectOrNull?.sceneId ?? '',
-      selection: selection,
-      scrollOffset: scrollOffset,
-      expectedText: _draftController?.text ?? '',
-    );
-  }
-
-  Future<void> _restoreReturnAnchor(_EditorReturnAnchor anchor) async {
-    final workspace = AppWorkspaceScope.of(context);
-    final draftStore = AppDraftScope.of(context);
-    var pendingAnchor = anchor;
-    final projectId = workspace.currentProjectOrNull?.id ?? '';
-    final sceneId = workspace.currentProjectOrNull?.sceneId ?? '';
-    if (projectId.isEmpty || sceneId != anchor.sceneId) {
-      final targetScene = workspace.scenes.where(
-        (scene) => scene.id == anchor.sceneId,
-      );
-      if (targetScene.isNotEmpty && projectId.isNotEmpty) {
-        final scene = targetScene.first;
-        final targetScopeId = '$projectId::${scene.id}';
-        pendingAnchor = _EditorReturnAnchor(
-          sceneId: anchor.sceneId,
-          selection: anchor.selection,
-          scrollOffset: anchor.scrollOffset,
-          expectedText: await draftStore.readTextForScope(targetScopeId),
-        );
-        workspace.updateCurrentScene(
-          sceneId: scene.id,
-          recentLocation: scene.displayLocation,
-        );
-      }
-    }
-    _pendingReturnAnchor = pendingAnchor;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _maybeApplyPendingReturnAnchor(),
-    );
-  }
-
-  void _maybeApplyPendingReturnAnchor() {
-    final pendingAnchor = _pendingReturnAnchor;
-    if (!mounted || _draftController == null || pendingAnchor == null) {
-      return;
-    }
-    final workspace = AppWorkspaceScope.of(context);
-    if ((workspace.currentProjectOrNull?.sceneId ?? '') !=
-        pendingAnchor.sceneId) {
-      return;
-    }
-    final controller = _draftController!;
-    if (controller.text != pendingAnchor.expectedText) {
-      return;
-    }
-    final clampedSelection = _clampSelection(
-      pendingAnchor.selection,
-      controller.text.length,
-    );
-    controller.selection = clampedSelection;
-    _lastEditorSelection = clampedSelection;
-    if (_editorScrollController.hasClients) {
-      final maxOffset = _editorScrollController.position.maxScrollExtent;
-      final targetOffset = pendingAnchor.scrollOffset
-          .clamp(0.0, maxOffset)
-          .toDouble();
-      _editorScrollController.jumpTo(targetOffset);
-    }
-    _draftFocusNode.requestFocus();
-    _pendingReturnAnchor = null;
-  }
-
-  TextSelection _clampSelection(TextSelection selection, int textLength) {
-    final start = selection.start.clamp(0, textLength).toInt();
-    final end = selection.end.clamp(0, textLength).toInt();
-    return TextSelection(baseOffset: start, extentOffset: end);
-  }
-
-  TextSelection? _normalizedEditorSelection(String text) {
-    final controller = _draftController;
-    if (controller == null) {
-      return null;
-    }
-    final selection = _clampSelection(controller.selection, text.length);
-    if (!selection.isValid || selection.isCollapsed) {
-      return null;
-    }
-    return TextSelection(
-      baseOffset: selection.start,
-      extentOffset: selection.end,
-    );
-  }
-
-  String _selectionPreview(String text, TextSelection? selection) {
-    if (selection == null || !selection.isValid || selection.isCollapsed) {
-      return '尚未选择正文片段';
-    }
-    final excerpt = text.substring(selection.start, selection.end).trim();
-    if (excerpt.isEmpty) {
-      return '尚未选择正文片段';
-    }
-    if (excerpt.length <= 36) {
-      return excerpt;
-    }
-    return '${excerpt.substring(0, 36)}...';
-  }
-
-  Future<void> _addCurrentSelectionFromEditor() async {
-    final controller = _draftController;
-    if (controller == null) {
-      return;
-    }
-    final selection = _normalizedEditorSelection(controller.text);
-    if (selection == null) {
-      await _showMessageDialog(
-        title: '请先选中正文片段',
-        message: '在正文中框选一段内容后，再把它加入多处改写列表。',
-      );
-      return;
-    }
-    final prompt = _aiPromptController.text.trim().isEmpty
-        ? '调整语气与节奏'
-        : _aiPromptController.text.trim();
-    setState(() {
-      _aiSelections.add(
-        _AiSelectionDraft(
-          start: selection.start,
-          end: selection.end,
-          prompt: prompt,
-        ),
-      );
-    });
-    _aiPromptController.clear();
-    _draftFocusNode.requestFocus();
-  }
-
-  Future<void> _editSelectionPrompt(int index) async {
-    final current = _aiSelections[index];
-    final controller = TextEditingController(text: current.prompt);
-    final nextPrompt = await showDialog<String>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: '编辑该段修改意图',
-          width: 520,
-          body: TextField(
-            controller: controller,
-            maxLines: 3,
-            decoration: const InputDecoration(hintText: '输入这段的单独修改要求'),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(controller.text.trim()),
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
-    );
-    if (nextPrompt == null || nextPrompt.isEmpty) {
-      return;
-    }
-    setState(() {
-      _aiSelections[index] = current.copyWith(prompt: nextPrompt);
-    });
-  }
-
-  void _removeSelection(int index) {
-    setState(() {
-      _aiSelections.removeAt(index);
-    });
-  }
-
-  Future<void> _showMessageDialog({
-    required String title,
-    required String message,
-  }) async {
-    await showDialog<void>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: title,
-          width: 460,
-          body: Text(message),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('返回正文'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showOverlappingSelectionsDialog() async {
-    await _showMessageDialog(
-      title: '多处选区重叠',
-      message: '当前请求未发出。请取消或合并重叠选区后再继续生成改写建议。',
-    );
-  }
-
-  bool _hasOverlappingSelections(List<_AiSelectionDraft> selections) {
-    if (selections.length < 2) {
-      return false;
-    }
-    final sorted = List<_AiSelectionDraft>.from(selections)
-      ..sort((left, right) => left.start.compareTo(right.start));
-    for (var index = 1; index < sorted.length; index += 1) {
-      if (sorted[index].start < sorted[index - 1].end) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  String _defaultAiIntent({required bool continueMode}) {
-    return continueMode ? '补上一段自然衔接的正文。' : '调整语气与节奏';
-  }
-
-  Future<List<_AiReviewBlock>> _requestSelectionReviewBlocks(
-    String original,
-    List<_AiSelectionDraft> selections,
-    _AiRequestMetadata metadata,
-    String? correlationId,
-  ) async {
-    final sorted = List<_AiSelectionDraft>.from(selections)
-      ..sort((left, right) => left.start.compareTo(right.start));
-    final blocks = <_AiReviewBlock>[];
-    for (var index = 0; index < sorted.length; index += 1) {
-      final previousText = _contextWindow(
-        original,
-        end: sorted[index].start,
-        backwards: true,
-      );
-      final originalText = original.substring(
-        sorted[index].start,
-        sorted[index].end,
-      );
-      final nextText = _contextWindow(original, start: sorted[index].end);
-      final suggestionText = await _requestAiOutput(
-        prompt: sorted[index].prompt,
-        continueMode: false,
-        metadata: metadata,
-        originalText: originalText,
-        previousText: previousText,
-        nextText: nextText,
-        taskType: '选区改写',
-        correlationId: correlationId,
-      );
-      blocks.add(
-        _AiReviewBlock(
-          blockLabel: '修改块 ${index + 1}',
-          previousText: previousText,
-          originalText: originalText,
-          nextText: nextText,
-          authorPrompt: sorted[index].prompt,
-          suggestionText: suggestionText,
-          selection: sorted[index],
-        ),
-      );
-    }
-    return blocks;
-  }
-
-  Future<List<_AiReviewBlock>> _requestFallbackReviewBlocks({
-    required String original,
-    required String prompt,
-    required bool continueMode,
-    required _AiRequestMetadata metadata,
-    String? correlationId,
-  }) async {
-    final effectivePrompt = prompt.isEmpty
-        ? _defaultAiIntent(continueMode: continueMode)
-        : prompt;
-    final suggestionText = await _requestAiOutput(
-      prompt: effectivePrompt,
-      continueMode: continueMode,
-      metadata: metadata,
-      originalText: original,
-      previousText: '夜雨还没有停。',
-      nextText: '她听见码头深处传来金属回响。',
-      taskType: continueMode ? '续写' : '整段改写',
-      correlationId: correlationId,
-    );
-    return [
-      _AiReviewBlock(
-        blockLabel: continueMode ? '续写块 1' : '修改块 1',
-        previousText: '上一段预览：夜雨还没有停。',
-        originalText: original,
-        nextText: '下一段预览：她听见码头深处传来金属回响。',
-        authorPrompt: effectivePrompt,
-        suggestionText: suggestionText,
-      ),
-    ];
-  }
-
-  _AiRequestMetadata _currentAiRequestMetadata() {
-    final settings = AppSettingsScope.of(context).snapshot;
-    final workspace = AppWorkspaceScope.of(context);
-    final sceneContext = AppSceneContextScope.of(context).snapshot;
-    final simulation = AppSimulationScope.of(context).snapshot;
-    final endpoint =
-        Uri.tryParse(settings.baseUrl.trim())?.host.isNotEmpty == true
-        ? Uri.tryParse(settings.baseUrl.trim())!.host
-        : settings.baseUrl.trim();
-    final simulationSummary = switch (simulation.status) {
-      SimulationStatus.none => '还没有 AI 试写记录',
-      SimulationStatus.running =>
-        '${simulation.headline} · ${simulation.stageSummary}',
-      SimulationStatus.completed =>
-        '${simulation.headline} · ${simulation.summary}',
-      SimulationStatus.failed =>
-        '${simulation.headline} · ${simulation.summary}',
-    };
-    return _AiRequestMetadata(
-      providerSummary: '${settings.providerName} · ${settings.model}',
-      endpointLabel: endpoint,
-      styleSummary:
-          '${workspace.selectedStyleProfile?.name ?? '未绑定风格'} · ${workspace.styleIntensity}x',
-      sceneSummary: sceneContext.sceneSummary,
-      characterSummary: sceneContext.characterSummary,
-      worldSummary: sceneContext.worldSummary,
-      simulationSummary: simulationSummary,
-    );
-  }
-
-  AppEventLog get _eventLog => AppEventLogScope.of(context);
-
-  Future<void> _logWorkbenchEvent({
-    required AppEventLogCategory category,
-    required String action,
-    required AppEventLogStatus status,
-    required String message,
-    String? correlationId,
-    AppEventLogLevel level = AppEventLogLevel.info,
-    String? errorCode,
-    String? errorDetail,
-    Map<String, Object?> metadata = const <String, Object?>{},
-  }) {
-    final workspace = AppWorkspaceScope.of(context);
-    return _eventLog.log(
-      level: level,
-      category: category,
-      action: action,
-      status: status,
-      message: message,
-      correlationId: correlationId,
-      projectId: workspace.currentProject.id,
-      sceneId: workspace.currentProject.sceneId,
-      errorCode: errorCode,
-      errorDetail: errorDetail,
-      metadata: metadata,
-    );
-  }
-
-  Map<String, Object?> _aiRequestLogMetadata({
-    required _AiRequestMetadata metadata,
-    required String prompt,
-    required String taskType,
-    String? response,
-  }) {
-    return {
-      'provider': metadata.providerSummary,
-      'endpoint': metadata.endpointLabel,
-      'taskType': taskType,
-      'promptLength': prompt.length,
-      'promptPreview': _previewText(prompt, 160),
-      if (response != null) 'responseLength': response.length,
-      if (response != null) 'responsePreview': _previewText(response, 160),
-    };
-  }
-
-  String _previewText(String text, int maxLength) {
-    final normalized = _collapseWhitespace(text.trim());
-    if (normalized.length <= maxLength) {
-      return normalized;
-    }
-    if (maxLength <= 3) {
-      return normalized.substring(0, maxLength);
-    }
-    return '${normalized.substring(0, maxLength - 3)}...';
-  }
-
-  Future<String> _requestAiOutput({
-    required String prompt,
-    required bool continueMode,
-    required _AiRequestMetadata metadata,
-    required String originalText,
-    required String previousText,
-    required String nextText,
-    required String taskType,
-    String? correlationId,
-  }) async {
-    final settingsStore = AppSettingsScope.of(context);
-    final effectivePrompt = prompt.isEmpty
-        ? _defaultAiIntent(continueMode: continueMode)
-        : prompt;
-    await _logWorkbenchEvent(
-      category: AppEventLogCategory.ai,
-      action: 'ai.chat.request.started',
-      status: AppEventLogStatus.started,
-      message: 'Started AI chat request.',
-      correlationId: correlationId,
-      metadata: _aiRequestLogMetadata(
-        metadata: metadata,
-        prompt: effectivePrompt,
-        taskType: taskType,
-      ),
-    );
-    final result = await settingsStore.requestAiCompletion(
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content: continueMode
-              ? '你是中文小说续写助手。只输出需要追加的新内容，不要解释，不要重复原文，不要使用 Markdown、标题、编号或引号。'
-              : '你是中文小说改写助手。只输出最终改写结果，不要解释，不要使用 Markdown、标题、编号或引号。',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务类型：$taskType',
-            '作者意图：$effectivePrompt',
-            '请求配置：${metadata.providerSummary}',
-            '接口：${metadata.endpointLabel}',
-            '风格约束：${metadata.styleSummary}',
-            '章节上下文：${metadata.sceneSummary}',
-            metadata.characterSummary,
-            metadata.worldSummary,
-            '模拟摘要：${metadata.simulationSummary}',
-            '上一段：$previousText',
-            '原文：\n$originalText',
-            '下一段：$nextText',
-          ].join('\n\n'),
-        ),
-      ],
-    );
-    if (result.succeeded) {
-      final text = result.text!.trim();
-      await _logWorkbenchEvent(
-        category: AppEventLogCategory.ai,
-        action: 'ai.chat.request.succeeded',
-        status: AppEventLogStatus.succeeded,
-        message: 'AI chat request succeeded.',
-        correlationId: correlationId,
-        metadata: {
-          ..._aiRequestLogMetadata(
-            metadata: metadata,
-            prompt: effectivePrompt,
-            taskType: taskType,
-            response: text,
-          ),
-          if (result.latencyMs != null) 'latencyMs': result.latencyMs,
-        },
-      );
-      return text;
-    }
-    await _logWorkbenchEvent(
-      category: AppEventLogCategory.ai,
-      action: 'ai.chat.request.failed',
-      status: AppEventLogStatus.failed,
-      message: 'AI chat request failed.',
-      correlationId: correlationId,
-      level: AppEventLogLevel.error,
-      errorCode: result.failureKind?.name,
-      errorDetail: result.detail,
-      metadata: _aiRequestLogMetadata(
-        metadata: metadata,
-        prompt: effectivePrompt,
-        taskType: taskType,
-      ),
-    );
-    throw _aiRequestException(result);
-  }
-
-  _AiRequestException _aiRequestException(AppLlmChatResult result) {
-    return switch (result.failureKind) {
-      AppLlmFailureKind.unauthorized => const _AiRequestException(
-        title: 'AI 请求失败：鉴权失败',
-        message: '401 / 403：请检查密钥、账号权限或服务端授权状态。',
-      ),
-      AppLlmFailureKind.timeout => const _AiRequestException(
-        title: 'AI 请求失败：连接超时',
-        message: '模型服务在超时时间内未返回结果，请稍后重试或调大等待时间。',
-      ),
-      AppLlmFailureKind.modelNotFound => _AiRequestException(
-        title: 'AI 请求失败：模型不存在',
-        message: result.detail?.trim().isNotEmpty == true
-            ? result.detail!
-            : '当前模型不可用，请检查 model 配置。',
-      ),
-      AppLlmFailureKind.network => _AiRequestException(
-        title: 'AI 请求失败：网络错误',
-        message: result.detail?.trim().isNotEmpty == true
-            ? result.detail!
-            : '无法连接到模型服务，请检查网络环境与接口地址。',
-      ),
-      AppLlmFailureKind.insecureScheme => _AiRequestException(
-        title: 'AI 请求失败：接口地址不安全',
-        message: result.detail?.trim().isNotEmpty == true
-            ? result.detail!
-            : '请使用 https:// 地址；本地调试仅允许 localhost 或 127.0.0.1 使用 http://。',
-      ),
-      AppLlmFailureKind.rateLimited => _AiRequestException(
-        title: 'AI 请求失败：请求受限',
-        message: result.detail?.trim().isNotEmpty == true
-            ? result.detail!
-            : '模型服务暂时限制请求，请稍后重试或降低请求频率。',
-      ),
-      AppLlmFailureKind.invalidResponse ||
-      AppLlmFailureKind.server ||
-      AppLlmFailureKind.unsupportedPlatform ||
-      null => _AiRequestException(
-        title: 'AI 请求失败：服务异常',
-        message: result.detail?.trim().isNotEmpty == true
-            ? result.detail!
-            : '模型服务返回了无法解析的响应。',
-      ),
-    };
-  }
-
-  String _contextWindow(
-    String text, {
-    int? start,
-    int? end,
-    bool backwards = false,
-  }) {
-    if (text.isEmpty) {
-      return '无可预览上下文';
-    }
-    if (backwards) {
-      final safeEnd = (end ?? 0).clamp(0, text.length).toInt();
-      final safeStart = (safeEnd - 24).clamp(0, safeEnd).toInt();
-      final snippet = text.substring(safeStart, safeEnd).trim();
-      return snippet.isEmpty ? '无上一段预览' : snippet;
-    }
-    final safeStart = (start ?? text.length).clamp(0, text.length).toInt();
-    final safeEnd = (safeStart + 24).clamp(safeStart, text.length).toInt();
-    final snippet = text.substring(safeStart, safeEnd).trim();
-    return snippet.isEmpty ? '无下一段预览' : snippet;
-  }
-
-  String _acceptedTextForBlocks(
-    String original,
-    List<_AiReviewBlock> blocks,
-    List<bool> included, {
-    required bool continueMode,
-  }) {
-    final keptBlocks = <_AiReviewBlock>[
-      for (var index = 0; index < blocks.length; index += 1)
-        if (included[index]) blocks[index],
-    ];
-    if (keptBlocks.isEmpty) {
-      return original;
-    }
-    final selectionBlocks = keptBlocks
-        .where((block) => block.selection != null)
-        .toList();
-    if (selectionBlocks.isEmpty) {
-      if (continueMode) {
-        return [
-          original,
-          for (final block in keptBlocks) block.suggestionText,
-        ].join('\n\n');
-      }
-      return keptBlocks.last.suggestionText;
-    }
-    final replacements = List<_AiReviewBlock>.from(selectionBlocks)
-      ..sort(
-        (left, right) =>
-            right.selection!.start.compareTo(left.selection!.start),
-      );
-    var nextText = original;
-    for (final block in replacements) {
-      final selection = block.selection!;
-      nextText = nextText.replaceRange(
-        selection.start,
-        selection.end,
-        continueMode
-            ? '${block.originalText}\n\n${block.suggestionText}'
-            : block.suggestionText,
-      );
-    }
-    return nextText;
-  }
-
-  Future<void> _openAiReviewDialog({
-    required String reviewTitle,
-    required String historyPrompt,
-    required List<_AiReviewBlock> blocks,
-    required _AiRequestMetadata metadata,
-    required bool continueMode,
-    required bool clearSelectionsOnAccept,
-    String? correlationId,
-  }) async {
-    AppAiHistoryScope.of(
-      context,
-    ).addEntry(mode: continueMode ? '续写' : '改写', prompt: historyPrompt);
-    final original = AppDraftScope.of(context).snapshot.text;
-    await _logWorkbenchEvent(
-      category: AppEventLogCategory.ui,
-      action: 'ui.ai.review_opened.succeeded',
-      status: AppEventLogStatus.succeeded,
-      message: 'Opened AI review dialog.',
-      correlationId: correlationId,
-      metadata: {
-        'reviewTitle': reviewTitle,
-        'blockCount': blocks.length,
-        'continueMode': continueMode,
-        'historyPromptPreview': _previewText(historyPrompt, 160),
-      },
-    );
-    if (!mounted) {
-      return;
-    }
-    await showDialog<void>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        final included = List<bool>.filled(blocks.length, true);
-        var isSaving = false;
-        String? saveErrorMessage;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final theme = Theme.of(context);
-            final keptCount = included.where((isIncluded) => isIncluded).length;
-            final hasIncluded = keptCount > 0;
-            final uniquePrompts = {
-              for (final block in blocks) block.authorPrompt,
-            };
-            final acceptedText = _acceptedTextForBlocks(
-              original,
-              blocks,
-              included,
-              continueMode: continueMode,
-            );
-            return DesktopModalDialog(
-              title: reviewTitle,
-              width: 760,
-              body: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (uniquePrompts.length == 1) ...[
-                      Text('修改意图：${uniquePrompts.first}'),
-                      const SizedBox(height: 12),
-                    ],
-                    Text('请求配置：${metadata.providerSummary}'),
-                    const SizedBox(height: 4),
-                    Text('接口：${metadata.endpointLabel}'),
-                    const SizedBox(height: 4),
-                    Text('风格约束：${metadata.styleSummary}'),
-                    const SizedBox(height: 4),
-                    Text('章节上下文：${metadata.sceneSummary}'),
-                    const SizedBox(height: 4),
-                    Text(metadata.characterSummary),
-                    const SizedBox(height: 4),
-                    Text(metadata.worldSummary),
-                    const SizedBox(height: 4),
-                    Text('模拟摘要：${metadata.simulationSummary}'),
-                    const SizedBox(height: 12),
-                    Text('已保留 $keptCount / ${blocks.length} 个修改块'),
-                    const SizedBox(height: 16),
-                    const Text('原始正文'),
-                    const SizedBox(height: 8),
-                    Text(original),
-                    const SizedBox(height: 16),
-                    for (var index = 0; index < blocks.length; index += 1) ...[
-                      Text(blocks[index].blockLabel),
-                      const SizedBox(height: 8),
-                      const Text('上一段'),
-                      const SizedBox(height: 4),
-                      Text(blocks[index].previousText),
-                      const SizedBox(height: 8),
-                      const Text('当前被修改段'),
-                      const SizedBox(height: 4),
-                      Text(blocks[index].originalText),
-                      const SizedBox(height: 8),
-                      const Text('下一段'),
-                      const SizedBox(height: 4),
-                      Text(blocks[index].nextText),
-                      const SizedBox(height: 8),
-                      const Text('作者该段修改意见'),
-                      const SizedBox(height: 4),
-                      Text(blocks[index].authorPrompt),
-                      const SizedBox(height: 8),
-                      Text(blocks[index].suggestionText),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () {
-                          setDialogState(() {
-                            included[index] = !included[index];
-                          });
-                        },
-                        child: Text(
-                          included[index]
-                              ? '排除修改块 ${index + 1}'
-                              : '恢复修改块 ${index + 1}',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (!hasIncluded) const Text('至少保留 1 个修改块'),
-                    if (hasIncluded && acceptedText != original) ...[
-                      const SizedBox(height: 4),
-                      const Text('接受后的正文预览'),
-                      const SizedBox(height: 8),
-                      Text(acceptedText),
-                    ],
-                    if (saveErrorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        saveErrorMessage!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: appDangerColor,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                OutlinedButton(
-                  onPressed: isSaving
-                      ? null
-                      : () {
-                          _recordAiReviewDecision(
-                            status: AuthorFeedbackStatus.rejected,
-                            historyPrompt: historyPrompt,
-                            correlationId: correlationId,
-                          );
-                          Navigator.of(dialogContext).pop();
-                        },
-                  child: const Text('拒绝变更'),
-                ),
-                FilledButton(
-                  onPressed: hasIncluded && !isSaving
-                      ? () async {
-                          setDialogState(() {
-                            isSaving = true;
-                            saveErrorMessage = null;
-                          });
-                          final draftStore = AppDraftScope.of(context);
-                          final versionStore = AppVersionScope.of(context);
-                          final navigator = Navigator.of(dialogContext);
-                          try {
-                            await draftStore.updateTextAndPersist(acceptedText);
-                            try {
-                              await versionStore.captureSnapshotAndPersist(
-                                label: continueMode ? 'AI 接受变更（续写）' : 'AI 接受变更',
-                                content: acceptedText,
-                              );
-                            } catch (_) {
-                              try {
-                                await draftStore.updateTextAndPersist(original);
-                                throw const _AiRequestException(
-                                  title: 'AI 接受失败：本地保存失败',
-                                  message: '版本保存失败，正文已回滚。请稍后重试。',
-                                );
-                              } catch (_) {
-                                throw const _AiRequestException(
-                                  title: 'AI 接受失败：本地保存失败',
-                                  message:
-                                      '版本保存失败，且正文回滚也失败。当前正文可能已部分更新，请手动确认后重试。',
-                                );
-                              }
-                            }
-                          } on _AiRequestException catch (error) {
-                            if (dialogContext.mounted) {
-                              setDialogState(() {
-                                isSaving = false;
-                                saveErrorMessage = error.message;
-                              });
-                            }
-                            return;
-                          } catch (_) {
-                            if (dialogContext.mounted) {
-                              setDialogState(() {
-                                isSaving = false;
-                                saveErrorMessage = '本地保存失败，请稍后重试。';
-                              });
-                            }
-                            return;
-                          }
-                          if (!mounted) {
-                            return;
-                          }
-                          _recordAiReviewDecision(
-                            status: AuthorFeedbackStatus.accepted,
-                            historyPrompt: historyPrompt,
-                            correlationId: correlationId,
-                          );
-                          if (clearSelectionsOnAccept) {
-                            setState(() {
-                              _aiSelections.clear();
-                            });
-                          }
-                          navigator.pop();
-                          _draftFocusNode.requestFocus();
-                        }
-                      : null,
-                  child: Text(isSaving ? '正在保存…' : '接受变更'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _generateAiSuggestion() async {
-    final original = AppDraftScope.of(context).snapshot.text;
-    final prompt = _aiPromptController.text.trim();
-    final settingsStore = AppSettingsScope.of(context);
-    if (!settingsStore.hasReadyConfiguration ||
-        settingsStore.hasPersistenceIssue) {
-      await _showMessageDialog(
-        title: '生成候选稿前需要连接模型服务',
-        message: '当前章节仍可继续编辑；需要 AI 候选稿时，请先连接可用的模型服务并处理配置异常。',
-      );
-      return;
-    }
-    final metadata = _currentAiRequestMetadata();
-    final correlationId = _eventLog.newCorrelationId('ai-generate');
-    if (_aiToolMode == AiToolMode.rewrite &&
-        _aiSelections.isNotEmpty &&
-        _hasOverlappingSelections(_aiSelections)) {
-      await _showOverlappingSelectionsDialog();
-      return;
-    }
-
-    await _logWorkbenchEvent(
-      category: AppEventLogCategory.ui,
-      action: 'ui.ai.generate.started',
-      status: AppEventLogStatus.started,
-      message: 'Started AI generate flow.',
-      correlationId: correlationId,
-      metadata: {
-        'mode': _aiToolMode.name,
-        'selectionCount': _aiSelections.length,
-        'promptLength': prompt.length,
-        'promptPreview': _previewText(
-          prompt.isEmpty
-              ? _defaultAiIntent(
-                  continueMode: _aiToolMode == AiToolMode.continueWriting,
-                )
-              : prompt,
-          160,
-        ),
-      },
-    );
-    setState(() {
-      _isGeneratingAi = true;
-    });
-    try {
-      if (_aiToolMode == AiToolMode.rewrite && _aiSelections.isNotEmpty) {
-        await _openAiReviewDialog(
-          reviewTitle: 'AI 修改确认',
-          historyPrompt: '多选区改写（${_aiSelections.length}段）',
-          blocks: await _requestSelectionReviewBlocks(
-            original,
-            _aiSelections,
-            metadata,
-            correlationId,
-          ),
-          metadata: metadata,
-          continueMode: false,
-          clearSelectionsOnAccept: true,
-          correlationId: correlationId,
-        );
-        return;
-      }
-      await _openAiReviewDialog(
-        reviewTitle: _aiToolMode == AiToolMode.rewrite ? 'AI 修改确认' : 'AI 续写确认',
-        historyPrompt: prompt.isEmpty
-            ? _defaultAiIntent(
-                continueMode: _aiToolMode == AiToolMode.continueWriting,
-              )
-            : prompt,
-        blocks: await _requestFallbackReviewBlocks(
-          original: original,
-          prompt: prompt,
-          continueMode: _aiToolMode == AiToolMode.continueWriting,
-          metadata: metadata,
-          correlationId: correlationId,
-        ),
-        metadata: metadata,
-        continueMode: _aiToolMode == AiToolMode.continueWriting,
-        clearSelectionsOnAccept: false,
-        correlationId: correlationId,
-      );
-    } on _AiRequestException catch (error) {
-      await _showMessageDialog(title: error.title, message: error.message);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isGeneratingAi = false;
-        });
-      }
-    }
-  }
-
-  void _recordAiReviewDecision({
-    required AuthorFeedbackStatus status,
-    required String historyPrompt,
-    String? correlationId,
-  }) {
-    final workspace = AppWorkspaceScope.of(context);
-    final runSnapshot = ServiceScope.of(
-      context,
-    ).resolve<StoryGenerationRunStore>().snapshot;
-    final promptText = historyPrompt.trim().isEmpty
-        ? _defaultAiIntent(continueMode: false)
-        : historyPrompt;
-    final promptPreview = _previewText(promptText, 120);
-    AuthorFeedbackScope.of(context).createFeedback(
-      chapterId: workspace.currentScene.chapterLabel,
-      sceneId: workspace.currentScene.id,
-      sceneLabel: workspace.currentScene.displayLocation,
-      note: status == AuthorFeedbackStatus.accepted
-          ? '已采纳 AI 建议：$promptPreview'
-          : '未采纳 AI 建议：$promptPreview',
-      priority: AuthorFeedbackPriority.normal,
-      status: status,
-      sourceRunId: _sourceRunId(workspace.currentProject.id, runSnapshot),
-      sourceRunLabel: _sourceRunLabel(runSnapshot),
-      sourceReviewId: correlationId,
-    );
-  }
-
-  Future<void> _acceptAiCandidateDraft(String candidateText) async {
-    final trimmedCandidate = candidateText.trim();
-    if (trimmedCandidate.isEmpty) {
-      return;
-    }
-    final draftStore = AppDraftScope.of(context);
-    final versionStore = AppVersionScope.of(context);
-    final original = draftStore.snapshot.text;
-    try {
-      await versionStore.captureSnapshotAndPersist(
-        label: '采纳 AI 候选稿前',
-        content: original,
-      );
-      await draftStore.updateTextAndPersist(trimmedCandidate);
-      await versionStore.captureSnapshotAndPersist(
-        label: '采纳 AI 候选稿',
-        content: trimmedCandidate,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _dismissedCandidateText = trimmedCandidate;
-      });
-      await _showMessageDialog(
-        title: '已采纳候选稿',
-        message: '正文已更新，并已保存采纳前后的两个版本。',
-      );
-    } catch (_) {
-      await _showMessageDialog(
-        title: '采纳失败',
-        message: '候选稿没有写入正文。请检查本地保存状态后重试。',
-      );
-    }
-  }
-
-  void _reviseAiCandidateDraft(String candidateText) {
-    _aiPromptController.text = '基于当前 AI 候选稿继续修改：';
-    _aiPromptController.selection = TextSelection.collapsed(
-      offset: _aiPromptController.text.length,
-    );
-    setState(() {
-      _activeToolPanel = WorkbenchToolPanel.ai;
-      _aiToolMode = AiToolMode.rewrite;
-    });
-  }
-
-  void _mapReviewSnapshotToTasks(StoryGenerationRunSnapshot snapshot) {
-    final reviewMessages = _reviewIssueMessages(snapshot);
-    if (reviewMessages.isEmpty) {
-      return;
-    }
-    final workspace = AppWorkspaceScope.of(context);
-    final sourceRunId = _sourceRunId(workspace.currentProject.id, snapshot);
-    final tasks = const ReviewTaskMapper().fromReviewMessages(
-      messages: [
-        for (final message in reviewMessages)
-          ReviewMessageInput(
-            title: message.title,
-            body: message.body,
-            reference: ReviewTaskReference(
-              projectId: workspace.currentProject.id,
-              chapterId: workspace.currentScene.chapterLabel,
-              chapterTitle: workspace.currentScene.chapterLabel,
-              sceneId: workspace.currentScene.id,
-              sceneTitle: workspace.currentScene.title,
-            ),
-            source: ReviewTaskSource(
-              kind: 'story_generation_run',
-              runId: sourceRunId ?? snapshot.sceneId,
-              passName: message.title,
-              metadata: {
-                'runStatus': snapshot.status.name,
-                'messageKind': message.kind.name,
-                'sceneLabel': snapshot.sceneLabel,
-              },
-            ),
-          ),
-      ],
-      sourceKind: 'story_generation_run',
-    );
-    if (tasks.isEmpty) {
-      return;
-    }
-    ReviewTaskScope.of(context).upsertAll(tasks);
-    setState(() {
-      _activeToolPanel = WorkbenchToolPanel.reviewTasks;
-    });
-  }
-
-  Future<void> _replayAiHistory(AiHistoryEntry entry) async {
-    _aiPromptController.text = entry.prompt;
-    _aiPromptController.selection = TextSelection.collapsed(
-      offset: entry.prompt.length,
-    );
-    final original = AppDraftScope.of(context).snapshot.text;
-    final continueMode = entry.mode == '续写';
-    final metadata = _currentAiRequestMetadata();
-    final correlationId = _eventLog.newCorrelationId('ai-replay');
-    await _logWorkbenchEvent(
-      category: AppEventLogCategory.ui,
-      action: 'ui.ai.replay.started',
-      status: AppEventLogStatus.started,
-      message: 'Started AI history replay.',
-      correlationId: correlationId,
-      metadata: {
-        'mode': entry.mode,
-        'promptLength': entry.prompt.length,
-        'promptPreview': _previewText(entry.prompt, 160),
-      },
-    );
-    setState(() {
-      _isGeneratingAi = true;
-    });
-    try {
-      await _openAiReviewDialog(
-        reviewTitle: continueMode ? 'AI 续写确认' : 'AI 修改确认',
-        historyPrompt: entry.prompt,
-        blocks: await _requestFallbackReviewBlocks(
-          original: original,
-          prompt: entry.prompt,
-          continueMode: continueMode,
-          metadata: metadata,
-          correlationId: correlationId,
-        ),
-        metadata: metadata,
-        continueMode: continueMode,
-        clearSelectionsOnAccept: false,
-        correlationId: correlationId,
-      );
-    } on _AiRequestException catch (error) {
-      await _showMessageDialog(title: error.title, message: error.message);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isGeneratingAi = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final workspace = AppWorkspaceScope.of(context);
-    final draft = AppDraftScope.of(context).snapshot;
-    final draftStore = AppDraftScope.of(context);
+    final workspace = ref.watch(appWorkspaceStoreProvider);
+    final draft = ref.watch(appDraftStoreProvider).snapshot;
+    final draftStore = ref.watch(appDraftStoreProvider);
     if (_activeDraftScopeId != draftStore.activeProjectId) {
       _activeDraftScopeId = draftStore.activeProjectId;
-      _aiSelections.clear();
-      _dismissedCandidateText = null;
+      _orb.clearSelections();
       _lastDraftText = draft.text;
       _lastEditorSelection = TextSelection.collapsed(offset: draft.text.length);
       if (_pendingReturnAnchor != null &&
@@ -1588,7 +295,7 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
       if (_draftController != null &&
           _pendingReturnAnchor == null &&
           _draftController!.text == draft.text) {
-        _draftController!.selection = _clampSelection(
+        _draftController!.selection = clampWorkbenchEditorSelection(
           _lastEditorSelection,
           _draftController!.text.length,
         );
@@ -1599,87 +306,43 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     if (_draftController != null && _draftController!.text != draft.text) {
       _draftController!.value = TextEditingValue(
         text: draft.text,
-        selection: _clampSelection(selectionToRestore, draft.text.length),
+        selection: clampWorkbenchEditorSelection(
+          selectionToRestore,
+          draft.text.length,
+        ),
       );
       _lastDraftText = draft.text;
     }
     _maybeApplyPendingReturnAnchor();
-    final currentSelectionPreview = _selectionPreview(
+    final currentSelectionPreview = WorkbenchAiRevisionHelpers.selectionPreview(
       draft.text,
       _normalizedEditorSelection(draft.text),
     );
-    final simulation = AppSimulationScope.of(context).snapshot;
-    final storyRunStore = ServiceScope.of(
-      context,
-    ).resolve<StoryGenerationRunStore>();
-    final authorFeedbackStore = AuthorFeedbackScope.of(context);
-    final reviewTaskStore = ReviewTaskScope.of(context);
-    final effectiveSimulationStatus =
-        storyRunStore.snapshot.status == StoryGenerationRunStatus.cancelled
-        ? SimulationStatus.none
-        : _effectiveSimulationStatus(simulation.status);
-    final sceneContext = AppSceneContextScope.of(context).snapshot;
-    final settingsStore = AppSettingsScope.of(context);
+    final authorFeedbackStore = ref.watch(authorFeedbackStoreProvider);
+    final reviewTaskStore = ref.watch(reviewTaskStoreProvider);
+    final storyRunStore = ref.watch(storyGenerationRunStoreProvider);
+    final storyRunSnapshot = storyRunStore.snapshot;
+    final settingsStore = ref.watch(appSettingsStoreProvider);
     final settings = settingsStore.snapshot;
     final settingsFeedback = settingsStore.feedback;
-    final settingsHasPersistenceIssue = settingsStore.hasPersistenceIssue;
     final diagnosticReport = settingsStore.diagnosticReport;
-    final canGenerateAi =
-        settingsStore.hasAnyReadyConfiguration && !settingsHasPersistenceIssue;
-    final currentSceneId = workspace.currentScene.id;
-    final hasSyncedCharacterContext = _hasUsableSceneContext(
-      sceneContext.characterSummary,
-      '角色摘要',
-    );
-    final hasSyncedWorldContext = _hasUsableSceneContext(
-      sceneContext.worldSummary,
-      '世界观摘要',
-    );
-    final linkedCharacters = [
-      for (final character in workspace.characters)
-        if (_resourceBelongsToCurrentScene(
-          linkedSceneIds: character.linkedSceneIds,
-          currentSceneId: currentSceneId,
-          resourceName: character.name,
-          syncedSummary: sceneContext.characterSummary,
-        ))
-          character,
-    ];
-    final linkedWorldNodes = [
-      for (final node in workspace.worldNodes)
-        if (_resourceBelongsToCurrentScene(
-          linkedSceneIds: node.linkedSceneIds,
-          currentSceneId: currentSceneId,
-          resourceName: node.title,
-          syncedSummary: sceneContext.worldSummary,
-        ))
-          node,
-    ];
-    final hasSceneCharacterBinding =
-        linkedCharacters.isNotEmpty ||
-        (workspace.characters.isNotEmpty && hasSyncedCharacterContext);
-    final hasSceneWorldReference =
-        linkedWorldNodes.isNotEmpty ||
-        (workspace.worldNodes.isNotEmpty && hasSyncedWorldContext);
-    final canRunSimulation = hasSceneCharacterBinding && hasSceneWorldReference;
-    final guideStageIndex = _creativeGuideStageIndex(
-      hasCharacters: workspace.characters.isNotEmpty,
-      hasWorldNodes: workspace.worldNodes.isNotEmpty,
-      hasSceneSummary: workspace.currentScene.summary.trim().isNotEmpty,
-      hasDraft: draft.text.trim().isNotEmpty,
-      hasSceneCharacterBinding: hasSceneCharacterBinding,
-      hasSceneWorldReference: hasSceneWorldReference,
-      hasRun: storyRunStore.snapshot.hasRun,
-    );
+    final guideStageIndex = _orb.creativeGuideStageIndex;
+    final hasSceneCharacterBinding = _orb.sceneCharacterBinding;
+    final hasSceneWorldReference = _orb.sceneWorldReference;
     final statusBanner = _buildStatusBanner(
       theme,
-      simulation,
-      showContextSynced: _showContextSyncedBanner,
-      canGenerateAi: canGenerateAi,
+      ref.watch(appSimulationStoreProvider).snapshot,
+      showContextSynced: _orb.showContextSyncedBanner,
+      canGenerateAi: _orb.canGenerateAi,
       hasSceneCharacterBinding: hasSceneCharacterBinding,
       hasSceneWorldReference: hasSceneWorldReference,
       storyRunCancelled:
-          storyRunStore.snapshot.status == StoryGenerationRunStatus.cancelled,
+          storyRunSnapshot.status == StoryGenerationRunStatus.cancelled,
+    );
+    final runRecoveryPrompt = _buildRunRecoveryPrompt(
+      theme,
+      storyRunStore,
+      storyRunSnapshot,
     );
 
     return PopScope(
@@ -1711,841 +374,277 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
         }
       },
       child: DesktopShellFrame(
-        header: DesktopBreadcrumbBar(
-          barKey: WorkbenchShellPage.breadcrumbKey,
-          breadcrumb: _authorBreadcrumb(workspace),
-          trailingText: '自动保存 · Markdown',
+        header: DesktopHeaderBar(
+          tabs: const ['作品资料', '大纲', '正文'],
+          activeTabIndex: 2,
+          onTabChanged: (i) {
+            if (i == 2) return;
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          },
+          actions: [_ModePillButton(onPressed: _openReadingMode)],
         ),
         body: LayoutBuilder(
           builder: (context, layoutConstraints) {
-            final spacing = panelSpacingFor(layoutConstraints.maxWidth);
-            final compact =
-                layoutConstraints.maxWidth <
-                DesktopLayoutTokens.compactPageBreakpoint;
-            final showToolRail =
-                layoutConstraints.maxWidth >=
-                DesktopLayoutTokens.narrowBreakpoint;
-            final toolWindow = _activeToolPanel != null
-                ? Container(
-                    key: WorkbenchShellPage.toolWindowKey,
-                    width: DesktopLayoutTokens.workbenchToolWindowWidth,
-                    padding: const EdgeInsets.all(16),
-                    decoration: appPanelDecoration(context),
-                    child: _ToolWindowPanel(
-                      activePanel: _activeToolPanel!,
-                      authorFeedbackStore: authorFeedbackStore,
-                      reviewTaskStore: reviewTaskStore,
-                      scenes: workspace.scenes,
-                      currentSceneId:
-                          workspace.currentProjectOrNull?.sceneId ?? '',
-                      currentChapterId:
-                          workspace.currentSceneOrNull?.chapterLabel ?? '',
-                      currentSceneLabel:
-                          workspace.currentSceneOrNull?.displayLocation ?? '',
-                      sourceRunId: _sourceRunId(
-                        workspace.currentProjectOrNull?.id ?? '',
-                        storyRunStore.snapshot,
+            final toolWindow = _orb.activeToolPanel != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusXLarge,
+                    ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: _orb.activeToolPanel == WorkbenchToolPanel.ai
+                            ? 18
+                            : 20,
+                        sigmaY: _orb.activeToolPanel == WorkbenchToolPanel.ai
+                            ? 18
+                            : 20,
                       ),
-                      sourceRunLabel: _sourceRunLabel(storyRunStore.snapshot),
-                      sceneContext: sceneContext,
-                      uiState: widget.uiState,
-                      settings: settings,
-                      settingsFeedback: settingsFeedback,
-                      settingsHasPersistenceIssue: settingsHasPersistenceIssue,
-                      canGenerateAi: canGenerateAi,
-                      isGeneratingAi: _isGeneratingAi,
-                      diagnosticReport: diagnosticReport,
-                      aiToolMode: _aiToolMode,
-                      historyEntries: AppAiHistoryScope.of(context).entries,
-                      aiPromptController: _aiPromptController,
-                      onRetrySecureStore: settingsStore.retrySecureStoreAccess,
-                      draftText: draft.text,
-                      currentSelectionPreview: currentSelectionPreview,
-                      selectionDrafts: List<_AiSelectionDraft>.unmodifiable(
-                        _aiSelections,
-                      ),
-                      onSelectAiMode: (mode) {
-                        setState(() {
-                          _aiToolMode = mode;
-                        });
-                      },
-                      onGenerateAiSuggestion: _generateAiSuggestion,
-                      onReplayAiHistory: _replayAiHistory,
-                      onDeleteAiHistoryEntry: (entry) {
-                        AppAiHistoryScope.of(
-                          context,
-                        ).removeEntry(entry.sequence);
-                      },
-                      onClearAiHistory: () {
-                        AppAiHistoryScope.of(context).clear();
-                      },
-                      onSyncContext: () {
-                        AppSceneContextScope.of(context).syncContext();
-                        setState(() {
-                          _showContextSyncedBanner = true;
-                        });
-                      },
-                      onSelectScene: (scene) {
-                        workspace.updateCurrentScene(
-                          sceneId: scene.id,
-                          recentLocation: scene.displayLocation,
-                        );
-                      },
-                      onCreateScene: () => _showSceneDialog(
-                        context,
-                        title: '新建章节',
-                        initialValue: '',
-                        onConfirm: workspace.createScene,
-                      ),
-                      onRenameScene: () => _showSceneDialog(
-                        context,
-                        title: '重命名章节',
-                        initialValue: workspace.currentSceneOrNull?.title ?? '',
-                        onConfirm: workspace.renameCurrentScene,
-                      ),
-                      onDeleteScene: () => _confirmDeleteScene(
-                        context,
-                        workspace.deleteCurrentScene,
-                      ),
-                      canDeleteScene: workspace.canDeleteCurrentScene,
-                      onOpenSettings: () =>
-                          _openSettingsAndRestoreAnchor(closeToolPanel: true),
-                      onShowAiMetadata: () {
-                        final metadata = _currentAiRequestMetadata();
-                        showAppSheet(
-                          context: context,
-                          title: 'AI 请求配置',
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('请求配置：${metadata.providerSummary}'),
-                                const SizedBox(height: 8),
-                                Text('接口：${metadata.endpointLabel}'),
-                                const SizedBox(height: 8),
-                                Text('风格约束：${metadata.styleSummary}'),
-                                const SizedBox(height: 8),
-                                Text('章节上下文：${metadata.sceneSummary}'),
-                                const SizedBox(height: 8),
-                                Text(metadata.characterSummary),
-                                const SizedBox(height: 8),
-                                Text(metadata.worldSummary),
-                                const SizedBox(height: 8),
-                                Text('模拟摘要：${metadata.simulationSummary}'),
-                              ],
-                            ),
+                      child: Container(
+                        key: WorkbenchShellPage.toolWindowKey,
+                        width: DesktopLayoutTokens.workbenchToolWindowWidth,
+                        padding: const EdgeInsets.all(20),
+                        decoration:
+                            _orb.activeToolPanel == WorkbenchToolPanel.ai
+                            ? darkAiPanelDecoration(context)
+                            : glassPanelDecoration(context),
+                        child: ToolWindowPanel(
+                          activePanel: _orb.activeToolPanel!,
+                          authorFeedbackStore: authorFeedbackStore,
+                          reviewTaskStore: reviewTaskStore,
+                          scenes: workspace.scenes,
+                          currentSceneId:
+                              workspace.currentProjectOrNull?.sceneId ?? '',
+                          currentChapterId:
+                              workspace.currentSceneOrNull?.chapterLabel ?? '',
+                          currentSceneLabel:
+                              workspace.currentSceneOrNull?.displayLocation ??
+                              '',
+                          sourceRunId: _orb.sourceRunId(
+                            workspace.currentProjectOrNull?.id ?? '',
                           ),
-                        );
-                      },
-                      onAddCurrentSelection: _addCurrentSelectionFromEditor,
-                      onEditSelectionPrompt: _editSelectionPrompt,
-                      onRemoveSelection: _removeSelection,
+                          sourceRunLabel: _orb.sourceRunLabel(),
+                          sceneContext: ref
+                              .watch(appSceneContextStoreProvider)
+                              .snapshot,
+                          uiState: widget.uiState,
+                          settings: settings,
+                          settingsFeedback: settingsFeedback,
+                          settingsHasPersistenceIssue:
+                              settingsStore.hasPersistenceIssue,
+                          canGenerateAi: _orb.canGenerateAi,
+                          isGeneratingAi: _orb.isGeneratingAi,
+                          diagnosticReport: diagnosticReport,
+                          aiToolMode: _orb.aiToolMode,
+                          historyEntries: ref
+                              .watch(appAiHistoryStoreProvider)
+                              .entries,
+                          aiPromptController: _aiPromptController,
+                          onRetrySecureStore:
+                              settingsStore.retrySecureStoreAccess,
+                          draftText: draft.text,
+                          currentSelectionPreview: currentSelectionPreview,
+                          selectionDrafts:
+                              List<WorkbenchAiSelectionDraft>.unmodifiable(
+                                _orb.aiSelections,
+                              ),
+                          onSelectAiMode: (mode) {
+                            setState(() {
+                              _orb.selectAiMode(mode);
+                            });
+                          },
+                          onGenerateAiSuggestion: _generateAiSuggestion,
+                          onReplayAiHistory: _replayAiHistory,
+                          onDeleteAiHistoryEntry: (entry) {
+                            ref
+                                .read(appAiHistoryStoreProvider)
+                                .removeEntry(entry.sequence);
+                          },
+                          onClearAiHistory: () {
+                            ref.read(appAiHistoryStoreProvider).clear();
+                          },
+                          onSyncContext: () {
+                            _orb.syncContext();
+                          },
+                          onSelectScene: (scene) {
+                            workspace.updateCurrentScene(
+                              sceneId: scene.id,
+                              recentLocation: scene.displayLocation,
+                            );
+                          },
+                          onCreateScene: () => _showSceneDialog(
+                            context,
+                            title: '新建章节',
+                            initialValue: '',
+                            onConfirm: workspace.createScene,
+                          ),
+                          onRenameScene: () => _showSceneDialog(
+                            context,
+                            title: '重命名章节',
+                            initialValue:
+                                workspace.currentSceneOrNull?.title ?? '',
+                            onConfirm: workspace.renameCurrentScene,
+                          ),
+                          onDeleteScene: () => _confirmDeleteScene(
+                            context,
+                            workspace.deleteCurrentScene,
+                          ),
+                          canDeleteScene: workspace.canDeleteCurrentScene,
+                          onOpenSettings: () => _openSettingsAndRestoreAnchor(
+                            closeToolPanel: true,
+                          ),
+                          onShowAiMetadata: () {
+                            final metadata = _orb.buildRequestMetadata();
+                            showAppSheet(
+                              context: context,
+                              title: 'AI 请求配置',
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('请求配置：${metadata.providerSummary}'),
+                                    const SizedBox(height: 8),
+                                    Text('接口：${metadata.endpointLabel}'),
+                                    const SizedBox(height: 8),
+                                    Text('风格约束：${metadata.styleSummary}'),
+                                    const SizedBox(height: 8),
+                                    Text('章节上下文：${metadata.sceneSummary}'),
+                                    const SizedBox(height: 8),
+                                    Text(metadata.characterSummary),
+                                    const SizedBox(height: 8),
+                                    Text(metadata.worldSummary),
+                                    const SizedBox(height: 8),
+                                    Text('模拟摘要：${metadata.simulationSummary}'),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          onAddCurrentSelection: _addCurrentSelectionFromEditor,
+                          onEditSelectionPrompt: _editSelectionPrompt,
+                          onRemoveSelection: _removeSelection,
+                          statusBanner: statusBanner,
+                          creationGuide: _CreationGuideCard(
+                            currentStageIndex: guideStageIndex,
+                            hasCharacters: workspace.characters.isNotEmpty,
+                            hasWorldNodes: workspace.worldNodes.isNotEmpty,
+                            hasSceneSummary: workspace.currentScene.summary
+                                .trim()
+                                .isNotEmpty,
+                            hasDraft: draft.text.trim().isNotEmpty,
+                            hasSceneCharacterBinding: hasSceneCharacterBinding,
+                            hasSceneWorldReference: hasSceneWorldReference,
+                            hasRun: storyRunSnapshot.hasRun,
+                            onOpenCharacters: () {
+                              final anchor = _captureReturnAnchor();
+                              AppNavigator.push(context, AppRoutes.characters);
+                              _restoreReturnAnchor(anchor);
+                            },
+                            onOpenWorldbuilding: () {
+                              final anchor = _captureReturnAnchor();
+                              AppNavigator.push(
+                                context,
+                                AppRoutes.worldbuilding,
+                              );
+                              _restoreReturnAnchor(anchor);
+                            },
+                            onOpenOutline: () {
+                              AppNavigator.push(
+                                context,
+                                AppRoutes.worldbuilding,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   )
                 : null;
-            final showToolRailInCompact =
-                showToolRail &&
-                !(compact && toolWindow != null && _isDrawerOpen);
 
-            final editorPane = Expanded(
-              child: Container(
-                key: WorkbenchShellPage.editorPaneKey,
-                padding: EdgeInsets.all(compact ? 8 : 16),
-                decoration: appPanelDecoration(context),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: compact ? 180 : 210,
-                      ),
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.zero,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (statusBanner != null) ...[
-                              statusBanner,
-                              const SizedBox(height: 12),
-                            ],
-                            _CreationGuideCard(
-                              currentStageIndex: guideStageIndex,
-                              hasCharacters: workspace.characters.isNotEmpty,
-                              hasWorldNodes: workspace.worldNodes.isNotEmpty,
-                              hasSceneSummary: workspace.currentScene.summary
-                                  .trim()
-                                  .isNotEmpty,
-                              hasDraft: draft.text.trim().isNotEmpty,
-                              hasSceneCharacterBinding:
-                                  hasSceneCharacterBinding,
-                              hasSceneWorldReference: hasSceneWorldReference,
-                              hasRun: storyRunStore.snapshot.hasRun,
-                              onOpenCharacters: () {
-                                final anchor = _captureReturnAnchor();
-                                AppNavigator.push(
-                                  context,
-                                  AppRoutes.characters,
-                                );
-                                _restoreReturnAnchor(anchor);
-                              },
-                              onOpenWorldbuilding: () {
-                                final anchor = _captureReturnAnchor();
-                                AppNavigator.push(
-                                  context,
-                                  AppRoutes.worldbuilding,
-                                );
-                                _restoreReturnAnchor(anchor);
-                              },
-                              onOpenOutline: () {
-                                AppNavigator.push(
-                                  context,
-                                  AppRoutes.worldbuilding,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            if (_isInteractiveDefault) ...[
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final secondaryActions = Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      OutlinedButton(
-                                        key: WorkbenchShellPage
-                                            .saveVersionButtonKey,
-                                        onPressed: () {
-                                          AppVersionScope.of(
-                                            context,
-                                          ).captureSnapshot(
-                                            label: '手动保存',
-                                            content: draft.text,
-                                          );
-                                        },
-                                        child: const Text('保存版本'),
-                                      ),
-                                      TextButton(
-                                        key: WorkbenchShellPage
-                                            .openVersionsButtonKey,
-                                        onPressed: () {
-                                          AppNavigator.push(
-                                            context,
-                                            AppRoutes.versions,
-                                          );
-                                        },
-                                        child: const Text('查看版本'),
-                                      ),
-                                    ],
-                                  );
-                                  final runPanel = _StoryGenerationRunPanel(
-                                    store: storyRunStore,
-                                    canRun: canRunSimulation,
-                                    dismissedCandidateText:
-                                        _dismissedCandidateText,
-                                    onRun: () async {
-                                      final confirmed =
-                                          await _confirmAiSceneRun(
-                                            providerSummary: settingsStore
-                                                .generationProviderSummary(),
-                                            characterNames:
-                                                _resourceNamesForConfirmation(
-                                                  linked: [
-                                                    for (final character
-                                                        in linkedCharacters)
-                                                      character.name,
-                                                  ],
-                                                  fallback: [
-                                                    for (final character
-                                                        in workspace.characters)
-                                                      character.name,
-                                                  ],
-                                                ),
-                                            worldNames:
-                                                _resourceNamesForConfirmation(
-                                                  linked: [
-                                                    for (final node
-                                                        in linkedWorldNodes)
-                                                      node.title,
-                                                  ],
-                                                  fallback: [
-                                                    for (final node
-                                                        in workspace.worldNodes)
-                                                      node.title,
-                                                  ],
-                                                ),
-                                            sceneLabel: workspace
-                                                .currentScene
-                                                .displayLocation,
-                                            sceneSummary:
-                                                workspace.currentScene.summary,
-                                            draftWordCount: draft.text
-                                                .trim()
-                                                .length,
-                                          );
-                                      if (!confirmed || !context.mounted) {
-                                        return;
-                                      }
-                                      setState(() {
-                                        _dismissedCandidateText = null;
-                                      });
-                                      AppSimulationScope.of(
-                                        context,
-                                      ).startSuccessfulRun(eventLog: _eventLog);
-                                      storyRunStore.runCurrentScene();
-                                    },
-                                    onForceFailure: () {
-                                      AppSimulationScope.of(
-                                        context,
-                                      ).startFailureRun(eventLog: _eventLog);
-                                      storyRunStore.runCurrentScene(
-                                        forceFailure: true,
-                                      );
-                                    },
-                                    onCancel: () {
-                                      storyRunStore.cancelCurrentRun();
-                                      AppSimulationScope.of(
-                                        context,
-                                      ).reset(eventLog: _eventLog);
-                                    },
-                                    onAcceptCandidate: _acceptAiCandidateDraft,
-                                    onReviseCandidate: _reviseAiCandidateDraft,
-                                    onDismissCandidate: (candidateText) {
-                                      setState(() {
-                                        _dismissedCandidateText = candidateText;
-                                      });
-                                    },
-                                    onMapReviewTasks: _mapReviewSnapshotToTasks,
-                                  );
-
-                                  return Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: appPanelDecoration(
-                                      context,
-                                      color: palette.surface,
-                                    ),
-                                    child: constraints.maxWidth < 420
-                                        ? Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              runPanel,
-                                              const SizedBox(height: 8),
-                                              secondaryActions,
-                                            ],
-                                          )
-                                        : Row(
-                                            children: [
-                                              Expanded(child: runPanel),
-                                              const SizedBox(width: 12),
-                                              Flexible(child: secondaryActions),
-                                            ],
-                                          ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: palette.elevated,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: palette.border),
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, editorConstraints) {
-                            final showEditorHeader =
-                                editorConstraints.maxHeight >= 120;
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (showEditorHeader)
-                                  Container(
-                                    key: WorkbenchShellPage
-                                        .editorSurfaceHeaderKey,
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.fromLTRB(
-                                      16,
-                                      14,
-                                      16,
-                                      12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: palette.border,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _authorBreadcrumb(workspace),
-                                          style: theme.textTheme.titleMedium,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '自动保存 · Markdown',
-                                          key: WorkbenchShellPage
-                                              .editorSurfaceMetaKey,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: palette.tertiaryText,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                Expanded(
-                                  child: TextField(
-                                    key: WorkbenchShellPage.editorTextFieldKey,
-                                    controller: _draftController,
-                                    focusNode: _draftFocusNode,
-                                    scrollController: _editorScrollController,
-                                    maxLines: null,
-                                    expands: true,
-                                    style: theme.textTheme.bodyMedium,
-                                    decoration: InputDecoration(
-                                      hintText: '开始书写当前章节正文…',
-                                      hintStyle: TextStyle(
-                                        color: palette.tertiaryText,
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding: const EdgeInsets.all(16),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            final editorPane = WorkbenchEditorPane(
+              hasScenes: workspace.scenes.isNotEmpty,
+              sceneTitle: workspace.currentSceneOrNull?.title ?? '',
+              draftText: draft.text,
+              draftController: _draftController,
+              focusNode: _draftFocusNode,
+              scrollController: _editorScrollController,
+              isToolPanelOpen: _orb.activeToolPanel != null,
+              onToggleToolPanel: () => _toggleToolPanel(WorkbenchToolPanel.ai),
+              onCreateFirstChapter: () => _showSceneDialog(
+                context,
+                title: '新建章节',
+                initialValue: '',
+                onConfirm: ref.read(appWorkspaceStoreProvider).createScene,
               ),
             );
 
-            final toolRail = Container(
-              key: WorkbenchShellPage.toolRailKey,
-              width: DesktopLayoutTokens.workbenchRailWidth,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: palette.subtle,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-                border: Border.all(color: palette.border),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.resourcesToolButtonKey,
-                      icon: Icons.article_outlined,
-                      label: '资料',
-                      isSelected:
-                          _activeToolPanel == WorkbenchToolPanel.resources,
-                      onTap: () =>
-                          _toggleToolPanel(WorkbenchToolPanel.resources),
+            final chapterListPanel =
+                _orb.isChapterListOpen && workspace.scenes.isNotEmpty
+                ? _ChapterListPanel(
+                    scenes: workspace.scenes,
+                    currentSceneId:
+                        workspace.currentProjectOrNull?.sceneId ?? '',
+                    onSelectScene: (scene) {
+                      workspace.updateCurrentScene(
+                        sceneId: scene.id,
+                        recentLocation: scene.displayLocation,
+                      );
+                    },
+                    onCreateScene: () => _showSceneDialog(
+                      context,
+                      title: '新建章节',
+                      initialValue: '',
+                      onConfirm: workspace.createScene,
                     ),
-                    const SizedBox(height: 12),
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.aiToolButtonKey,
-                      icon: Icons.auto_awesome_outlined,
-                      label: 'AI',
-                      isSelected: _activeToolPanel == WorkbenchToolPanel.ai,
-                      onTap: () => _toggleToolPanel(WorkbenchToolPanel.ai),
-                    ),
-                    const SizedBox(height: 12),
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.feedbackToolButtonKey,
-                      icon: Icons.rate_review_outlined,
-                      label: '反馈',
-                      isSelected:
-                          _activeToolPanel == WorkbenchToolPanel.feedback,
-                      onTap: () =>
-                          _toggleToolPanel(WorkbenchToolPanel.feedback),
-                    ),
-                    const SizedBox(height: 12),
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.reviewTasksToolButtonKey,
-                      icon: Icons.task_alt_outlined,
-                      label: '任务',
-                      isSelected:
-                          _activeToolPanel == WorkbenchToolPanel.reviewTasks,
-                      onTap: () =>
-                          _toggleToolPanel(WorkbenchToolPanel.reviewTasks),
-                    ),
-                    const SizedBox(height: 12),
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.settingsToolButtonKey,
-                      icon: Icons.settings_outlined,
-                      label: '设置',
-                      isSelected:
-                          _activeToolPanel == WorkbenchToolPanel.settings,
-                      onTap: () =>
-                          _toggleToolPanel(WorkbenchToolPanel.settings),
-                    ),
-                    const SizedBox(height: 12),
-                    _RailButton(
-                      buttonKey: WorkbenchShellPage.readingToolButtonKey,
-                      icon: Icons.chrome_reader_mode_outlined,
-                      label: '阅读',
-                      onTap: _openReadingMode,
-                    ),
-                  ],
-                ),
-              ),
+                    onCollapse: () {
+                      setState(() {
+                        _orb.toggleChapterList();
+                      });
+                    },
+                  )
+                : null;
+
+            const panelDivider = VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: Color(0x5CD6DDD0),
             );
 
-            if (compact) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DesktopMenuDrawerRegion(
-                    handleKey: WorkbenchShellPage.menuDrawerHandleKey,
-                    drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
-                    title: '导航',
-                    isOpen: _isDrawerOpen,
-                    onHandleTap: _isInteractiveDefault
-                        ? () {
-                            setState(() {
-                              _isDrawerOpen = !_isDrawerOpen;
-                            });
-                          }
-                        : null,
-                    items: _menuItems(context),
-                  ),
-                  SizedBox(width: spacing),
-                  if (toolWindow != null) ...[
-                    SizedBox(
-                      width: DesktopLayoutTokens.workbenchToolWindowWidth,
-                      child: toolWindow,
-                    ),
-                    SizedBox(width: spacing),
-                  ],
-                  editorPane,
-                  if (showToolRailInCompact) ...[
-                    SizedBox(width: spacing),
-                    toolRail,
-                  ],
-                ],
-              );
-            }
-
-            return Row(
+            final workbenchBody = Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                DesktopMenuDrawerRegion(
-                  handleKey: WorkbenchShellPage.menuDrawerHandleKey,
-                  drawerKey: WorkbenchShellPage.menuDrawerPanelKey,
-                  title: '导航',
-                  isOpen: _isDrawerOpen,
-                  onHandleTap: _isInteractiveDefault
-                      ? () {
-                          setState(() {
-                            _isDrawerOpen = !_isDrawerOpen;
-                          });
-                        }
-                      : null,
-                  items: _menuItems(context),
-                ),
-                SizedBox(width: spacing),
-                editorPane,
-                if (toolWindow != null) ...[
-                  SizedBox(width: spacing),
-                  toolWindow,
+                if (chapterListPanel != null) ...[
+                  chapterListPanel,
+                  panelDivider,
                 ],
-                SizedBox(width: spacing),
-                if (showToolRail) toolRail,
+                editorPane,
+                if (toolWindow != null) ...[panelDivider, toolWindow],
+              ],
+            );
+            if (runRecoveryPrompt == null) {
+              return workbenchBody;
+            }
+            return Stack(
+              children: [
+                workbenchBody,
+                Positioned(
+                  top: 12,
+                  left: 24,
+                  right: toolWindow == null
+                      ? 24
+                      : DesktopLayoutTokens.workbenchToolWindowWidth + 48,
+                  child: runRecoveryPrompt,
+                ),
               ],
             );
           },
-        ),
-        statusBar: DesktopStatusStrip(
-          stripKey: WorkbenchShellPage.statusBarKey,
-          leftText: _statusLabel(effectiveSimulationStatus),
-          rightText: _statusMetaLabel(draft.text),
         ),
       ),
     );
   }
 
   void _toggleToolPanel(WorkbenchToolPanel panel) {
-    setState(() {
-      if (_activeToolPanel == panel) {
-        _activeToolPanel = null;
-      } else {
-        _activeToolPanel = panel;
-      }
-    });
-  }
-
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    void closeDrawer() {
-      setState(() {
-        _isDrawerOpen = false;
-      });
-    }
-
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.workbench,
-      onShelf: () {
-        closeDrawer();
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
-      onWorkbench: closeDrawer,
-      onWorkSettings: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.workSettingsHub);
-      },
-      onRevision: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.revisionHub);
-      },
-      onReading: () {
-        closeDrawer();
-        AppNavigator.push(context, AppRoutes.scenes);
-      },
-      onSettings: _openSettingsAndRestoreAnchor,
-    );
-  }
-
-  String _statusLabel(SimulationStatus status) {
-    switch (status) {
-      case SimulationStatus.none:
-        return '还没有 AI 试写记录';
-      case SimulationStatus.running:
-        return 'AI 正在写本章';
-      case SimulationStatus.completed:
-        return 'AI 试写完成';
-      case SimulationStatus.failed:
-        return 'AI 试写失败';
-    }
-  }
-
-  String _statusMetaLabel(String draftText) {
-    final panelLabel = switch (_activeToolPanel) {
-      WorkbenchToolPanel.resources => '章节资料',
-      WorkbenchToolPanel.ai => 'AI 工具',
-      WorkbenchToolPanel.feedback => '作者反馈',
-      WorkbenchToolPanel.reviewTasks => '改稿任务',
-      WorkbenchToolPanel.settings => '设置快捷面板',
-      null => '写作模式',
-    };
-    return '$panelLabel · 阅读模式可切换 · ${_formatDraftUnitCount(draftText)} 字符';
-  }
-
-  String _formatDraftUnitCount(String draftText) {
-    final compact = _removeWhitespace(draftText);
-    final countText = compact.length.toString();
-    final buffer = StringBuffer();
-    for (var index = 0; index < countText.length; index += 1) {
-      final remaining = countText.length - index;
-      buffer.write(countText[index]);
-      if (remaining > 1 && remaining % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-    return buffer.toString();
-  }
-
-  String? _sourceRunId(String projectId, StoryGenerationRunSnapshot snapshot) {
-    if (!snapshot.hasRun) {
-      return null;
-    }
-    return '$projectId::${snapshot.sceneId}::${snapshot.status.name}';
-  }
-
-  String? _sourceRunLabel(StoryGenerationRunSnapshot snapshot) {
-    if (!snapshot.hasRun) {
-      return null;
-    }
-    final stage = snapshot.stageSummary.trim();
-    if (stage.isEmpty) {
-      return snapshot.headline;
-    }
-    return '${snapshot.headline} · $stage';
-  }
-
-  SimulationStatus _effectiveSimulationStatus(SimulationStatus status) {
-    if (status != SimulationStatus.none) {
-      return status;
-    }
-    return switch (widget.uiState) {
-      WorkbenchUiState.simulationCompleted => SimulationStatus.completed,
-      WorkbenchUiState.simulationFailedSummary => SimulationStatus.failed,
-      _ => status,
-    };
-  }
-
-  void _openGenerationProcessSheet({
-    required SimulationStatus fallbackStatus,
-    bool failureMode = false,
-  }) {
-    final simulationStore = AppSimulationScope.of(context);
-    final runSnapshot = ServiceScope.of(
-      context,
-    ).resolve<StoryGenerationRunStore>().snapshot;
-    showDialog<void>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) => DesktopModalDialog(
-        title: 'AI 生成过程',
-        width: 620,
-        body: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 560),
-          child: _GenerationProcessSheetContent(
-            snapshot: runSnapshot,
-            simulation: simulationStore.snapshot,
-            fallbackStatus: fallbackStatus,
-            failureMode: failureMode,
-          ),
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool> _confirmAiSceneRun({
-    required String providerSummary,
-    required List<String> characterNames,
-    required List<String> worldNames,
-    required String sceneLabel,
-    required String sceneSummary,
-    required int draftWordCount,
-  }) async {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: '确认让 AI 写本章',
-          width: 600,
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'AI 会先生成候选内容和过程记录，不会直接覆盖正文。你可以看完后再决定采纳、改写或放弃。',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                _ConfirmationLine(label: '将使用', value: providerSummary),
-                _ConfirmationLine(label: '当前章节', value: sceneLabel),
-                _ConfirmationLine(
-                  label: '出场人物',
-                  value: characterNames.isEmpty
-                      ? '还没有明确出场人物'
-                      : characterNames.join('、'),
-                ),
-                _ConfirmationLine(
-                  label: '世界观资料',
-                  value: worldNames.isEmpty
-                      ? '还没有明确世界观资料'
-                      : worldNames.join('、'),
-                ),
-                _ConfirmationLine(
-                  label: '章节目标',
-                  value: sceneSummary.trim().isEmpty
-                      ? '还没有章节摘要，AI 会更依赖正文上下文。'
-                      : sceneSummary.trim(),
-                ),
-                _ConfirmationLine(
-                  label: '当前正文',
-                  value: '$draftWordCount 字符，自动保存仍会保留原文。',
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: palette.border),
-                  ),
-                  child: Text(
-                    '安全规则：AI 只生成候选稿；正文需要你主动采纳才会改变。建议生成前先点一次「保存版本」。',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('先不生成'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('确认生成候选稿'),
-            ),
-          ],
-        );
-      },
-    );
-    return confirmed ?? false;
-  }
-
-  int _creativeGuideStageIndex({
-    required bool hasCharacters,
-    required bool hasWorldNodes,
-    required bool hasSceneSummary,
-    required bool hasDraft,
-    required bool hasSceneCharacterBinding,
-    required bool hasSceneWorldReference,
-    required bool hasRun,
-  }) {
-    if (!hasCharacters || !hasWorldNodes) {
-      return 1;
-    }
-    if (!hasSceneSummary) {
-      return 2;
-    }
-    if (!hasSceneCharacterBinding || !hasSceneWorldReference) {
-      return 3;
-    }
-    if (!hasDraft && !hasRun) {
-      return 4;
-    }
-    if (hasRun) {
-      return 5;
-    }
-    return 4;
-  }
-
-  List<String> _resourceNamesForConfirmation({
-    required List<String> linked,
-    required List<String> fallback,
-  }) {
-    final source = linked.isNotEmpty ? linked : fallback;
-    return [
-      for (final name in source)
-        if (name.trim().isNotEmpty) name.trim(),
-    ];
+    _orb.toggleToolPanel(panel);
   }
 
   Widget? _buildStatusBanner(
@@ -2557,253 +656,132 @@ class _WorkbenchShellPageState extends State<WorkbenchShellPage> {
     required bool hasSceneWorldReference,
     required bool storyRunCancelled,
   }) {
-    final simulationStatus = storyRunCancelled
-        ? SimulationStatus.none
-        : _effectiveSimulationStatus(simulation.status);
     switch (widget.uiState) {
       case WorkbenchUiState.defaultHidden:
       case WorkbenchUiState.simulationCompleted:
       case WorkbenchUiState.simulationFailedSummary:
       case WorkbenchUiState.noSimulationYet:
-        if (showContextSynced) {
-          return const _StatusBanner(
-            title: '当前章节资料已刷新。',
-            message: '人物、世界观和章节摘要已更新，正文位置保持不变。',
-            accentColor: appSuccessColor,
-          );
-        }
-        if (!hasSceneCharacterBinding) {
-          return _StatusBanner(
-            title: '本章还没选择出场人物。',
-            message: '选择出场人物后，AI 才能按角色设定写本章。',
-            actionLabel: '选择出场人物',
-            onActionTap: () {
-              final anchor = _captureReturnAnchor();
-              AppNavigator.push(context, AppRoutes.characters);
-              _restoreReturnAnchor(anchor);
-            },
-            accentColor: _appAccentColor,
-          );
-        }
-        if (!hasSceneWorldReference) {
-          return _StatusBanner(
-            title: '本章还没选择世界观资料。',
-            message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
-            actionLabel: '选择世界观资料',
-            onActionTap: () {
-              final anchor = _captureReturnAnchor();
-              AppNavigator.push(context, AppRoutes.worldbuilding);
-              _restoreReturnAnchor(anchor);
-            },
-            accentColor: _appAccentColor,
-          );
-        }
-        switch (simulationStatus) {
-          case SimulationStatus.none:
-            if (widget.uiState == WorkbenchUiState.noSimulationYet) {
-              return const _StatusBanner(
-                title: '还没有 AI 试写记录。',
-                message: '你可以继续写正文，或让 AI 按当前资料试写本章。',
-                accentColor: appInfoColor,
-              );
-            }
-            if (!canGenerateAi) {
-              return _StatusBanner(
-                title: '章节可先继续写',
-                message: '需要生成候选稿时，再到设置连接模型服务；当前章节编辑不受影响。',
-                actionLabel: '前往设置',
-                onActionTap: _openSettingsAndRestoreAnchor,
-                accentColor: _appAccentColor,
-              );
-            }
-            return null;
-          case SimulationStatus.running:
-            return _StatusBanner(
-              title: 'AI 正在写本章',
-              message: '${simulation.summary} · ${simulation.stageSummary}',
-              actionLabel: '查看生成过程',
-              onActionTap: () {
-                _openGenerationProcessSheet(
-                  fallbackStatus: SimulationStatus.running,
-                );
-              },
-              accentColor: appInfoColor,
-            );
-          case SimulationStatus.completed:
-            return _StatusBanner(
-              title: 'AI 试写完成',
-              message: '${simulation.summary} · ${simulation.sceneLabel}',
-              actionLabel: '查看生成过程',
-              onActionTap: () {
-                _openGenerationProcessSheet(
-                  fallbackStatus: SimulationStatus.completed,
-                );
-              },
-              accentColor: appSuccessColor,
-            );
-          case SimulationStatus.failed:
-            return _StatusBanner(
-              title: 'AI 试写未完成，正文保持原样。',
-              message: '${simulation.summary} · ${simulation.turnSummary}',
-              actionLabel: '查看原因',
-              onActionTap: () {
-                _openGenerationProcessSheet(
-                  fallbackStatus: SimulationStatus.failed,
-                  failureMode: true,
-                );
-              },
-              accentColor: appDangerColor,
-            );
-        }
       case WorkbenchUiState.menuDrawerOpen:
-        return null;
       case WorkbenchUiState.apiKeyMissing:
-        return _StatusBanner(
-          title: '生成候选稿前需要连接模型服务',
-          message: '当前章节仍可继续编辑；需要 AI 候选稿时，再到设置连接模型服务。',
-          actionLabel: '前往设置',
-          onActionTap: _openSettingsAndRestoreAnchor,
-          accentColor: appDangerColor,
-        );
       case WorkbenchUiState.missingCharacterBinding:
-        return _StatusBanner(
-          title: '本章还没选择出场人物。',
-          message: '选择出场人物后，AI 才能按角色设定写本章。',
-          actionLabel: '选择出场人物',
-          onActionTap: () {
-            AppNavigator.push(context, AppRoutes.characters);
-          },
-          accentColor: _appAccentColor,
-        );
       case WorkbenchUiState.missingCharacterReference:
-        return _StatusBanner(
-          title: '出场人物需要重新确认，正文仍可继续编辑。',
-          message: '重新选择出场人物后，人物摘要和 AI 写作入口会恢复。',
-          actionLabel: '选择出场人物',
-          onActionTap: () {
-            AppNavigator.push(context, AppRoutes.characters);
-          },
-          accentColor: _appAccentColor,
-        );
       case WorkbenchUiState.missingWorldReference:
-        return _StatusBanner(
-          title: '本章还没选择世界观资料。',
-          message: '选择世界观资料后，AI 才能遵守地点、规则和势力约束。',
-          actionLabel: '选择世界观资料',
-          onActionTap: () {
-            AppNavigator.push(context, AppRoutes.worldbuilding);
-          },
-          accentColor: _appAccentColor,
-        );
       case WorkbenchUiState.contextSynced:
-        return const _StatusBanner(
-          title: '当前章节资料已刷新。',
-          message: '人物、世界观和章节摘要已更新，正文位置保持不变。',
-          accentColor: appSuccessColor,
-        );
+        return null;
     }
   }
-}
 
-bool _resourceBelongsToCurrentScene({
-  required List<String> linkedSceneIds,
-  required String currentSceneId,
-  required String resourceName,
-  required String syncedSummary,
-}) {
-  if (linkedSceneIds.contains(currentSceneId)) {
-    return true;
+  Widget? _buildRunRecoveryPrompt(
+    ThemeData theme,
+    StoryGenerationRunStore storyRunStore,
+    StoryGenerationRunSnapshot snapshot,
+  ) {
+    if (!_shouldPromptForRunRecovery(snapshot)) {
+      return null;
+    }
+    final palette = desktopPalette(context);
+    final stageSummary = snapshot.stageSummary.trim();
+    final sceneLabel = snapshot.sceneLabel.trim();
+    return Material(
+      key: WorkbenchShellPage.runRecoveryPromptKey,
+      elevation: 12,
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: palette.elevated,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
+          border: Border.all(color: workbenchAccentColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.restore_outlined,
+              color: workbenchAccentColor,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('检测到未完成的 AI 试写', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                          if (sceneLabel.isNotEmpty) sceneLabel,
+                          if (stageSummary.isNotEmpty) stageSummary,
+                        ].join(' · ').trim().isEmpty
+                        ? '应用重启后恢复了一轮未完成的生成记录。可以重新开始当前章节，或丢弃这条恢复记录。'
+                        : '${[if (sceneLabel.isNotEmpty) sceneLabel, if (stageSummary.isNotEmpty) stageSummary].join(' · ')}。可以重新开始当前章节，或丢弃这条恢复记录。',
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            TextButton(
+              key: WorkbenchShellPage.runRecoveryDiscardButtonKey,
+              onPressed: () => _discardRecoveredRun(storyRunStore),
+              child: const Text('丢弃'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              key: WorkbenchShellPage.runRecoveryRetryButtonKey,
+              onPressed: () => _retryRecoveredRun(storyRunStore),
+              child: const Text('重新开始'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
-  if (linkedSceneIds.isNotEmpty) {
-    return false;
-  }
-  return syncedSummary.contains(resourceName);
-}
 
-bool _hasUsableSceneContext(String value, String expectedPrefix) {
-  final normalized = value.trim();
-  if (normalized.isEmpty ||
-      normalized.contains('等待同步') ||
-      normalized.contains('暂无') ||
-      normalized.contains('还没有')) {
-    return false;
+  bool _shouldPromptForRunRecovery(StoryGenerationRunSnapshot snapshot) {
+    const restorableStatusNames = {
+      'running',
+      'draft',
+      'candidate',
+      'feedback',
+      'check',
+      'resume',
+    };
+    return snapshot.hasRun &&
+        restorableStatusNames.contains(snapshot.status.name);
   }
-  if (!normalized.startsWith(expectedPrefix)) {
-    return true;
-  }
-  return normalized
-      .substring(expectedPrefix.length)
-      .replaceFirst('：', '')
-      .trim()
-      .isNotEmpty;
-}
 
-List<StoryGenerationRunMessage> _reviewIssueMessages(
-  StoryGenerationRunSnapshot snapshot,
-) {
-  if (!snapshot.hasRun) {
-    return const [];
+  Future<void> _retryRecoveredRun(StoryGenerationRunStore storyRunStore) async {
+    await storyRunStore.runCurrentScene();
   }
-  return [
-    for (final message in snapshot.messages)
-      if (_isActionableReviewMessage(message)) message,
-  ];
-}
 
-bool _isActionableReviewMessage(StoryGenerationRunMessage message) {
-  if (message.kind != StoryGenerationRunMessageKind.review) {
-    return false;
-  }
-  final body = message.body.trim();
-  if (body.isEmpty) {
-    return false;
-  }
-  final normalized = _collapseWhitespace(body.toLowerCase());
-  const passingBodies = {
-    'pass',
-    'passed',
-    'scene passed review.',
-    '审查通过',
-    '通过',
-  };
-  if (passingBodies.contains(normalized)) {
-    return false;
-  }
-  return true;
-}
-
-String _collapseWhitespace(String value) {
-  final buffer = StringBuffer();
-  var previousWasWhitespace = false;
-  for (final codeUnit in value.codeUnits) {
-    if (_isWhitespaceCodeUnit(codeUnit)) {
-      if (!previousWasWhitespace) {
-        buffer.write(' ');
+  Future<void> _discardRecoveredRun(
+    StoryGenerationRunStore storyRunStore,
+  ) async {
+    final exported = await storyRunStore.exportProjectJson();
+    final rawRunsByScope = exported['sceneRunsByScope'];
+    final sceneRunsByScope = <String, Object?>{};
+    if (rawRunsByScope is Map) {
+      for (final entry in rawRunsByScope.entries) {
+        final sceneScopeId = entry.key.toString();
+        if (sceneScopeId != storyRunStore.activeSceneScopeId) {
+          sceneRunsByScope[sceneScopeId] = entry.value;
+        }
       }
-      previousWasWhitespace = true;
-    } else {
-      buffer.writeCharCode(codeUnit);
-      previousWasWhitespace = false;
     }
+    await storyRunStore.importProjectJson({
+      'projectId': exported['projectId'],
+      'sceneRunsByScope': sceneRunsByScope,
+    });
   }
-  return buffer.toString();
-}
-
-String _removeWhitespace(String value) {
-  final buffer = StringBuffer();
-  for (final codeUnit in value.codeUnits) {
-    if (!_isWhitespaceCodeUnit(codeUnit)) {
-      buffer.writeCharCode(codeUnit);
-    }
-  }
-  return buffer.toString();
-}
-
-bool _isWhitespaceCodeUnit(int codeUnit) {
-  return codeUnit == 0x20 ||
-      codeUnit == 0x09 ||
-      codeUnit == 0x0A ||
-      codeUnit == 0x0D ||
-      codeUnit == 0x0B ||
-      codeUnit == 0x0C;
 }

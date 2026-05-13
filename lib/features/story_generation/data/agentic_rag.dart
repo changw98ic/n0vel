@@ -1,5 +1,67 @@
 import '../domain/memory_models.dart';
 
+bool _isCJK(int codeUnit) {
+  return (codeUnit >= 0x4E00 && codeUnit <= 0x9FFF) ||
+      (codeUnit >= 0x3400 && codeUnit <= 0x4DBF) ||
+      (codeUnit >= 0x3040 && codeUnit <= 0x309F) ||
+      (codeUnit >= 0x30A0 && codeUnit <= 0x30FF) ||
+      (codeUnit >= 0xAC00 && codeUnit <= 0xD7AF);
+}
+
+bool _isWhitespace(int codeUnit) {
+  return codeUnit == 0x20 ||
+      codeUnit == 0x09 ||
+      codeUnit == 0x0A ||
+      codeUnit == 0x0D ||
+      codeUnit == 0x0B ||
+      codeUnit == 0x0C;
+}
+
+/// Tokenize text for lexical overlap scoring.
+///
+/// For ASCII/word tokens: whitespace-split, lowercased.
+/// For CJK runs: character bigrams, respecting whitespace boundaries.
+Set<String> tokenizeForOverlap(String text) {
+  final tokens = <String>{};
+  final cjkRun = <String>[];
+  final wordBuf = StringBuffer();
+
+  void flushCjkRun() {
+    if (cjkRun.length == 1) {
+      tokens.add(cjkRun[0]);
+    } else if (cjkRun.length > 1) {
+      for (var i = 0; i < cjkRun.length - 1; i++) {
+        tokens.add(cjkRun[i] + cjkRun[i + 1]);
+      }
+    }
+    cjkRun.clear();
+  }
+
+  void flushWord() {
+    if (wordBuf.isNotEmpty) {
+      tokens.add(wordBuf.toString().toLowerCase());
+      wordBuf.clear();
+    }
+  }
+
+  for (final rune in text.runes) {
+    if (_isCJK(rune)) {
+      flushWord();
+      cjkRun.add(String.fromCharCode(rune));
+    } else if (_isWhitespace(rune)) {
+      flushWord();
+      flushCjkRun();
+    } else {
+      flushCjkRun();
+      wordBuf.writeCharCode(rune);
+    }
+  }
+  flushWord();
+  flushCjkRun();
+
+  return tokens;
+}
+
 /// A single retrieval atom with a relevance score.
 class RetrievalAtom {
   const RetrievalAtom({
@@ -37,11 +99,7 @@ class AgenticRag {
   }
 
   /// Scores an atom based on keyword and tag overlap with a query.
-  double scoreAtom(
-    RetrievalAtom atom,
-    String query,
-    List<String> queryTags,
-  ) {
+  double scoreAtom(RetrievalAtom atom, String query, List<String> queryTags) {
     final keywordOverlap = _keywordOverlap(atom.content, query);
     final tagOverlap = _tagOverlap(atom.tags, queryTags);
     return keywordOverlap * 4.0 + tagOverlap * 6.0;
@@ -86,9 +144,10 @@ class AgenticRag {
 
   double _keywordOverlap(String content, String query) {
     final contentLower = content.toLowerCase();
+    final queryTokens = tokenizeForOverlap(query);
     var count = 0;
-    for (final word in query.toLowerCase().split(RegExp(r'\s+'))) {
-      if (word.isNotEmpty && contentLower.contains(word)) {
+    for (final token in queryTokens) {
+      if (contentLower.contains(token)) {
         count++;
       }
     }

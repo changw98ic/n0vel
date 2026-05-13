@@ -16,12 +16,13 @@ void main() {
     late StoryGenerationRunStore runStore;
 
     setUp(() {
-      StoryGenerationRunStore.debugStorageOverride =
-          InMemoryStoryGenerationRunStorage();
       settingsStore = AppSettingsStore(storage: InMemoryAppSettingsStorage());
       workspaceStore = AppWorkspaceStore(
         storage: InMemoryAppWorkspaceStorage(),
       );
+      // buildDefaultProjects() returns empty; create a project with a scene.
+      workspaceStore.createProject();
+      workspaceStore.createScene('场景一');
       generationStore = StoryGenerationStore(
         storage: InMemoryStoryGenerationStorage(),
         workspaceStore: workspaceStore,
@@ -33,7 +34,6 @@ void main() {
       generationStore.dispose();
       workspaceStore.dispose();
       settingsStore.dispose();
-      StoryGenerationRunStore.debugStorageOverride = null;
     });
 
     test('can be constructed with default seeded workspace scene', () async {
@@ -43,6 +43,7 @@ void main() {
         settingsStore: settingsStore,
         workspaceStore: workspaceStore,
         generationStore: generationStore,
+        storage: InMemoryStoryGenerationRunStorage(),
       );
 
       expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);
@@ -56,6 +57,7 @@ void main() {
         settingsStore: settingsStore,
         workspaceStore: workspaceStore,
         generationStore: generationStore,
+        storage: InMemoryStoryGenerationRunStorage(),
       );
 
       await runStore.ready;
@@ -67,10 +69,12 @@ void main() {
         settingsStore: settingsStore,
         workspaceStore: workspaceStore,
         generationStore: generationStore,
+        storage: InMemoryStoryGenerationRunStorage(),
       );
 
       await runStore.ready;
       workspaceStore.createProject();
+      workspaceStore.createScene('新场景');
       await runStore.ready;
 
       expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);

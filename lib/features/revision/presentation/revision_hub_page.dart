@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/di/service_scope.dart';
+import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_simulation_store.dart';
 import '../../../app/state/app_workspace_store.dart';
@@ -10,19 +11,18 @@ import '../../author_feedback/data/author_feedback_store.dart';
 import '../../author_feedback/domain/author_feedback_models.dart';
 import '../../review_tasks/data/review_task_store.dart';
 import '../../review_tasks/domain/review_task_models.dart';
+import 'revision_hub_components.dart';
 
-class RevisionHubPage extends StatelessWidget {
+class RevisionHubPage extends ConsumerWidget {
   const RevisionHubPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final workspaceStore = AppWorkspaceScope.of(context);
-    final reviewTaskStore = ReviewTaskScope.of(context);
-    final authorFeedbackStore = AuthorFeedbackScope.of(context);
-    final simulationStore = AppSimulationScope.of(context);
-    final runStore = ServiceScope.of(
-      context,
-    ).resolve<StoryGenerationRunStore>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+    final reviewTaskStore = ref.watch(reviewTaskStoreProvider);
+    final authorFeedbackStore = ref.watch(authorFeedbackStoreProvider);
+    final simulationStore = ref.watch(appSimulationStoreProvider);
+    final runStore = ref.watch(storyGenerationRunStoreProvider);
     final merged = Listenable.merge([
       workspaceStore,
       reviewTaskStore,
@@ -44,94 +44,81 @@ class RevisionHubPage extends StatelessWidget {
 
         return DesktopShellFrame(
           header: DesktopHeaderBar(
-            title: '改稿',
+            title: '推演写作',
             subtitle: summary.headerSubtitle,
             showBackButton: true,
           ),
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final cardWidth = constraints.maxWidth > 960
-                  ? 280.0
-                  : constraints.maxWidth > 600
-                  ? 240.0
-                  : double.infinity;
+              final palette = desktopPalette(context);
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
+                    // Inline stat bar
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.subtle.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Wrap(
+                        spacing: 24,
+                        runSpacing: 6,
+                        children: [
+                          RevisionHubStatChip(
                             icon: Icons.report_problem_outlined,
-                            title: '问题数量',
-                            body: summary.issueCount,
+                            label: '问题',
+                            value: summary.issueCount,
                           ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
+                          RevisionHubStatChip(
                             icon: Icons.pending_actions_outlined,
-                            title: '改稿任务状态',
-                            body: summary.taskStatus,
+                            label: '任务',
+                            value: summary.taskStatus,
                           ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _ContextCard(
+                          RevisionHubStatChip(
                             icon: Icons.rate_review_outlined,
-                            title: '最近反馈',
-                            body: summary.recentFeedback,
+                            label: '反馈',
+                            value: summary.recentFeedback,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.search_outlined,
-                            title: '问题检查',
-                            subtitle: summary.auditSubtitle,
-                            onTap: () =>
-                                AppNavigator.push(context, AppRoutes.audit),
-                          ),
+                    const SizedBox(height: 12),
+                    // List navigation
+                    ...[
+                      RevisionHubNavItem(
+                        icon: Icons.search_outlined,
+                        title: '问题检查',
+                        subtitle: summary.auditSubtitle,
+                        onTap: () =>
+                            AppNavigator.push(context, AppRoutes.audit),
+                      ),
+                      RevisionHubNavItem(
+                        icon: Icons.task_outlined,
+                        title: '改稿任务',
+                        subtitle: summary.taskSubtitle,
+                        onTap: () => AppNavigator.push(
+                          context,
+                          AppRoutes.reviewTasks,
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.task_outlined,
-                            title: '改稿任务',
-                            subtitle: summary.taskSubtitle,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              AppRoutes.reviewTasks,
-                            ),
-                          ),
+                      ),
+                      RevisionHubNavItem(
+                        icon: Icons.dashboard_outlined,
+                        title: '生产看板',
+                        subtitle: summary.productionSubtitle,
+                        onTap: () => AppNavigator.push(
+                          context,
+                          AppRoutes.productionBoard,
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          child: _HubCard(
-                            icon: Icons.dashboard_outlined,
-                            title: '生产看板',
-                            subtitle: summary.productionSubtitle,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              AppRoutes.productionBoard,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -353,106 +340,4 @@ String _simulationStatusLabel(SimulationStatus status) {
     SimulationStatus.completed => '试写完成',
     SimulationStatus.failed => '试写失败',
   };
-}
-
-class _ContextCard extends StatelessWidget {
-  const _ContextCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 22, color: palette.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 6),
-                Text(
-                  body,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HubCard extends StatelessWidget {
-  const _HubCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-
-    return Material(
-      color: palette.elevated,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            border: Border.all(color: palette.border),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 32, color: palette.primary),
-              const SizedBox(height: 12),
-              Text(title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

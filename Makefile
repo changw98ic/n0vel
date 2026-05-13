@@ -1,7 +1,16 @@
-.PHONY: mvp-docs-check verify-macos
+.PHONY: test analyze docs-check mvp-docs-check verify-macos
+
+test:
+	flutter test
+
+analyze:
+	flutter analyze
+
+docs-check:
+	python3 scripts/validate_docs_bundle.py
 
 mvp-docs-check:
-	python3 docs/mvp/validate_mvp_docs.py
+	$(MAKE) docs-check
 
 verify-macos:
 	bash scripts/verify_macos.sh

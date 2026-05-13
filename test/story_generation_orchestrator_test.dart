@@ -9,8 +9,10 @@ import 'package:novel_writer/features/story_generation/data/chapter_generation_o
 import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
+import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 
 import 'test_support/fake_app_llm_client.dart';
 
@@ -263,7 +265,7 @@ void main() {
           baseUrl: 'https://ollama.com/v1',
           model: 'kimi-k2.6',
           apiKey: 'sk-test',
-          timeout: AppLlmTimeoutConfig.uniform(180000),
+          timeout: const AppLlmTimeoutConfig.uniform(180000),
           maxConcurrentRequests: 2,
         );
 
@@ -372,6 +374,60 @@ void main() {
         );
         expect(judgeRequest.messages.first.content, contains('原因：'));
         expect(judgeRequest.messages.last.content, contains('正文：'));
+      },
+    );
+
+    test(
+      'surfaces quality scorer failures on the scene output and report',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @narrator 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(text: '正文：柳溪逼近半步，岳刃露出破绽。');
+            }
+            if (systemPrompt.contains('scene combined review')) {
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = ChapterGenerationOrchestrator(
+          settingsStore: settingsStore,
+          qualityScorer: _ThrowingQualityScorer(),
+        );
+
+        final result = await orchestrator.runScene(_brief());
+
+        expect(result.qualityScore, isNotNull);
+        expect(result.qualityScore!.warning, contains('quality scorer failed'));
+        expect(result.qualityScore!.warning, contains('scorer unavailable'));
+        expect(
+          SceneQualityReporter.toMarkdown([result]),
+          contains('quality scorer failed'),
+        );
       },
     );
 
@@ -1407,7 +1463,7 @@ void main() {
 
   group('PipelineArtifact', () {
     test('JSON round-trip preserves all fields', () {
-      final original = PipelineArtifact(
+      const original = PipelineArtifact(
         id: 'art-1',
         sceneId: 'scene-01',
         chapterId: 'chapter-01',
@@ -1625,8 +1681,18 @@ SceneBrief _brief({Map<String, Object?> metadata = const {}}) {
 }
 
 int _roundFromPrompt(String prompt) {
-  final match = RegExp(r'回合：(\d+)').firstMatch(prompt);
-  return int.parse(match!.group(1)!);
+  const marker = '回合：';
+  final start = prompt.indexOf(marker);
+  if (start < 0) {
+    throw StateError('Missing round marker in prompt.');
+  }
+  final tail = prompt.substring(start + marker.length);
+  final digits = tail.codeUnits.takeWhile((unit) => unit >= 48 && unit <= 57);
+  final value = String.fromCharCodes(digits);
+  if (value.isEmpty) {
+    throw StateError('Missing round value in prompt.');
+  }
+  return int.parse(value);
 }
 
 AppLlmChatResult? _defaultRoleplayResponse(AppLlmChatRequest request) {
@@ -1642,4 +1708,16 @@ AppLlmChatResult? _defaultRoleplayResponse(AppLlmChatRequest request) {
     );
   }
   return null;
+}
+
+class _ThrowingQualityScorer implements SceneQualityScorerService {
+  @override
+  Future<SceneQualityScore> score({
+    required SceneBrief brief,
+    required SceneDirectorOutput director,
+    required SceneProseDraft prose,
+    required SceneReviewResult review,
+  }) async {
+    throw StateError('scorer unavailable');
+  }
 }

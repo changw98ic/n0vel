@@ -21,7 +21,7 @@ class AppPopover extends StatelessWidget {
     final hasItems = items != null && items!.isNotEmpty;
 
     return Container(
-      decoration: appPanelDecoration(context),
+      decoration: glassPanelDecoration(context),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -5,8 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
 
-const String _defaultDraftText =
-    '她推开仓库门，雨水顺着袖口滴进掌心，远处码头的雾灯像一根迟疑的针。';
+const String _defaultDraftText = '';
 const String _fallbackDraftProjectId = 'project-yuechao::scene-05-witness-room';
 
 class AppDraftSnapshot {
@@ -30,20 +29,15 @@ class AppDraftSnapshot {
 }
 
 class AppDraftStore extends AppProjectScopedStore {
-  AppDraftStore({
-    AppDraftStorage? storage,
-    super.workspaceStore,
-  })
+  AppDraftStore({AppDraftStorage? storage, super.workspaceStore, super.eventBus})
     : _storage =
-          storage ?? debugStorageOverride ?? createDefaultAppDraftStorage(),
+          storage ?? createDefaultAppDraftStorage(),
       _snapshot = const AppDraftSnapshot(text: _defaultDraftText),
       super(fallbackProjectId: _fallbackDraftProjectId) {
     onRestore();
   }
 
-  @visibleForTesting
-  static AppDraftStorage? debugStorageOverride;
-
+  
   final AppDraftStorage _storage;
   AppDraftSnapshot _snapshot;
   bool _isRestoring = false;
@@ -116,6 +110,10 @@ class AppDraftStore extends AppProjectScopedStore {
 
   Future<void> _persist() =>
       _storage.save(_snapshot.toJson(), projectId: activeProjectId);
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 }
 
 class AppDraftScope extends InheritedNotifier<AppDraftStore> {

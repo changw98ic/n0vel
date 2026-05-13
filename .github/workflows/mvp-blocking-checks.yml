@@ -10,7 +10,9 @@ on:
       - "pubspec.yaml"
       - "pubspec.lock"
       - "Makefile"
-      - "docs/mvp/**"
+      - "docs/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
   pull_request:
     paths:
       - ".github/workflows/mvp-blocking-checks.yml"
@@ -20,7 +22,9 @@ on:
       - "pubspec.yaml"
       - "pubspec.lock"
       - "Makefile"
-      - "docs/mvp/**"
+      - "docs/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
 
 jobs:
   blocking-gates:
@@ -50,5 +54,5 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: MVP docs check
-        run: make mvp-docs-check
+      - name: Docs bundle check
+        run: make docs-check

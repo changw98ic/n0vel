@@ -426,8 +426,8 @@ void main() {
       );
       addTearDown(settingsStore.dispose);
 
-      final longTitle = '非常非常非常非常非常非常非常非常非常非常非常长的章节标题超过四十个字';
-      final longSceneTitle = '同样非常非常非常非常非常非常非常非常非常长的场景标题也超过四十个字';
+      const longTitle = '非常非常非常非常非常非常非常非常非常非常非常长的章节标题超过四十个字';
+      const longSceneTitle = '同样非常非常非常非常非常非常非常非常非常长的场景标题也超过四十个字';
 
       final orchestrator = SceneDirectorOrchestrator(
         settingsStore: settingsStore,
@@ -470,7 +470,7 @@ void main() {
       );
       addTearDown(settingsStore.dispose);
 
-      final longSummary =
+      const longSummary =
           '这是'
           '一个非常非常非常非常非常非常非常非常非常非常'
           '非常非常非常非常非常长的场景摘要超过四十八个字符的限制';

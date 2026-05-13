@@ -31,7 +31,7 @@ void main() {
             progression: '严泊被迫向维修竖井撤退',
             constraints: '只能从维护竖井撤离，前门已被封死',
             characterNotes: [
-              DirectorCharacterNote(
+              const DirectorCharacterNote(
                 characterId: 'yanbo',
                 name: '严泊',
                 motivation: '活下来',
@@ -82,7 +82,7 @@ void main() {
         role: '逃亡者',
         contributions: [SceneCastContribution.action],
       );
-      final director = SceneDirectorOutput(text: '原始导演文本');
+      const director = SceneDirectorOutput(text: '原始导演文本');
 
       final context = builder.build(
         brief: brief,

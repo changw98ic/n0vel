@@ -263,7 +263,7 @@ void main() {
       final service = FileAutoBackupService(dbPath: dbPath);
 
       final entry = await service.createBackup();
-      var listed = await service.listBackups();
+      final listed = await service.listBackups();
       expect(listed, hasLength(1));
       expect(listed.first.id, entry.id);
 

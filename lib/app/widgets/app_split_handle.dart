@@ -80,25 +80,27 @@ class _AppSplitHandleState extends State<AppSplitHandle> {
         decoration: BoxDecoration(
           color: _active
               ? palette.subtle.withValues(alpha: 0.86)
-              : Colors.transparent,
+              : palette.subtle.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: AnimatedContainer(
             duration: _animDuration,
             curve: Curves.easeOut,
-            width: _active ? 3 : 1,
+            width: _active ? 3 : 2,
             height: widget.height == null ? 44 : (widget.height! * 0.62),
             decoration: BoxDecoration(
               color: (_active ? palette.primary : palette.splitHandle)
-                  .withValues(alpha: _active ? 0.72 : 0.28),
+                  .withValues(alpha: _active ? 0.72 : 0.5),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
         ),
       );
 
-      return Semantics(
+      return Tooltip(
+        message: '切换导航菜单',
+        child: Semantics(
         button: true,
         label: widget.semanticLabel,
         child: Material(
@@ -114,6 +116,7 @@ class _AppSplitHandleState extends State<AppSplitHandle> {
               child: ExcludeSemantics(child: tappableHandle),
             ),
           ),
+        ),
         ),
       );
     }

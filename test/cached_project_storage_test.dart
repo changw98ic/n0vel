@@ -11,12 +11,18 @@ class _RecordingStorage implements ProjectStorage {
   Future<Map<String, Object?>?> load({required String projectId}) async => null;
 
   @override
-  Future<void> save(Map<String, Object?> data, {required String projectId}) async {
+  Future<void> save(
+    Map<String, Object?> data, {
+    required String projectId,
+  }) async {
     saves.add(_SaveCall(projectId, Map<String, Object?>.from(data)));
   }
 
   @override
   Future<void> clear({String? projectId}) async {}
+
+  @override
+  Future<void> clearProject(String projectId) async {}
 }
 
 class _SaveCall {
@@ -28,7 +34,10 @@ class _SaveCall {
 void main() {
   test('dispose flushes pending writes to delegate before returning', () async {
     final delegate = _RecordingStorage();
-    final storage = CachedProjectStorage(delegate, writeDelay: const Duration(milliseconds: 10));
+    final storage = CachedProjectStorage(
+      delegate,
+      writeDelay: const Duration(milliseconds: 10),
+    );
 
     await storage.save({'title': 'hello'}, projectId: 'p1');
     // Only one pending write — timer has not fired yet.
@@ -44,7 +53,10 @@ void main() {
 
   test('flush before dispose writes pending data to delegate', () async {
     final delegate = _RecordingStorage();
-    final storage = CachedProjectStorage(delegate, writeDelay: const Duration(milliseconds: 10));
+    final storage = CachedProjectStorage(
+      delegate,
+      writeDelay: const Duration(milliseconds: 10),
+    );
 
     await storage.save({'title': 'hello'}, projectId: 'p1');
     await storage.flush();

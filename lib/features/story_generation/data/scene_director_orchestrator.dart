@@ -18,7 +18,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
 
   final AppSettingsStore _settingsStore;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
-  final SceneTypePrompts _typePrompts = SceneTypePrompts();
+  final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
   @override
   Future<SceneDirectorOutput> run({

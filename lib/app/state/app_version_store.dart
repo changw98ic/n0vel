@@ -24,30 +24,22 @@ class VersionEntry {
   }
 }
 
-const List<VersionEntry> _defaultVersionEntries = [
-  VersionEntry(
-    label: '初始版本',
-    content: '她推开仓库门，雨水顺着袖口滴进掌心，远处码头的雾灯像一根迟疑的针。',
-  ),
+const List<VersionEntry> _defaultVersionEntries = <VersionEntry>[
+  VersionEntry(label: '初始版本', content: ''),
 ];
-const String _fallbackVersionProjectId = 'project-yuechao::scene-05-witness-room';
+const String _fallbackVersionProjectId =
+    'project-yuechao::scene-05-witness-room';
 
 class AppVersionStore extends AppProjectScopedStore {
-  AppVersionStore({
-    AppVersionStorage? storage,
-    super.workspaceStore,
-  }) : _storage =
-           storage ?? debugStorageOverride ?? createDefaultAppVersionStorage(),
-       _entries = List<VersionEntry>.from(_defaultVersionEntries),
-       super(
-         fallbackProjectId: _fallbackVersionProjectId,
-       ) {
+  AppVersionStore({AppVersionStorage? storage, super.workspaceStore, super.eventBus})
+    : _storage =
+          storage ?? createDefaultAppVersionStorage(),
+      _entries = const <VersionEntry>[],
+      super(fallbackProjectId: _fallbackVersionProjectId) {
     onRestore();
   }
 
-  @visibleForTesting
-  static AppVersionStorage? debugStorageOverride;
-
+  
   final AppVersionStorage _storage;
   List<VersionEntry> _entries;
 
@@ -63,7 +55,7 @@ class AppVersionStore extends AppProjectScopedStore {
     markMutated();
     _entries = [
       VersionEntry(label: label, content: content),
-      ..._entries,
+      ..._entriesForNewSnapshot(),
     ].take(5).toList();
     unawaited(_persist());
     notifyListeners();
@@ -77,7 +69,7 @@ class AppVersionStore extends AppProjectScopedStore {
     markMutated();
     _entries = [
       VersionEntry(label: label, content: content),
-      ..._entries,
+      ..._entriesForNewSnapshot(),
     ].take(5).toList();
     try {
       await _persist();
@@ -144,6 +136,16 @@ class AppVersionStore extends AppProjectScopedStore {
   Future<void> _persist() async {
     await _storage.save(exportJson(), projectId: activeProjectId);
   }
+
+  List<VersionEntry> _entriesForNewSnapshot() {
+    return _entries.isEmpty
+        ? List<VersionEntry>.from(_defaultVersionEntries)
+        : _entries;
+  }
+
+  @override
+  Future<void> clearDeletedProjectScope(String projectId) =>
+      _storage.clearProject(projectId);
 }
 
 class AppVersionScope extends InheritedNotifier<AppVersionStore> {

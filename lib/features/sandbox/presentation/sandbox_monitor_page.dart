@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/di/app_providers.dart';
 import '../../../app/state/app_simulation_store.dart';
 import '../../../app/widgets/app_dialog.dart';
-import '../../../app/widgets/desktop_shell.dart';
+import 'sandbox_monitor_components.dart';
 
-class SandboxMonitorPage extends StatefulWidget {
+class SandboxMonitorPage extends ConsumerStatefulWidget {
   const SandboxMonitorPage({
     super.key,
     this.failureMode = false,
@@ -42,15 +44,13 @@ class SandboxMonitorPage extends StatefulWidget {
   final SimulationStatus? previewStatus;
 
   @override
-  State<SandboxMonitorPage> createState() => _SandboxMonitorPageState();
+  ConsumerState<SandboxMonitorPage> createState() => _SandboxMonitorPageState();
 }
 
-class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
+class _SandboxMonitorPageState extends ConsumerState<SandboxMonitorPage> {
   static const Color _modalBackground = Color(0xFF221D1A);
   static const Color _modalSurface = Color(0xFF2B2521);
   static const Color _modalBorder = Color(0xFF77695D);
-  static const Color _modalTitle = Color(0xFFF1E9DE);
-  static const Color _modalSubtitle = Color(0xFFA99C8E);
 
   late SimulationParticipant _selectedParticipant;
   final TextEditingController _feedbackController = TextEditingController();
@@ -81,7 +81,12 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final simulationStore = _previewStore ?? AppSimulationScope.of(context);
+    final AppSimulationStore simulationStore;
+    if (_previewStore != null) {
+      simulationStore = _previewStore!;
+    } else {
+      simulationStore = ref.watch(appSimulationStoreProvider);
+    }
     return ListenableBuilder(
       listenable: simulationStore,
       builder: (context, child) {
@@ -101,7 +106,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: snapshot.status == SimulationStatus.none
-                      ? _SandboxEmptyState(snapshot: snapshot)
+                      ? SandboxEmptyState(snapshot: snapshot)
                       : Container(
                           decoration: BoxDecoration(
                             color: _modalSurface,
@@ -111,7 +116,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              const _SandboxHeader(
+                              const SandboxHeader(
                                 title: 'AI 生成过程',
                                 subtitle: '多角色协作流 · 导演调度视图',
                               ),
@@ -121,7 +126,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    _ParticipantPanel(
+                                    SandboxParticipantPanel(
                                       snapshot: snapshot,
                                       selectedParticipant: _selectedParticipant,
                                       onSelectParticipant: _selectParticipant,
@@ -133,7 +138,7 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
-                                      child: _ChatroomPanel(
+                                      child: SandboxChatroomPanel(
                                         snapshot: snapshot,
                                         selectedParticipantSnapshot: snapshot
                                             .participantSnapshot(
@@ -200,686 +205,5 @@ class _SandboxMonitorPageState extends State<SandboxMonitorPage> {
     }
     store.sendDirectorFeedback(feedback);
     _feedbackController.clear();
-  }
-}
-
-class _SandboxEmptyState extends StatelessWidget {
-  const _SandboxEmptyState({required this.snapshot});
-
-  final AppSimulationSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.border),
-      ),
-      padding: const EdgeInsets.all(20),
-      alignment: Alignment.topLeft,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '还没有生成过程',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: const Color(0xFF2E2925),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '这一场还没有 AI 生成记录。你可以先回到写作工作台，让 AI 按当前场景资料试写。',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF514943),
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('关闭'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SandboxHeader extends StatelessWidget {
-  const _SandboxHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        TextButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          style: TextButton.styleFrom(
-            foregroundColor: _SandboxMonitorPageState._modalTitle,
-          ),
-          child: const Text('返回正文'),
-        ),
-        const Spacer(),
-        Column(
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: _SandboxMonitorPageState._modalTitle,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: _SandboxMonitorPageState._modalSubtitle,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        const SizedBox(width: 84),
-      ],
-    );
-  }
-}
-
-class _ParticipantPanel extends StatelessWidget {
-  const _ParticipantPanel({
-    required this.snapshot,
-    required this.selectedParticipant,
-    required this.onSelectParticipant,
-    required this.onEditPrompt,
-  });
-
-  final AppSimulationSnapshot snapshot;
-  final SimulationParticipant selectedParticipant;
-  final ValueChanged<SimulationParticipant> onSelectParticipant;
-  final VoidCallback onEditPrompt;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      key: SandboxMonitorPage.agentListKey,
-      width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('参与方', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  for (final participantSnapshot in snapshot.participants) ...[
-                    _ParticipantTile(
-                      tileKey: _tileKeyFor(participantSnapshot.participant),
-                      snapshot: participantSnapshot,
-                      isSelected:
-                          selectedParticipant ==
-                          participantSnapshot.participant,
-                      onTap: () =>
-                          onSelectParticipant(participantSnapshot.participant),
-                      onEditPrompt: onEditPrompt,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Key _tileKeyFor(SimulationParticipant participant) {
-    return switch (participant) {
-      SimulationParticipant.director =>
-        SandboxMonitorPage.directorParticipantKey,
-      SimulationParticipant.liuXi => SandboxMonitorPage.liuXiParticipantKey,
-      SimulationParticipant.yueRen => SandboxMonitorPage.yueRenParticipantKey,
-      SimulationParticipant.fuXingzhou =>
-        SandboxMonitorPage.fuXingzhouParticipantKey,
-      SimulationParticipant.stateMachine =>
-        SandboxMonitorPage.stateMachineParticipantKey,
-    };
-  }
-}
-
-class _ParticipantTile extends StatelessWidget {
-  const _ParticipantTile({
-    required this.tileKey,
-    required this.snapshot,
-    required this.isSelected,
-    required this.onTap,
-    required this.onEditPrompt,
-  });
-
-  final Key tileKey;
-  final SimulationParticipantSnapshot snapshot;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final VoidCallback onEditPrompt;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: tileKey,
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected ? palette.primary : palette.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? palette.primary : palette.border,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                snapshot.participant.displayLabel,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isSelected
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '认知：${snapshot.promptSummary}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isSelected
-                      ? theme.colorScheme.onPrimary
-                      : theme.textTheme.bodySmall?.color,
-                ),
-              ),
-              if (isSelected) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    key: SandboxMonitorPage.editPromptButtonKey,
-                    onPressed: onEditPrompt,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isSelected
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
-                      side: BorderSide(
-                        color: isSelected
-                            ? theme.colorScheme.onPrimary.withValues(alpha: 0.4)
-                            : palette.border,
-                      ),
-                      backgroundColor: isSelected
-                          ? theme.colorScheme.onPrimary.withValues(alpha: 0.12)
-                          : null,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      textStyle: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: const Text('编辑认知 Prompt'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatroomPanel extends StatelessWidget {
-  const _ChatroomPanel({
-    required this.snapshot,
-    required this.selectedParticipantSnapshot,
-    required this.scrollController,
-    required this.feedbackController,
-    required this.onSendFeedback,
-  });
-
-  final AppSimulationSnapshot snapshot;
-  final SimulationParticipantSnapshot selectedParticipantSnapshot;
-  final ScrollController scrollController;
-  final TextEditingController feedbackController;
-  final VoidCallback onSendFeedback;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: palette.subtle,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  snapshot.turnLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(snapshot.turnSummary, style: theme.textTheme.bodySmall),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(snapshot.headline, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 6),
-          Text(snapshot.summary, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
-          Text(
-            snapshot.stageSummary,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Scrollbar(
-                    controller: scrollController,
-                    thumbVisibility: true,
-                    trackVisibility: true,
-                    child: ListView.separated(
-                      controller: scrollController,
-                      padding: EdgeInsets.zero,
-                      itemCount: snapshot.messages.length,
-                      cacheExtent: 500,
-                      addAutomaticKeepAlives: false,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return RepaintBoundary(
-                          child: _ChatBubble(message: snapshot.messages[index]),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 260,
-                  child: _RunSummaryPanel(
-                    snapshot: snapshot,
-                    selectedParticipantSnapshot: selectedParticipantSnapshot,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(snapshot.footerHint, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: TextField(
-                  key: SandboxMonitorPage.feedbackFieldKey,
-                  controller: feedbackController,
-                  decoration: const InputDecoration(
-                    hintText: '给导演补充要求，例如：让岳人更强硬一点。',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              FilledButton(
-                key: SandboxMonitorPage.sendFeedbackButtonKey,
-                onPressed: onSendFeedback,
-                child: const Text('发送给导演'),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                child: const Text('返回正文'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RunSummaryPanel extends StatelessWidget {
-  const _RunSummaryPanel({
-    required this.snapshot,
-    required this.selectedParticipantSnapshot,
-  });
-
-  final AppSimulationSnapshot snapshot;
-  final SimulationParticipantSnapshot selectedParticipantSnapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final speechCount = snapshot.messages
-        .where((message) => message.kind == SimulationMessageKind.speech)
-        .length;
-    final intentCount = snapshot.messages
-        .where((message) => message.kind == SimulationMessageKind.intent)
-        .length;
-    final verdictCount = snapshot.messages
-        .where((message) => message.kind == SimulationMessageKind.verdict)
-        .length;
-    final latestVerdict = snapshot.messages.lastWhere(
-      (message) => message.kind == SimulationMessageKind.verdict,
-      orElse: () => snapshot.messages.last,
-    );
-    final completedStages = snapshot.stages
-        .where((stage) => stage.status == SimulationStageStatus.completed)
-        .length;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('运行摘要', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            Text(
-              '当前场景',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(snapshot.sceneLabel, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _SummaryMetricChip(label: snapshot.headline),
-                _SummaryMetricChip(
-                  label: '阶段 $completedStages/${snapshot.stages.length}',
-                ),
-                _SummaryMetricChip(
-                  label: '${snapshot.participants.length} 位参与方',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '输出分类',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _SummaryMetricChip(label: '发言 $speechCount'),
-                _SummaryMetricChip(label: '意图 $intentCount'),
-                _SummaryMetricChip(label: '裁决 $verdictCount'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '当前焦点',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              selectedParticipantSnapshot.participant.displayLabel,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '认知：${selectedParticipantSnapshot.promptSummary}',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              selectedParticipantSnapshot.statusSummary,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '关键裁决',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(latestVerdict.title, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text(latestVerdict.body, style: theme.textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryMetricChip extends StatelessWidget {
-  const _SummaryMetricChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: palette.border),
-      ),
-      child: Text(label, style: theme.textTheme.bodySmall),
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message});
-
-  final SimulationChatMessage message;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    final theme = Theme.of(context);
-
-    final background = switch (message.tone) {
-      SimulationChatTone.director => palette.surface,
-      SimulationChatTone.focusCharacter =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2F3941)
-            : const Color(0xFFF5F9FC),
-      SimulationChatTone.supportingCharacter => palette.elevated,
-      SimulationChatTone.stateMachine =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF334237)
-            : const Color(0xFFEAF3EA),
-      SimulationChatTone.user => palette.elevated,
-    };
-
-    final border = switch (message.tone) {
-      SimulationChatTone.director => palette.border,
-      SimulationChatTone.focusCharacter =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF50626E)
-            : const Color(0xFFC9D8E3),
-      SimulationChatTone.supportingCharacter => palette.border,
-      SimulationChatTone.stateMachine => palette.border,
-      SimulationChatTone.user => palette.border,
-    };
-
-    final senderChipColor = switch (message.tone) {
-      SimulationChatTone.director =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF3B322C)
-            : const Color(0xFFF1E7D7),
-      SimulationChatTone.focusCharacter =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF384650)
-            : const Color(0xFFE9F1F7),
-      SimulationChatTone.supportingCharacter =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF3B322C)
-            : const Color(0xFFF1E7D7),
-      SimulationChatTone.stateMachine =>
-        Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF334237)
-            : const Color(0xFFEAF3EA),
-      SimulationChatTone.user => palette.subtle,
-    };
-
-    return Align(
-      alignment: message.alignEnd
-          ? Alignment.centerRight
-          : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: message.alignEnd ? 430 : 560),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!message.alignEnd) ...[
-              _SenderChip(color: senderChipColor, label: message.sender),
-              const SizedBox(width: 10),
-            ],
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      message.title,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _kindLabel(message.kind),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.78,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(message.body, style: theme.textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-            ),
-            if (message.alignEnd) ...[
-              const SizedBox(width: 10),
-              _SenderChip(color: senderChipColor, label: message.sender),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _kindLabel(SimulationMessageKind kind) {
-    return switch (kind) {
-      SimulationMessageKind.speech => '发言',
-      SimulationMessageKind.intent => '意图',
-      SimulationMessageKind.verdict => '裁决',
-      SimulationMessageKind.summary => '摘要',
-    };
-  }
-}
-
-class _SenderChip extends StatelessWidget {
-  const _SenderChip({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }

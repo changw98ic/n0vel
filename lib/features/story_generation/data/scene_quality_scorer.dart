@@ -21,7 +21,7 @@ class SceneQualityScorer implements SceneQualityScorerService {
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       messages: [
-        AppLlmChatMessage(
+        const AppLlmChatMessage(
           role: 'system',
           content:
               'You are a quality scorer for Chinese novel scenes. '

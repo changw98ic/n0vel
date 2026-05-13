@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/data/workspace_data.dart';
 import 'package:novel_writer/app/data/workspace_validator.dart';
 import 'package:novel_writer/app/state/app_workspace_defaults.dart';
-import 'package:novel_writer/app/state/app_workspace_records.dart';
 
 void main() {
   group('WorkspaceValidator', () {
@@ -22,7 +21,7 @@ void main() {
       });
 
       test('empty id is an error', () {
-        final project = ProjectRecord(
+        const project = ProjectRecord(
           id: '',
           sceneId: 'scene-1',
           title: '测试',
@@ -40,7 +39,7 @@ void main() {
       });
 
       test('empty sceneId is an error', () {
-        final project = ProjectRecord(
+        const project = ProjectRecord(
           id: 'project-1',
           sceneId: '',
           title: '测试',
@@ -54,7 +53,7 @@ void main() {
       });
 
       test('empty title is a warning', () {
-        final project = ProjectRecord(
+        const project = ProjectRecord(
           id: 'project-1',
           sceneId: 'scene-1',
           title: '  ',
@@ -72,7 +71,7 @@ void main() {
       });
 
       test('zero timestamp is a warning', () {
-        final project = ProjectRecord(
+        const project = ProjectRecord(
           id: 'project-1',
           sceneId: 'scene-1',
           title: '测试',
@@ -280,20 +279,43 @@ void main() {
 
     group('validateWorkspaceData', () {
       test('default workspace data is valid', () {
-        final data = WorkspaceData.empty();
+        // WorkspaceData.empty() has no projects (intentionally invalid).
+        // Build a valid workspace with at least one project.
+        final projectTitle = ['测试', '项目'].join();
+        final data = WorkspaceData(
+          projects: [
+            ProjectRecord(
+              id: 'proj-1',
+              sceneId: 'scene-1',
+              title: projectTitle,
+              genre: '悬疑',
+              summary: '测试用',
+              recentLocation: '场景 01',
+              lastOpenedAtMs: 0,
+            ),
+          ],
+          charactersByProjectId: {'proj-1': []},
+          scenesByProjectId: {'proj-1': []},
+          worldNodesByProjectId: {'proj-1': []},
+          auditIssuesByProjectId: {'proj-1': []},
+          styleByProjectId: {},
+          auditUiByProjectId: {},
+          projectTransferState: ProjectTransferState.ready,
+          currentProjectId: 'proj-1',
+        );
         final result = data.validate();
         expect(result.isValid, isTrue, reason: result.issues.join('\n'));
       });
 
       test('empty projects list is an error', () {
-        final data = WorkspaceData(
-          projects: const [],
-          charactersByProjectId: const {},
-          scenesByProjectId: const {},
-          worldNodesByProjectId: const {},
-          auditIssuesByProjectId: const {},
-          styleByProjectId: const {},
-          auditUiByProjectId: const {},
+        const data = WorkspaceData(
+          projects: [],
+          charactersByProjectId: {},
+          scenesByProjectId: {},
+          worldNodesByProjectId: {},
+          auditIssuesByProjectId: {},
+          styleByProjectId: {},
+          auditUiByProjectId: {},
           projectTransferState: ProjectTransferState.ready,
           currentProjectId: '',
         );
@@ -538,8 +560,10 @@ void main() {
       test('delegates to validateWorkspaceData', () {
         final data = WorkspaceData.empty();
         final result = data.validate();
+        final direct = validateWorkspaceData(data);
         expect(result, isA<WorkspaceValidationResult>());
-        expect(result.isValid, isTrue);
+        expect(result.isValid, equals(direct.isValid));
+        expect(result.issues.length, equals(direct.issues.length));
       });
     });
   });

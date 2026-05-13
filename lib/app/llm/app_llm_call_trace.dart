@@ -1,4 +1,5 @@
 import 'app_llm_client_types.dart';
+import 'app_llm_prompt_version.dart';
 
 abstract interface class AppLlmCallTraceSink {
   Future<void> record(AppLlmCallTraceEntry entry);
@@ -25,6 +26,10 @@ class AppLlmCallTraceEntry {
     this.failureKind,
     this.statusCode,
     this.errorDetail,
+    this.promptVersion,
+    this.schemaType,
+    this.schemaValid,
+    this.schemaViolations,
   });
 
   final int timestampMs;
@@ -47,11 +52,27 @@ class AppLlmCallTraceEntry {
   final String? errorDetail;
   final Map<String, Object?> metadata;
 
+  /// Prompt 模板版本（如果调用方提供）。
+  final PromptVersion? promptVersion;
+
+  /// Schema 类型标识（如 'prose', 'review', 'director', 'generic'）。
+  final String? schemaType;
+
+  /// Schema 校验是否通过（null 表示未执行校验）。
+  final bool? schemaValid;
+
+  /// Schema 校验违规描述列表。
+  final List<String>? schemaViolations;
+
   factory AppLlmCallTraceEntry.fromRequestResult({
     required AppLlmChatRequest request,
     required AppLlmChatResult result,
     required String traceName,
     Map<String, Object?> metadata = const {},
+    PromptVersion? promptVersion,
+    String? schemaType,
+    bool? schemaValid,
+    List<String>? schemaViolations,
   }) {
     final host = _hostFromBaseUrl(request.baseUrl);
     final promptChars = _promptChars(request.messages);
@@ -76,6 +97,12 @@ class AppLlmCallTraceEntry {
       statusCode: result.statusCode,
       errorDetail: result.detail,
       metadata: Map<String, Object?>.unmodifiable(metadata),
+      promptVersion: promptVersion,
+      schemaType: schemaType,
+      schemaValid: schemaValid,
+      schemaViolations: schemaViolations != null
+          ? List<String>.unmodifiable(schemaViolations)
+          : null,
     );
   }
 
@@ -100,6 +127,11 @@ class AppLlmCallTraceEntry {
       if (statusCode != null) 'statusCode': statusCode,
       if (errorDetail != null) 'errorDetail': errorDetail,
       if (metadata.isNotEmpty) 'metadata': metadata,
+      if (promptVersion != null) 'promptVersion': promptVersion!.toJson(),
+      if (schemaType != null) 'schemaType': schemaType,
+      if (schemaValid != null) 'schemaValid': schemaValid,
+      if (schemaViolations != null && schemaViolations!.isNotEmpty)
+        'schemaViolations': schemaViolations,
     };
   }
 }

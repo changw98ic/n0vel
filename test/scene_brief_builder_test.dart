@@ -141,7 +141,7 @@ void main() {
               sequence: 1,
               beatType: 'transition',
               content: 'Time passes',
-              transitionTarget: StateTransitionTarget(
+              transitionTarget: const StateTransitionTarget(
                 id: 'trans-1',
                 fromSceneId: 'scene-t',
                 toSceneId: 'scene-2',

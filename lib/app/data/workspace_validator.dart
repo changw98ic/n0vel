@@ -1,4 +1,4 @@
-import '../state/app_workspace_records.dart';
+import '../state/workspace_types.dart';
 import 'workspace_data.dart';
 
 enum ValidationSeverity { warning, error }

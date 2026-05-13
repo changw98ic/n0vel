@@ -4,7 +4,7 @@ import 'cached_project_storage.dart';
 
 class SqliteAppDraftStorage implements AppDraftStorage {
   SqliteAppDraftStorage({String? dbPath})
-      : _dbPath = dbPath ?? resolveAuthoringDbPath();
+    : _dbPath = dbPath ?? resolveAuthoringDbPath();
 
   final String _dbPath;
 
@@ -55,12 +55,20 @@ class SqliteAppDraftStorage implements AppDraftStorage {
     });
     return Future.value();
   }
+
+  @override
+  Future<void> clearProject(String projectId) {
+    withAuthoringDb(_dbPath, (database) {
+      clearByProjectScope(database, 'draft_documents', projectId);
+    });
+    return Future.value();
+  }
 }
 
 class _CachedSqliteAppDraftStorage extends CachedProjectStorage
     implements AppDraftStorage {
   _CachedSqliteAppDraftStorage({String? dbPath})
-      : super(SqliteAppDraftStorage(dbPath: dbPath));
+    : super(SqliteAppDraftStorage(dbPath: dbPath));
 }
 
 AppDraftStorage createAppDraftStorage() => _CachedSqliteAppDraftStorage();

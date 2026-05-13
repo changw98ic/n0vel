@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'settings_key_manager.dart';
+
 const String settingsJsonCipherFormat = 'novel-writer-settings-aes-gcm-v1';
 
 class SettingsJsonCipherException implements Exception {
@@ -19,9 +21,13 @@ class SettingsJsonCipher {
     required File keyFile,
     AesGcm? algorithm,
     Sha256? keyHasher,
+    SettingsKeyManager? keyManager,
   }) : _keyFile = keyFile,
        _algorithm = algorithm ?? AesGcm.with256bits(),
-       _keyHasher = keyHasher ?? Sha256();
+       _keyHasher = keyHasher ?? Sha256(),
+       _keyManager = keyManager ?? SettingsKeyManager(
+         keyFilePath: keyFile.path,
+       );
 
   factory SettingsJsonCipher.forSettingsFile(File settingsFile) {
     final parent = settingsFile.parent.path;
@@ -31,6 +37,7 @@ class SettingsJsonCipher {
   final File _keyFile;
   final AesGcm _algorithm;
   final Sha256 _keyHasher;
+  final SettingsKeyManager _keyManager;
 
   bool isEncryptedEnvelope(Map<String, Object?> json) {
     return json['format'] == settingsJsonCipherFormat;
@@ -54,13 +61,14 @@ class SettingsJsonCipher {
   Future<Map<String, Object?>> decryptEnvelope(
     Map<String, Object?> envelope,
   ) async {
+    final secretKey = await _loadSecretKeyWithRecovery();
     try {
       final nonce = _decodeBase64Field(envelope, 'nonce');
       final cipherText = _decodeBase64Field(envelope, 'ciphertext');
       final mac = _decodeBase64Field(envelope, 'mac');
       final plaintext = await _algorithm.decrypt(
         SecretBox(cipherText, nonce: nonce, mac: Mac(mac)),
-        secretKey: await _loadSecretKey(),
+        secretKey: secretKey,
       );
       final decoded = jsonDecode(utf8.decode(plaintext));
       if (decoded is! Map) {
@@ -80,31 +88,63 @@ class SettingsJsonCipher {
     }
   }
 
+  /// Rotates the encryption key and re-encrypts [settings] with it.
+  ///
+  /// Returns `true` on success.
+  Future<bool> rotateKey(Map<String, Object?> settings) async {
+    final newKey = await _keyManager.rotateKey();
+    if (newKey == null) return false;
+
+    final plaintext = utf8.encode(jsonEncode(settings));
+    final box = await _algorithm.encrypt(plaintext, secretKey: newKey);
+    final envelope = {
+      'format': settingsJsonCipherFormat,
+      'algorithm': 'AES-256-GCM',
+      'nonce': base64Encode(box.nonce),
+      'ciphertext': base64Encode(box.cipherText),
+      'mac': base64Encode(box.mac.bytes),
+    };
+
+    await _keyFile.parent.create(recursive: true);
+    await _keyFile.writeAsString(jsonEncode(envelope));
+    return true;
+  }
+
+  /// Attempts key recovery via the key manager.
+  ///
+  /// Returns a recovered [SecretKey], or `null` if all strategies fail.
+  Future<SecretKey?> attemptRecovery() => _keyManager.attemptRecovery();
+
+  // ---- Internal helpers ----
+
   Future<SecretKey> _loadSecretKey() async {
+    // Environment variable override still takes highest priority.
     final override = Platform.environment['NOVEL_WRITER_SETTINGS_AES_KEY'];
     if (override != null && override.trim().isNotEmpty) {
       return SecretKey(await _normalizeOverrideKey(override.trim()));
     }
 
-    if (await _keyFile.exists()) {
-      final stored = (await _keyFile.readAsString()).trim();
-      final bytes = base64Decode(stored);
-      if (bytes.length != 32) {
-        throw const SettingsJsonCipherException(
-          '.settings.key 必须是 32 字节 AES key 的 base64。',
-        );
-      }
-      return SecretKey(bytes);
-    }
+    // Delegate to the key manager for everything else.
+    return _keyManager.loadOrCreateKey();
+  }
 
-    await _keyFile.parent.create(recursive: true);
-    final secretKey = await _algorithm.newSecretKey();
-    final bytes = await secretKey.extractBytes();
-    await _keyFile.writeAsString(base64Encode(bytes));
-    if (!Platform.isWindows) {
-      await Process.run('chmod', ['600', _keyFile.path]);
+  /// Loads the secret key with automatic recovery on failure.
+  ///
+  /// If the primary key load fails (missing / corrupted file), the key
+  /// manager's recovery strategy is attempted before giving up.
+  Future<SecretKey> _loadSecretKeyWithRecovery() async {
+    try {
+      return await _loadSecretKey();
+    } on SettingsJsonCipherException {
+      rethrow;
+    } on Exception {
+      // Key file missing or unreadable — try recovery.
+      final recovered = await _keyManager.attemptRecovery();
+      if (recovered != null) return recovered;
+      throw const SettingsJsonCipherException(
+        '密钥文件丢失或损坏，且自动恢复失败。请重新配置应用。',
+      );
     }
-    return SecretKey(bytes);
   }
 
   Future<List<int>> _normalizeOverrideKey(String value) async {

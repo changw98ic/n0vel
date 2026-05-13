@@ -5,11 +5,11 @@ import 'story_outline_storage.dart';
 
 class SqliteStoryOutlineStorage implements StoryOutlineStorage {
   SqliteStoryOutlineStorage({String? dbPath})
-      : _impl = SqliteJsonBlobStorage(
-          dbPath: dbPath ?? resolveAuthoringDbPath(),
-          tableName: 'story_outline_snapshots',
-          jsonColumn: 'snapshot_json',
-        );
+    : _impl = SqliteJsonBlobStorage(
+        dbPath: dbPath ?? resolveAuthoringDbPath(),
+        tableName: 'story_outline_snapshots',
+        jsonColumn: 'snapshot_json',
+      );
 
   final SqliteJsonBlobStorage _impl;
 
@@ -23,12 +23,15 @@ class SqliteStoryOutlineStorage implements StoryOutlineStorage {
 
   @override
   Future<void> clear({String? projectId}) => _impl.clear(projectId: projectId);
+
+  @override
+  Future<void> clearProject(String projectId) => _impl.clearProject(projectId);
 }
 
 class _CachedSqliteStoryOutlineStorage extends CachedProjectStorage
     implements StoryOutlineStorage {
   _CachedSqliteStoryOutlineStorage({String? dbPath})
-      : super(SqliteStoryOutlineStorage(dbPath: dbPath));
+    : super(SqliteStoryOutlineStorage(dbPath: dbPath));
 }
 
 StoryOutlineStorage createStoryOutlineStorage() =>

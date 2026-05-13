@@ -299,13 +299,13 @@ void main() {
         director: const SceneDirectorOutput(text: 'plan'),
         roleOutputs: [],
         prose: const SceneProseDraft(text: 'content', attempt: 1),
-        review: SceneReviewResult(
-          judge: const SceneReviewPassResult(
+        review: const SceneReviewResult(
+          judge: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: 'ok',
             rawText: 'ok',
           ),
-          consistency: const SceneReviewPassResult(
+          consistency: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: 'ok',
             rawText: 'ok',
@@ -328,13 +328,13 @@ void main() {
         director: const SceneDirectorOutput(text: 'plan'),
         roleOutputs: [],
         prose: const SceneProseDraft(text: 'content', attempt: 1),
-        review: SceneReviewResult(
-          judge: const SceneReviewPassResult(
+        review: const SceneReviewResult(
+          judge: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: 'ok',
             rawText: 'ok',
           ),
-          consistency: const SceneReviewPassResult(
+          consistency: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
             reason: 'ok',
             rawText: 'ok',

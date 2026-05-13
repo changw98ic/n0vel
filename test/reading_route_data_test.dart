@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/navigation/reading_route_data.dart';
-import 'package:novel_writer/app/state/app_workspace_records.dart';
+import 'package:novel_writer/domain/workspace_models.dart';
 
 void main() {
   group('ReadingSceneDocument', () {

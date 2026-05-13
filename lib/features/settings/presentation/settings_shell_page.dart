@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/di/app_providers.dart';
 import '../../../app/llm/app_llm_client.dart';
-import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_settings_storage.dart';
 import '../../../app/state/app_settings_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/widgets/app_loading_state.dart';
+import 'settings_dialogs.dart';
+import 'settings_shell_components.dart';
 
-class SettingsShellPage extends StatefulWidget {
+class SettingsShellPage extends ConsumerStatefulWidget {
   const SettingsShellPage({super.key});
 
   static const providerConfigKey = ValueKey<String>('settings-provider-config');
@@ -41,6 +44,9 @@ class SettingsShellPage extends StatefulWidget {
   static const addProfileButtonKey = ValueKey<String>(
     'settings-add-profile-button',
   );
+  static const providerCatalogButtonKey = ValueKey<String>(
+    'settings-provider-catalog-button',
+  );
   static const profileListKey = ValueKey<String>('settings-profile-list');
   static const addRouteButtonKey = ValueKey<String>(
     'settings-add-route-button',
@@ -48,10 +54,10 @@ class SettingsShellPage extends StatefulWidget {
   static const routeListKey = ValueKey<String>('settings-route-list');
 
   @override
-  State<SettingsShellPage> createState() => _SettingsShellPageState();
+  ConsumerState<SettingsShellPage> createState() => _SettingsShellPageState();
 }
 
-class _SettingsShellPageState extends State<SettingsShellPage> {
+class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
   late final TextEditingController _providerController;
   late final TextEditingController _baseUrlController;
   late final TextEditingController _modelController;
@@ -61,7 +67,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
   late final TextEditingController _receiveTimeoutController;
   late final TextEditingController _maxConcurrentRequestsController;
   bool _hydratedFromStore = false;
-  bool _isDrawerOpen = false;
+  bool _apiKeyVisible = false;
 
   void _handleFormChanged() {
     if (mounted) {
@@ -98,7 +104,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     if (_hydratedFromStore) {
       return;
     }
-    _synchronizeControllers(AppSettingsScope.of(context).snapshot);
+    _synchronizeControllers(ref.read(appSettingsStoreProvider).snapshot);
     _hydratedFromStore = true;
   }
 
@@ -126,7 +132,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final settingsStore = AppSettingsScope.of(context);
+    final settingsStore = ref.watch(appSettingsStoreProvider);
     final settings = settingsStore.snapshot;
     final feedback = settingsStore.feedback;
     final connectionTestState = settingsStore.connectionTestState;
@@ -138,20 +144,9 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         int.tryParse(_sendTimeoutController.text.trim()) ?? 0;
     final parsedReceiveTimeout =
         int.tryParse(_receiveTimeoutController.text.trim()) ?? 0;
-    final parsedMaxConcurrentRequests =
-        int.tryParse(_maxConcurrentRequestsController.text.trim()) ?? 0;
     final hasSupportedModel = settingsStore.isSupportedModel(
       _modelController.text.trim(),
     );
-    final canRunConnectionTestUi =
-        _apiKeyController.text.trim().isNotEmpty &&
-        _modelController.text.trim().isNotEmpty &&
-        hasSupportedModel &&
-        (Uri.tryParse(_baseUrlController.text.trim())?.hasAuthority ?? false) &&
-        parsedConnectTimeout > 0 &&
-        parsedSendTimeout > 0 &&
-        parsedReceiveTimeout > 0 &&
-        parsedMaxConcurrentRequests > 0;
     final canSaveConfigurationUi =
         _modelController.text.trim().isEmpty || hasSupportedModel;
     final statusTitle =
@@ -164,110 +159,75 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
         : connectionTestState.message;
     final showPersistenceOverlay =
         settingsStore.hasPersistenceIssue && diagnosticReport != null;
-    Widget buildConnectionActions({required bool includeKeys}) {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          FilledButton(
-            key: includeKeys ? SettingsShellPage.testConnectionButtonKey : null,
-            onPressed: canRunConnectionTestUi
-                ? () {
-                    final currentTimeout = AppLlmTimeoutConfig(
-                      connectTimeoutMs: parsedConnectTimeout,
-                      sendTimeoutMs: parsedSendTimeout,
-                      receiveTimeoutMs: parsedReceiveTimeout,
-                    );
-                    final currentMaxConcurrentRequests =
-                        int.tryParse(
-                          _maxConcurrentRequestsController.text.trim(),
-                        ) ??
-                        0;
-                    settingsStore.testConnection(
-                      baseUrl: _baseUrlController.text,
-                      model: _modelController.text,
-                      apiKey: _apiKeyController.text,
-                      timeout: currentTimeout,
-                      maxConcurrentRequests: currentMaxConcurrentRequests,
-                    );
-                  }
-                : null,
-            child: const Text('测试连接'),
-          ),
-          AppLoadingButton(
-            key: includeKeys ? SettingsShellPage.saveButtonKey : null,
-            onPressed: canSaveConfigurationUi
-                ? () async {
-                    final currentTimeout = AppLlmTimeoutConfig(
-                      connectTimeoutMs: parsedConnectTimeout,
-                      sendTimeoutMs: parsedSendTimeout,
-                      receiveTimeoutMs: parsedReceiveTimeout,
-                    );
-                    final currentMaxConcurrentRequests =
-                        int.tryParse(
-                          _maxConcurrentRequestsController.text.trim(),
-                        ) ??
-                        0;
-                    await settingsStore.saveWithFeedback(
-                      providerName: _providerController.text.trim(),
-                      baseUrl: _baseUrlController.text.trim(),
-                      model: _modelController.text.trim(),
-                      apiKey: _apiKeyController.text.trim(),
-                      timeout: currentTimeout,
-                      maxConcurrentRequests: currentMaxConcurrentRequests,
-                    );
-                    if (!mounted) {
-                      return;
-                    }
-                    _synchronizeControllers(settingsStore.snapshot);
-                  }
-                : null,
-            child: const Text('保存配置'),
-          ),
-          if (settingsStore.canRetrySecureStoreAccess)
-            OutlinedButton(
-              key: includeKeys
-                  ? SettingsShellPage.retrySecureStoreButtonKey
-                  : null,
-              onPressed: _retrySecureStoreAccess,
-              child: const Text('重试配置'),
-            ),
-          if (diagnosticReport != null)
-            OutlinedButton(
-              key: includeKeys
-                  ? SettingsShellPage.copyDiagnosticButtonKey
-                  : null,
-              onPressed: () =>
-                  copyDiagnosticToClipboard(context, diagnosticReport),
-              child: const Text('复制诊断'),
-            ),
-          if (statusTitle != null)
-            Text(
-              statusTitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: feedbackColor,
-                fontWeight: FontWeight.w600,
+
+    final providerPanel = _buildProviderPanel(
+      context: context,
+      theme: theme,
+      settingsStore: settingsStore,
+      settings: settings,
+      feedbackColor: feedbackColor,
+      parsedConnectTimeout: parsedConnectTimeout,
+      parsedSendTimeout: parsedSendTimeout,
+      parsedReceiveTimeout: parsedReceiveTimeout,
+      canSaveConfigurationUi: canSaveConfigurationUi,
+      statusTitle: statusTitle,
+      statusMessage: statusMessage,
+      diagnosticReport: diagnosticReport,
+      showPersistenceOverlay: showPersistenceOverlay,
+    );
+
+    return DesktopShellFrame(
+      header: const DesktopHeaderBar(
+        title: '设置',
+        subtitle: '管理模型连接、界面偏好与高级选项',
+        showBackButton: true,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(width: 16),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      child: providerPanel,
+                    ),
+                  ],
+                ),
               ),
-            ),
-        ],
-      );
-    }
+            ],
+          );
+        },
+      ),
+      statusBar: DesktopStatusStrip(
+        leftText: statusTitle ?? '配置保存在本地 · 导出包不包含接口密钥',
+        rightText: settings.themePreference == AppThemePreference.dark
+            ? '深色模式'
+            : '浅色模式',
+      ),
+    );
+  }
 
-    Widget? buildVisibleStatusMessage() {
-      final message = statusMessage;
-      if (message == null || message.isEmpty) {
-        return null;
-      }
-      return Text(
-        message,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: statusTitle == null ? null : feedbackColor,
-        ),
-      );
-    }
-
-    final providerPanel = Container(
+  Widget _buildProviderPanel({
+    required BuildContext context,
+    required ThemeData theme,
+    required AppSettingsStore settingsStore,
+    required AppSettingsSnapshot settings,
+    required Color feedbackColor,
+    required int parsedConnectTimeout,
+    required int parsedSendTimeout,
+    required int parsedReceiveTimeout,
+    required bool canSaveConfigurationUi,
+    required String? statusTitle,
+    required String? statusMessage,
+    required String? diagnosticReport,
+    required bool showPersistenceOverlay,
+  }) {
+    return Container(
       key: SettingsShellPage.providerConfigKey,
       padding: const EdgeInsets.all(16),
       decoration: appPanelDecoration(context),
@@ -284,22 +244,8 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
           ),
           const SizedBox(height: 4),
           Text('连接你自己的模型服务，其余写作流程保持本地运行。', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 8),
-          const Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SettingsNavPill(
-                icon: Icons.tune_outlined,
-                label: '模型连接',
-                selected: true,
-              ),
-              _SettingsNavPill(icon: Icons.speed_outlined, label: '请求节奏'),
-              _SettingsNavPill(icon: Icons.route_outlined, label: '路由'),
-            ],
-          ),
           const SizedBox(height: 16),
-          _SettingsGroup(
+          SettingsGroup(
             title: '外观',
             subtitle: '只影响当前界面阅读感，不改变作品内容。',
             children: [
@@ -307,26 +253,22 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _ThemeButton(
+                  SettingsThemeButton(
                     buttonKey: SettingsShellPage.themeLightButtonKey,
                     label: '浅色',
-                    selected:
-                        settings.themePreference == AppThemePreference.light,
+                    selected: settings.themePreference == AppThemePreference.light,
                     onTap: () {
-                      AppSettingsScope.of(
-                        context,
-                      ).setThemePreference(AppThemePreference.light);
+                      ref.read(appSettingsStoreProvider)
+                          .setThemePreference(AppThemePreference.light);
                     },
                   ),
-                  _ThemeButton(
+                  SettingsThemeButton(
                     buttonKey: SettingsShellPage.themeDarkButtonKey,
                     label: '深色',
-                    selected:
-                        settings.themePreference == AppThemePreference.dark,
+                    selected: settings.themePreference == AppThemePreference.dark,
                     onTap: () {
-                      AppSettingsScope.of(
-                        context,
-                      ).setThemePreference(AppThemePreference.dark);
+                      ref.read(appSettingsStoreProvider)
+                          .setThemePreference(AppThemePreference.dark);
                     },
                   ),
                 ],
@@ -334,35 +276,40 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _SettingsGroup(
+          SettingsGroup(
             title: '默认模型',
             subtitle: '用于未被路由规则覆盖的写作、检查和改稿请求。',
             children: [
-              _FieldInputBox(label: '模型服务', controller: _providerController),
+              SettingsFieldInputBox(label: '模型服务', controller: _providerController),
               const SizedBox(height: 12),
-              _FieldInputBox(
+              SettingsFieldInputBox(
                 label: '接口地址',
                 controller: _baseUrlController,
                 fieldKey: SettingsShellPage.baseUrlFieldKey,
               ),
               const SizedBox(height: 12),
-              _FieldInputBox(
+              SettingsFieldInputBox(
                 label: '模型',
                 controller: _modelController,
                 fieldKey: SettingsShellPage.modelFieldKey,
               ),
               const SizedBox(height: 12),
-              _FieldInputBox(
+              SettingsFieldInputBox(
                 label: '密钥',
                 controller: _apiKeyController,
                 fieldKey: SettingsShellPage.apiKeyFieldKey,
-                obscureText: true,
+                obscureText: !_apiKeyVisible,
                 placeholder: '输入密钥',
+                onToggleObscure: () {
+                  setState(() {
+                    _apiKeyVisible = !_apiKeyVisible;
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _SettingsGroup(
+          SettingsGroup(
             title: '请求节奏',
             subtitle: '建议先保持默认值；网络较慢时再放宽等待时间。',
             children: [
@@ -372,7 +319,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 children: [
                   SizedBox(
                     width: 156,
-                    child: _FieldInputBox(
+                    child: SettingsFieldInputBox(
                       label: '连接超时',
                       controller: _connectTimeoutController,
                       fieldKey: SettingsShellPage.connectTimeoutFieldKey,
@@ -381,7 +328,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                   ),
                   SizedBox(
                     width: 156,
-                    child: _FieldInputBox(
+                    child: SettingsFieldInputBox(
                       label: '发送超时',
                       controller: _sendTimeoutController,
                       fieldKey: SettingsShellPage.sendTimeoutFieldKey,
@@ -390,7 +337,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                   ),
                   SizedBox(
                     width: 156,
-                    child: _FieldInputBox(
+                    child: SettingsFieldInputBox(
                       label: '接收超时',
                       controller: _receiveTimeoutController,
                       fieldKey: SettingsShellPage.receiveTimeoutFieldKey,
@@ -399,7 +346,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                   ),
                   SizedBox(
                     width: 156,
-                    child: _FieldInputBox(
+                    child: SettingsFieldInputBox(
                       label: '并发上限',
                       controller: _maxConcurrentRequestsController,
                       fieldKey: SettingsShellPage.maxConcurrentRequestsFieldKey,
@@ -410,7 +357,7 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _SettingsGroup(
+          SettingsGroup(
             title: '多模型服务配置',
             subtitle: '为不同 AI 阶段指定独立服务；未匹配时使用默认模型。',
             children: [
@@ -418,55 +365,92 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
                 Text('暂无额外模型服务。', style: theme.textTheme.bodySmall)
               else ...[
                 for (final profile in settings.providerProfiles) ...[
-                  _ProfileCard(
+                  SettingsProfileCard(
                     profile: profile,
+                    onTest: () => _testProfileConnection(context, profile),
+                    onSetPrimary: profile.id == 'primary'
+                        ? null
+                        : () {
+                            ref.read(appSettingsStoreProvider)
+                                .setPrimaryProviderProfile(profile.id);
+                            _synchronizeControllers(
+                              ref.read(appSettingsStoreProvider).snapshot,
+                            );
+                          },
                     onEdit: profile.id == 'primary'
                         ? null
-                        : () => _showProfileDialog(context, existing: profile),
+                        : () => showProfileDialog(
+                              context: context,
+                              store: ref.read(appSettingsStoreProvider),
+                              existing: profile,
+                            ),
                     onDelete: profile.id == 'primary'
                         ? null
                         : () {
-                            AppSettingsScope.of(
-                              context,
-                            ).removeProviderProfile(profile.id);
+                            ref.read(appSettingsStoreProvider)
+                                .removeProviderProfile(profile.id);
                           },
                   ),
                   const SizedBox(height: 8),
                 ],
               ],
               const SizedBox(height: 4),
-              OutlinedButton(
-                key: SettingsShellPage.addProfileButtonKey,
-                onPressed: () => _showProfileDialog(context),
-                child: const Text('添加模型服务'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    key: SettingsShellPage.providerCatalogButtonKey,
+                    onPressed: () => showProviderCatalogDialog(
+                      context: context,
+                      store: settingsStore,
+                      onSynchronizeControllers: _synchronizeControllers,
+                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('一键添加供应商'),
+                  ),
+                  OutlinedButton.icon(
+                    key: SettingsShellPage.addProfileButtonKey,
+                    onPressed: () => showProfileDialog(
+                      context: context,
+                      store: ref.read(appSettingsStoreProvider),
+                    ),
+                    icon: const Icon(Icons.edit_note, size: 18),
+                    label: const Text('手动配置'),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: () {
-                  AppSettingsScope.of(
-                    context,
-                  ).applySingleChapterGenerationProviderPreset();
+                  ref.read(appSettingsStoreProvider)
+                      .applySingleChapterGenerationProviderPreset();
                 },
-                child: const Text('应用单章生成路由预设'),
+                icon: const Icon(Icons.route_outlined, size: 18),
+                label: const Text('应用单章生成路由预设'),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _SettingsGroup(
+          SettingsGroup(
             title: '路由规则',
-            subtitle: '将 trace 名称匹配到指定模型服务，支持 scene_review_* 这类通配符。',
+            subtitle: '按请求类型匹配到指定模型服务，留空使用默认模型。',
             children: [
               if (settings.requestProviderRoutes.isEmpty)
                 Text('暂无路由规则。', style: theme.textTheme.bodySmall)
               else ...[
                 for (final route in settings.requestProviderRoutes) ...[
-                  _RouteCard(
+                  SettingsRouteCard(
                     route: route,
                     profiles: settings.providerProfiles,
+                    onEdit: () => showRouteDialog(
+                      context: context,
+                      settingsStore: ref.read(appSettingsStoreProvider),
+                      existing: route,
+                    ),
                     onDelete: () {
-                      AppSettingsScope.of(
-                        context,
-                      ).removeRequestProviderRoute(route.traceNamePattern);
+                      ref.read(appSettingsStoreProvider)
+                          .removeRequestProviderRoute(route.traceNamePattern);
                     },
                   ),
                   const SizedBox(height: 8),
@@ -475,263 +459,116 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
               const SizedBox(height: 4),
               OutlinedButton(
                 key: SettingsShellPage.addRouteButtonKey,
-                onPressed: () => _showRouteDialog(context),
+                onPressed: () => showRouteDialog(
+                  context: context,
+                  settingsStore: ref.read(appSettingsStoreProvider),
+                ),
                 child: const Text('添加路由'),
               ),
             ],
           ),
-        ],
-      ),
-    );
-    final connectionPanel = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
-      child: Stack(
-        children: [
-          Opacity(
-            opacity: showPersistenceOverlay ? 0.38 : 1,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                Text(
-                  _statusPanelTitle(
-                    statusTitle: statusTitle,
-                    activeIssue: settingsStore.activePersistenceIssue,
-                  ),
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                buildConnectionActions(includeKeys: !showPersistenceOverlay),
-                if (!showPersistenceOverlay &&
-                    buildVisibleStatusMessage() != null) ...[
-                  const SizedBox(height: 12),
-                  buildVisibleStatusMessage()!,
-                ],
-                const SizedBox(height: 16),
-                ..._buildStatusCards(
-                  context: context,
-                  statusTitle: statusTitle,
-                  statusMessage: statusMessage,
-                  settingsStore: settingsStore,
-                ),
-                const SizedBox(height: 12),
-                _ConfigSummaryRow(label: '状态', value: statusTitle ?? '尚未验证'),
-                const SizedBox(height: 8),
-                _ConfigSummaryRow(
-                  label: '上次连接',
-                  value: feedback.title == null ? '还没有记录' : '刚刚',
-                ),
-                const SizedBox(height: 8),
-                _ConfigSummaryRow(
-                  label: '连接地址',
-                  value: _baseUrlController.text.trim(),
-                ),
-                const SizedBox(height: 8),
-                _ConfigSummaryRow(
-                  label: '当前模型',
-                  value: _modelController.text.trim(),
-                ),
-              ],
-            ),
+          const SizedBox(height: 16),
+          _buildConnectionActions(
+            feedbackColor: feedbackColor,
+            canSaveConfigurationUi: canSaveConfigurationUi,
+            parsedConnectTimeout: parsedConnectTimeout,
+            parsedSendTimeout: parsedSendTimeout,
+            parsedReceiveTimeout: parsedReceiveTimeout,
+            statusTitle: statusTitle,
+            diagnosticReport: diagnosticReport,
+            includeKeys: true,
           ),
-          if (showPersistenceOverlay)
-            Positioned.fill(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 728),
-                  child: _PersistenceOverlayCard(
-                    title: feedback.title ?? '设置状态异常',
-                    diagnosticReport: diagnosticReport,
-                    explanation: _persistenceOverlayExplanation(
-                      settingsStore.activePersistenceIssue,
-                    ),
-                    onCopyDiagnostic: () =>
-                        copyDiagnosticToClipboard(context, diagnosticReport),
-                    onRetry: settingsStore.canRetrySecureStoreAccess
-                        ? _retrySecureStoreAccess
-                        : null,
-                  ),
-                ),
+          if (!showPersistenceOverlay && statusMessage != null && statusMessage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              statusMessage,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: statusTitle == null ? null : feedbackColor,
               ),
             ),
+          ],
         ],
-      ),
-    );
-    final helpPanel = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(context),
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          Text('说明', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          const _SettingsHelpNote(
-            title: '接口密钥仅保存在本地',
-            message: '如果连接失败，写作工作区仍可继续使用。切换模型只会影响下一次模拟运行。',
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _helpHeadline(
-              statusTitle: statusTitle,
-              activeIssue: settingsStore.activePersistenceIssue,
-            ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: statusTitle == null ? null : feedbackColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _helpBody(
-              statusMessage: statusMessage,
-              activeIssue: settingsStore.activePersistenceIssue,
-            ),
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-
-    return DesktopShellFrame(
-      header: const DesktopHeaderBar(
-        title: '设置',
-        subtitle: '管理模型连接、界面偏好与高级选项',
-        showBackButton: true,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 980;
-          final handleRegion = DesktopMenuDrawerRegion(
-            isOpen: _isDrawerOpen,
-            onHandleTap: () {
-              setState(() {
-                _isDrawerOpen = !_isDrawerOpen;
-              });
-            },
-            items: _menuItems(context),
-          );
-
-          if (compact) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                handleRegion,
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: appPanelDecoration(context),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            buildConnectionActions(includeKeys: true),
-                            if (buildVisibleStatusMessage() != null) ...[
-                              const SizedBox(height: 12),
-                              buildVisibleStatusMessage()!,
-                            ],
-                            if (!showPersistenceOverlay) ...[
-                              const SizedBox(height: 12),
-                              ..._buildStatusCards(
-                                context: context,
-                                statusTitle: statusTitle,
-                                statusMessage: statusMessage,
-                                settingsStore: settingsStore,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: ListView(
-                          children: [
-                            providerPanel,
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: appPanelDecoration(context),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    _statusPanelTitle(
-                                      statusTitle: statusTitle,
-                                      activeIssue:
-                                          settingsStore.activePersistenceIssue,
-                                    ),
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ..._buildStatusCards(
-                                    context: context,
-                                    statusTitle: statusTitle,
-                                    statusMessage: statusMessage,
-                                    settingsStore: settingsStore,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _ConfigSummaryRow(
-                                    label: '状态',
-                                    value: statusTitle ?? '尚未验证',
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _ConfigSummaryRow(
-                                    label: '上次连接',
-                                    value: feedback.title == null
-                                        ? '还没有记录'
-                                        : '刚刚',
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _ConfigSummaryRow(
-                                    label: '连接地址',
-                                    value: _baseUrlController.text.trim(),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _ConfigSummaryRow(
-                                    label: '当前模型',
-                                    value: _modelController.text.trim(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            helpPanel,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              handleRegion,
-              const SizedBox(width: 16),
-              SizedBox(width: 420, child: providerPanel),
-              const SizedBox(width: 16),
-              Expanded(child: connectionPanel),
-              const SizedBox(width: 16),
-              SizedBox(width: 300, child: helpPanel),
-            ],
-          );
-        },
-      ),
-      statusBar: DesktopStatusStrip(
-        leftText: statusTitle ?? '配置保存在本地 · 导出包不包含接口密钥',
-        rightText: settings.themePreference == AppThemePreference.dark
-            ? '深色模式'
-            : '浅色模式',
       ),
     );
   }
 
+  Widget _buildConnectionActions({
+    required Color feedbackColor,
+    required bool canSaveConfigurationUi,
+    required int parsedConnectTimeout,
+    required int parsedSendTimeout,
+    required int parsedReceiveTimeout,
+    required String? statusTitle,
+    required String? diagnosticReport,
+    required bool includeKeys,
+  }) {
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        AppLoadingButton(
+          key: includeKeys ? SettingsShellPage.saveButtonKey : null,
+          onPressed: canSaveConfigurationUi
+              ? () async {
+                  final currentTimeout = AppLlmTimeoutConfig(
+                    connectTimeoutMs: parsedConnectTimeout,
+                    sendTimeoutMs: parsedSendTimeout,
+                    receiveTimeoutMs: parsedReceiveTimeout,
+                  );
+                  final currentMaxConcurrentRequests =
+                      int.tryParse(
+                        _maxConcurrentRequestsController.text.trim(),
+                      ) ??
+                      0;
+                  await ref.read(appSettingsStoreProvider).saveWithFeedback(
+                    providerName: _providerController.text.trim(),
+                    baseUrl: _baseUrlController.text.trim(),
+                    model: _modelController.text.trim(),
+                    apiKey: _apiKeyController.text.trim(),
+                    timeout: currentTimeout,
+                    maxConcurrentRequests: currentMaxConcurrentRequests,
+                  );
+                  if (!mounted) return;
+                  _synchronizeControllers(
+                    ref.read(appSettingsStoreProvider).snapshot,
+                  );
+                }
+              : null,
+          child: const Text('保存配置'),
+        ),
+        if (ref.read(appSettingsStoreProvider).canRetrySecureStoreAccess)
+          OutlinedButton(
+            key: includeKeys
+                ? SettingsShellPage.retrySecureStoreButtonKey
+                : null,
+            onPressed: _retrySecureStoreAccess,
+            child: const Text('重试配置'),
+          ),
+        if (diagnosticReport != null)
+          OutlinedButton(
+            key: includeKeys
+                ? SettingsShellPage.copyDiagnosticButtonKey
+                : null,
+            onPressed: () =>
+                copyDiagnosticToClipboard(context, diagnosticReport),
+            child: const Text('复制诊断'),
+          ),
+        if (statusTitle != null)
+          Text(
+            statusTitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: feedbackColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+      ],
+    );
+  }
+
   Future<void> _retrySecureStoreAccess() async {
-    final settingsStore = AppSettingsScope.of(context);
+    final settingsStore = ref.read(appSettingsStoreProvider);
     final issue = settingsStore.activePersistenceIssue;
     if (issue == AppSettingsPersistenceIssue.none) {
       return;
@@ -784,230 +621,17 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
     );
   }
 
-  List<DesktopMenuItemData> _menuItems(BuildContext context) {
-    return buildDesktopWorkspaceMenuItems(
-      selected: DesktopWorkspaceSection.settings,
-      onShelf: () => Navigator.of(context).popUntil((route) => route.isFirst),
-      onWorkbench: () => AppNavigator.push(context, AppRoutes.workbench),
-      onWorkSettings: () =>
-          AppNavigator.push(context, AppRoutes.workSettingsHub),
-      onRevision: () => AppNavigator.push(context, AppRoutes.revisionHub),
-      onReading: () => AppNavigator.push(context, AppRoutes.scenes),
-      onSettings: () {
-        setState(() {
-          _isDrawerOpen = false;
-        });
-      },
-    );
-  }
-
-  Future<void> _showProfileDialog(
-    BuildContext context, {
-    AppLlmProviderProfile? existing,
-  }) async {
-    final store = AppSettingsScope.of(context);
-    final idController = TextEditingController(text: existing?.id);
-    final nameController = TextEditingController(text: existing?.providerName);
-    final urlController = TextEditingController(text: existing?.baseUrl);
-    final modelController = TextEditingController(text: existing?.model);
-    final keyController = TextEditingController(text: existing?.apiKey);
-    final result = await showDialog<bool>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return DesktopModalDialog(
-          title: existing == null ? '添加模型服务' : '编辑模型服务',
-          width: 560,
-          body: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: idController,
-                  readOnly: existing != null,
-                  decoration: const InputDecoration(
-                    labelText: '标识（英文，唯一）',
-                    hintText: '例如：glm-review',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: '模型服务名称',
-                    hintText: '例如：智谱 GLM',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: urlController,
-                  decoration: const InputDecoration(
-                    labelText: '接口地址',
-                    hintText: 'https://open.bigmodel.cn/api/paas/v4',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: modelController,
-                  decoration: const InputDecoration(
-                    labelText: '模型',
-                    hintText: '例如：glm-5.1',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: keyController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: '密钥',
-                    hintText: '输入密钥',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final id = idController.text.trim();
-                if (id.isEmpty ||
-                    nameController.text.trim().isEmpty ||
-                    urlController.text.trim().isEmpty ||
-                    modelController.text.trim().isEmpty) {
-                  return;
-                }
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
-    );
-    final profileId = idController.text.trim();
-    final profileName = nameController.text.trim();
-    final profileUrl = urlController.text.trim();
-    final profileModel = modelController.text.trim();
-    final profileKey = keyController.text.trim();
-    if (result != true) return;
-    if (!mounted) return;
-    await store.upsertProviderProfile(
-      AppLlmProviderProfile(
-        id: profileId,
-        providerName: profileName,
-        baseUrl: profileUrl,
-        model: profileModel,
-        apiKey: profileKey,
-      ),
-    );
-  }
-
-  Future<void> _showRouteDialog(BuildContext context) async {
-    final settingsStore = AppSettingsScope.of(context);
-    final profiles = settingsStore.snapshot.providerProfiles;
-    if (profiles.isEmpty) {
-      return;
-    }
-    final patternController = TextEditingController();
-    String? selectedProfileId = profiles.first.id;
-    final result = await showDialog<bool>(
-      context: context,
-      barrierLabel: '关闭',
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return DesktopModalDialog(
-              title: '添加路由',
-              width: 520,
-              body: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: patternController,
-                      decoration: const InputDecoration(
-                        labelText: 'Trace 名称模式',
-                        hintText: '例如：scene_review_*',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '目标模型服务',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    for (final profile in profiles)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setDialogState(() {
-                                selectedProfileId = profile.id;
-                              });
-                            },
-                            child: Row(
-                              children: [
-                                Icon(
-                                  selectedProfileId == profile.id
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_off,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    '${profile.id} (${profile.model})',
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.left,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                OutlinedButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('取消'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (patternController.text.trim().isEmpty ||
-                        selectedProfileId == null) {
-                      return;
-                    }
-                    Navigator.of(dialogContext).pop(true);
-                  },
-                  child: const Text('保存'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    final routePattern = patternController.text.trim();
-    if (result != true) return;
-    if (selectedProfileId == null) return;
-    if (!mounted) return;
-    await settingsStore.upsertRequestProviderRoute(
-      AppLlmRequestProviderRoute(
-        traceNamePattern: routePattern,
-        providerProfileId: selectedProfileId!,
-      ),
+  void _testProfileConnection(
+    BuildContext context,
+    AppLlmProviderProfile profile,
+  ) {
+    final settingsStore = ref.read(appSettingsStoreProvider);
+    settingsStore.testConnection(
+      baseUrl: profile.baseUrl,
+      model: profile.model,
+      apiKey: profile.apiKey,
+      providerName: profile.providerName,
+      timeout: const AppLlmTimeoutConfig.uniform(30000),
     );
   }
 
@@ -1018,589 +642,5 @@ class _SettingsShellPageState extends State<SettingsShellPage> {
       AppSettingsFeedbackTone.success => palette.success,
       AppSettingsFeedbackTone.error => palette.danger,
     };
-  }
-
-  String _statusPanelTitle({
-    required String? statusTitle,
-    required AppSettingsPersistenceIssue activeIssue,
-  }) {
-    if (activeIssue != AppSettingsPersistenceIssue.none) {
-      return '配置异常';
-    }
-    return switch (statusTitle) {
-      '保存成功' => '保存结果',
-      '配置已重新加载' || '配置已重新保存' => '恢复结果',
-      _ => '连接测试',
-    };
-  }
-
-  List<Widget> _buildStatusCards({
-    required BuildContext context,
-    required String? statusTitle,
-    required String? statusMessage,
-    required AppSettingsStore settingsStore,
-  }) {
-    final theme = Theme.of(context);
-
-    switch (statusTitle) {
-      case '配置已重新加载':
-        return [
-          _StatusHeadlineCard(
-            label: statusTitle!,
-            message: statusMessage ?? '本地配置文件已重新读取，当前配置已同步。',
-          ),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '恢复内容', value: '密钥与本地配置'),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '未保存的非密钥编辑', value: '已保留'),
-        ];
-      case '配置已重新保存':
-        return [
-          _StatusHeadlineCard(
-            label: statusTitle!,
-            message: statusMessage ?? '本地配置文件已更新。',
-          ),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '下一次生效', value: '下一个 AI 请求'),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '当前请求', value: '不自动重试'),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '建议动作', value: '返回工作台后手动重试'),
-        ];
-      case '保存成功':
-        return [
-          _StatusHeadlineCard(
-            label: statusTitle!,
-            message: statusMessage ?? '新配置会从下一次 AI 请求开始生效。',
-          ),
-          const SizedBox(height: 8),
-          const _StatusDetailRow(label: '下一次生效', value: '下一个 AI 请求'),
-        ];
-      default:
-        return [
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 160),
-            padding: const EdgeInsets.all(16),
-            decoration: appPanelDecoration(
-              context,
-              color: desktopPalette(context).elevated,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(statusTitle ?? '尚未验证', style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 8),
-                Text(
-                  statusMessage ?? '连接验证结果、最近一次状态和模型可用性会显示在这里。',
-                  style: theme.textTheme.bodySmall,
-                ),
-                if (settingsStore.activePersistenceIssue ==
-                        AppSettingsPersistenceIssue.none &&
-                    statusTitle != null &&
-                    statusTitle.startsWith('连接测试失败')) ...[
-                  const SizedBox(height: 12),
-                  const _StatusDetailRow(label: '建议动作', value: '修正配置后再次测试'),
-                ],
-              ],
-            ),
-          ),
-        ];
-    }
-  }
-
-  String _persistenceOverlayExplanation(AppSettingsPersistenceIssue issue) {
-    return switch (issue) {
-      AppSettingsPersistenceIssue.fileReadFailed =>
-        '无法恢复上一次保存的连接配置。请重试读取，或复制诊断信息继续排查。',
-      AppSettingsPersistenceIssue.fileWriteFailed =>
-        '连接参数草稿仍保留在当前页面，可复制诊断或再次尝试保存。',
-      AppSettingsPersistenceIssue.none => '',
-    };
-  }
-
-  String _helpHeadline({
-    required String? statusTitle,
-    required AppSettingsPersistenceIssue activeIssue,
-  }) {
-    if (activeIssue == AppSettingsPersistenceIssue.fileReadFailed) {
-      return '可先复制诊断，再重试读取本地配置。';
-    }
-    if (activeIssue == AppSettingsPersistenceIssue.fileWriteFailed) {
-      return '当前表单草稿仍保留，可先排查后再次保存。';
-    }
-    return statusTitle ?? '连接状态';
-  }
-
-  String _helpBody({
-    required String? statusMessage,
-    required AppSettingsPersistenceIssue activeIssue,
-  }) {
-    return switch (activeIssue) {
-      AppSettingsPersistenceIssue.fileReadFailed =>
-        '读取失败不会阻塞当前写作工作区。复制诊断后，可检查本地配置文件是否损坏或权限异常。',
-      AppSettingsPersistenceIssue.fileWriteFailed =>
-        '保存失败不会丢失当前表单编辑。修复磁盘或目录权限后，可直接使用重试配置再次写入。',
-      AppSettingsPersistenceIssue.none => switch (statusMessage) {
-        '本地配置文件已重新读取，当前配置已同步。' =>
-          '系统已重新读取本地配置，并恢复最近一次可用的密钥内容。未保存的接口地址、模型名称等编辑仍保留在当前表单中。',
-        '本地配置文件已更新。' =>
-          '最新配置已经写入本地配置文件。返回工作台后，下一次 AI 请求会使用新配置；当前失败请求不会自动重试。',
-        _ => statusMessage ?? '连接测试、最近一次状态和模型可用性会显示在这里；未验证前不会影响本地写作。',
-      },
-    };
-  }
-}
-
-class _FieldInputBox extends StatelessWidget {
-  const _FieldInputBox({
-    required this.label,
-    required this.controller,
-    this.fieldKey,
-    this.obscureText = false,
-    this.placeholder,
-    this.suffix,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final Key? fieldKey;
-  final bool obscureText;
-  final String? placeholder;
-  final String? suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 6),
-        TextField(
-          key: fieldKey,
-          controller: controller,
-          obscureText: obscureText,
-          decoration: InputDecoration(
-            hintText: placeholder,
-            suffixText: suffix,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SettingsNavPill extends StatelessWidget {
-  const _SettingsNavPill({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = desktopPalette(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected
-            ? palette.primary.withValues(alpha: 0.12)
-            : palette.elevated,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: selected
-              ? palette.primary.withValues(alpha: 0.42)
-              : palette.border,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: selected ? palette.primary : null),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: selected ? palette.primary : null,
-              fontWeight: selected ? FontWeight.w600 : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({
-    required this.title,
-    required this.subtitle,
-    required this.children,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Text(subtitle, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsHelpNote extends StatelessWidget {
-  const _SettingsHelpNote({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.primary.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: palette.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(message, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThemeButton extends StatelessWidget {
-  const _ThemeButton({
-    required this.buttonKey,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Key buttonKey;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (selected) {
-      return FilledButton(key: buttonKey, onPressed: onTap, child: Text(label));
-    }
-    return OutlinedButton(key: buttonKey, onPressed: onTap, child: Text(label));
-  }
-}
-
-class _ConfigSummaryRow extends StatelessWidget {
-  const _ConfigSummaryRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).elevated,
-      ),
-      child: Row(
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusHeadlineCard extends StatelessWidget {
-  const _StatusHeadlineCard({required this.label, required this.message});
-
-  final String label;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).elevated,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 8),
-          Text(message, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusDetailRow extends StatelessWidget {
-  const _StatusDetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: appPanelDecoration(
-        context,
-        color: desktopPalette(context).elevated,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PersistenceOverlayCard extends StatelessWidget {
-  const _PersistenceOverlayCard({
-    required this.title,
-    required this.diagnosticReport,
-    required this.explanation,
-    this.onCopyDiagnostic,
-    this.onRetry,
-  });
-
-  final String title;
-  final String? diagnosticReport;
-  final String explanation;
-  final VoidCallback? onCopyDiagnostic;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: desktopPalette(context).border),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          if (diagnosticReport case final report?) ...[
-            const SizedBox(height: 12),
-            Text(report, style: Theme.of(context).textTheme.bodySmall),
-          ],
-          if (explanation.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(explanation, style: Theme.of(context).textTheme.bodySmall),
-          ],
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              if (onCopyDiagnostic != null)
-                OutlinedButton(
-                  key: SettingsShellPage.copyDiagnosticButtonKey,
-                  onPressed: onCopyDiagnostic,
-                  child: const Text('复制诊断'),
-                ),
-              if (onRetry != null)
-                FilledButton(
-                  key: SettingsShellPage.retrySecureStoreButtonKey,
-                  onPressed: onRetry,
-                  child: const Text('重试配置'),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.profile,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final AppLlmProviderProfile profile;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${profile.providerName} · ${profile.model}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  profile.baseUrl,
-                  style: theme.textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (profile.id == 'primary') ...[
-                  const SizedBox(height: 4),
-                  Text('默认写作配置会自动同步到这里。', style: theme.textTheme.bodySmall),
-                ],
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: onEdit,
-            tooltip: onEdit == null ? '默认配置请在上方编辑' : '编辑',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20),
-            onPressed: onDelete,
-            tooltip: onDelete == null ? '默认配置不能删除' : '删除',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RouteCard extends StatelessWidget {
-  const _RouteCard({
-    required this.route,
-    required this.profiles,
-    required this.onDelete,
-  });
-
-  final AppLlmRequestProviderRoute route;
-  final List<AppLlmProviderProfile> profiles;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = desktopPalette(context);
-    final profileName =
-        profiles
-            .where((p) => p.id == route.providerProfileId)
-            .map((p) => '${p.providerName} (${p.model})')
-            .firstOrNull ??
-        route.providerProfileId;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(route.traceNamePattern, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 4),
-                Text(
-                  profileName,
-                  style: theme.textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20),
-            onPressed: onDelete,
-            tooltip: '删除',
-          ),
-        ],
-      ),
-    );
   }
 }

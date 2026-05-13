@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/llm/app_llm_client_types.dart';
-import 'package:novel_writer/app/llm/app_llm_response_decoding.dart';
 
 import 'test_support/fake_app_llm_client.dart';
 
@@ -46,9 +44,7 @@ void main() {
 
     test('unauthorized (401) returns unauthorized failure kind', () async {
       final client = FakeAppLlmClient();
-      final result = await client.chat(
-        _request(apiKey: 'sk-unauthorized'),
-      );
+      final result = await client.chat(_request(apiKey: 'sk-unauthorized'));
 
       expect(result.succeeded, isFalse);
       expect(result.failureKind, AppLlmFailureKind.unauthorized);
@@ -57,9 +53,7 @@ void main() {
 
     test('model not found returns modelNotFound failure kind', () async {
       final client = FakeAppLlmClient();
-      final result = await client.chat(
-        _request(model: 'missing-model-404'),
-      );
+      final result = await client.chat(_request(model: 'missing-model-404'));
 
       expect(result.succeeded, isFalse);
       expect(result.failureKind, AppLlmFailureKind.modelNotFound);
@@ -118,14 +112,12 @@ void main() {
       );
 
       final stream = client.chatStream(_request());
-      expect(
-        stream,
-        emitsError(isA<AppLlmStreamException>()),
-      );
+      expect(stream, emitsError(isA<AppLlmStreamException>()));
     });
 
     test('stream interruption after partial data', () async {
       final controller = StreamController<String>();
+      addTearDown(controller.close);
       controller.add('Partial text...');
       controller.addError(
         const AppLlmStreamException(
@@ -159,17 +151,11 @@ void main() {
     });
 
     test('empty body throws FormatException', () {
-      expect(
-        () => decodeOpenAiChatResponseBody(''),
-        throwsFormatException,
-      );
+      expect(() => decodeOpenAiChatResponseBody(''), throwsFormatException);
     });
 
     test('valid JSON but no choices returns null', () {
-      expect(
-        decodeOpenAiChatResponseBody('{"id":"chatcmpl-1"}'),
-        isNull,
-      );
+      expect(decodeOpenAiChatResponseBody('{"id":"chatcmpl-1"}'), isNull);
     });
 
     test('choices with empty content returns null', () {
@@ -210,9 +196,7 @@ void main() {
     });
 
     test('stream body with only [DONE] returns null', () {
-      final result = decodeOpenAiChatStreamBody(
-        'data: [DONE]\n',
-      );
+      final result = decodeOpenAiChatStreamBody('data: [DONE]\n');
       expect(result, isNull);
     });
   });
