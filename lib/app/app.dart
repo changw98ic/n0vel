@@ -5,6 +5,7 @@ import 'di/app_providers.dart';
 import 'di/service_registration.dart';
 import 'di/service_registry.dart';
 import 'navigation/route_registration.dart';
+import 'state/app_authoring_storage_io_support.dart';
 import 'state/app_auto_backup.dart';
 import 'state/crash_detector.dart';
 import 'theme/app_theme.dart';
@@ -42,6 +43,7 @@ class _NovelWriterAppState extends State<NovelWriterApp>
   late final ServiceRegistry _registry;
   late final CrashDetector _crashDetector;
   bool _crashDetected = false;
+  bool _dbCorrupted = false;
   bool _restoringBackup = false;
   bool _cleanShutdownMarked = false;
 
@@ -50,14 +52,20 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     registerAppRoutes();
+
+    _crashDetector = widget.crashDetector ?? CrashDetector();
+    _crashDetected = _crashDetector.wasDirtyShutdown();
+
     _registry = NovelWriterApp.debugRegistryOverride ?? ServiceRegistry();
     if (NovelWriterApp.debugRegistryOverride == null) {
-      registerAppServices(_registry);
+      try {
+        registerAppServices(_registry);
+      } on DatabaseCorruptedException {
+        // DB corruption triggers the same recovery flow as a crash.
+        _crashDetected = true;
+        _dbCorrupted = true;
+      }
     }
-    _crashDetector = widget.crashDetector ?? CrashDetector();
-
-    // Check for dirty shutdown before the widget tree builds.
-    _crashDetected = _crashDetector.wasDirtyShutdown();
   }
 
   @override
@@ -86,6 +94,9 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 
   @override
   Widget build(BuildContext context) {
+    if (_dbCorrupted) {
+      return _buildCorruptionRecovery(context);
+    }
     return ProviderScope(
       overrides: [serviceRegistryProvider.overrideWithValue(_registry)],
       child: Consumer(
@@ -111,6 +122,21 @@ class _NovelWriterAppState extends State<NovelWriterApp>
               );
             },
           );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCorruptionRecovery(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: '小说工作台',
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      home: _CorruptionRecoveryScreen(
+        onRestoreComplete: () {
+          // After backup restore, user must restart the app.
+          // A full hot-restart is needed to re-register services.
         },
       ),
     );
@@ -175,5 +201,146 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
   @override
   Widget build(BuildContext context) {
     return widget.child;
+  }
+}
+
+/// Full-screen recovery UI shown when the authoring database is corrupted.
+///
+/// Lists available backups and offers one-click restore + restart.
+class _CorruptionRecoveryScreen extends StatefulWidget {
+  const _CorruptionRecoveryScreen({required this.onRestoreComplete});
+
+  final VoidCallback onRestoreComplete;
+
+  @override
+  State<_CorruptionRecoveryScreen> createState() =>
+      _CorruptionRecoveryScreenState();
+}
+
+class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
+  List<BackupEntry> _backups = const [];
+  bool _loading = true;
+  bool _restoring = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBackups();
+  }
+
+  Future<void> _loadBackups() async {
+    final service = NovelWriterApp.debugCreateAutoBackupService();
+    try {
+      final backups = await service.listBackups();
+      if (!mounted) return;
+      setState(() {
+        _backups = backups;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  Future<void> _restore(BackupEntry backup) async {
+    setState(() => _restoring = true);
+    final service = NovelWriterApp.debugCreateAutoBackupService();
+    try {
+      await service.restoreBackup(backup.id);
+      if (!mounted) return;
+      setState(() => _restoring = false);
+      widget.onRestoreComplete();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _restoring = false;
+        _error = '恢复失败：$e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: Card(
+          margin: const EdgeInsets.all(32),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('数据库损坏', style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 12),
+                  Text(
+                    '应用检测到数据库文件已损坏，无法正常启动。\n'
+                    '请从备份恢复后重启应用。',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                  ],
+                  const SizedBox(height: 20),
+                  if (_loading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_backups.isEmpty)
+                    Text(
+                      '未找到可用备份。请联系技术支持。',
+                      style: TextStyle(color: theme.colorScheme.error),
+                    )
+                  else ...[
+                    Text('可用备份：', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    ..._backups.take(5).map(
+                      (b) => ListTile(
+                        dense: true,
+                        title: Text(_formatBackupTime(b.createdAtMs)),
+                        subtitle: Text(_formatSize(b.sizeBytes)),
+                        trailing: _restoring
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : FilledButton(
+                                onPressed: () => _restore(b),
+                                child: const Text('恢复'),
+                              ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatBackupTime(int millis) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(millis);
+    return '${dt.year}-'
+        '${dt.month.toString().padLeft(2, '0')}-'
+        '${dt.day.toString().padLeft(2, '0')} '
+        '${dt.hour.toString().padLeft(2, '0')}:'
+        '${dt.minute.toString().padLeft(2, '0')}:'
+        '${dt.second.toString().padLeft(2, '0')}';
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

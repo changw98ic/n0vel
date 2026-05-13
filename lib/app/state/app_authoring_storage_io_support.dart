@@ -49,15 +49,39 @@ Directory resolveTelemetryLogsDirectory({String? homeOverride}) {
   return Directory('$home/.novel_writer/logs');
 }
 
+/// Thrown when [openAuthoringDatabase] detects database corruption.
+class DatabaseCorruptedException implements Exception {
+  DatabaseCorruptedException(this.details);
+  final String details;
+  @override
+  String toString() => 'DatabaseCorruptedException: $details';
+}
+
 Database openAuthoringDatabase(String dbPath) {
   final file = File(dbPath);
   file.parent.createSync(recursive: true);
   final database = sqlite3.open(dbPath);
   _applyPerformancePragmas(database);
+  _checkIntegrity(database);
   DatabaseSchemaManager(
     migrations: authoringSchemaMigrations,
   ).ensureSchema(database);
   return database;
+}
+
+/// Runs a quick integrity check and throws if the database is corrupted.
+///
+/// Called after pragmas but before schema migration so a corrupted DB is never
+/// silently opened and used.
+void _checkIntegrity(Database database) {
+  final rows = database.select('PRAGMA integrity_check');
+  for (final row in rows) {
+    final value = row.values.first?.toString();
+    if (value != null && value != 'ok') {
+      database.dispose();
+      throw DatabaseCorruptedException(value);
+    }
+  }
 }
 
 Database openTelemetryDatabase(String dbPath) {
