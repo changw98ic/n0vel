@@ -11,13 +11,13 @@ import 'settings/settings_models.dart';
 mixin AppSettingsStoreAiRouting on AppStoreListenable {
   // --- Store 字段访问器（由 AppSettingsStore 实现） ---
 
-  AppSettingsSnapshot get aiRoutingSnapshot;
-  AiRequestService get aiRoutingRequestService;
-  LlmProviderService get aiRoutingProviderService;
-  AppLlmRequestPool get aiRoutingRequestPool;
+  AppSettingsSnapshot get storeSnapshot;
+  AiRequestService get storeAiRequestService;
+  LlmProviderService get storeProviderService;
+  AppLlmRequestPool get storeRequestPool;
 
   /// 根据 providerProfileId 获取对应的请求池。
-  AppLlmRequestPool requestPoolForProviderProfile(String? providerProfileId);
+  AppLlmRequestPool storeRequestPoolForProfile(String? providerProfileId);
 
   // --- AI 请求路由 ---
 
@@ -29,7 +29,7 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
   }) {
     final resolvedTraceName = traceName ?? _inferTraceName(messages);
     final resolved = _resolveRequestSettings(resolvedTraceName);
-    final requestPool = requestPoolForProviderProfile(
+    final requestPool = storeRequestPoolForProfile(
       resolved.providerProfileId,
     );
     final route = ResolvedProviderRoute(
@@ -42,16 +42,16 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
 
     // 构建备用 provider 列表用于 failover。
     final failoverEndpoints =
-        aiRoutingRequestService.buildFailoverEndpoints(
-      profiles: aiRoutingSnapshot.providerProfiles,
+        storeAiRequestService.buildFailoverEndpoints(
+      profiles: storeSnapshot.providerProfiles,
       excludeProfileId: resolved.providerProfileId,
     );
 
-    return aiRoutingRequestService.requestCompletion(
-      snapshot: aiRoutingSnapshot,
+    return storeAiRequestService.requestCompletion(
+      snapshot: storeSnapshot,
       route: route,
       requestPool: requestPool,
-      requestPoolForProvider: requestPoolForProviderProfile,
+      requestPoolForProvider: storeRequestPoolForProfile,
       messages: messages,
       maxTokens: maxTokens,
       traceName: resolvedTraceName,
@@ -82,7 +82,7 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
         ? '默认配置'
         : '路由：${routedSettings.providerProfileId}';
     return '${routedSettings.providerName} · '
-        '${aiRoutingRequestService.normalizeRequestedModel(routedSettings.model)}（$source）';
+        '${storeAiRequestService.normalizeRequestedModel(routedSettings.model)}（$source）';
   }
 
   String generationProviderSummary() {
@@ -105,12 +105,12 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
   /// 解析请求路由，返回用于 AI 请求的配置。
   /// 委托给 LlmProviderService.resolveRoute。
   ResolvedRequestSettings _resolveRequestSettings(String traceName) {
-    final route = aiRoutingProviderService.resolveRoute(
+    final route = storeProviderService.resolveRoute(
       traceName,
-      aiRoutingSnapshot.requestProviderRoutes,
-      aiRoutingSnapshot.providerProfiles,
+      storeSnapshot.requestProviderRoutes,
+      storeSnapshot.providerProfiles,
       isLocalCompatibleEndpoint:
-          aiRoutingRequestService.isLocalCompatibleEndpoint,
+          storeAiRequestService.isLocalCompatibleEndpoint,
     );
     if (route != null) {
       return ResolvedRequestSettings(
@@ -122,10 +122,10 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
       );
     }
     return ResolvedRequestSettings(
-      providerName: aiRoutingSnapshot.providerName,
-      baseUrl: aiRoutingSnapshot.baseUrl,
-      model: aiRoutingSnapshot.model,
-      apiKey: aiRoutingSnapshot.apiKey,
+      providerName: storeSnapshot.providerName,
+      baseUrl: storeSnapshot.baseUrl,
+      model: storeSnapshot.model,
+      apiKey: storeSnapshot.apiKey,
     );
   }
 }

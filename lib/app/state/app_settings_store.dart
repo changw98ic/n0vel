@@ -1,3 +1,4 @@
+
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
@@ -79,126 +80,59 @@ class AppSettingsStore extends AppStoreListenable
   String? _activePersistenceDetail;
   bool _hasLocalMutations = false;
 
-  // --- AppSettingsProviderManagement mixin 桥接 ---
+  // --- 统一 mixin 桥接（替代 5 套前缀的 bridge） ---
   @override
-  AppSettingsSnapshot get providerManagementSnapshot => _snapshot;
+  AppSettingsSnapshot get storeSnapshot => _snapshot;
   @override
-  set providerManagementSnapshot(AppSettingsSnapshot value) {
-    _snapshot = value;
-  }
+  set storeSnapshot(AppSettingsSnapshot value) => _snapshot = value;
   @override
-  LlmProviderService get providerService => _providerService;
+  bool get storeHasLocalMutations => _hasLocalMutations;
   @override
-  AiRequestService get aiRequestServiceForProviderManagement =>
-      _aiRequestService;
+  set storeHasLocalMutations(bool value) => _hasLocalMutations = value;
   @override
-  bool get hasLocalMutations => _hasLocalMutations;
+  AppSettingsFeedback get storeFeedback => _feedback;
   @override
-  set hasLocalMutations(bool value) {
-    _hasLocalMutations = value;
-  }
+  set storeFeedback(AppSettingsFeedback value) => _feedback = value;
   @override
-  Future<AppSettingsSaveResult> persistSnapshot() => _persist();
+  LlmProviderService get storeProviderService => _providerService;
   @override
-  void syncRequestPoolLimits() => _syncRequestPoolLimits();
-
-  // --- AppSettingsStoreLogging mixin 桥接 ---
+  AiRequestService get storeAiRequestService => _aiRequestService;
   @override
-  AppEventLog get settingsLogEventLog => _eventLog;
+  AppEventBus? get storeEventBus => _eventBus;
   @override
-  AppSettingsPersistenceIssue get settingsLogActivePersistenceIssue =>
+  AppLlmRequestPool get storeRequestPool => _requestPool;
+  @override
+  AppEventLog get storeEventLog => _eventLog;
+  @override
+  AppSettingsPersistenceIssue get storeActivePersistenceIssue =>
       _activePersistenceIssue;
   @override
-  set settingsLogActivePersistenceIssue(AppSettingsPersistenceIssue value) {
-    _activePersistenceIssue = value;
-  }
+  set storeActivePersistenceIssue(AppSettingsPersistenceIssue value) =>
+      _activePersistenceIssue = value;
   @override
-  String? get settingsLogActivePersistenceSummary =>
-      _activePersistenceSummary;
+  String? get storeActivePersistenceSummary => _activePersistenceSummary;
   @override
-  set settingsLogActivePersistenceSummary(String? value) {
-    _activePersistenceSummary = value;
-  }
+  set storeActivePersistenceSummary(String? value) =>
+      _activePersistenceSummary = value;
   @override
-  String? get settingsLogActivePersistenceDetail =>
-      _activePersistenceDetail;
+  String? get storeActivePersistenceDetail => _activePersistenceDetail;
   @override
-  set settingsLogActivePersistenceDetail(String? value) {
-    _activePersistenceDetail = value;
-  }
-
-  // --- AppSettingsStoreSave mixin 桥接 ---
+  set storeActivePersistenceDetail(String? value) =>
+      _activePersistenceDetail = value;
   @override
-  AppSettingsSnapshot get saveSnapshot => _snapshot;
-  @override
-  set saveSnapshot(AppSettingsSnapshot value) {
-    _snapshot = value;
-  }
-  @override
-  bool get saveHasLocalMutations => _hasLocalMutations;
-  @override
-  set saveHasLocalMutations(bool value) {
-    _hasLocalMutations = value;
-  }
-  @override
-  AppSettingsFeedback get saveFeedback => _feedback;
-  @override
-  set saveFeedback(AppSettingsFeedback value) {
-    _feedback = value;
-  }
-  @override
-  AppSettingsConnectionTestState get saveConnectionTestState =>
+  AppSettingsConnectionTestState get storeConnectionTestState =>
       _connectionTestState;
   @override
-  set saveConnectionTestState(AppSettingsConnectionTestState value) {
-    _connectionTestState = value;
-  }
+  set storeConnectionTestState(AppSettingsConnectionTestState value) =>
+      _connectionTestState = value;
   @override
-  AiRequestService get saveAiRequestService => _aiRequestService;
+  AppSettingsStorage get storeStorage => _storage;
   @override
-  LlmProviderService get saveProviderService => _providerService;
+  Future<AppSettingsSaveResult> storePersist() => _persist();
   @override
-  AppEventBus? get saveEventBus => _eventBus;
+  void storeSyncRequestPoolLimits() => _syncRequestPoolLimits();
   @override
-  Future<AppSettingsSaveResult> savePersist() => _persist();
-  @override
-  void saveSyncRequestPoolLimits() => _syncRequestPoolLimits();
-  @override
-  bool saveIsSupportedModel(String model) =>
-      isSupportedModelFromUtils(model);
-
-  // --- AppSettingsStoreRetry mixin 桥接 ---
-  @override
-  AppSettingsSnapshot get retrySnapshot => _snapshot;
-  @override
-  set retrySnapshot(AppSettingsSnapshot value) {
-    _snapshot = value;
-  }
-  @override
-  bool get retryHasLocalMutations => _hasLocalMutations;
-  @override
-  set retryHasLocalMutations(bool value) {
-    _hasLocalMutations = value;
-  }
-  @override
-  AppSettingsFeedback get retryFeedback => _feedback;
-  @override
-  set retryFeedback(AppSettingsFeedback value) {
-    _feedback = value;
-  }
-  @override
-  Future<AppSettingsSaveResult> retryPersist() => _persist();
-  @override
-  void retrySyncRequestPoolLimits() => _syncRequestPoolLimits();
-  @override
-  Future<Map<String, Object?>?> retryLoadStorage() => _storage.load();
-  @override
-  AppSettingsPersistenceIssue get retryStorageLastLoadIssue =>
-      _storage.lastLoadIssue;
-  @override
-  String? get retryStorageLastLoadDetail => _storage.lastLoadDetail;
-  @override
-  Future<AppSettingsSaveResult> retrySave({
+  Future<AppSettingsSaveResult> storeSave({
     required String providerName,
     required String baseUrl,
     required String model,
@@ -219,19 +153,10 @@ class AppSettingsStore extends AppStoreListenable
       notify: notify,
     );
   }
-
-  // --- AppSettingsStoreAiRouting mixin 桥接 ---
   @override
-  AppSettingsSnapshot get aiRoutingSnapshot => _snapshot;
+  bool storeIsSupportedModel(String model) => isSupportedModelFromUtils(model);
   @override
-  AiRequestService get aiRoutingRequestService => _aiRequestService;
-  @override
-  LlmProviderService get aiRoutingProviderService => _providerService;
-  @override
-  AppLlmRequestPool get aiRoutingRequestPool => _requestPool;
-  @override
-  AppLlmRequestPool requestPoolForProviderProfile(
-      String? providerProfileId) {
+  AppLlmRequestPool storeRequestPoolForProfile(String? providerProfileId) {
     if (providerProfileId == null ||
         providerProfileId.isEmpty ||
         providerProfileId == 'primary') {

@@ -12,32 +12,32 @@ import 'settings/settings_models.dart';
 mixin AppSettingsProviderManagement on AppStoreListenable {
   // --- Store 字段访问器（由 AppSettingsStore 实现） ---
 
-  AppSettingsSnapshot get providerManagementSnapshot;
-  set providerManagementSnapshot(AppSettingsSnapshot value);
-  LlmProviderService get providerService;
-  AiRequestService get aiRequestServiceForProviderManagement;
-  bool get hasLocalMutations;
-  set hasLocalMutations(bool value);
-  Future<AppSettingsSaveResult> persistSnapshot();
-  void syncRequestPoolLimits();
+  AppSettingsSnapshot get storeSnapshot;
+  set storeSnapshot(AppSettingsSnapshot value);
+  LlmProviderService get storeProviderService;
+  AiRequestService get storeAiRequestService;
+  bool get storeHasLocalMutations;
+  set storeHasLocalMutations(bool value);
+  Future<AppSettingsSaveResult> storePersist();
+  void storeSyncRequestPoolLimits();
 
   // --- Provider Profile 管理 ---
 
   Future<AppSettingsSaveResult> upsertProviderProfile(
     AppLlmProviderProfile profile,
   ) async {
-    hasLocalMutations = true;
+    storeHasLocalMutations = true;
     if (profile.id == 'primary') {
-      final normalizedModel = aiRequestServiceForProviderManagement
+      final normalizedModel = storeAiRequestService
           .normalizeRequestedModel(profile.model);
-      final nextProfiles = providerService.syncPrimaryProfile(
-        providerManagementSnapshot.providerProfiles,
+      final nextProfiles = storeProviderService.syncPrimaryProfile(
+        storeSnapshot.providerProfiles,
         providerName: profile.providerName,
         baseUrl: profile.baseUrl,
         model: normalizedModel,
         apiKey: profile.apiKey,
       );
-      providerManagementSnapshot = providerManagementSnapshot.copyWith(
+      storeSnapshot = storeSnapshot.copyWith(
         providerName: profile.providerName,
         baseUrl: profile.baseUrl,
         model: normalizedModel,
@@ -45,22 +45,22 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
         hasApiKey: profile.apiKey.isNotEmpty,
         providerProfiles: nextProfiles,
       );
-      syncRequestPoolLimits();
+      storeSyncRequestPoolLimits();
       notifyListeners();
-      return persistSnapshot();
+      return storePersist();
     }
     final updated = [
-      for (final existing in providerManagementSnapshot.providerProfiles)
+      for (final existing in storeSnapshot.providerProfiles)
         if (existing.id == profile.id) profile else existing,
     ];
     if (!updated.any((p) => p.id == profile.id)) {
       updated.add(profile);
     }
-    providerManagementSnapshot =
-        providerManagementSnapshot.copyWith(providerProfiles: updated);
-    syncRequestPoolLimits();
+    storeSnapshot =
+        storeSnapshot.copyWith(providerProfiles: updated);
+    storeSyncRequestPoolLimits();
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   Future<AppSettingsSaveResult> addProviderFromCatalog(
@@ -71,8 +71,8 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
     if (entry == null) {
       return const AppSettingsSaveResult();
     }
-    final existing = providerService.profileById(
-      providerManagementSnapshot.providerProfiles,
+    final existing = storeProviderService.profileById(
+      storeSnapshot.providerProfiles,
       entry.id,
     );
     final apiKey = existing?.apiKey ?? '';
@@ -81,15 +81,15 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       return upsertProviderProfile(profile);
     }
 
-    hasLocalMutations = true;
-    final nextProfiles = providerService.syncPrimaryProfile(
-      providerManagementSnapshot.providerProfiles,
+    storeHasLocalMutations = true;
+    final nextProfiles = storeProviderService.syncPrimaryProfile(
+      storeSnapshot.providerProfiles,
       providerName: profile.providerName,
       baseUrl: profile.baseUrl,
       model: profile.model,
       apiKey: apiKey,
     );
-    providerManagementSnapshot = providerManagementSnapshot.copyWith(
+    storeSnapshot = storeSnapshot.copyWith(
       providerName: profile.providerName,
       baseUrl: profile.baseUrl,
       model: profile.model,
@@ -97,14 +97,14 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       hasApiKey: apiKey.isNotEmpty,
       providerProfiles: nextProfiles,
     );
-    syncRequestPoolLimits();
+    storeSyncRequestPoolLimits();
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   Future<AppSettingsSaveResult> setPrimaryProviderProfile(String id) async {
-    final profile = providerService.profileById(
-      providerManagementSnapshot.providerProfiles,
+    final profile = storeProviderService.profileById(
+      storeSnapshot.providerProfiles,
       id,
     );
     if (profile == null) {
@@ -122,49 +122,49 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
   }
 
   Future<AppSettingsSaveResult> removeProviderProfile(String id) async {
-    final result = providerService.removeProviderProfile(
+    final result = storeProviderService.removeProviderProfile(
       id,
-      providerManagementSnapshot.providerProfiles,
-      providerManagementSnapshot.requestProviderRoutes,
+      storeSnapshot.providerProfiles,
+      storeSnapshot.requestProviderRoutes,
     );
     if (!result.changed) {
       return const AppSettingsSaveResult();
     }
-    hasLocalMutations = true;
-    providerManagementSnapshot = providerManagementSnapshot.copyWith(
+    storeHasLocalMutations = true;
+    storeSnapshot = storeSnapshot.copyWith(
       providerProfiles: result.profiles,
       requestProviderRoutes: result.routes,
     );
-    syncRequestPoolLimits();
+    storeSyncRequestPoolLimits();
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   Future<AppSettingsSaveResult> upsertRequestProviderRoute(
     AppLlmRequestProviderRoute route,
   ) async {
-    hasLocalMutations = true;
-    final updated = providerService.upsertRoute(
+    storeHasLocalMutations = true;
+    final updated = storeProviderService.upsertRoute(
       route,
-      providerManagementSnapshot.requestProviderRoutes,
+      storeSnapshot.requestProviderRoutes,
     );
-    providerManagementSnapshot =
-        providerManagementSnapshot.copyWith(requestProviderRoutes: updated);
+    storeSnapshot =
+        storeSnapshot.copyWith(requestProviderRoutes: updated);
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   Future<AppSettingsSaveResult>
   applySingleChapterGenerationProviderPreset() async {
-    hasLocalMutations = true;
+    storeHasLocalMutations = true;
     final defaultApiKey =
-        aiRequestServiceForProviderManagement.isZhipuBaseUrl(
-          providerManagementSnapshot.baseUrl,
+        storeAiRequestService.isZhipuBaseUrl(
+          storeSnapshot.baseUrl,
         )
-            ? providerManagementSnapshot.apiKey
+            ? storeSnapshot.apiKey
             : '';
     final profilesById = {
-      for (final profile in providerManagementSnapshot.providerProfiles)
+      for (final profile in storeSnapshot.providerProfiles)
         profile.id: profile,
     };
     for (final preset in singleChapterProviderPresetProfiles) {
@@ -178,20 +178,20 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       );
     }
     final routesByPattern = {
-      for (final route in providerManagementSnapshot.requestProviderRoutes)
+      for (final route in storeSnapshot.requestProviderRoutes)
         route.traceNamePattern: route,
     };
     for (final preset in singleChapterProviderPresetRoutes) {
       routesByPattern[preset.traceNamePattern] = preset;
     }
-    final nextProfiles = providerService.syncPrimaryProfile(
+    final nextProfiles = storeProviderService.syncPrimaryProfile(
       profilesById.values.toList(),
       providerName: singleChapterDefaultProviderName,
       baseUrl: singleChapterDefaultBaseUrl,
       model: singleChapterDefaultModel,
       apiKey: defaultApiKey,
     );
-    providerManagementSnapshot = providerManagementSnapshot.copyWith(
+    storeSnapshot = storeSnapshot.copyWith(
       providerName: singleChapterDefaultProviderName,
       baseUrl: singleChapterDefaultBaseUrl,
       model: singleChapterDefaultModel,
@@ -200,26 +200,26 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       providerProfiles: nextProfiles,
       requestProviderRoutes: routesByPattern.values.toList(),
     );
-    syncRequestPoolLimits();
+    storeSyncRequestPoolLimits();
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   Future<AppSettingsSaveResult> removeRequestProviderRoute(
     String traceNamePattern,
   ) async {
-    final updated = providerService.removeRoute(
+    final updated = storeProviderService.removeRoute(
       traceNamePattern,
-      providerManagementSnapshot.requestProviderRoutes,
+      storeSnapshot.requestProviderRoutes,
     );
     if (updated == null) {
       return const AppSettingsSaveResult();
     }
-    hasLocalMutations = true;
-    providerManagementSnapshot =
-        providerManagementSnapshot.copyWith(requestProviderRoutes: updated);
+    storeHasLocalMutations = true;
+    storeSnapshot =
+        storeSnapshot.copyWith(requestProviderRoutes: updated);
     notifyListeners();
-    return persistSnapshot();
+    return storePersist();
   }
 
   // --- Private helpers ---

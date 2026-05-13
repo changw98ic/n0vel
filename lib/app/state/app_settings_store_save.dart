@@ -19,22 +19,22 @@ import 'settings/settings_models.dart';
 mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
   // --- Store 字段访问器（由 AppSettingsStore 实现） ---
 
-  AppSettingsSnapshot get saveSnapshot;
-  set saveSnapshot(AppSettingsSnapshot value);
-  bool get saveHasLocalMutations;
-  set saveHasLocalMutations(bool value);
-  AppSettingsFeedback get saveFeedback;
-  set saveFeedback(AppSettingsFeedback value);
-  AppSettingsConnectionTestState get saveConnectionTestState;
-  set saveConnectionTestState(AppSettingsConnectionTestState value);
-  AiRequestService get saveAiRequestService;
-  LlmProviderService get saveProviderService;
-  AppEventBus? get saveEventBus;
+  AppSettingsSnapshot get storeSnapshot;
+  set storeSnapshot(AppSettingsSnapshot value);
+  bool get storeHasLocalMutations;
+  set storeHasLocalMutations(bool value);
+  AppSettingsFeedback get storeFeedback;
+  set storeFeedback(AppSettingsFeedback value);
+  AppSettingsConnectionTestState get storeConnectionTestState;
+  set storeConnectionTestState(AppSettingsConnectionTestState value);
+  AiRequestService get storeAiRequestService;
+  LlmProviderService get storeProviderService;
+  AppEventBus? get storeEventBus;
 
-  Future<AppSettingsSaveResult> savePersist();
-  void saveSyncRequestPoolLimits();
+  Future<AppSettingsSaveResult> storePersist();
+  void storeSyncRequestPoolLimits();
 
-  bool saveIsSupportedModel(String model);
+  bool storeIsSupportedModel(String model);
 
   // --- 保存方法 ---
 
@@ -51,39 +51,39 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     List<AppLlmRequestProviderRoute>? requestProviderRoutes,
     bool notify = true,
   }) async {
-    final normalizedModel = saveAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
-    saveHasLocalMutations = true;
-    final nextProfiles = saveProviderService.syncPrimaryProfile(
-      providerProfiles ?? saveSnapshot.providerProfiles,
+    storeHasLocalMutations = true;
+    final nextProfiles = storeProviderService.syncPrimaryProfile(
+      providerProfiles ?? storeSnapshot.providerProfiles,
       providerName: providerName,
       baseUrl: baseUrl,
       model: normalizedModel,
       apiKey: apiKey,
     );
-    saveSnapshot = saveSnapshot.copyWith(
+    storeSnapshot = storeSnapshot.copyWith(
       providerName: providerName,
       baseUrl: baseUrl,
       model: normalizedModel,
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
       maxTokens: AppLlmChatRequest.normalizeMaxTokens(
-        maxTokens ?? saveSnapshot.maxTokens,
+        maxTokens ?? storeSnapshot.maxTokens,
       ),
       hasApiKey: apiKey.isNotEmpty,
       providerProfiles: nextProfiles,
       requestProviderRoutes: requestProviderRoutes,
     );
-    saveSyncRequestPoolLimits();
-    final persistResult = await savePersist();
+    storeSyncRequestPoolLimits();
+    final persistResult = await storePersist();
     if (notify) {
       notifyListeners();
     }
     if (persistResult.issue == AppSettingsPersistenceIssue.none) {
-      saveEventBus?.publish(
+      storeEventBus?.publish(
         SettingsSavedEvent(providerName: providerName, model: normalizedModel),
       );
     }
@@ -100,11 +100,11 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     int? maxConcurrentRequests,
     int? maxTokens,
   }) async {
-    final normalizedModel = saveAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
     final correlationId =
-        settingsLogEventLog.newCorrelationId('settings-save');
+        storeEventLog.newCorrelationId('settings-save');
     final metadata = settingsMetadata(
       providerName: providerName,
       baseUrl: baseUrl,
@@ -112,7 +112,7 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
     );
     scheduleSettingsLog(
       action: 'settings.save.started',
@@ -127,17 +127,17 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
       forConnectionTest: false,
       isLocalCompatibleEndpoint:
-          saveAiRequestService.isLocalCompatibleEndpoint,
-      isSupportedModel: saveIsSupportedModel,
+          storeAiRequestService.isLocalCompatibleEndpoint,
+      isSupportedModel: storeIsSupportedModel,
     );
     if (validationFeedback != null) {
-      settingsLogActivePersistenceIssue = AppSettingsPersistenceIssue.none;
-      settingsLogActivePersistenceSummary = null;
-      settingsLogActivePersistenceDetail = null;
-      saveFeedback = validationFeedback;
+      storeActivePersistenceIssue = AppSettingsPersistenceIssue.none;
+      storeActivePersistenceSummary = null;
+      storeActivePersistenceDetail = null;
+      storeFeedback = validationFeedback;
       scheduleSettingsLog(
         action: 'settings.save.warning',
         status: AppEventLogStatus.warning,
@@ -149,11 +149,11 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
           model: normalizedModel,
           apiKey: apiKey,
           maxConcurrentRequests:
-              maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
-          fallbackMaxConcurrentRequests: saveSnapshot.maxConcurrentRequests,
+              maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
+          fallbackMaxConcurrentRequests: storeSnapshot.maxConcurrentRequests,
           isLocalCompatibleEndpoint:
-              saveAiRequestService.isLocalCompatibleEndpoint,
-          isSupportedModel: saveIsSupportedModel,
+              storeAiRequestService.isLocalCompatibleEndpoint,
+          isSupportedModel: storeIsSupportedModel,
         ).name,
         metadata: metadata,
       );
@@ -168,17 +168,17 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
       maxTokens: AppLlmChatRequest.normalizeMaxTokens(
-        maxTokens ?? saveSnapshot.maxTokens,
+        maxTokens ?? storeSnapshot.maxTokens,
       ),
       notify: false,
     );
-    final saveFeedbackResult = feedbackForSaveResult(persistResult);
-    settingsLogActivePersistenceIssue = saveFeedbackResult.issue;
-    settingsLogActivePersistenceDetail = saveFeedbackResult.detail;
-    settingsLogActivePersistenceSummary = saveFeedbackResult.summary;
-    saveFeedback = saveFeedbackResult.feedback;
+    final storeFeedbackResult = feedbackForSaveResult(persistResult);
+    storeActivePersistenceIssue = storeFeedbackResult.issue;
+    storeActivePersistenceDetail = storeFeedbackResult.detail;
+    storeActivePersistenceSummary = storeFeedbackResult.summary;
+    storeFeedback = storeFeedbackResult.feedback;
     scheduleSettingsLog(
       action: actionForResult(
         prefix: 'settings.save',
@@ -213,19 +213,19 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     int? maxConcurrentRequests,
     int? maxTokens,
   }) async {
-    final normalizedModel = saveAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
     final correlationId =
-        settingsLogEventLog.newCorrelationId('settings-connection');
+        storeEventLog.newCorrelationId('settings-connection');
     final metadata = settingsMetadata(
-      providerName: saveSnapshot.providerName,
+      providerName: storeSnapshot.providerName,
       baseUrl: baseUrl,
       model: normalizedModel,
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
     );
     scheduleSettingsLog(
       action: 'settings.connection_test.started',
@@ -240,27 +240,27 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       apiKey: apiKey,
       timeout: resolvedTimeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
       forConnectionTest: true,
       isLocalCompatibleEndpoint:
-          saveAiRequestService.isLocalCompatibleEndpoint,
-      isSupportedModel: saveIsSupportedModel,
+          storeAiRequestService.isLocalCompatibleEndpoint,
+      isSupportedModel: storeIsSupportedModel,
     );
     if (validationFeedback != null) {
       clearPersistenceIssueState();
-      saveFeedback = validationFeedback;
-      saveConnectionTestState = AppSettingsConnectionTestState(
+      storeFeedback = validationFeedback;
+      storeConnectionTestState = AppSettingsConnectionTestState(
         status: AppSettingsConnectionTestStatus.error,
         outcome: validationOutcomeFor(
           baseUrl: baseUrl,
           model: normalizedModel,
           apiKey: apiKey,
           maxConcurrentRequests:
-              maxConcurrentRequests ?? saveSnapshot.maxConcurrentRequests,
-          fallbackMaxConcurrentRequests: saveSnapshot.maxConcurrentRequests,
+              maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
+          fallbackMaxConcurrentRequests: storeSnapshot.maxConcurrentRequests,
           isLocalCompatibleEndpoint:
-              saveAiRequestService.isLocalCompatibleEndpoint,
-          isSupportedModel: saveIsSupportedModel,
+              storeAiRequestService.isLocalCompatibleEndpoint,
+          isSupportedModel: storeIsSupportedModel,
         ),
         title: validationFeedback.title,
         message: validationFeedback.message,
@@ -271,7 +271,7 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
         message: 'Settings connection test blocked by validation.',
         correlationId: correlationId,
         level: AppEventLogLevel.warn,
-        errorCode: saveConnectionTestState.outcome.name,
+        errorCode: storeConnectionTestState.outcome.name,
         metadata: metadata,
       );
       notifyListeners();
@@ -279,37 +279,37 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     }
 
     clearPersistenceIssueState();
-    saveConnectionTestState = const AppSettingsConnectionTestState(
+    storeConnectionTestState = const AppSettingsConnectionTestState(
       status: AppSettingsConnectionTestStatus.running,
       outcome: AppSettingsConnectionTestOutcome.none,
       title: '正在测试连接',
       message: '发送最小化请求并等待模型返回。',
     );
-    saveFeedback = const AppSettingsFeedback(
+    storeFeedback = const AppSettingsFeedback(
       title: '正在测试连接',
       message: '发送最小化请求并等待模型返回。',
       tone: AppSettingsFeedbackTone.info,
     );
     notifyListeners();
 
-    final result = await saveAiRequestService.testConnection(
+    final result = await storeAiRequestService.testConnection(
       baseUrl: baseUrl,
       model: normalizedModel,
       apiKey: apiKey,
       timeout: resolvedTimeout,
-      maxTokens: maxTokens ?? saveSnapshot.maxTokens,
-      providerName: providerName ?? saveSnapshot.providerName,
+      maxTokens: maxTokens ?? storeSnapshot.maxTokens,
+      providerName: providerName ?? storeSnapshot.providerName,
     );
-    saveConnectionTestState =
-        saveAiRequestService.connectionStateFromResult(
+    storeConnectionTestState =
+        storeAiRequestService.connectionStateFromResult(
       baseUrl: baseUrl,
       model: normalizedModel,
       result: result,
     );
-    saveFeedback = AppSettingsFeedback(
-      title: saveConnectionTestState.title,
-      message: saveConnectionTestState.message,
-      tone: saveConnectionTestState.status ==
+    storeFeedback = AppSettingsFeedback(
+      title: storeConnectionTestState.title,
+      message: storeConnectionTestState.message,
+      tone: storeConnectionTestState.status ==
               AppSettingsConnectionTestStatus.success
           ? AppSettingsFeedbackTone.success
           : AppSettingsFeedbackTone.error,

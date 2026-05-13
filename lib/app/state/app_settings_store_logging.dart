@@ -10,13 +10,13 @@ import 'app_settings_store_utils.dart';
 /// 从 AppSettingsStore 中提取，通过 mixin 组合保持 store 公开 API 不变。
 /// 需要 store 提供字段访问器（通过抽象 getter）。
 mixin AppSettingsStoreLogging {
-  AppEventLog get settingsLogEventLog;
-  AppSettingsPersistenceIssue get settingsLogActivePersistenceIssue;
-  set settingsLogActivePersistenceIssue(AppSettingsPersistenceIssue value);
-  String? get settingsLogActivePersistenceSummary;
-  set settingsLogActivePersistenceSummary(String? value);
-  String? get settingsLogActivePersistenceDetail;
-  set settingsLogActivePersistenceDetail(String? value);
+  AppEventLog get storeEventLog;
+  AppSettingsPersistenceIssue get storeActivePersistenceIssue;
+  set storeActivePersistenceIssue(AppSettingsPersistenceIssue value);
+  String? get storeActivePersistenceSummary;
+  set storeActivePersistenceSummary(String? value);
+  String? get storeActivePersistenceDetail;
+  set storeActivePersistenceDetail(String? value);
 
   Future<void> settingsLogEvent({
     required String action,
@@ -28,7 +28,7 @@ mixin AppSettingsStoreLogging {
     String? errorDetail,
     Map<String, Object?> metadata = const <String, Object?>{},
   }) {
-    return settingsLogEventLog.log(
+    return storeEventLog.log(
       level: level,
       category: AppEventLogCategory.settings,
       action: action,
@@ -84,8 +84,8 @@ mixin AppSettingsStoreLogging {
   }
 
   void clearPersistenceIssueState() {
-    settingsLogActivePersistenceIssue = AppSettingsPersistenceIssue.none;
-    settingsLogActivePersistenceSummary = null;
-    settingsLogActivePersistenceDetail = null;
+    storeActivePersistenceIssue = AppSettingsPersistenceIssue.none;
+    storeActivePersistenceSummary = null;
+    storeActivePersistenceDetail = null;
   }
 }

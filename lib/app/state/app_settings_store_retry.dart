@@ -16,22 +16,22 @@ export 'app_settings_storage.dart' show AppSettingsSaveResult;
 mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
   // --- Store 字段访问器（由 AppSettingsStore 实现） ---
 
-  AppSettingsSnapshot get retrySnapshot;
-  set retrySnapshot(AppSettingsSnapshot value);
-  bool get retryHasLocalMutations;
-  set retryHasLocalMutations(bool value);
-  AppSettingsFeedback get retryFeedback;
-  set retryFeedback(AppSettingsFeedback value);
+  AppSettingsSnapshot get storeSnapshot;
+  set storeSnapshot(AppSettingsSnapshot value);
+  bool get storeHasLocalMutations;
+  set storeHasLocalMutations(bool value);
+  AppSettingsFeedback get storeFeedback;
+  set storeFeedback(AppSettingsFeedback value);
 
-  Future<AppSettingsSaveResult> retryPersist();
-  void retrySyncRequestPoolLimits();
+  Future<AppSettingsSaveResult> storePersist();
+  void storeSyncRequestPoolLimits();
 
   // --- 重试方法 ---
 
   Future<void> retrySecureStoreAccess() async {
-    final originalIssue = settingsLogActivePersistenceIssue;
+    final originalIssue = storeActivePersistenceIssue;
     final correlationId =
-        settingsLogEventLog.newCorrelationId('settings-retry');
+        storeEventLog.newCorrelationId('settings-retry');
     scheduleSettingsLog(
       action: 'settings.secure_store_retry.started',
       status: AppEventLogStatus.started,
@@ -41,21 +41,21 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
     );
 
     if (originalIssue == AppSettingsPersistenceIssue.fileWriteFailed) {
-      final result = await retryPersist();
-      settingsLogActivePersistenceIssue = result.issue;
+      final result = await storePersist();
+      storeActivePersistenceIssue = result.issue;
       if (result.issue == AppSettingsPersistenceIssue.none) {
-        settingsLogActivePersistenceSummary = null;
-        settingsLogActivePersistenceDetail = null;
-        retryFeedback = const AppSettingsFeedback(
+        storeActivePersistenceSummary = null;
+        storeActivePersistenceDetail = null;
+        storeFeedback = const AppSettingsFeedback(
           title: '配置已重新保存',
           message: '本地配置文件已更新。',
           tone: AppSettingsFeedbackTone.success,
         );
       } else {
         final saveFeedback = feedbackForSaveResult(result);
-        settingsLogActivePersistenceDetail = saveFeedback.detail;
-        settingsLogActivePersistenceSummary = saveFeedback.summary;
-        retryFeedback = saveFeedback.feedback;
+        storeActivePersistenceDetail = saveFeedback.detail;
+        storeActivePersistenceSummary = saveFeedback.summary;
+        storeFeedback = saveFeedback.feedback;
       }
       scheduleSettingsLog(
         action: actionForResult(
@@ -81,23 +81,23 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
     }
 
     // fileReadFailed 路径：重新加载
-    final restored = await retryLoadStorage();
-    final loadIssue = retryStorageLastLoadIssue;
-    settingsLogActivePersistenceIssue = loadIssue;
+    final restored = await storeStorage.load();
+    final loadIssue = storeStorage.lastLoadIssue;
+    storeActivePersistenceIssue = loadIssue;
     if (loadIssue == AppSettingsPersistenceIssue.none) {
       if (restored != null) {
         final restoredSnapshot = AppSettingsSnapshot.fromJson(restored);
-        retrySnapshot = retryHasLocalMutations
-            ? retrySnapshot.copyWith(
+        storeSnapshot = storeHasLocalMutations
+            ? storeSnapshot.copyWith(
                 apiKey: restoredSnapshot.apiKey,
                 hasApiKey: restoredSnapshot.hasApiKey,
               )
             : restoredSnapshot;
-        retrySyncRequestPoolLimits();
+        storeSyncRequestPoolLimits();
       }
-      settingsLogActivePersistenceSummary = null;
-      settingsLogActivePersistenceDetail = null;
-      retryFeedback = const AppSettingsFeedback(
+      storeActivePersistenceSummary = null;
+      storeActivePersistenceDetail = null;
+      storeFeedback = const AppSettingsFeedback(
         title: '配置已重新加载',
         message: '本地配置文件已重新读取，当前配置已同步。',
         tone: AppSettingsFeedbackTone.success,
@@ -105,35 +105,35 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
     } else {
       final loadFeedback = feedbackForLoadIssue(
         loadIssue,
-        retryStorageLastLoadDetail,
+        storeStorage.lastLoadDetail,
       );
-      settingsLogActivePersistenceDetail = loadFeedback.detail;
-      settingsLogActivePersistenceSummary = loadFeedback.summary;
-      retryFeedback = loadFeedback.feedback;
+      storeActivePersistenceDetail = loadFeedback.detail;
+      storeActivePersistenceSummary = loadFeedback.summary;
+      storeFeedback = loadFeedback.feedback;
     }
     scheduleSettingsLog(
-      action: settingsLogActivePersistenceIssue ==
+      action: storeActivePersistenceIssue ==
               AppSettingsPersistenceIssue.none
           ? 'settings.secure_store_retry.succeeded'
           : 'settings.secure_store_retry.warning',
-      status: settingsLogActivePersistenceIssue ==
+      status: storeActivePersistenceIssue ==
               AppSettingsPersistenceIssue.none
           ? AppEventLogStatus.succeeded
           : AppEventLogStatus.warning,
-      message: settingsLogActivePersistenceIssue ==
+      message: storeActivePersistenceIssue ==
               AppSettingsPersistenceIssue.none
           ? 'Secure store retry succeeded.'
           : 'Secure store retry completed with read warning.',
       correlationId: correlationId,
-      level: settingsLogActivePersistenceIssue ==
+      level: storeActivePersistenceIssue ==
               AppSettingsPersistenceIssue.none
           ? AppEventLogLevel.info
           : AppEventLogLevel.warn,
-      errorCode: settingsLogActivePersistenceIssue ==
+      errorCode: storeActivePersistenceIssue ==
               AppSettingsPersistenceIssue.none
           ? null
-          : settingsLogActivePersistenceIssue.name,
-      errorDetail: retryStorageLastLoadDetail,
+          : storeActivePersistenceIssue.name,
+      errorDetail: storeStorage.lastLoadDetail,
       metadata: {'issue': originalIssue.name},
     );
     notifyListeners();
@@ -148,7 +148,7 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
     int? maxConcurrentRequests,
   }) async {
     final correlationId =
-        settingsLogEventLog.newCorrelationId('settings-retry');
+        storeEventLog.newCorrelationId('settings-retry');
     final metadata = settingsMetadata(
       providerName: providerName,
       baseUrl: baseUrl,
@@ -156,7 +156,7 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
       apiKey: apiKey,
       timeout: timeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? retrySnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
     );
     scheduleSettingsLog(
       action: 'settings.secure_store_retry.started',
@@ -165,28 +165,28 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
       correlationId: correlationId,
       metadata: metadata,
     );
-    final result = await retrySave(
+    final result = await storeSave(
       providerName: providerName,
       baseUrl: baseUrl,
       model: model,
       apiKey: apiKey,
       timeout: timeout,
       maxConcurrentRequests:
-          maxConcurrentRequests ?? retrySnapshot.maxConcurrentRequests,
+          maxConcurrentRequests ?? storeSnapshot.maxConcurrentRequests,
       notify: false,
     );
-    settingsLogActivePersistenceIssue = result.issue;
+    storeActivePersistenceIssue = result.issue;
     if (result.issue == AppSettingsPersistenceIssue.none) {
-      retryFeedback = const AppSettingsFeedback(
+      storeFeedback = const AppSettingsFeedback(
         title: '配置已重新保存',
         message: '本地配置文件已更新。',
         tone: AppSettingsFeedbackTone.success,
       );
     } else {
       final saveFeedback = feedbackForSaveResult(result);
-      settingsLogActivePersistenceDetail = saveFeedback.detail;
-      settingsLogActivePersistenceSummary = saveFeedback.summary;
-      retryFeedback = saveFeedback.feedback;
+      storeActivePersistenceDetail = saveFeedback.detail;
+      storeActivePersistenceSummary = saveFeedback.summary;
+      storeFeedback = saveFeedback.feedback;
     }
     scheduleSettingsLog(
       action: actionForResult(
@@ -211,11 +211,9 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
   }
 
   // --- Storage 访问器（由 AppSettingsStore 实现） ---
-  Future<Map<String, Object?>?> retryLoadStorage();
-  AppSettingsPersistenceIssue get retryStorageLastLoadIssue;
-  String? get retryStorageLastLoadDetail;
+  AppSettingsStorage get storeStorage;
 
-  Future<AppSettingsSaveResult> retrySave({
+  Future<AppSettingsSaveResult> storeSave({
     required String providerName,
     required String baseUrl,
     required String model,
