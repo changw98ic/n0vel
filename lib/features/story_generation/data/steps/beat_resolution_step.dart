@@ -1,5 +1,5 @@
 import '../scene_pipeline_models.dart' as pipeline
-    show SceneBeat, SceneBeatKind, ContextCapsule;
+    show SceneBeat, SceneBeatKind, LightContextCapsule;
 import '../scene_runtime_models.dart'
     show ResolvedBeat, SceneBrief, SceneState, SceneStateDelta, SceneStateDeltaKind;
 import '../scene_state_resolver.dart' show SceneStateResolver;
@@ -16,7 +16,7 @@ class BeatResolutionStep {
     BeatResolutionInput input, {
     void Function(String)? onStatus,
   }) async {
-    final sceneCapsules = <pipeline.ContextCapsule>[
+    final sceneCapsules = <pipeline.LightContextCapsule>[
       ...input.stage.capsules,
       if (input.stage.stageCapsule != null) input.stage.stageCapsule!,
     ];

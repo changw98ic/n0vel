@@ -192,7 +192,7 @@ class SceneTransitionTracker {
   }
 }
 
-/// Resolves [RolePlayTurnOutput]s and [ContextCapsule]s into accepted
+/// Resolves [RolePlayTurnOutput]s and [LightContextCapsule]s into accepted
 /// [SceneBeat]s before any prose is written.
 ///
 /// This stage enforces the fact-first pipeline: no prose generation
@@ -235,7 +235,7 @@ class SceneStateResolver {
   Future<List<SceneBeat>> resolve({
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
     void Function(String message)? onStatus,
   }) async {
@@ -392,7 +392,7 @@ class SceneStateResolver {
   List<SceneBeat> _fallbackBeats({
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
   }) {
     final beats = <SceneBeat>[];
@@ -519,7 +519,7 @@ class SceneStateResolver {
     List<SceneBeat> beats, {
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
   }) {
     if (!_hasAuthoritativeRoleplay(roleTurns, roleplaySession)) {
@@ -556,7 +556,7 @@ class SceneStateResolver {
   Set<String> _planningOnlyTerms({
     required SceneTaskCard taskCard,
     required List<RolePlayTurnOutput> roleTurns,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
   }) {
     final planningText = [
@@ -611,7 +611,7 @@ class SceneStateResolver {
     ];
   }
 
-  List<ContextCapsule> _stageCapsules(List<ContextCapsule> capsules) {
+  List<LightContextCapsule> _stageCapsules(List<LightContextCapsule> capsules) {
     return [
       for (final capsule in capsules)
         if (capsule.intent.toolName == SceneStageNarrator.capsuleToolName)
@@ -619,7 +619,7 @@ class SceneStateResolver {
     ];
   }
 
-  List<ContextCapsule> _retrievalCapsules(List<ContextCapsule> capsules) {
+  List<LightContextCapsule> _retrievalCapsules(List<LightContextCapsule> capsules) {
     return [
       for (final capsule in capsules)
         if (capsule.intent.toolName != SceneStageNarrator.capsuleToolName)

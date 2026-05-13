@@ -2,7 +2,7 @@ import 'package:novel_writer/app/rag/rag_orchestrator.dart' show RagSceneContext
 
 import 'step_roleplay_io.dart';
 import 'step_scene_planning_io.dart';
-import 'scene_pipeline_models.dart' as pipeline show ContextCapsule;
+import 'scene_pipeline_models.dart' as pipeline show LightContextCapsule;
 
 // ---------------------------------------------------------------------------
 // Step 4: Stage Narration
@@ -23,6 +23,6 @@ class StageNarrationInput {
 class StageNarrationOutput {
   const StageNarrationOutput({required this.capsules, this.stageCapsule});
 
-  final List<pipeline.ContextCapsule> capsules;
-  final pipeline.ContextCapsule? stageCapsule;
+  final List<pipeline.LightContextCapsule> capsules;
+  final pipeline.LightContextCapsule? stageCapsule;
 }

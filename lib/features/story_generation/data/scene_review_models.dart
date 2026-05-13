@@ -233,10 +233,10 @@ class SceneRuntimeOutput {
     required List<ResolvedSceneCastMember> resolvedCast,
     required this.director,
     required List<DynamicRoleAgentOutput> roleOutputs,
-    List<RolePlayTurnOutput> roleTurns = const [],
+    List<RuntimeRoleTurn> roleTurns = const [],
     List<ResolvedBeat> resolvedBeats = const [],
     List<BeliefState> updatedBeliefStates = const [],
-    List<PresentationState> updatedPresentationStates = const [],
+    List<ContextPresentationState> updatedPresentationStates = const [],
     this.sceneState,
     this.roleplaySession,
     this.editorialDraft,
@@ -256,13 +256,13 @@ class SceneRuntimeOutput {
   final List<ResolvedSceneCastMember> resolvedCast;
   final SceneDirectorOutput director;
   final List<DynamicRoleAgentOutput> roleOutputs;
-  final List<RolePlayTurnOutput> roleTurns;
+  final List<RuntimeRoleTurn> roleTurns;
   final List<ResolvedBeat> resolvedBeats;
   final List<BeliefState> updatedBeliefStates;
-  final List<PresentationState> updatedPresentationStates;
+  final List<ContextPresentationState> updatedPresentationStates;
   final SceneState? sceneState;
   final SceneRoleplaySession? roleplaySession;
-  final SceneEditorialDraft? editorialDraft;
+  final RuntimeEditorialDraft? editorialDraft;
   final SceneProseDraft prose;
   final SceneReviewResult review;
   final int proseAttempts;

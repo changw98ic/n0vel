@@ -8,7 +8,7 @@ class ScenePipelineOutput {
   ScenePipelineOutput({
     required this.taskCard,
     required List<RolePlayTurnOutput> roleTurns,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     required List<SceneBeat> resolvedBeats,
     required this.editorialDraft,
     required this.review,
@@ -20,7 +20,7 @@ class ScenePipelineOutput {
 
   final SceneTaskCard taskCard;
   final List<RolePlayTurnOutput> roleTurns;
-  final List<ContextCapsule> capsules;
+  final List<LightContextCapsule> capsules;
   final List<SceneBeat> resolvedBeats;
   final SceneEditorialDraft editorialDraft;
   final SceneReviewResult review;

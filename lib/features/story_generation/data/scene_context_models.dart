@@ -199,8 +199,8 @@ class BeliefState {
   }
 }
 
-class PresentationState {
-  PresentationState({
+class ContextPresentationState {
+  ContextPresentationState({
     required this.characterId,
     required this.projectedPersona,
     List<String> concealments = const [],
@@ -222,8 +222,8 @@ class PresentationState {
     };
   }
 
-  static PresentationState fromJson(Map<String, Object?> json) {
-    return PresentationState(
+  static ContextPresentationState fromJson(Map<String, Object?> json) {
+    return ContextPresentationState(
       characterId: json['characterId']?.toString() ?? '',
       projectedPersona: json['projectedPersona']?.toString() ?? '',
       concealments: _stringListFromRaw(json['concealments']),

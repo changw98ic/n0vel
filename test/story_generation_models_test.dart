@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
+import 'package:novel_writer/features/story_generation/domain/character_cognition_models.dart';
 
 void main() {
   // ===========================================================================
@@ -554,44 +555,45 @@ void main() {
   // Pipeline model basic construction
   // ===========================================================================
   group('CharacterBelief', () {
-    test('stores holder, target, aspect, and value', () {
-      const b = CharacterBelief(
-        holderId: 'char-liuxi',
+    test('stores subject, target, claim, and confidence', () {
+      final b = CharacterBelief(
+        subjectId: 'char-liuxi',
         targetId: 'char-yueren',
-        aspect: '忠诚度',
-        value: '不可信',
+        claim: '不可信',
+        confidence: 1.0,
+        source: 'test',
       );
-      expect(b.holderId, 'char-liuxi');
+      expect(b.subjectId, 'char-liuxi');
       expect(b.targetId, 'char-yueren');
-      expect(b.aspect, '忠诚度');
-      expect(b.value, '不可信');
+      expect(b.claim, '不可信');
+      expect(b.confidence, 1.0);
     });
   });
 
   group('RelationshipSlice', () {
     test('stores all fields including tension and trust defaults', () {
-      const r = RelationshipSlice(
-        characterA: 'char-liuxi',
-        characterB: 'char-yueren',
-        label: '对峙',
+      final r = RelationshipSlice(
+        characterId: 'char-liuxi',
+        otherId: 'char-yueren',
+        kind: '对峙',
       );
-      expect(r.characterA, 'char-liuxi');
-      expect(r.characterB, 'char-yueren');
-      expect(r.label, '对峙');
-      expect(r.tension, 0);
-      expect(r.trust, 0);
+      expect(r.characterId, 'char-liuxi');
+      expect(r.otherId, 'char-yueren');
+      expect(r.kind, '对峙');
+      expect(r.tension, 0.0);
+      expect(r.trust, 0.5);
     });
 
     test('accepts custom tension and trust', () {
-      const r = RelationshipSlice(
-        characterA: 'a',
-        characterB: 'b',
-        label: '盟友',
-        tension: 2,
-        trust: 8,
+      final r = RelationshipSlice(
+        characterId: 'a',
+        otherId: 'b',
+        kind: '盟友',
+        tension: 0.2,
+        trust: 0.8,
       );
-      expect(r.tension, 2);
-      expect(r.trust, 8);
+      expect(r.tension, closeTo(0.2, 0.001));
+      expect(r.trust, closeTo(0.8, 0.001));
     });
   });
 
@@ -599,20 +601,22 @@ void main() {
     test('stores all fields', () {
       const sp = SocialPositionSlice(
         characterId: 'char-liuxi',
+        contextId: 'scene-1',
         role: '调查记者',
-        formalRank: '无',
-        actualInfluence: '高',
+        rank: 3,
+        notes: '高影响力',
       );
       expect(sp.characterId, 'char-liuxi');
       expect(sp.role, '调查记者');
-      expect(sp.formalRank, '无');
-      expect(sp.actualInfluence, '高');
+      expect(sp.contextId, 'scene-1');
+      expect(sp.rank, 3);
+      expect(sp.notes, '高影响力');
     });
   });
 
-  group('KnowledgeAtom', () {
+  group('KnowledgeSnippet', () {
     test('stores all fields', () {
-      const k = KnowledgeAtom(
+      const k = KnowledgeSnippet(
         id: 'k1',
         category: 'event',
         content: '昨夜码头火拼。',
@@ -625,10 +629,10 @@ void main() {
     });
   });
 
-  group('ContextCapsule', () {
+  group('LightContextCapsule', () {
     test('stores intent, summary, and token budget', () {
-      const capsule = ContextCapsule(
-        intent: RetrievalIntent(
+      const capsule = LightContextCapsule(
+        intent: LightRetrievalIntent(
           toolName: 'relationship',
           query: 'char-liuxi',
           purpose: '了解关系',

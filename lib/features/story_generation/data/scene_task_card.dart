@@ -13,7 +13,7 @@ class SceneTaskCard {
     List<CharacterBelief> beliefs = const [],
     List<RelationshipSlice> relationships = const [],
     List<SocialPositionSlice> socialPositions = const [],
-    List<KnowledgeAtom> knowledge = const [],
+    List<KnowledgeSnippet> knowledge = const [],
     Map<String, Object?> metadata = const {},
   }) : cast = _immutableList(cast),
        beliefs = _immutableList(beliefs),
@@ -29,19 +29,19 @@ class SceneTaskCard {
   final List<CharacterBelief> beliefs;
   final List<RelationshipSlice> relationships;
   final List<SocialPositionSlice> socialPositions;
-  final List<KnowledgeAtom> knowledge;
+  final List<KnowledgeSnippet> knowledge;
   final Map<String, Object?> metadata;
 
   /// Beliefs held by [characterId] about others.
   List<CharacterBelief> beliefsFor(String characterId) => [
     for (final b in beliefs)
-      if (b.holderId == characterId) b,
+      if (b.subjectId == characterId) b,
   ];
 
   /// Relationship slices involving [characterId].
   List<RelationshipSlice> relationshipsFor(String characterId) => [
     for (final r in relationships)
-      if (r.characterA == characterId || r.characterB == characterId) r,
+      if (r.characterId == characterId || r.otherId == characterId) r,
   ];
 
   /// Social position for [characterId], if any.

@@ -1,4 +1,4 @@
-export 'scene_context_models.dart' hide KnowledgeAtom, PresentationState;
+export 'scene_context_models.dart' hide KnowledgeAtom;
 export 'character_visible_context_models.dart';
 export 'character_memory_conflict_policy.dart';
 export 'character_memory_delta_models.dart';
@@ -12,7 +12,7 @@ export 'roleplay_session_store.dart';
 export 'roleplay_session_store_io.dart';
 export 'roleplay_audit_report.dart';
 export 'scene_runtime_models.dart'
-    hide ContextCapsule, RolePlayTurnOutput, SceneEditorialDraft, SceneTaskCard;
+    hide ContextCapsule, RuntimeRoleTurn, RuntimeEditorialDraft, SceneTaskCard;
 export 'scene_review_models.dart';
 export 'scene_roleplay_session_models.dart';
 export 'narrative_arc_models.dart';

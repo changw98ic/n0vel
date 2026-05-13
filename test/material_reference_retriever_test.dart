@@ -219,7 +219,7 @@ void main() {
         expect(roleTurn.retrievalIntents, hasLength(1));
         expect(
           roleTurn.retrievalIntents.first.toolName,
-          RetrievalIntent.kToolWritingReference,
+          LightRetrievalIntent.kToolWritingReference,
         );
         expect(capsules, hasLength(1));
         expect(capsules.first.intent.toolName, kWritingReferenceToolName);

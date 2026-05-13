@@ -95,7 +95,7 @@ class MaterialReferenceRetriever {
     );
   }
 
-  String searchToSceneSummary(scene.RetrievalIntent intent) {
+  String searchToSceneSummary(scene.LightRetrievalIntent intent) {
     final result = searchSync(
       MaterialReferenceQuery(
         query: intent.query,

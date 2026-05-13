@@ -1,6 +1,5 @@
-import 'scene_context_models.dart';
 import 'scene_runtime_models.dart'
-    show ResolvedBeat, RolePlayTurnOutput, SceneState;
+    show ResolvedBeat, RuntimeRoleTurn, SceneState;
 import 'story_generation_models.dart';
 
 class SceneCognitionUpdater {
@@ -62,9 +61,9 @@ class SceneCognitionUpdater {
     return updated;
   }
 
-  List<PresentationState> updatePresentationStates({
-    required List<PresentationState> presentationStates,
-    required List<RolePlayTurnOutput> roleTurns,
+  List<ContextPresentationState> updatePresentationStates({
+    required List<ContextPresentationState> presentationStates,
+    required List<RuntimeRoleTurn> roleTurns,
     required List<ResolvedBeat> resolvedBeats,
     required SceneState sceneState,
   }) {
@@ -72,7 +71,7 @@ class SceneCognitionUpdater {
       return presentationStates;
     }
 
-    final updated = <PresentationState>[];
+    final updated = <ContextPresentationState>[];
     for (final state in presentationStates) {
       var projectedPersona = state.projectedPersona;
       final concealments = List<String>.from(state.concealments);
@@ -101,7 +100,7 @@ class SceneCognitionUpdater {
       }
 
       updated.add(
-        PresentationState(
+        ContextPresentationState(
           characterId: state.characterId,
           projectedPersona: projectedPersona,
           concealments: _dedupe(concealments),
@@ -138,8 +137,8 @@ class SceneCognitionUpdater {
     return ordered;
   }
 
-  RolePlayTurnOutput? _latestTurn(
-    List<RolePlayTurnOutput> roleTurns,
+  RuntimeRoleTurn? _latestTurn(
+    List<RuntimeRoleTurn> roleTurns,
     String characterId,
   ) {
     for (var index = roleTurns.length - 1; index >= 0; index -= 1) {

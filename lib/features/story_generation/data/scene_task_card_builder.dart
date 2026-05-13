@@ -1,11 +1,6 @@
 import 'scene_context_models.dart' show ResolvedSceneCastMember;
-import 'scene_pipeline_models.dart' as pipeline
-    show
-        SceneTaskCard,
-        CharacterBelief,
-        RelationshipSlice,
-        SocialPositionSlice,
-        KnowledgeAtom;
+import 'scene_pipeline_models.dart' as pipeline show SceneTaskCard, KnowledgeSnippet;
+import '../domain/character_cognition_models.dart' show CharacterBelief, RelationshipSlice, SocialPositionSlice;
 import 'scene_runtime_models.dart' show SceneBrief, SceneDirectorOutput;
 
 /// Builds a [pipeline.SceneTaskCard] from a scene brief, resolved cast, and
@@ -32,118 +27,122 @@ class SceneTaskCardBuilder {
     );
   }
 
-  List<pipeline.CharacterBelief> beliefsFromBrief(SceneBrief brief) {
-    final beliefs = <pipeline.CharacterBelief>[];
+  List<CharacterBelief> beliefsFromBrief(SceneBrief brief) {
+    final beliefs = <CharacterBelief>[];
     void add({
-      required String holderId,
+      required String subjectId,
       required String targetId,
-      required String aspect,
-      required String value,
+      required String claim,
+      double confidence = 1.0,
+      String source = '',
     }) {
-      final trimmed = value.trim();
+      final trimmed = claim.trim();
       if (trimmed.isEmpty) return;
       beliefs.add(
-        pipeline.CharacterBelief(
-          holderId: holderId,
+        CharacterBelief(
+          subjectId: subjectId,
           targetId: targetId,
-          aspect: aspect,
-          value: trimmed,
+          claim: trimmed,
+          confidence: confidence,
+          source: source,
         ),
       );
     }
 
     for (final belief in brief.beliefStates) {
       add(
-        holderId: belief.ownerCharacterId,
+        subjectId: belief.ownerCharacterId,
         targetId: belief.aboutCharacterId,
-        aspect: '感知目标',
-        value: belief.perceivedGoal,
+        claim: '感知目标：${belief.perceivedGoal}',
+        source: 'beliefState',
       );
       add(
-        holderId: belief.ownerCharacterId,
+        subjectId: belief.ownerCharacterId,
         targetId: belief.aboutCharacterId,
-        aspect: '感知立场',
-        value: belief.perceivedLoyalty,
+        claim: '感知立场：${belief.perceivedLoyalty}',
+        source: 'beliefState',
       );
       add(
-        holderId: belief.ownerCharacterId,
+        subjectId: belief.ownerCharacterId,
         targetId: belief.aboutCharacterId,
-        aspect: '感知能力',
-        value: belief.perceivedCompetence,
+        claim: '感知能力：${belief.perceivedCompetence}',
+        source: 'beliefState',
       );
       add(
-        holderId: belief.ownerCharacterId,
+        subjectId: belief.ownerCharacterId,
         targetId: belief.aboutCharacterId,
-        aspect: '感知风险',
-        value: belief.perceivedRisk,
+        claim: '感知风险：${belief.perceivedRisk}',
+        source: 'beliefState',
       );
       add(
-        holderId: belief.ownerCharacterId,
+        subjectId: belief.ownerCharacterId,
         targetId: belief.aboutCharacterId,
-        aspect: '感知情绪',
-        value: belief.perceivedEmotionalState,
+        claim: '感知情绪：${belief.perceivedEmotionalState}',
+        source: 'beliefState',
       );
       for (final item in belief.perceivedKnowledge) {
         add(
-          holderId: belief.ownerCharacterId,
+          subjectId: belief.ownerCharacterId,
           targetId: belief.aboutCharacterId,
-          aspect: '已形成认知',
-          value: item,
+          claim: '已形成认知：$item',
+          source: 'beliefState',
         );
       }
       for (final item in belief.suspectedSecrets) {
         add(
-          holderId: belief.ownerCharacterId,
+          subjectId: belief.ownerCharacterId,
           targetId: belief.aboutCharacterId,
-          aspect: '怀疑内容',
-          value: item,
+          claim: '怀疑内容：$item',
+          source: 'beliefState',
         );
       }
     }
-    return List<pipeline.CharacterBelief>.unmodifiable(beliefs);
+    return List<CharacterBelief>.unmodifiable(beliefs);
   }
 
-  List<pipeline.RelationshipSlice> relationshipsFromBrief(SceneBrief brief) {
+  List<RelationshipSlice> relationshipsFromBrief(SceneBrief brief) {
     return [
       for (final relationship in brief.relationshipStates)
-        pipeline.RelationshipSlice(
-          characterA: relationship.sourceCharacterId,
-          characterB: relationship.targetCharacterId,
-          label: relationship.privateAlignment.trim().isNotEmpty
+        RelationshipSlice(
+          characterId: relationship.sourceCharacterId,
+          otherId: relationship.targetCharacterId,
+          kind: relationship.privateAlignment.trim().isNotEmpty
               ? relationship.privateAlignment.trim()
               : relationship.publicAlignment.trim(),
-          tension:
-              ((relationship.fear + relationship.resentment) * 5).round().clamp(0, 10),
-          trust: (relationship.trust * 10).round().clamp(0, 10),
+          tension: (relationship.fear + relationship.resentment) / 2,
+          trust: relationship.trust,
+          notes: '',
         ),
     ];
   }
 
-  List<pipeline.SocialPositionSlice> socialPositionsFromBrief(
+  List<SocialPositionSlice> socialPositionsFromBrief(
     SceneBrief brief,
   ) {
     return [
       for (final position in brief.socialPositions)
-        pipeline.SocialPositionSlice(
+        SocialPositionSlice(
           characterId: position.characterId,
+          contextId: '',
           role: position.institution,
-          formalRank: position.publicStatus,
-          actualInfluence: [
+          rank: 0,
+          notes: [
+            '公开地位：${position.publicStatus}',
             ...position.currentLeverage,
             ...position.resources,
             if (position.legalExposure.trim().isNotEmpty)
-              position.legalExposure.trim(),
+              '法律风险：${position.legalExposure.trim()}',
           ].join('；'),
         ),
     ];
   }
 
-  List<pipeline.KnowledgeAtom> knowledgeFromBrief(SceneBrief brief) {
+  List<pipeline.KnowledgeSnippet> knowledgeFromBrief(SceneBrief brief) {
     return [
       for (final atom in brief.knowledgeAtoms)
         if (atom.visibility.name == 'publicObservable' ||
             atom.visibility.name == 'agentPrivate')
-          pipeline.KnowledgeAtom(
+          pipeline.KnowledgeSnippet(
             id: atom.id,
             category: atom.type,
             content: atom.content,

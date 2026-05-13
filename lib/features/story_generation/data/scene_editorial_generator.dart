@@ -26,7 +26,7 @@ class SceneEditorialGenerator {
   Future<SceneEditorialDraft> generate({
     required SceneTaskCard taskCard,
     required List<SceneBeat> resolvedBeats,
-    required List<ContextCapsule> capsules,
+    required List<LightContextCapsule> capsules,
     required int attempt,
     SceneRoleplaySession? roleplaySession,
     String? reviewFeedback,
@@ -121,7 +121,7 @@ class SceneEditorialGenerator {
     return buf.toString();
   }
 
-  List<ContextCapsule> _stageCapsules(List<ContextCapsule> capsules) {
+  List<LightContextCapsule> _stageCapsules(List<LightContextCapsule> capsules) {
     return [
       for (final capsule in capsules)
         if (capsule.intent.toolName == SceneStageNarrator.capsuleToolName)
@@ -129,7 +129,7 @@ class SceneEditorialGenerator {
     ];
   }
 
-  List<ContextCapsule> _retrievalCapsules(List<ContextCapsule> capsules) {
+  List<LightContextCapsule> _retrievalCapsules(List<LightContextCapsule> capsules) {
     return [
       for (final capsule in capsules)
         if (capsule.intent.toolName != SceneStageNarrator.capsuleToolName)

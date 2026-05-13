@@ -18,12 +18,12 @@ class SceneStageNarrator {
 
   final AppSettingsStore _settingsStore;
 
-  Future<pipeline.ContextCapsule?> generate({
+  Future<pipeline.LightContextCapsule?> generate({
     required pipeline.SceneTaskCard taskCard,
     required SceneDirectorOutput director,
     required List<DynamicRoleAgentOutput> roleOutputs,
     required List<pipeline.RolePlayTurnOutput> roleTurns,
-    required List<pipeline.ContextCapsule> retrievalCapsules,
+    required List<pipeline.LightContextCapsule> retrievalCapsules,
     SceneRoleplaySession? roleplaySession,
     String? ragContext,
     void Function(String message)? onStatus,
@@ -64,8 +64,8 @@ class SceneStageNarrator {
       if (summary.isEmpty) {
         return null;
       }
-      return pipeline.ContextCapsule(
-        intent: const pipeline.RetrievalIntent(
+      return pipeline.LightContextCapsule(
+        intent: const pipeline.LightRetrievalIntent(
           toolName: capsuleToolName,
           query: 'scene stage narration',
           purpose: 'scene-level observable facts and atmosphere',
@@ -94,7 +94,7 @@ class SceneStageNarrator {
     required SceneDirectorOutput director,
     required List<DynamicRoleAgentOutput> roleOutputs,
     required List<pipeline.RolePlayTurnOutput> roleTurns,
-    required List<pipeline.ContextCapsule> retrievalCapsules,
+    required List<pipeline.LightContextCapsule> retrievalCapsules,
     SceneRoleplaySession? roleplaySession,
     String? ragContext,
   }) {

@@ -11,7 +11,7 @@ class RolePlayTurnOutput {
     required this.stance,
     required this.action,
     required this.taboo,
-    required List<RetrievalIntent> retrievalIntents,
+    required List<LightRetrievalIntent> retrievalIntents,
     this.disclosure = '',
     this.proseFragment = '',
     this.presentation,
@@ -24,7 +24,7 @@ class RolePlayTurnOutput {
   final String stance;
   final String action;
   final String taboo;
-  final List<RetrievalIntent> retrievalIntents;
+  final List<LightRetrievalIntent> retrievalIntents;
   final String disclosure;
   final String proseFragment;
   final PresentationState? presentation;
@@ -44,7 +44,7 @@ class RolePlayTurnOutput {
     String taboo = '';
     String disclosure = '';
     String proseFragment = '';
-    final retrievalIntents = <RetrievalIntent>[];
+    final retrievalIntents = <LightRetrievalIntent>[];
     final l = StoryPromptTemplates.locale;
     final stancePrefix = '${l.stanceLabel}${l.colon}';
     final actionPrefix = '${l.actionLabel}${l.colon}';
@@ -99,10 +99,10 @@ class RolePlayTurnOutput {
     return '$current / $value';
   }
 
-  static RetrievalIntent? _parseRetrievalIntent(String raw) {
+  static LightRetrievalIntent? _parseRetrievalIntent(String raw) {
     final parts = raw.split('|');
     if (parts.length < 2) return null;
-    return RetrievalIntent(
+    return LightRetrievalIntent(
       toolName: parts[0].trim(),
       query: parts[1].trim(),
       purpose: parts.length > 2 ? parts[2].trim() : '',

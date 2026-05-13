@@ -145,7 +145,7 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
       return '';
     }
     final belief = beliefs.first;
-    return '${_memberName(taskCard, belief.targetId)}${belief.aspect}：${belief.value}';
+    return '${_memberName(taskCard, belief.targetId)}：${belief.claim}';
   }
 
   String _participationAction(ResolvedSceneCastMember member) {

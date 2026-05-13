@@ -1,5 +1,5 @@
 import '../scene_editorial_generator.dart' show SceneEditorialGenerator;
-import '../scene_pipeline_models.dart' as pipeline show ContextCapsule;
+import '../scene_pipeline_models.dart' as pipeline show LightContextCapsule;
 import '../scene_runtime_models.dart' show SceneProseDraft;
 import '../step_io.dart';
 
@@ -14,7 +14,7 @@ class EditorialStep {
     EditorialInput input, {
     void Function(String)? onStatus,
   }) async {
-    final sceneCapsules = <pipeline.ContextCapsule>[
+    final sceneCapsules = <pipeline.LightContextCapsule>[
       ...input.stage.capsules,
       if (input.stage.stageCapsule != null) input.stage.stageCapsule!,
     ];

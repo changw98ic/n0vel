@@ -176,7 +176,7 @@ class CharacterVisibleContextBuilder {
     if (taskCard == null) return const <String>[];
     return [
       for (final belief in taskCard.beliefsFor(member.characterId))
-        '${_memberName(taskCard, belief.targetId)}/${belief.aspect}=${belief.value}',
+        '${_memberName(taskCard, belief.targetId)}/${belief.claim}',
     ];
   }
 
@@ -187,7 +187,7 @@ class CharacterVisibleContextBuilder {
     if (taskCard == null) return const <String>[];
     return [
       for (final relationship in taskCard.relationshipsFor(member.characterId))
-        '${_memberName(taskCard, relationship.characterA)}↔${_memberName(taskCard, relationship.characterB)}：${relationship.label}（张力${relationship.tension}/信任${relationship.trust}）',
+        '${_memberName(taskCard, relationship.characterId)}↔${_memberName(taskCard, relationship.otherId)}：${relationship.kind}（张力${relationship.tension}/信任${relationship.trust}）',
     ];
   }
 
@@ -198,7 +198,7 @@ class CharacterVisibleContextBuilder {
     if (taskCard == null) return const <String>[];
     final social = taskCard.socialPositionFor(member.characterId);
     if (social == null) return const <String>[];
-    return ['${social.role}/${social.formalRank}/影响力${social.actualInfluence}'];
+    return ['${social.role}/${social.notes}'];
   }
 
   VisibilityAcl _aclFromMetadata(Object? visibility, Object? characterIds) {

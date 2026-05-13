@@ -20,7 +20,7 @@ class SceneBrief {
     List<RelationshipState> relationshipStates = const [],
     List<SocialPositionState> socialPositions = const [],
     List<BeliefState> beliefStates = const [],
-    List<PresentationState> presentationStates = const [],
+    List<ContextPresentationState> presentationStates = const [],
     List<KnowledgeAtom> knowledgeAtoms = const [],
     this.narrativeArc,
     Map<String, Object?> metadata = const {},
@@ -48,7 +48,7 @@ class SceneBrief {
   final List<RelationshipState> relationshipStates;
   final List<SocialPositionState> socialPositions;
   final List<BeliefState> beliefStates;
-  final List<PresentationState> presentationStates;
+  final List<ContextPresentationState> presentationStates;
   final List<KnowledgeAtom> knowledgeAtoms;
   final NarrativeArcState? narrativeArc;
   final Map<String, Object?> metadata;
@@ -68,7 +68,7 @@ class SceneBrief {
     List<RelationshipState>? relationshipStates,
     List<SocialPositionState>? socialPositions,
     List<BeliefState>? beliefStates,
-    List<PresentationState>? presentationStates,
+    List<ContextPresentationState>? presentationStates,
     List<KnowledgeAtom>? knowledgeAtoms,
     NarrativeArcState? narrativeArc,
     Map<String, Object?>? metadata,
@@ -239,8 +239,8 @@ class ContextCapsule {
   }
 }
 
-class RolePlayTurnOutput {
-  RolePlayTurnOutput({
+class RuntimeRoleTurn {
+  RuntimeRoleTurn({
     required this.characterId,
     required this.intent,
     required this.spokenLine,
@@ -383,8 +383,8 @@ class SceneState {
   }
 }
 
-class SceneEditorialDraft {
-  SceneEditorialDraft({
+class RuntimeEditorialDraft {
+  RuntimeEditorialDraft({
     required this.text,
     List<int> beatOrder = const [],
     this.povStrategy = 'linear-scene',

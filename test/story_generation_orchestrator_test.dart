@@ -156,7 +156,7 @@ void main() {
         perceivedEmotionalState: '警惕',
         confidence: 0.7,
       );
-      final presentation = PresentationState(
+      final presentation = ContextPresentationState(
         characterId: 'char-liuxi',
         projectedPersona: '冷静追问',
         concealments: ['害怕沈渡也卷入走私'],
