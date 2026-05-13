@@ -19,6 +19,8 @@ abstract interface class SceneDirectorService {
 
 /// Runs dynamic role agents for scene characters.
 abstract interface class DynamicRoleAgentService {
+  SceneRoleplaySession? get lastRoleplaySession;
+
   Future<List<DynamicRoleAgentOutput>> run({
     required SceneBrief brief,
     required List<ResolvedSceneCastMember> cast,

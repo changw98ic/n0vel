@@ -108,18 +108,6 @@ class ToolWindowPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     final diagnosticText = diagnosticReport;
-    String selectionPreviewForDraft(WorkbenchAiSelectionDraft selection) {
-      final safeStart = selection.start.clamp(0, draftText.length).toInt();
-      final safeEnd = selection.end.clamp(safeStart, draftText.length).toInt();
-      final excerpt = draftText.substring(safeStart, safeEnd).trim();
-      if (excerpt.isEmpty) {
-        return '尚未选择正文片段';
-      }
-      if (excerpt.length <= 36) {
-        return excerpt;
-      }
-      return '${excerpt.substring(0, 36)}...';
-    }
 
     final (title, description) = switch (activePanel) {
       WorkbenchToolPanel.resources => ('章节资料', '本章会使用的人物、世界观和章节摘要会显示在这里。'),

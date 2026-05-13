@@ -239,6 +239,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
       sourceRunId: runSceneScopeId,
     );
     final brief = SceneBrief(
+      projectId: _workspaceStore.currentProjectId,
       chapterId: currentScene.chapterLabel,
       chapterTitle: currentScene.chapterLabel,
       sceneId: currentScene.id,

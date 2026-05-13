@@ -56,11 +56,7 @@ class RoleplayStep {
       onStatus: onStatus,
     );
 
-    // Extract lastRoleplaySession only from concrete DynamicRoleAgentRunner
-    final roleplaySession =
-        _dynamicRoleAgentRunner is DynamicRoleAgentRunner
-            ? _dynamicRoleAgentRunner.lastRoleplaySession
-            : null;
+    final roleplaySession = _dynamicRoleAgentRunner.lastRoleplaySession;
 
     await _persistRoleplaySession(
       projectId: brief.projectId ?? brief.chapterId,

@@ -94,12 +94,15 @@ class ContextEnrichmentStep {
 
       // Persist indexed chunks
       if (assembly.memoryChunks.isNotEmpty) {
-        await _memoryStorage.saveChunks(brief.chapterId, assembly.memoryChunks);
+        await _memoryStorage.saveChunks(
+          brief.projectId ?? brief.chapterId,
+          assembly.memoryChunks,
+        );
       }
 
       // Run retrieval for scene context
       final query = StoryMemoryQuery(
-        projectId: brief.chapterId,
+        projectId: brief.projectId ?? brief.chapterId,
         queryType: StoryMemoryQueryType.sceneContinuity,
         text: '${brief.sceneTitle} ${brief.sceneSummary}',
         tags: [
@@ -108,7 +111,7 @@ class ContextEnrichmentStep {
         ],
         maxResults: 10,
         tokenBudget: 500,
-        scopeId: '${brief.chapterId}:${brief.sceneId}',
+        scopeId: '${brief.projectId ?? brief.chapterId}:${brief.sceneId}',
       );
 
       // Memory retrieval and RAG retrieval are independent — run in parallel
