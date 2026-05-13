@@ -18,6 +18,11 @@ const List<SchemaMigration> authoringSchemaMigrations = [
     description: 'Add roleplay session and character memory artifact tables.',
     migrate: _migrateAuthoringV2,
   ),
+  SchemaMigration(
+    version: 3,
+    description: 'Add character_relations table for inter-character relationships.',
+    migrate: _migrateAuthoringV3,
+  ),
 ];
 
 // ── Version 1 migration ────────────────────────────────────────────────────
@@ -52,4 +57,8 @@ void _migrateAuthoringV1(Database db) {
 
 void _migrateAuthoringV2(Database db) {
   createRoleplayArtifactTables(db);
+}
+
+void _migrateAuthoringV3(Database db) {
+  createCharacterRelationsTable(db);
 }

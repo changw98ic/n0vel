@@ -213,6 +213,37 @@ void createStoryMemoryTables(Database db) {
   ''');
 }
 
+/// 创建角色关系表
+///
+/// 支持一对多、多对多关系建模。每条记录表示 from_character_id 指向
+/// to_character_id 的单向关系，反向关系需显式插入。
+void createCharacterRelationsTable(Database db) {
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS character_relations (
+      id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      from_character_id TEXT NOT NULL,
+      to_character_id TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      created_at_ms INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (project_id, from_character_id, to_character_id)
+    )
+  ''');
+  db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_character_relations_project
+    ON character_relations (project_id)
+  ''');
+  db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_character_relations_from
+    ON character_relations (project_id, from_character_id)
+  ''');
+  db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_character_relations_to
+    ON character_relations (project_id, to_character_id)
+  ''');
+}
+
 void createRoleplayArtifactTables(Database db) {
   db.execute('''
     CREATE TABLE IF NOT EXISTS character_memories (

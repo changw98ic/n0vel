@@ -407,6 +407,82 @@ class StyleProfileRecord {
   }
 }
 
+/// 角色关系记录
+///
+/// 表示 from_character_id → to_character_id 的单向关系。
+/// 反向关系需显式创建另一条记录。
+class CharacterRelationRecord {
+  const CharacterRelationRecord({
+    required this.id,
+    required this.projectId,
+    required this.fromCharacterId,
+    required this.toCharacterId,
+    required this.relationType,
+    this.note = '',
+    this.createdAtMs = 0,
+  });
+
+  final String id;
+  final String projectId;
+  final String fromCharacterId;
+  final String toCharacterId;
+  final String relationType;
+  final String note;
+  final int createdAtMs;
+
+  /// 是否是自反关系（自己指向自己）
+  bool get isSelfRelation => fromCharacterId == toCharacterId;
+
+  CharacterRelationRecord copyWith({
+    String? id,
+    String? projectId,
+    String? fromCharacterId,
+    String? toCharacterId,
+    String? relationType,
+    String? note,
+    int? createdAtMs,
+  }) {
+    return CharacterRelationRecord(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      fromCharacterId: fromCharacterId ?? this.fromCharacterId,
+      toCharacterId: toCharacterId ?? this.toCharacterId,
+      relationType: relationType ?? this.relationType,
+      note: note ?? this.note,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'projectId': projectId,
+      'fromCharacterId': fromCharacterId,
+      'toCharacterId': toCharacterId,
+      'relationType': relationType,
+      'note': note,
+      'createdAtMs': createdAtMs,
+    };
+  }
+
+  static CharacterRelationRecord fromJson(Map<String, Object?> json) {
+    return CharacterRelationRecord(
+      id: json['id']?.toString() ?? '',
+      projectId: json['projectId']?.toString() ?? '',
+      fromCharacterId: json['fromCharacterId']?.toString() ?? '',
+      toCharacterId: json['toCharacterId']?.toString() ?? '',
+      relationType: json['relationType']?.toString() ?? '',
+      note: json['note']?.toString() ?? '',
+      createdAtMs: int.tryParse(json['createdAtMs']?.toString() ?? '') ?? 0,
+    );
+  }
+}
+
+/// 生成角色关系 ID
+String generateCharacterRelationId() {
+  return 'rel-${DateTime.now().microsecondsSinceEpoch}';
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

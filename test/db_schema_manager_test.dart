@@ -173,9 +173,10 @@ void main() {
           'story_memory_sources',
           'story_memory_chunks',
           'story_thought_atoms',
+          'character_relations',
         ]),
       );
-      expect(db.select('PRAGMA user_version').first['user_version'], 2);
+      expect(db.select('PRAGMA user_version').first['user_version'], 3);
     });
 
     test('creates story memory indexes', () {
