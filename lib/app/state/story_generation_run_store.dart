@@ -83,10 +83,16 @@ class StoryGenerationRunStore extends AppStoreListenable {
            }) {
     _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
-    _workspaceStore.addListener(_handleWorkspaceChanged);
     _projectDeletedSubscription = _eventBus?.listen<ProjectDeletedEvent>(
       _handleProjectDeleted,
     );
+    _sceneChangedSubscription = _eventBus?.listen<SceneChangedEvent>(
+      (e) => _handleSceneScopeChanged(e.sceneScopeId),
+    );
+    _projectScopeChangedSubscription =
+        _eventBus?.listen<ProjectScopeChangedEvent>(
+          (e) => _handleSceneScopeChanged(e.sceneScopeId),
+        );
     _readyFuture = _restoreCurrentScene();
     unawaited(_readyFuture);
   }
@@ -114,6 +120,8 @@ class StoryGenerationRunStore extends AppStoreListenable {
   int? _activeRunToken;
   String? _activeRunSceneScopeId;
   StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
+  StreamSubscription<SceneChangedEvent>? _sceneChangedSubscription;
+  StreamSubscription<ProjectScopeChangedEvent>? _projectScopeChangedSubscription;
 
   StoryGenerationRunSnapshot get snapshot => _snapshot;
   String get activeSceneScopeId => _activeSceneScopeId;
@@ -456,8 +464,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     );
   }
 
-  void _handleWorkspaceChanged() {
-    final nextSceneScopeId = _workspaceStore.currentSceneScopeId;
+  void _handleSceneScopeChanged(String nextSceneScopeId) {
     if (nextSceneScopeId == _activeSceneScopeId) {
       return;
     }
@@ -513,9 +520,12 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   @override
   void dispose() {
-    _workspaceStore.removeListener(_handleWorkspaceChanged);
     unawaited(_projectDeletedSubscription?.cancel());
     _projectDeletedSubscription = null;
+    unawaited(_sceneChangedSubscription?.cancel());
+    _sceneChangedSubscription = null;
+    unawaited(_projectScopeChangedSubscription?.cancel());
+    _projectScopeChangedSubscription = null;
     super.dispose();
   }
 
