@@ -5,6 +5,7 @@ import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
 import 'app_workspace_store.dart';
+import 'persist_guard.dart';
 import 'story_generation_storage.dart';
 import 'story_generation_types.dart';
 
@@ -72,7 +73,7 @@ class StoryGenerationStore extends AppStoreListenable {
     _mutationVersion += 1;
     _snapshot = snapshot.deepCopy().copyWith(projectId: _activeProjectId);
     _snapshotsByProjectId[_activeProjectId] = _snapshot.deepCopy();
-    _readyFuture = _persist();
+    _readyFuture = safePersist(_persist, eventBus: _eventBus);
     _publishGenerationEvents(previousSnapshot, _snapshot);
     notifyListeners();
   }

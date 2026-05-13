@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'app_project_scoped_store.dart';
 import 'app_scene_context_storage.dart';
 import 'app_workspace_store.dart';
+import 'persist_guard.dart';
 
 class AppSceneContextSnapshot {
   const AppSceneContextSnapshot({
@@ -65,7 +66,7 @@ class AppSceneContextStore extends AppProjectScopedStore {
     };
     _snapshotsByProjectId[activeProjectId] = nextSnapshot;
     _snapshot = nextSnapshot;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -86,7 +87,7 @@ class AppSceneContextStore extends AppProjectScopedStore {
       worldSummary: data['worldSummary']?.toString() ?? _defaultWorldSummary,
     );
     _snapshotsByProjectId[activeProjectId] = _snapshot;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 

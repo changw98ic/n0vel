@@ -4,6 +4,7 @@ import 'package:novel_writer/features/story_generation/domain/outline_plan_model
 
 import 'app_project_scoped_store.dart';
 import 'app_storage_clone.dart';
+import 'persist_guard.dart';
 import 'story_outline_storage.dart';
 
 const String _fallbackStoryOutlineProjectId = 'project-yuechao';
@@ -330,7 +331,7 @@ class StoryOutlineStore extends AppProjectScopedStore {
     markMutated();
     _snapshot = snapshot.deepCopy().copyWith(projectId: activeProjectId);
     _snapshotsByProjectId[activeProjectId] = _snapshot.deepCopy();
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 

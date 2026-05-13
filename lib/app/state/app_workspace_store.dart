@@ -7,6 +7,7 @@ import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
 import 'app_workspace_storage.dart';
+import 'persist_guard.dart';
 import 'workspace_codec_utils.dart';
 import 'workspace_types.dart';
 
@@ -315,7 +316,7 @@ mixin _WorkspaceFields on AppStoreListenable {
 
   void _commitMutation() {
     _hasLocalMutations = true;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: _eventBus));
     notifyListeners();
   }
 

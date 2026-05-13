@@ -58,6 +58,10 @@ abstract class AppProjectScopedStore extends AppStoreListenable {
   @protected
   AppWorkspaceStore? get workspaceStore => _workspaceStore;
 
+  /// Protected access to the event bus for persist notifications.
+  @protected
+  AppEventBus? get eventBus => _eventBus;
+
   /// Increment mutation version to invalidate in-flight restores.
   @protected
   void markMutated() {

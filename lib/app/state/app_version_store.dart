@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app_project_scoped_store.dart';
 import 'app_version_storage.dart';
+import 'persist_guard.dart';
 
 class VersionEntry {
   const VersionEntry({required this.label, required this.content});
@@ -57,7 +58,7 @@ class AppVersionStore extends AppProjectScopedStore {
       VersionEntry(label: label, content: content),
       ..._entriesForNewSnapshot(),
     ].take(5).toList();
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -86,7 +87,7 @@ class AppVersionStore extends AppProjectScopedStore {
       VersionEntry(label: '恢复版本', content: entry.content),
       ..._entries,
     ].take(5).toList();
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -103,7 +104,7 @@ class AppVersionStore extends AppProjectScopedStore {
     _entries = decoded.isEmpty
         ? List<VersionEntry>.from(_defaultVersionEntries)
         : decoded;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 

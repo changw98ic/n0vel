@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
+import 'persist_guard.dart';
 
 const String _defaultDraftText = '';
 const String _fallbackDraftProjectId = 'project-yuechao::scene-05-witness-room';
@@ -60,7 +61,7 @@ class AppDraftStore extends AppProjectScopedStore {
     markMutated();
     _isRestoring = false;
     _snapshot = _snapshot.copyWith(text: text);
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -82,7 +83,7 @@ class AppDraftStore extends AppProjectScopedStore {
     markMutated();
     _isRestoring = false;
     _snapshot = AppDraftSnapshot.fromJson(data);
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 

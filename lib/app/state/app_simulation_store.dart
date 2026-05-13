@@ -6,6 +6,7 @@ import '../logging/app_event_log.dart';
 import 'app_project_scoped_store.dart';
 import 'app_settings_store.dart';
 import 'app_simulation_storage.dart';
+import 'persist_guard.dart';
 import 'simulation_models.dart';
 import 'simulation_real_agent_runner.dart';
 import 'simulation_serialization.dart';
@@ -212,7 +213,10 @@ class AppSimulationStore extends AppProjectScopedStore {
       ..clear()
       ..addAll(decodeMessages(data['extraMessages']));
     _snapshot = _buildSnapshot();
-    unawaited(_storage.save(_toJson(), projectId: activeProjectId));
+    unawaited(safePersist(
+      () => _storage.save(_toJson(), projectId: activeProjectId),
+      eventBus: eventBus,
+    ));
     notifyListeners();
   }
 
@@ -421,7 +425,10 @@ class AppSimulationStore extends AppProjectScopedStore {
 
   void _rebuildSnapshot() {
     _snapshot = _buildSnapshot();
-    unawaited(_storage.save(_toJson(), projectId: activeProjectId));
+    unawaited(safePersist(
+      () => _storage.save(_toJson(), projectId: activeProjectId),
+      eventBus: eventBus,
+    ));
     notifyListeners();
   }
 

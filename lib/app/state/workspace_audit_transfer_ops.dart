@@ -193,7 +193,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
         data['projectTransferState'],
       );
       _hasLocalMutations = true;
-      unawaited(_persist());
+      unawaited(safePersist(_persist, eventBus: _eventBus));
       notifyListeners();
       return;
     }
@@ -236,7 +236,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       projects: _projects,
     );
     _hasLocalMutations = true;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: _eventBus));
     notifyListeners();
   }
 
@@ -249,7 +249,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       if (_projects.isEmpty) {
         _healEmptyDecodedWorkspace();
         _hasLocalMutations = true;
-        unawaited(_persist());
+        unawaited(safePersist(_persist, eventBus: _eventBus));
         notifyListeners();
       }
       return;
@@ -263,7 +263,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       if (_projects.isEmpty) {
         _healEmptyDecodedWorkspace();
         _hasLocalMutations = true;
-        unawaited(_persist());
+        unawaited(safePersist(_persist, eventBus: _eventBus));
         notifyListeners();
       }
       return;
@@ -335,7 +335,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
 
     _currentProjectId = incomingProject.id;
     _hasLocalMutations = true;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: _eventBus));
     notifyListeners();
   }
 

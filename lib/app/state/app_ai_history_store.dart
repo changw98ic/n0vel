@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app_ai_history_storage.dart';
 import 'app_project_scoped_store.dart';
+import 'persist_guard.dart';
 
 class AiHistoryEntry {
   const AiHistoryEntry({
@@ -54,7 +55,7 @@ class AppAiHistoryStore extends AppProjectScopedStore {
       ...currentEntries,
     ].take(5).toList();
     _nextSequenceByProjectId[activeProjectId] = nextSequence + 1;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -62,7 +63,7 @@ class AppAiHistoryStore extends AppProjectScopedStore {
     markMutated();
     _entriesByProjectId[activeProjectId] = const [];
     _nextSequenceByProjectId[activeProjectId] = 1;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -76,7 +77,7 @@ class AppAiHistoryStore extends AppProjectScopedStore {
       return;
     }
     _entriesByProjectId[activeProjectId] = nextEntries;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
@@ -100,7 +101,7 @@ class AppAiHistoryStore extends AppProjectScopedStore {
     _nextSequenceByProjectId[activeProjectId] = decoded.isEmpty
         ? 1
         : decoded.first.sequence + 1;
-    unawaited(_persist());
+    unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
