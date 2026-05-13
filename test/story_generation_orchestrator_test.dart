@@ -6,6 +6,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
@@ -845,7 +846,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          maxProseRetries: 2,
+          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
         );
         final result = await orchestrator.runScene(
           SceneBrief(
@@ -940,7 +941,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          maxProseRetries: 2,
+          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1022,7 +1023,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          maxProseRetries: 1,
+          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
         );
 
         final result = await orchestrator.runScene(
@@ -1190,7 +1191,7 @@ void main() {
 
       final orchestrator = ChapterGenerationOrchestrator(
         settingsStore: settingsStore,
-        maxProseRetries: 1,
+        pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1255,7 +1256,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          maxProseRetries: 1,
+          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
         );
 
         final result = await orchestrator.runScene(

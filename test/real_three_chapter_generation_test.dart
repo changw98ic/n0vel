@@ -34,6 +34,7 @@ import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/features/import_export/data/project_transfer_service.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
@@ -723,7 +724,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
     ChapterGenerationOrchestrator createSceneOrchestrator() =>
         ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          maxProseRetries: 2,
+          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
           reviewCoordinator: SceneReviewCoordinator(
             settingsStore: settingsStore,
             formatterTraceSink: formatterTraceSink,

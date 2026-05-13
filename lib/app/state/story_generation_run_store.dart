@@ -8,9 +8,9 @@ import '../../features/review_tasks/data/review_task_mapper.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
 // Intentional: run store bridges app state to feature pipeline.
 import '../../features/story_generation/data/chapter_generation_orchestrator.dart';
+import '../../features/story_generation/data/generation_pipeline_config.dart';
 import '../../features/story_generation/data/scene_context_assembler.dart';
 import '../../features/story_generation/data/story_generation_models.dart';
-import '../../features/story_generation/data/style_reference_config.dart';
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
@@ -27,22 +27,6 @@ part 'story_generation_run/story_generation_run_scene_brief.dart';
 part 'story_generation_run/story_generation_run_scene_state.dart';
 part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
-
-StyleReferenceConfig _styleReferenceConfigFromWorkspace(
-  AppWorkspaceStore workspaceStore,
-) {
-  final profile = workspaceStore.selectedStyleProfile;
-  if (profile == null) {
-    return const StyleReferenceConfig(enabled: false);
-  }
-  return StyleReferenceConfig.fromProfile(
-    intensity: workspaceStore.styleIntensity,
-    profileId: profile.id,
-    profileName: profile.name,
-    profileSource: profile.source,
-    profileJson: profile.jsonData,
-  );
-}
 
 class StoryGenerationRunStore extends AppStoreListenable {
   StoryGenerationRunStore({
@@ -70,13 +54,10 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _orchestratorFactory =
            orchestratorFactory ??
            ((settingsStore) {
-             final styleReferenceConfig = _styleReferenceConfigFromWorkspace(
-               workspaceStore,
-             );
              return ChapterGenerationOrchestrator(
                settingsStore: settingsStore,
-               enableWritingReference: styleReferenceConfig.enabled,
-               styleReferenceConfig: styleReferenceConfig,
+               pipelineConfig:
+                   GenerationPipelineConfig.fromWorkspace(workspaceStore),
                roleplaySessionStore: roleplaySessionStore,
                characterMemoryStore: characterMemoryStore,
              );

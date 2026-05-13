@@ -20,7 +20,7 @@ import 'story_context_cache.dart';
 import 'story_memory_retriever.dart';
 import 'story_memory_storage.dart';
 import 'story_memory_storage_io.dart';
-import 'style_reference_config.dart';
+import 'generation_pipeline_config.dart';
 import 'thought_memory_updater.dart';
 
 import '../domain/story_pipeline_interfaces.dart';
@@ -107,13 +107,14 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
   }
 
   registry.registerFactory<ChapterGenerationService>((r) {
-    final styleReferenceConfig = registry.isRegistered<AppWorkspaceStore>()
-        ? _styleReferenceConfigFromWorkspace(r.resolve<AppWorkspaceStore>())
-        : const StyleReferenceConfig.defaultEnabled();
+    final pipelineConfig = registry.isRegistered<AppWorkspaceStore>()
+        ? GenerationPipelineConfig.fromWorkspace(
+            r.resolve<AppWorkspaceStore>(),
+          )
+        : const GenerationPipelineConfig();
     return ChapterGenerationOrchestrator(
       settingsStore: r.resolve(),
-      enableWritingReference: styleReferenceConfig.enabled,
-      styleReferenceConfig: styleReferenceConfig,
+      pipelineConfig: pipelineConfig,
       castResolver: r.resolve(),
       directorOrchestrator: r.resolve(),
       dynamicRoleAgentRunner: r.resolve(),
@@ -139,20 +140,4 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
       ),
     );
   });
-}
-
-StyleReferenceConfig _styleReferenceConfigFromWorkspace(
-  AppWorkspaceStore workspaceStore,
-) {
-  final profile = workspaceStore.selectedStyleProfile;
-  if (profile == null) {
-    return const StyleReferenceConfig(enabled: false);
-  }
-  return StyleReferenceConfig.fromProfile(
-    intensity: workspaceStore.styleIntensity,
-    profileId: profile.id,
-    profileName: profile.name,
-    profileSource: profile.source,
-    profileJson: profile.jsonData,
-  );
 }

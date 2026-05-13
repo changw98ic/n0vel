@@ -3,6 +3,7 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'character_consistency_verifier.dart';
 import 'dynamic_role_agent_runner.dart';
+import 'generation_pipeline_config.dart';
 import 'material_reference_retriever.dart';
 import 'retrieval_controller.dart';
 import 'scene_cast_resolver.dart';
@@ -40,11 +41,9 @@ import 'steps/finalization_step.dart';
 class ChapterGenerationOrchestrator implements ChapterGenerationService {
   ChapterGenerationOrchestrator({
     required AppSettingsStore settingsStore,
-    this.maxProseRetries = 1,
-    this.maxSceneReplanRetries = 1,
+    GenerationPipelineConfig pipelineConfig =
+        const GenerationPipelineConfig(),
     this.onStatus,
-    this.enableWritingReference = true,
-    this.styleReferenceConfig = const StyleReferenceConfig.defaultEnabled(),
     SceneCastResolverService? castResolver,
     SceneDirectorService? directorOrchestrator,
     DynamicRoleAgentService? dynamicRoleAgentRunner,
@@ -65,6 +64,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     ChapterContextBridgeService? chapterContextBridge,
     CharacterConsistencyVerifier? consistencyVerifier,
   }) : _settingsStore = settingsStore,
+       _pipelineConfig = pipelineConfig,
        _contextEnrichmentStep = ContextEnrichmentStep(
          chapterContextBridge: chapterContextBridge,
          contextAssembler: contextAssembler ?? SceneContextAssembler(),
@@ -90,10 +90,10 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
          characterMemoryStore: characterMemoryStore,
          retrievalController: RetrievalController(
            materialReferenceRetriever: MaterialReferenceRetriever(
-             rootPath: styleReferenceConfig.rootPath,
+             rootPath: pipelineConfig.styleReferenceConfig.rootPath,
            ),
            enableWritingReference:
-               enableWritingReference && styleReferenceConfig.enabled,
+               pipelineConfig.enableWritingReference && pipelineConfig.styleReferenceConfig.enabled,
          ),
        ),
        _stageNarrationStep = StageNarrationStep(
@@ -101,10 +101,10 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
              SceneStageNarrator(settingsStore: settingsStore),
          retrievalController: RetrievalController(
            materialReferenceRetriever: MaterialReferenceRetriever(
-             rootPath: styleReferenceConfig.rootPath,
+             rootPath: pipelineConfig.styleReferenceConfig.rootPath,
            ),
            enableWritingReference:
-               enableWritingReference && styleReferenceConfig.enabled,
+               pipelineConfig.enableWritingReference && pipelineConfig.styleReferenceConfig.enabled,
          ),
        ),
        _beatResolutionStep = BeatResolutionStep(
@@ -119,7 +119,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
          reviewCoordinator: reviewCoordinator ??
              SceneReviewCoordinator(settingsStore: settingsStore),
          consistencyVerifier: consistencyVerifier,
-         maxProseRetries: maxProseRetries,
+         maxProseRetries: pipelineConfig.maxProseRetries,
        ),
        _polishStep = PolishStep(
          polishPass: polishPass ?? ScenePolishPass(settingsStore: settingsStore),
@@ -130,11 +130,14 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
          narrativeArcTracker: NarrativeArcTracker(),
        );
 
-  final int maxProseRetries;
-  final int maxSceneReplanRetries;
+  final GenerationPipelineConfig _pipelineConfig;
+  int get maxProseRetries => _pipelineConfig.maxProseRetries;
+  int get maxSceneReplanRetries => _pipelineConfig.maxSceneReplanRetries;
+  bool get enableWritingReference => _pipelineConfig.enableWritingReference;
+  StyleReferenceConfig get styleReferenceConfig =>
+      _pipelineConfig.styleReferenceConfig;
+
   final void Function(String message)? onStatus;
-  final bool enableWritingReference;
-  final StyleReferenceConfig styleReferenceConfig;
 
   bool Function()? isRunCancelled;
 
