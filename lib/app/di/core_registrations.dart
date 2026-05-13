@@ -11,6 +11,8 @@ import '../state/app_version_store.dart';
 import '../state/app_workspace_store.dart';
 import '../state/story_generation_store.dart';
 import '../state/story_outline_store.dart';
+import '../state/story_arc_store.dart';
+import '../../features/writing_stats/data/writing_stats_store.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
 import 'service_registry.dart';
@@ -77,11 +79,25 @@ void registerCoreServices(ServiceRegistry registry) {
     ),
   );
 
+  registry.registerFactory<StoryArcStore>(
+    (r) => StoryArcStore(
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+
   registry.registerFactory<AppSettingsStore>(
     (r) => AppSettingsStore(
       llmClient: r.resolve<AppLlmClient>(),
       requestPool: r.resolve<AppLlmRequestPool>(),
       eventLog: r.resolve<AppEventLog>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+
+  registry.registerFactory<WritingStatsStore>(
+    (r) => WritingStatsStore(
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
       eventBus: r.resolve<AppEventBus>(),
     ),
   );

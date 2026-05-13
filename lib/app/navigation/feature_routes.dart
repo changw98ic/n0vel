@@ -1,3 +1,5 @@
+import '../../features/search/presentation/fulltext_search_page.dart';
+import '../../features/story_arc/presentation/story_arc_timeline_page.dart';
 import '../../features/audit/presentation/audit_center_page.dart';
 import '../../features/characters/presentation/character_library_page.dart';
 import '../../features/import_export/presentation/project_import_export_page.dart';
@@ -69,4 +71,8 @@ void registerFeatureRoutes() {
       previewStatus: params?.previewStatus,
     );
   });
+  AppNavigator.register(
+    AppRoutes.storyArc,
+    (context, _) => const StoryArcTimelinePage(),
+  );
 }

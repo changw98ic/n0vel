@@ -5,6 +5,7 @@ import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
+import '../../features/writing_stats/data/writing_stats_store.dart';
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
@@ -19,6 +20,7 @@ import '../state/app_workspace_store.dart';
 import '../state/story_generation_run_store.dart';
 import '../state/story_generation_store.dart';
 import '../state/story_outline_store.dart';
+import '../state/story_arc_store.dart';
 import 'service_registry.dart';
 
 /// Root provider that holds the [ServiceRegistry] reference.
@@ -110,6 +112,8 @@ class StoryOutlineStoreNotifier
 class StoryGenerationStoreNotifier
     extends RegistryStoreNotifier<StoryGenerationStore> {}
 
+class StoryArcStoreNotifier extends RegistryStoreNotifier<StoryArcStore> {}
+
 final appWorkspaceStoreProvider =
     NotifierProvider<AppWorkspaceStoreNotifier, AppWorkspaceStore>(
       AppWorkspaceStoreNotifier.new,
@@ -155,6 +159,11 @@ final storyGenerationStoreProvider =
       StoryGenerationStoreNotifier.new,
     );
 
+final storyArcStoreProvider =
+    NotifierProvider<StoryArcStoreNotifier, StoryArcStore>(
+      StoryArcStoreNotifier.new,
+    );
+
 // -- Feature store providers --
 
 class AuthorFeedbackStoreNotifier
@@ -178,4 +187,14 @@ final reviewTaskStoreProvider =
 final storyGenerationRunStoreProvider =
     NotifierProvider<StoryGenerationRunStoreNotifier, StoryGenerationRunStore>(
       StoryGenerationRunStoreNotifier.new,
+    );
+
+// -- Writing stats store provider --
+
+class WritingStatsStoreNotifier
+    extends RegistryStoreNotifier<WritingStatsStore> {}
+
+final writingStatsStoreProvider =
+    NotifierProvider<WritingStatsStoreNotifier, WritingStatsStore>(
+      WritingStatsStoreNotifier.new,
     );

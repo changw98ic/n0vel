@@ -244,6 +244,74 @@ void createCharacterRelationsTable(Database db) {
   ''');
 }
 
+/// 创建故事弧线状态表
+///
+/// 存储 NarrativeArcState 的 JSON 序列化数据，包含情节线、伏笔追踪等。
+void createStoryArcStateTable(Database db) {
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS story_arc_states (
+      project_id TEXT PRIMARY KEY,
+      state_json TEXT NOT NULL,
+      updated_at_ms INTEGER NOT NULL DEFAULT 0
+    )
+  ''');
+}
+
+/// 创建写作统计表（日/项目级）和写作目标表
+void createWritingStatsTables(Database db) {
+  // 日级统计：每个 scene scope 每天一条
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS writing_daily_stats (
+      stat_date TEXT NOT NULL,
+      scene_scope_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      char_count INTEGER NOT NULL DEFAULT 0,
+      delta_chars INTEGER NOT NULL DEFAULT 0,
+      chapters_completed INTEGER NOT NULL DEFAULT 0,
+      goal_reached INTEGER NOT NULL DEFAULT 0,
+      updated_at_ms INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (stat_date, scene_scope_id)
+    )
+  ''');
+  db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_writing_daily_stats_project_date
+    ON writing_daily_stats (project_id, stat_date)
+  ''');
+
+  // 项目级累计统计
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS writing_project_stats (
+      project_id TEXT PRIMARY KEY,
+      total_char_count INTEGER NOT NULL DEFAULT 0,
+      total_delta_chars INTEGER NOT NULL DEFAULT 0,
+      total_chapters INTEGER NOT NULL DEFAULT 0,
+      total_sessions INTEGER NOT NULL DEFAULT 0,
+      first_write_at_ms INTEGER NOT NULL DEFAULT 0,
+      last_write_at_ms INTEGER NOT NULL DEFAULT 0,
+      best_day_chars INTEGER NOT NULL DEFAULT 0,
+      best_day_date TEXT NOT NULL DEFAULT ''
+    )
+  ''');
+
+  // 写作目标
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS writing_goals (
+      id TEXT NOT NULL,
+      project_id TEXT NOT NULL DEFAULT '',
+      goal_type TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      period TEXT NOT NULL DEFAULT 'daily',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at_ms INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (id)
+    )
+  ''');
+  db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_writing_goals_project
+    ON writing_goals (project_id)
+  ''');
+}
+
 void createRoleplayArtifactTables(Database db) {
   db.execute('''
     CREATE TABLE IF NOT EXISTS character_memories (

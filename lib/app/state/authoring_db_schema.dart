@@ -3,6 +3,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'db_schema_manager.dart';
 import 'authoring_legacy_migrations.dart';
 import 'authoring_table_definitions.dart';
+import 'fulltext_search_storage.dart';
 
 const List<SchemaMigration> authoringSchemaMigrations = [
   SchemaMigration(
@@ -22,6 +23,23 @@ const List<SchemaMigration> authoringSchemaMigrations = [
     version: 3,
     description: 'Add character_relations table for inter-character relationships.',
     migrate: _migrateAuthoringV3,
+  ),
+  SchemaMigration(
+    version: 4,
+    description: 'Add story_arc_states table for narrative arc and foreshadowing persistence.',
+    migrate: _migrateAuthoringV4,
+  ),
+  SchemaMigration(
+    version: 5,
+    description:
+        'Add fulltext search tables (fulltext_chapter_contents + fulltext_chapters FTS5) '
+        'for chapter/scene full-text search with CJK support.',
+    migrate: _migrateAuthoringV5,
+  ),
+  SchemaMigration(
+    version: 6,
+    description: 'Add writing_daily_stats, writing_project_stats, and writing_goals tables.',
+    migrate: _migrateAuthoringV6,
   ),
 ];
 
@@ -61,4 +79,16 @@ void _migrateAuthoringV2(Database db) {
 
 void _migrateAuthoringV3(Database db) {
   createCharacterRelationsTable(db);
+}
+
+void _migrateAuthoringV4(Database db) {
+  createStoryArcStateTable(db);
+}
+
+void _migrateAuthoringV5(Database db) {
+  createFulltextSearchTables(db);
+}
+
+void _migrateAuthoringV6(Database db) {
+  createWritingStatsTables(db);
 }
