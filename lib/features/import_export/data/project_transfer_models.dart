@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../app/logging/app_event_log.dart';
 import '../../../app/state/app_authoring_storage_io_support.dart';
 import '../../../domain/workspace_models.dart';
 import '../../story_generation/data/character_memory_store_io.dart';
@@ -185,4 +186,53 @@ Future<void> importRoleplayStateForProject(
   } finally {
     database.dispose();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Shared transfer constants
+// ---------------------------------------------------------------------------
+
+/// Schema major version supported by this build.
+const int projectTransferSchemaMajor = 1;
+
+/// Schema minor version supported by this build.
+const int projectTransferSchemaMinor = 0;
+
+/// Default filename for the export/import zip package.
+const String projectTransferPackageFilename = '月临-导出.zip';
+
+/// Filename for the checksum manifest inside the zip package.
+const String projectTransferChecksumsFilename = 'checksums.json';
+
+// ---------------------------------------------------------------------------
+// Shared transfer logging helper
+// ---------------------------------------------------------------------------
+
+/// Centralised best-effort logging for import/export transfer events.
+Future<void> logTransferEvent(
+  AppEventLog eventLog, {
+  required String action,
+  required AppEventLogStatus status,
+  required String message,
+  String? correlationId,
+  String? projectId,
+  String? sceneId,
+  AppEventLogLevel level = AppEventLogLevel.info,
+  String? errorCode,
+  String? errorDetail,
+  Map<String, Object?> metadata = const <String, Object?>{},
+}) {
+  return eventLog.logBestEffort(
+    level: level,
+    category: AppEventLogCategory.importExport,
+    action: action,
+    status: status,
+    message: message,
+    correlationId: correlationId,
+    projectId: projectId,
+    sceneId: sceneId,
+    errorCode: errorCode,
+    errorDetail: errorDetail,
+    metadata: metadata,
+  );
 }
