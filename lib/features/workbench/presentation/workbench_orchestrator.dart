@@ -442,6 +442,44 @@ class WorkbenchOrchestrator extends AppStoreListenable {
     return hasLinked || (workspaceStore.worldNodes.isNotEmpty && hasSynced);
   }
 
+  // --- Run recovery ---
+
+  static const _restorableStatusNames = {
+    'running',
+    'draft',
+    'candidate',
+    'feedback',
+    'check',
+    'resume',
+  };
+
+  bool shouldPromptForRunRecovery(StoryGenerationRunSnapshot snapshot) {
+    return snapshot.hasRun &&
+        _restorableStatusNames.contains(snapshot.status.name);
+  }
+
+  Future<void> retryRecoveredRun() async {
+    await storyRunStore.runCurrentScene();
+  }
+
+  Future<void> discardRecoveredRun() async {
+    final exported = await storyRunStore.exportProjectJson();
+    final rawRunsByScope = exported['sceneRunsByScope'];
+    final sceneRunsByScope = <String, Object?>{};
+    if (rawRunsByScope is Map) {
+      for (final entry in rawRunsByScope.entries) {
+        final sceneScopeId = entry.key.toString();
+        if (sceneScopeId != storyRunStore.activeSceneScopeId) {
+          sceneRunsByScope[sceneScopeId] = entry.value;
+        }
+      }
+    }
+    await storyRunStore.importProjectJson({
+      'projectId': exported['projectId'],
+      'sceneRunsByScope': sceneRunsByScope,
+    });
+  }
+
   // --- Private helpers ---
 
   static String? _sourceRunId(
