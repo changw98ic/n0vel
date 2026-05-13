@@ -5,6 +5,7 @@ import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../state/app_authoring_storage_io_support.dart';
+import '../state/fulltext_search_service.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
 import '../../features/story_generation/data/character_memory_store_io.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
@@ -28,5 +29,8 @@ void registerInfrastructureServices(ServiceRegistry registry) {
   );
   registry.registerFactory<CharacterMemoryStore>(
     (r) => CharacterMemoryStoreIO(db: r.resolve<sqlite3.Database>()),
+  );
+  registry.registerFactory<FulltextSearchService>(
+    (r) => FulltextSearchService(db: r.resolve<sqlite3.Database>()),
   );
 }
