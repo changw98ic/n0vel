@@ -60,9 +60,14 @@ class DatabaseCorruptedException implements Exception {
 Database openAuthoringDatabase(String dbPath) {
   final file = File(dbPath);
   file.parent.createSync(recursive: true);
-  final database = sqlite3.open(dbPath);
-  _applyPerformancePragmas(database);
-  _checkIntegrity(database);
+  final Database database;
+  try {
+    database = sqlite3.open(dbPath);
+    _applyPerformancePragmas(database);
+    _checkIntegrity(database);
+  } on SqliteException catch (e) {
+    throw DatabaseCorruptedException(e.message);
+  }
   DatabaseSchemaManager(
     migrations: authoringSchemaMigrations,
   ).ensureSchema(database);
