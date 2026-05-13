@@ -21,6 +21,7 @@ abstract final class AppRoutes {
   static const String sandbox = 'sandbox';
   static const String storyArc = 'story_arc';
   static const String fulltextSearch = 'fulltext_search';
+  static const String writingStats = 'writing_stats';
 }
 
 class SandboxRouteArgs {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import '../events/app_domain_events.dart';
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
 import 'persist_guard.dart';
@@ -58,18 +59,22 @@ class AppDraftStore extends AppProjectScopedStore {
   }
 
   void updateText(String text) {
+    final previousText = _snapshot.text;
     markMutated();
     _isRestoring = false;
     _snapshot = _snapshot.copyWith(text: text);
+    _publishDraftUpdated(previousText, text);
     unawaited(safePersist(_persist, eventBus: eventBus));
     notifyListeners();
   }
 
   Future<void> updateTextAndPersist(String text) async {
     final previousSnapshot = _snapshot;
+    final previousText = _snapshot.text;
     markMutated();
     _isRestoring = false;
     _snapshot = _snapshot.copyWith(text: text);
+    _publishDraftUpdated(previousText, text);
     try {
       await _persist();
       notifyListeners();
@@ -107,6 +112,19 @@ class AppDraftStore extends AppProjectScopedStore {
     _isRestoring = false;
     _snapshot = AppDraftSnapshot.fromJson(restored);
     notifyListeners();
+  }
+
+  void _publishDraftUpdated(String previousText, String currentText) {
+    try {
+      eventBus?.publish(DraftUpdatedEvent(
+        projectId: activeProjectId.split('::').first,
+        sceneScopeId: activeProjectId,
+        previousText: previousText,
+        currentText: currentText,
+      ));
+    } on StateError {
+      // eventBus 可能已 disposed
+    }
   }
 
   Future<void> _persist() =>

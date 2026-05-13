@@ -66,6 +66,47 @@ class SettingsSavedEvent extends AppDomainEvent {
 }
 
 // ---------------------------------------------------------------------------
+// Draft editing
+// ---------------------------------------------------------------------------
+
+/// 草稿文本更新事件，用于驱动写作统计增量更新。
+class DraftUpdatedEvent extends AppDomainEvent {
+  const DraftUpdatedEvent({
+    required this.projectId,
+    required this.sceneScopeId,
+    required this.previousText,
+    required this.currentText,
+  });
+
+  final String projectId;
+  final String sceneScopeId;
+  final String previousText;
+  final String currentText;
+
+  /// 去除空白后的字符增量（正数 = 新增，负数 = 删除）。
+  int get charDelta {
+    final prevLen = _countNonWhitespace(previousText);
+    final currLen = _countNonWhitespace(currentText);
+    return currLen - prevLen;
+  }
+
+  static int _countNonWhitespace(String value) {
+    var count = 0;
+    for (final codeUnit in value.codeUnits) {
+      if (codeUnit != 0x20 &&
+          codeUnit != 0x09 &&
+          codeUnit != 0x0A &&
+          codeUnit != 0x0D &&
+          codeUnit != 0x0B &&
+          codeUnit != 0x0C) {
+        count++;
+      }
+    }
+    return count;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Story generation
 // ---------------------------------------------------------------------------
 
