@@ -176,7 +176,8 @@ void main() {
           'character_relations',
         ]),
       );
-      expect(db.select('PRAGMA user_version').first['user_version'], 3);
+      expect(db.select('PRAGMA user_version').first['user_version'],
+          authoringSchemaMigrations.length);
     });
 
     test('creates story memory indexes', () {

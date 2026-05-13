@@ -456,7 +456,7 @@ void main() {
       expect(tables, contains('character_relations'));
       expect(
         db.select('PRAGMA user_version').first['user_version'],
-        3,
+        authoringSchemaMigrations.length,
       );
     });
 
