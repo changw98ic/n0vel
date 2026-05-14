@@ -11,6 +11,8 @@ class SceneBrief {
     required this.sceneId,
     required this.sceneTitle,
     required this.sceneSummary,
+    this.sceneIndex = 0,
+    this.totalScenesInChapter = 0,
     this.projectId,
     this.targetLength = 400,
     this.targetBeat = '',
@@ -38,6 +40,8 @@ class SceneBrief {
   final String chapterId;
   final String chapterTitle;
   final String sceneId;
+  final int sceneIndex;
+  final int totalScenesInChapter;
   final String sceneTitle;
   final String sceneSummary;
   final int targetLength;
@@ -58,6 +62,8 @@ class SceneBrief {
     String? chapterId,
     String? chapterTitle,
     String? sceneId,
+    int? sceneIndex,
+    int? totalScenesInChapter,
     String? sceneTitle,
     String? sceneSummary,
     int? targetLength,
@@ -78,6 +84,8 @@ class SceneBrief {
       chapterId: chapterId ?? this.chapterId,
       chapterTitle: chapterTitle ?? this.chapterTitle,
       sceneId: sceneId ?? this.sceneId,
+      sceneIndex: sceneIndex ?? this.sceneIndex,
+      totalScenesInChapter: totalScenesInChapter ?? this.totalScenesInChapter,
       sceneTitle: sceneTitle ?? this.sceneTitle,
       sceneSummary: sceneSummary ?? this.sceneSummary,
       targetLength: targetLength ?? this.targetLength,

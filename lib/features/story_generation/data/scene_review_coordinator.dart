@@ -7,6 +7,7 @@ import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'scene_roleplay_session_models.dart';
 import 'scene_cast_roleplay_policy.dart';
+import 'scene_hard_gates.dart';
 import 'scene_type_classifier.dart';
 import 'scene_type_prompts.dart';
 import 'story_generation_formatter_trace.dart';
@@ -122,13 +123,21 @@ class SceneReviewCoordinator implements SceneReviewService {
   }) {
     onStatus?.call('场景 ${brief.chapterId}/${brief.sceneId} · local review');
     final hasDraft = prose.text.trim().isNotEmpty;
-    final status = hasDraft
+    final hardGateViolation = hasDraft
+        ? sceneHardGateViolationText(brief: brief, proseText: prose.text)
+        : '';
+    final passed = hasDraft && hardGateViolation.isEmpty;
+    final status = passed
         ? SceneReviewStatus.pass
         : SceneReviewStatus.rewriteProse;
-    final decision = hasDraft
+    final decision = passed
         ? SceneReviewDecision.pass
         : SceneReviewDecision.rewriteProse;
-    final reason = hasDraft ? '本地结构化审查通过。' : '正文为空，需要补写。';
+    final reason = !hasDraft
+        ? '正文为空，需要补写。'
+        : hardGateViolation.isNotEmpty
+            ? hardGateViolation
+            : '本地结构化审查通过。';
     final judge = SceneReviewPassResult(
       status: status,
       reason: reason,
@@ -207,7 +216,11 @@ class SceneReviewCoordinator implements SceneReviewService {
               'Use 原因： for the second line and keep it brief. Focus on blocking issues. '
               'If character choices replace a director beat but complete 同等剧情功能, choose PASS; '
               'if they only provide emotion or clue recognition while the required story function is missing, choose REPLAN_SCENE. '
-              'If prose makes a noninteractive/dead/evidence-only cast member act, speak, think, or makes their body/remains/attached evidence actively move, emit, attack, or open in the moment, choose REWRITE_PROSE.',
+              'If prose makes a noninteractive/dead/evidence-only cast member act, speak, think, or makes their body/remains/attached evidence actively move, emit, attack, or open in the moment, choose REWRITE_PROSE.\n'
+              '硬约束（任一违反则必须选择 REWRITE_PROSE）：\n'
+              '- 对话占比：正文中直接对话（「」""中的内容）字符比例不得低于25%\n'
+              '- 章首钩子：如果标注为本章首个场景，正文前50字必须包含悬念信号（对话/疑问/威胁/反常）\n'
+              '- 章尾钩子：如果标注为本章最后场景，结尾不得使用收口句式，必须留下未决冲突或悬念',
         ),
         AppLlmChatMessage(
           role: 'user',
@@ -216,6 +229,12 @@ class SceneReviewCoordinator implements SceneReviewService {
             '评审：$passLabel',
             '评审类别：${_categoryList(categories)}',
             '规则：聚焦阻塞问题，正文改写交给后续步骤；读者会出戏的角色越权、测试说明、明显 AI 套话均视为阻塞问题',
+            '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
+            if (brief.sceneIndex == 0)
+              '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
+            if (brief.totalScenesInChapter > 0 &&
+                brief.sceneIndex == brief.totalScenesInChapter - 1)
+              '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
             '场：${_compact(brief.sceneTitle, maxChars: 40)}',
             '导演：${_compact(director.text, maxChars: 120)}',
             if (noninteractiveCastBoundary.isNotEmpty)
@@ -283,6 +302,19 @@ class SceneReviewCoordinator implements SceneReviewService {
         reason: noninteractiveViolation,
       );
       rawText = '决定：REWRITE_PROSE\n原因：$noninteractiveViolation';
+    }
+
+    final hardGateViolation = sceneHardGateViolationText(
+      brief: brief,
+      proseText: prose.text,
+    );
+    if (hardGateViolation.isNotEmpty &&
+        parsed.status == SceneReviewStatus.pass) {
+      parsed = _ParsedReviewOutput(
+        status: SceneReviewStatus.rewriteProse,
+        reason: hardGateViolation,
+      );
+      rawText = '决定：REWRITE_PROSE\n原因：$hardGateViolation';
     }
     await _recordFormatterTrace(
       brief: brief,

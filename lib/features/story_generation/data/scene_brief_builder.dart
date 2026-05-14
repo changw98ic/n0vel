@@ -36,11 +36,15 @@ class SceneBriefBuilder {
       '_transitionId':? transitionId,
     };
 
+    final sceneIndex = chapterPlan.scenes.indexWhere((s) => s.id == plan.id);
+
     return SceneBrief(
       projectId: projectId,
       chapterId: chapterPlan.id,
       chapterTitle: chapterPlan.title,
       sceneId: plan.id,
+      sceneIndex: sceneIndex >= 0 ? sceneIndex : 0,
+      totalScenesInChapter: chapterPlan.scenes.length,
       sceneTitle: plan.title,
       sceneSummary: plan.summary,
       targetLength: plan.targetLength,

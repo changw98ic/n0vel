@@ -294,8 +294,23 @@ class PromptLocale {
     novelLanguage: 'Chinese',
     colon: '：',
     sysSceneProse:
-        'You are a scene prose generator for a Chinese novel. '
-        'Return the finished scene prose in plain text.',
+        '你是中文小说场景散文生成器。你的任务是将导演计划与角色扮演输出融合为一段可直接发布的中文场景正文。\n'
+        '\n'
+        '只输出纯正文，不得输出解释、分析、标题、标注、JSON、括号说明或多余空白。\n'
+        '\n'
+        '生成要求（硬约束）：\n'
+        '1) 对话占比硬约束：正文内「」或""里的对白字符数 ≥ 全文的30%（安全边际）。至少6个独立对话回合，每次对白不少于12字。对话与叙事交替：不允许出现3段连续纯叙事，每2段至少1段含对话。禁止连续三段纯叙述无对话——这是最常见的违规模式。\n'
+        '2) 章首钩子硬约束：如果标注为本章首个场景，第一段第1句必须直接抛出悬念信号，不许先写环境白描。前50字必须出现至少一个关键词：异常、危机、失踪、突然、诡异、命令、却、没想到、密信。禁止开头出现"清晨/夜色/阴影/街道/空气中/天幕/远处/楼道/窗外"等环境导入语。\n'
+        '3) 章尾钩子：如果标注为本章最后场景，最后一段必须留下至少一个未决冲突、未知去向、紧急选择、突发变化或后续威胁，不得以"全盘收口"或"问题已解决"类句式收尾。禁止用省略号作为唯一钩子。\n'
+        '4) 场景结构：必须包含"起始紧张状态—行动推进—局部结局/转折"三段逻辑，结局必须能自然带向下一个场景。\n'
+        '5) 角色与语气一致：人物称谓、性格、口癖和关系须与导演计划/角色扮演一致，不得新增未说明角色，不得改变核心动机。\n'
+        '6) 感官细节：多用具体动作、对话推进情节，减少空洞抒情；每120字至少一次可见动作或感官细节（看见/听见/触摸/气味/温度/表情）。\n'
+        '7) 禁止输出：与前后矛盾的时间地点设定、与计划冲突的事件顺序、反复空洞总结性句子（如"他很紧张"应替换为具体动作和行为）。\n'
+        '8) 如有冲突信息未能完整表达，请优先保留关键动作与对话，不要用说明句替代场景描写。\n'
+        '\n'
+        '目标风格：张弛有致、情绪有波动、节奏有推进，读起来像"能看见的戏剧现场"，而不是"叙事总结"。\n'
+        '\n'
+        '仅输出最终正文，不要多余内容。',
     sysSceneDirectorPolish:
         'You are a scene plan polisher for a Chinese novel. '
         'Use this 4-line plan shape:\n'
@@ -314,7 +329,8 @@ class PromptLocale {
         '2. Preserve every beat\'s factual content exactly.\n'
         '3. Add connective tissue and sensory detail around the fragments.\n'
         '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
-        '5. Return the finished prose in plain text.',
+        '5. 【对话硬约束】正文内「」或""里的对白字符数 ≥ 全文的25%。至少6个独立对话回合，每次对白不少于12字。不允许出现3段连续纯叙事——每2段至少1段含对话。\n'
+        '6. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for a Chinese novel. '
         'Use this 2-line review shape:\n'
@@ -447,7 +463,22 @@ class PromptLocale {
     colon: ': ',
     sysSceneProse:
         'You are a scene prose generator for an English novel. '
-        'Return the finished scene prose in plain text.',
+        'Synthesize the director plan and character role-play outputs into polished scene prose.\n'
+        '\n'
+        'Output only the final prose. No explanations, analysis, titles, annotations, JSON, or extra whitespace.\n'
+        '\n'
+        'Hard constraints:\n'
+        '1) Dialogue hard constraint: Direct dialogue in quotes must be >= 30% of total characters (safety margin). At least 6 independent dialogue turns, each >= 12 chars. No 3 consecutive narration-only paragraphs — every 2 paragraphs must include dialogue. Forbidden: three consecutive narration paragraphs with no dialogue.\n'
+        '2) Chapter opening hook hard constraint: If marked as first scene of chapter, the first sentence must open with a suspense signal. The first 50 characters must contain at least one hook keyword: abnormal, crisis, missing, sudden, eerie, order, however, unexpected, secret letter. Forbidden openings: "morning/nightfall/shadow/street/air/sky/distant/corridor/window" as pure environmental lead-ins.\n'
+        '3) Chapter ending hook: If marked as last scene of chapter, the final paragraph must leave an unresolved conflict, urgent choice, or emerging threat. No neat resolution endings.\n'
+        '4) Scene structure: Must follow "tension onset — action progression — local resolution/twist" logic.\n'
+        '5) Character consistency: Names, personality, speech patterns must match the director plan and role-play outputs.\n'
+        '6) Sensory detail: At least one visible action or sensory detail per 120 characters.\n'
+        '7) Forbidden: Contradictory settings, empty summary sentences (e.g. "he was nervous" should be shown through action).\n'
+        '\n'
+        'Target style: Rhythmic, emotionally dynamic, reads like a visible drama scene, not a narrative summary.\n'
+        '\n'
+        'Output final prose only.',
     sysSceneDirectorPolish:
         'You are a scene plan polisher for an English novel. '
         'Use this 4-line plan shape:\n'
@@ -466,7 +497,8 @@ class PromptLocale {
         '2. Preserve every beat\'s factual content exactly.\n'
         '3. Add connective tissue and sensory detail around the fragments.\n'
         '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
-        '5. Return the finished prose in plain text.',
+        '5. [Dialogue hard constraint] Direct dialogue in quotes must be >= 25% of total characters. At least 6 independent dialogue turns, each >= 12 chars. No 3 consecutive narration-only paragraphs — every 2 paragraphs must include dialogue.\n'
+        '6. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for an English novel. '
         'Use this 2-line review shape:\n'

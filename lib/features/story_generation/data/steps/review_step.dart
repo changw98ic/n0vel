@@ -1,4 +1,5 @@
 import '../character_consistency_verifier.dart';
+import '../prose_style_analyzer.dart';
 import '../scene_review_models.dart';
 import '../scene_runtime_models.dart';
 import '../../domain/story_pipeline_interfaces.dart';
@@ -40,8 +41,26 @@ class ReviewStep {
       // the length review result.
     }
 
-    // 2. Quality review (or reuse length review when retries exhausted).
-    final review = lengthReview ??
+    // 1b. Style gate: dialogue ratio check.
+    final styleReview = _reviewStyleDeficit(
+      brief: brief,
+      prose: prose,
+    );
+    if (styleReview != null) {
+      if (input.softFailureCount + 1 <= maxProseRetries) {
+        onStatus?.call(
+          '场景 ${brief.sceneId} · dialogue ratio low -> rewrite',
+        );
+        return ReviewOutput(
+          review: styleReview,
+          wasLengthRetry: false,
+          action: SceneReviewDecision.rewriteProse,
+        );
+      }
+    }
+
+    // 2. Quality review (or reuse length/style review when retries exhausted).
+    final review = lengthReview ?? styleReview ??
         await _reviewCoordinator.review(
           brief: brief,
           director: input.plan.director,
@@ -133,5 +152,46 @@ class ReviewStep {
     final doubled = normalizedTarget * 2;
     final floor = normalizedTarget + 400;
     return doubled > floor ? doubled : floor;
+  }
+
+  SceneReviewResult? _reviewStyleDeficit({
+    required SceneBrief brief,
+    required SceneProseDraft prose,
+  }) {
+    final fingerprint = ProseStyleAnalyzer().analyze(prose.text);
+    if (fingerprint.dialogueRatio >= 0.20) return null;
+
+    final percentage = (fingerprint.dialogueRatio * 100).toStringAsFixed(1);
+    final reason =
+        '对话占比$percentage%低于最低要求20%。'
+        '请在重写时：1）将连续纯叙述段落改为角色对白；'
+        '2）每隔2段叙述插入对话；'
+        '3）用「」包裹对白，确保至少6个独立对话回合。';
+    final judge = SceneReviewPassResult(
+      status: SceneReviewStatus.rewriteProse,
+      reason: reason,
+      rawText: '决定：REWRITE_PROSE\n原因：$reason',
+      categories: const [SceneReviewCategory.prose],
+    );
+    const consistency = SceneReviewPassResult(
+      status: SceneReviewStatus.pass,
+      reason: '',
+      rawText: '决定：PASS\n原因：style gate 未进入一致性审查。',
+      categories: [
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+      ],
+    );
+    final review = SceneReviewResult(
+      judge: judge,
+      consistency: consistency,
+      decision: SceneReviewDecision.rewriteProse,
+    );
+    return SceneReviewResult(
+      judge: review.judge,
+      consistency: review.consistency,
+      decision: review.decision,
+      refinementGuidance: review.synthesizeGuidance(),
+    );
   }
 }

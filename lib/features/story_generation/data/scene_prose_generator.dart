@@ -3,6 +3,7 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'scene_runtime_models.dart' show SceneTaskCard;
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_templates.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
@@ -20,25 +21,30 @@ class SceneProseGenerator implements SceneProseService {
     required int attempt,
     String? reviewFeedback,
   }) async {
+    final l = StoryPromptTemplates.locale;
+    final isFirstScene = brief.sceneIndex == 0;
+    final isLastScene = brief.totalScenesInChapter > 0 &&
+        brief.sceneIndex == brief.totalScenesInChapter - 1;
+
     final result = await requestStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       initialMaxTokens: storyGenerationEditorialMaxTokens,
       messages: [
-        const AppLlmChatMessage(
+        AppLlmChatMessage(
           role: 'system',
-          content:
-              'You are a scene prose generator for a Chinese novel. '
-              'Synthesize the director plan and character role-play outputs '
-              'into polished scene prose. '
-              'Return the finished scene prose in plain text.',
+          content: l.sysSceneProse,
         ),
         AppLlmChatMessage(
           role: 'user',
           content: [
             '任务：scene_prose_generation',
+            '章节：${brief.chapterTitle}',
             '场景：${brief.sceneTitle}',
             '目标字数：约${brief.targetLength}汉字',
             '当前尝试：$attempt',
+            '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
+            if (isFirstScene) '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
+            if (isLastScene) '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
             if (director.taskCard != null)
               '任务卡：${_taskCardSummary(director.taskCard!)}',
             '导演计划：${_compact(director.text, maxChars: 300)}',
