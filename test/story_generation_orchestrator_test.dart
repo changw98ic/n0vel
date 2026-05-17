@@ -341,6 +341,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         await orchestrator.runScene(_brief());
@@ -480,6 +481,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -556,6 +558,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -618,6 +621,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -697,6 +701,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -846,7 +851,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2, hardGatesEnabled: false),
         );
         final result = await orchestrator.runScene(
           SceneBrief(
@@ -941,7 +946,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2, hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1023,7 +1028,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -1125,6 +1130,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -1191,7 +1197,7 @@ void main() {
 
       final orchestrator = ChapterGenerationOrchestrator(
         settingsStore: settingsStore,
-        pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
+        pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1256,7 +1262,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(
@@ -1328,6 +1334,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1394,6 +1401,7 @@ void main() {
 
       final orchestrator = ChapterGenerationOrchestrator(
         settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1451,6 +1459,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
+          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
         );
 
         final result = await orchestrator.runScene(_brief());

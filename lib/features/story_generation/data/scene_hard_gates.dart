@@ -8,7 +8,9 @@ import 'scene_runtime_models.dart';
 String sceneHardGateViolationText({
   required SceneBrief brief,
   required String proseText,
+  bool enabled = true,
 }) {
+  if (!enabled) return '';
   final violations = <String>[];
 
   final dialogueViolation = _checkDialogueRatio(proseText);

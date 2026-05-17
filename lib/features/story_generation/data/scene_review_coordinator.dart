@@ -16,11 +16,13 @@ class SceneReviewCoordinator implements SceneReviewService {
   SceneReviewCoordinator({
     required AppSettingsStore settingsStore,
     StoryGenerationFormatterTraceSink? formatterTraceSink,
+    this.hardGatesEnabled = true,
   }) : _settingsStore = settingsStore,
        _formatterTraceSink = formatterTraceSink;
 
   final AppSettingsStore _settingsStore;
   final StoryGenerationFormatterTraceSink? _formatterTraceSink;
+  final bool hardGatesEnabled;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
   final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
@@ -124,7 +126,7 @@ class SceneReviewCoordinator implements SceneReviewService {
     onStatus?.call('场景 ${brief.chapterId}/${brief.sceneId} · local review');
     final hasDraft = prose.text.trim().isNotEmpty;
     final hardGateViolation = hasDraft
-        ? sceneHardGateViolationText(brief: brief, proseText: prose.text)
+        ? sceneHardGateViolationText(brief: brief, proseText: prose.text, enabled: hardGatesEnabled)
         : '';
     final passed = hasDraft && hardGateViolation.isEmpty;
     final status = passed
@@ -307,6 +309,7 @@ class SceneReviewCoordinator implements SceneReviewService {
     final hardGateViolation = sceneHardGateViolationText(
       brief: brief,
       proseText: prose.text,
+      enabled: hardGatesEnabled,
     );
     if (hardGateViolation.isNotEmpty &&
         parsed.status == SceneReviewStatus.pass) {

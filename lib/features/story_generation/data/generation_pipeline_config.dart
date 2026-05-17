@@ -10,6 +10,7 @@ class GenerationPipelineConfig {
         const StyleReferenceConfig.defaultEnabled(),
     this.maxConcurrentScenes = 2,
     this.maxSceneRetries = 2,
+    this.hardGatesEnabled = true,
   });
 
   final int maxProseRetries;
@@ -18,6 +19,7 @@ class GenerationPipelineConfig {
   final StyleReferenceConfig styleReferenceConfig;
   final int maxConcurrentScenes;
   final int maxSceneRetries;
+  final bool hardGatesEnabled;
 
   factory GenerationPipelineConfig.fromWorkspace(
     AppWorkspaceStore workspaceStore,

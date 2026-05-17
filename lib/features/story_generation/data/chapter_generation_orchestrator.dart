@@ -117,9 +117,13 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
        ),
        _reviewStep = ReviewStep(
          reviewCoordinator: reviewCoordinator ??
-             SceneReviewCoordinator(settingsStore: settingsStore),
+             SceneReviewCoordinator(
+               settingsStore: settingsStore,
+               hardGatesEnabled: pipelineConfig.hardGatesEnabled,
+             ),
          consistencyVerifier: consistencyVerifier,
          maxProseRetries: pipelineConfig.maxProseRetries,
+         hardGatesEnabled: pipelineConfig.hardGatesEnabled,
        ),
        _polishStep = PolishStep(
          polishPass: polishPass ?? ScenePolishPass(settingsStore: settingsStore),

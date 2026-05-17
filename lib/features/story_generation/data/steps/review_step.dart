@@ -10,12 +10,14 @@ class ReviewStep {
     required SceneReviewService reviewCoordinator,
     CharacterConsistencyVerifier? consistencyVerifier,
     required this.maxProseRetries,
+    this.hardGatesEnabled = true,
   })  : _reviewCoordinator = reviewCoordinator,
         _consistencyVerifier = consistencyVerifier;
 
   final SceneReviewService _reviewCoordinator;
   final CharacterConsistencyVerifier? _consistencyVerifier;
   final int maxProseRetries;
+  final bool hardGatesEnabled;
 
   Future<ReviewOutput> execute(
     ReviewInput input, {
@@ -24,8 +26,13 @@ class ReviewStep {
     final brief = input.brief;
     final prose = input.editorial.prose;
 
-    // 1. Check length first.
-    final lengthReview = _reviewOverlongProse(
+    SceneReviewResult? lengthReview;
+    SceneReviewResult? styleReview;
+    SceneReviewResult? hookReview;
+    SceneReviewResult? propReview;
+
+    // 1. Check length first (always runs — mechanical check).
+    lengthReview = _reviewOverlongProse(
       brief: brief,
       prose: prose,
     );
@@ -37,64 +44,64 @@ class ReviewStep {
           action: SceneReviewDecision.rewriteProse,
         );
       }
-      // Exhausted length retries — fall through to quality review using
-      // the length review result.
     }
 
-    // 1b. Style gate: dialogue ratio check.
-    final styleReview = _reviewStyleDeficit(
-      brief: brief,
-      prose: prose,
-    );
-    if (styleReview != null) {
-      if (input.softFailureCount + 1 <= maxProseRetries) {
-        onStatus?.call(
-          '场景 ${brief.sceneId} · dialogue ratio low -> rewrite',
-        );
-        return ReviewOutput(
-          review: styleReview,
-          wasLengthRetry: false,
-          action: SceneReviewDecision.rewriteProse,
-        );
+    if (hardGatesEnabled) {
+      // 1b. Style gate: dialogue ratio check.
+      styleReview = _reviewStyleDeficit(
+        brief: brief,
+        prose: prose,
+      );
+      if (styleReview != null) {
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          onStatus?.call(
+            '场景 ${brief.sceneId} · dialogue ratio low -> rewrite',
+          );
+          return ReviewOutput(
+            review: styleReview,
+            wasLengthRetry: false,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
       }
-    }
 
-    // 1c. Opening hook gate: first scene must open with suspense.
-    final hookReview = _reviewOpeningHookDeficit(
-      brief: brief,
-      prose: prose,
-    ) ?? _reviewClosingHookDeficit(
-      brief: brief,
-      prose: prose,
-    );
-    if (hookReview != null) {
-      if (input.softFailureCount + 1 <= maxProseRetries) {
-        onStatus?.call(
-          '场景 ${brief.sceneId} · hook deficit -> rewrite',
-        );
-        return ReviewOutput(
-          review: hookReview,
-          wasLengthRetry: false,
-          action: SceneReviewDecision.rewriteProse,
-        );
+      // 1c. Opening hook gate: first scene must open with suspense.
+      hookReview = _reviewOpeningHookDeficit(
+        brief: brief,
+        prose: prose,
+      ) ?? _reviewClosingHookDeficit(
+        brief: brief,
+        prose: prose,
+      );
+      if (hookReview != null) {
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          onStatus?.call(
+            '场景 ${brief.sceneId} · hook deficit -> rewrite',
+          );
+          return ReviewOutput(
+            review: hookReview,
+            wasLengthRetry: false,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
       }
-    }
 
-    // 1d. Prop consistency gate: detect scene-setting contradictions.
-    final propReview = _reviewPropConsistency(
-      brief: brief,
-      prose: prose,
-    );
-    if (propReview != null) {
-      if (input.softFailureCount + 1 <= maxProseRetries) {
-        onStatus?.call(
-          '场景 ${brief.sceneId} · prop consistency violation -> rewrite',
-        );
-        return ReviewOutput(
-          review: propReview,
-          wasLengthRetry: false,
-          action: SceneReviewDecision.rewriteProse,
-        );
+      // 1d. Prop consistency gate: detect scene-setting contradictions.
+      propReview = _reviewPropConsistency(
+        brief: brief,
+        prose: prose,
+      );
+      if (propReview != null) {
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          onStatus?.call(
+            '场景 ${brief.sceneId} · prop consistency violation -> rewrite',
+          );
+          return ReviewOutput(
+            review: propReview,
+            wasLengthRetry: false,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
       }
     }
 
