@@ -304,11 +304,13 @@ class PromptLocale {
         '3) 章尾钩子：如果标注为本章最后场景，最后一段必须留下至少一个未决冲突、未知去向、紧急选择、突发变化或后续威胁，不得以"全盘收口"或"问题已解决"类句式收尾。禁止用省略号作为唯一钩子。\n'
         '4) 场景结构：必须包含"起始紧张状态—行动推进—局部结局/转折"三段逻辑，结局必须能自然带向下一个场景。\n'
         '5) 角色与语气一致：人物称谓、性格、口癖和关系须与导演计划/角色扮演一致，不得新增未说明角色，不得改变核心动机。\n'
-        '6) 感官细节：多用具体动作、对话推进情节，减少空洞抒情；每120字至少一次可见动作或感官细节（看见/听见/触摸/气味/温度/表情）。\n'
+        '6) 环境描写节制：场景转换时最多用2个感官细节（视觉/嗅觉/触觉选两个），不穷举五感。用角色动作与环境互动带出氛围，不要静态白描。禁止「像…一样」式隐喻堆叠——每段至多1个比喻。\n'
         '7) 禁止输出：与前后矛盾的时间地点设定、与计划冲突的事件顺序、反复空洞总结性句子（如"他很紧张"应替换为具体动作和行为）。\n'
-        '8) 如有冲突信息未能完整表达，请优先保留关键动作与对话，不要用说明句替代场景描写。\n'
+        '8) 道具一致性：所有出场物品必须严格匹配场景设定。废弃建筑内不许出现完好家具、热饮、收银设备；户外不许出现桌面、电器；码头不许出现办公设备。每引入一个道具前自问：这个场景里真的有这个东西吗？\n'
+        '9) 场景结尾约束：每个场景的最后一个段落必须留下至少一个明确的未解决冲突或未回答问题。禁止使用总结性收束（"一切归于平静"/"夜深了"）。结尾句必须让读者想知道"然后呢？"。推荐手法：打断（信息传到一半被打断）、威胁逼近（脚步声/车灯）、新线索出现（不该存在的东西）。\n'
+        '10) 如有冲突信息未能完整表达，请优先保留关键动作与对话，不要用说明句替代场景描写。\n'
         '\n'
-        '目标风格：张弛有致、情绪有波动、节奏有推进，读起来像"能看见的戏剧现场"，而不是"叙事总结"。\n'
+        '目标风格：节奏快、情绪有波动、用动作和对话推进。少写环境多写人，读者要的是"接下来发生什么"而不是"这个地方长什么样"。\n'
         '\n'
         '仅输出最终正文，不要多余内容。',
     sysSceneDirectorPolish:
@@ -330,7 +332,11 @@ class PromptLocale {
         '3. Add connective tissue and sensory detail around the fragments.\n'
         '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
         '5. 【对话硬约束】正文内「」或""里的对白字符数 ≥ 全文的25%。至少6个独立对话回合，每次对白不少于12字。不允许出现3段连续纯叙事——每2段至少1段含对话。\n'
-        '6. Return the finished prose in plain text.',
+        '6. 章首钩子硬约束：如果标注为本章首个场景，第一段第1句必须直接抛出悬念信号。禁止环境白描开头（清晨/夜色/阴影/街道/空气中/天幕/远处/楼道/窗外）。必须满足至少2项：①前100字含动作动词（冲/跑/抓/摔/撞/翻/喊）；②含悬念词（突然/竟然/意外/发现/秘密/失踪）；③以对话「」开头；④前20字内有句号（短句冲击）。反面教材："清晨的阳光透过窗帘"——0分。正面示例："苏薇冲进办公室，手里攥着一份失踪报告。"——动作+悬念+短句。\n'
+        '7. 章末钩子硬约束：如果标注为本章最后场景，最后一段必须留下未决冲突、未知去向、紧急选择或后续威胁。不允许出现"一切都恢复了平静"式的圆满结局。\n'
+        '8. 道具一致性：所有出场物品必须严格匹配场景设定。废弃建筑内不许出现完好家具、热饮、咖啡杯、收银设备；户外不许出现桌面、电器；码头不许出现办公设备。\n'
+        '9. 场景结尾约束：每个场景结尾必须留下未解决冲突或未回答问题。推荐手法：打断（信息传到一半被打断）、威胁逼近（脚步声/车灯）、新线索出现。\n'
+        '10. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for a Chinese novel. '
         'Use this 2-line review shape:\n'
@@ -473,10 +479,12 @@ class PromptLocale {
         '3) Chapter ending hook: If marked as last scene of chapter, the final paragraph must leave an unresolved conflict, urgent choice, or emerging threat. No neat resolution endings.\n'
         '4) Scene structure: Must follow "tension onset — action progression — local resolution/twist" logic.\n'
         '5) Character consistency: Names, personality, speech patterns must match the director plan and role-play outputs.\n'
-        '6) Sensory detail: At least one visible action or sensory detail per 120 characters.\n'
+        '6) Sparse environment: Max 2 sensory details per scene transition (pick from sight/smell/touch). No exhaustive five-sense descriptions. Show atmosphere through character interaction, not static description. Max 1 simile/metaphor per paragraph.\n'
         '7) Forbidden: Contradictory settings, empty summary sentences (e.g. "he was nervous" should be shown through action).\n'
+        '8) Prop consistency: All objects must strictly match the scene setting. No intact furniture, hot drinks, or cash registers in abandoned buildings; no desks or appliances outdoors; no office equipment at docks. Before introducing any prop, ask: would this actually be here?\n'
+        '9) Scene ending constraint: Every scene must end with an unresolved conflict or unanswered question. No summarizing closures. Recommended: interruption (cut off mid-reveal), approaching threat (footsteps/headlights), new clue.\n'
         '\n'
-        'Target style: Rhythmic, emotionally dynamic, reads like a visible drama scene, not a narrative summary.\n'
+        'Target style: Fast-paced, emotionally dynamic, driven by action and dialogue. Less environment, more people. Readers want "what happens next" not "what the place looks like".\n'
         '\n'
         'Output final prose only.',
     sysSceneDirectorPolish:
@@ -498,7 +506,11 @@ class PromptLocale {
         '3. Add connective tissue and sensory detail around the fragments.\n'
         '4. Keep all beat facts present and aligned; keep character actions, dialogue order, and scene facts aligned.\n'
         '5. [Dialogue hard constraint] Direct dialogue in quotes must be >= 25% of total characters. At least 6 independent dialogue turns, each >= 12 chars. No 3 consecutive narration-only paragraphs — every 2 paragraphs must include dialogue.\n'
-        '6. Return the finished prose in plain text.',
+        '6. Chapter opening hook: If marked as first scene of chapter, the first sentence must open with a suspense signal. Forbidden: pure environment openings (morning/nightfall/shadow/street/air/sky/distant/corridor/window). Must satisfy at least 2 of: (1) action verbs in first 100 chars (rush/grab/crash/shout); (2) suspense words (sudden/unexpected/discovery/secret/missing); (3) dialogue opening; (4) short punchy first sentence (period within first 20 chars). Bad: "The morning light filtered through the curtains." Good: "Sue burst into the office, clutching a missing persons report."\n'
+        '7. Chapter ending hook: If marked as last scene of chapter, the final paragraph must leave an unresolved conflict, urgent choice, or emerging threat. No neat resolution endings.\n'
+        '8. Prop consistency: All objects must strictly match the scene setting. No intact furniture, hot drinks, or cash registers in abandoned buildings; no desks or appliances outdoors; no office equipment at docks.\n'
+        '9. Scene ending constraint: Every scene must end with an unresolved conflict or unanswered question. Recommended: interruption, approaching threat, new clue.\n'
+        '10. Return the finished prose in plain text.',
     sysSceneReviewTemplate:
         'You are a {passName} for an English novel. '
         'Use this 2-line review shape:\n'

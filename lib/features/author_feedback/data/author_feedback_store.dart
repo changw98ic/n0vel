@@ -3,28 +3,21 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../../../app/state/app_project_scoped_store.dart';
-import '../../../app/state/app_workspace_store.dart';
-import '../../../app/events/app_event_bus.dart';
 import '../domain/author_feedback_models.dart';
 import 'author_feedback_storage.dart';
 
 class AuthorFeedbackStore extends AppProjectScopedStore {
-  // Keeping an explicit workspaceStore parameter allows the constructor to
-  // pass additional base-store options in the same initializer.
-  // ignore: use_super_parameters
   AuthorFeedbackStore({
     AuthorFeedbackStorage? storage,
-    AppWorkspaceStore? workspaceStore,
-    AppEventBus? eventBus,
+    super.workspaceStore,
+    super.eventBus,
     DateTime Function()? clock,
   }) : _storage =
            storage ??
-           
+
            createDefaultAuthorFeedbackStorage(),
        _clock = clock ?? DateTime.now,
        super(
-         workspaceStore: workspaceStore,
-         eventBus: eventBus,
          scopeMode: AppStoreScopeMode.project,
          fallbackProjectId: 'project-yuechao',
        ) {

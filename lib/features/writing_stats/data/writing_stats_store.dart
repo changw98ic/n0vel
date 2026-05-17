@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:novel_writer/app/events/app_domain_events.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
 import 'package:novel_writer/app/state/app_project_scoped_store.dart';
-import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/persist_guard.dart';
 
 import '../domain/writing_stats_models.dart';
@@ -18,7 +17,7 @@ class WritingStatsStore extends AppProjectScopedStore {
   WritingStatsStore({
     WritingStatsStorage? storage,
     AppEventBus? eventBus,
-    AppWorkspaceStore? workspaceStore,
+    super.workspaceStore,
     bool reminderEnabled = true,
   }) : _service = WritingStatsService(
          storage: storage ?? createDefaultWritingStatsStorage(),
@@ -26,7 +25,6 @@ class WritingStatsStore extends AppProjectScopedStore {
        _eventBus = eventBus,
        _reminderEnabled = reminderEnabled,
        super(
-         workspaceStore: workspaceStore,
          eventBus: eventBus,
          scopeMode: AppStoreScopeMode.project,
        ) {
@@ -81,7 +79,7 @@ class WritingStatsStore extends AppProjectScopedStore {
   Future<void> toggleGoal(String goalId) async {
     final goal = _goals.firstWhere(
       (g) => g.id == goalId,
-      orElse: () => WritingGoal(
+      orElse: () => const WritingGoal(
         id: '',
         projectId: '',
         goalType: WritingGoalType.dailyChars,

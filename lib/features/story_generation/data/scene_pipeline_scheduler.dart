@@ -8,14 +8,21 @@ typedef ScenePipelineSceneRunner<TScene, TResult> =
 
 typedef ScenePipelineResultGate<TResult> = bool Function(TResult result);
 
+typedef ScenePipelineResultCommitted<TResult> = void Function(
+  int index,
+  TResult result,
+);
+
 class ScenePipelineScheduler<TScene, TResult> {
   const ScenePipelineScheduler({
     this.maxConcurrentScenes = 2,
     this.canCommitResult,
+    this.onResultCommitted,
   });
 
   final int maxConcurrentScenes;
   final ScenePipelineResultGate<TResult>? canCommitResult;
+  final ScenePipelineResultCommitted<TResult>? onResultCommitted;
 
   Future<List<TResult>> run({
     required List<TScene> scenes,
@@ -84,6 +91,7 @@ class ScenePipelineScheduler<TScene, TResult> {
           return;
         }
         committedThrough = nextIndex;
+        onResultCommitted?.call(nextIndex, result);
       }
     }
 

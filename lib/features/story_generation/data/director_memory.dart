@@ -404,13 +404,16 @@ class DirectorMemory {
   DirectorMemory({
     List<SceneReviewDigest> recentReviews = const [],
     List<String> learnedConstraints = const [],
+    List<String> recentScenePatterns = const [],
     this.strategyAdjustment = '',
     this.activeRoundState,
   }) : recentReviews = immutableList(recentReviews),
-       learnedConstraints = immutableList(learnedConstraints);
+       learnedConstraints = immutableList(learnedConstraints),
+       recentScenePatterns = immutableList(recentScenePatterns);
 
   final List<SceneReviewDigest> recentReviews;
   final List<String> learnedConstraints;
+  final List<String> recentScenePatterns;
   final String strategyAdjustment;
   final DirectorRoundState? activeRoundState;
 
@@ -418,6 +421,7 @@ class DirectorMemory {
     return DirectorMemory(
       recentReviews: recentReviews,
       learnedConstraints: learnedConstraints,
+      recentScenePatterns: recentScenePatterns,
       strategyAdjustment: strategyAdjustment,
       activeRoundState: roundState,
     );
@@ -434,9 +438,14 @@ class DirectorMemory {
         newConstraints.add(constraint);
       }
     }
+    final updatedPatterns = [
+      _classifyScenePattern(digest),
+      ...recentScenePatterns.take(6),
+    ];
     return DirectorMemory(
       recentReviews: updatedReviews,
       learnedConstraints: newConstraints,
+      recentScenePatterns: updatedPatterns,
       strategyAdjustment: _deriveStrategy(updatedReviews),
       activeRoundState: activeRoundState,
     );
@@ -477,6 +486,15 @@ class DirectorMemory {
     if (strategyAdjustment.isNotEmpty) {
       parts.add('策略调整：$strategyAdjustment');
     }
+    if (recentScenePatterns.isNotEmpty) {
+      final last3 = recentScenePatterns.take(3).toList(growable: false);
+      final allSame = last3.length >= 2 && last3.toSet().length == 1;
+      if (allSame) {
+        parts.add('场景结构多样性警告：最近${last3.length}个场景都是${last3.first}模式，'
+            '下一个场景必须改变结构。可用替代：伏击/突袭、跟踪/潜行、'
+            '等待/观察、内心独白+决策、多人会面+立场博弈。');
+      }
+    }
     return parts.join('\n');
   }
 
@@ -508,5 +526,23 @@ class DirectorMemory {
       return '近期场景多次被重写，请给出更具体的拍点指引。';
     }
     return '';
+  }
+
+  /// Classify scene structural pattern from digest issues.
+  static String _classifyScenePattern(SceneReviewDigest digest) {
+    final text = digest.issues.join(' ');
+    if (text.contains('逼问') || text.contains('审问') || text.contains('质问')) {
+      return 'confrontation';
+    }
+    if (text.contains('追') || text.contains('逃') || text.contains('跑')) {
+      return 'chase';
+    }
+    if (text.contains('发现') || text.contains('线索') || text.contains('证据')) {
+      return 'investigation';
+    }
+    if (text.contains('揭露') || text.contains('真相') || text.contains('暴露')) {
+      return 'revelation';
+    }
+    return 'other';
   }
 }

@@ -59,8 +59,47 @@ class ReviewStep {
       }
     }
 
-    // 2. Quality review (or reuse length/style review when retries exhausted).
-    final review = lengthReview ?? styleReview ??
+    // 1c. Opening hook gate: first scene must open with suspense.
+    final hookReview = _reviewOpeningHookDeficit(
+      brief: brief,
+      prose: prose,
+    ) ?? _reviewClosingHookDeficit(
+      brief: brief,
+      prose: prose,
+    );
+    if (hookReview != null) {
+      if (input.softFailureCount + 1 <= maxProseRetries) {
+        onStatus?.call(
+          '场景 ${brief.sceneId} · hook deficit -> rewrite',
+        );
+        return ReviewOutput(
+          review: hookReview,
+          wasLengthRetry: false,
+          action: SceneReviewDecision.rewriteProse,
+        );
+      }
+    }
+
+    // 1d. Prop consistency gate: detect scene-setting contradictions.
+    final propReview = _reviewPropConsistency(
+      brief: brief,
+      prose: prose,
+    );
+    if (propReview != null) {
+      if (input.softFailureCount + 1 <= maxProseRetries) {
+        onStatus?.call(
+          '场景 ${brief.sceneId} · prop consistency violation -> rewrite',
+        );
+        return ReviewOutput(
+          review: propReview,
+          wasLengthRetry: false,
+          action: SceneReviewDecision.rewriteProse,
+        );
+      }
+    }
+
+    // 2. Quality review (or reuse length/style/hook/prop review when retries exhausted).
+    final review = lengthReview ?? styleReview ?? hookReview ?? propReview ??
         await _reviewCoordinator.review(
           brief: brief,
           director: input.plan.director,
@@ -117,33 +156,16 @@ class ReviewStep {
     final reason =
         '正文长度$actualLength字超过场景硬上限$hardLimit字（目标${brief.targetLength}字），'
         '需要压缩到目标附近，聚焦既有情节。';
-    final judge = SceneReviewPassResult(
-      status: SceneReviewStatus.rewriteProse,
+    return _buildRewriteReview(
       reason: reason,
-      rawText: '决定：REWRITE_PROSE\n原因：$reason',
-      categories: const [SceneReviewCategory.prose],
-    );
-    const consistency = SceneReviewPassResult(
-      status: SceneReviewStatus.pass,
-      reason: '',
-      rawText: '决定：PASS\n原因：长度检查前未进入一致性审查。',
-      categories: [
+      judgeCategories: const [SceneReviewCategory.prose],
+      consistencyPassReason: '长度检查前未进入一致性审查。',
+      consistencyCategories: const [
         SceneReviewCategory.chapterPlan,
         SceneReviewCategory.continuity,
         SceneReviewCategory.characterState,
         SceneReviewCategory.worldState,
       ],
-    );
-    final review = SceneReviewResult(
-      judge: judge,
-      consistency: consistency,
-      decision: SceneReviewDecision.rewriteProse,
-    );
-    return SceneReviewResult(
-      judge: review.judge,
-      consistency: review.consistency,
-      decision: review.decision,
-      refinementGuidance: review.synthesizeGuidance(),
     );
   }
 
@@ -167,6 +189,279 @@ class ReviewStep {
         '请在重写时：1）将连续纯叙述段落改为角色对白；'
         '2）每隔2段叙述插入对话；'
         '3）用「」包裹对白，确保至少6个独立对话回合。';
+    return _buildRewriteReview(
+      reason: reason,
+      judgeCategories: const [SceneReviewCategory.prose],
+      consistencyPassReason: 'style gate 未进入一致性审查。',
+      consistencyCategories: const [
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hook gates
+  // ---------------------------------------------------------------------------
+
+  // Aligned with _computeHookStrength in the benchmark scorer.
+  static const _hookActionVerbs = [
+    '冲', '跑', '跳', '抓', '摔', '撞', '翻', '拽', '喊', '叫',
+  ];
+
+  static const _hookSuspenseWords = [
+    '突然', '竟然', '意外', '发现', '秘密', '失踪',
+  ];
+
+  static const _forbiddenEnvironmentOpenings = [
+    '清晨', '夜色', '阴影', '街道', '空气中', '天幕', '远处', '楼道', '窗外',
+  ];
+
+  static const _closingResolutionPatterns = [
+    '恢复了平静', '回到了往日', '都解决了', '结束了', '得到了应有的',
+    '安心回家', '从此以后', '一切都恢复', '所有谜团都解开',
+  ];
+
+  static const _endingUnfinishedActions = [
+    '还没', '来不及', '正要', '就要', '差一点', '眼看',
+  ];
+  static const _endingHookWords = [
+    '真相', '秘密', '危险', '背后', '发现', '到底', '究竟',
+  ];
+
+  /// Scene-type to forbidden-prop mapping.
+  static const _scenePropConflicts = {
+    'abandoned': ['咖啡杯', '咖啡', '热茶', '茶杯', '桌面', '纸币', '电脑',
+      '空调', '冰箱', '收银', '电视', 'WiFi', '手机充电'],
+    'outdoor': ['桌子', '椅子', '电脑', '文件柜', '茶杯', '沙发', '床', '衣柜'],
+    'dock': ['办公桌', '电脑', '文件柜', '空调', '沙发'],
+    'warehouse': ['咖啡杯', '热茶', '沙发', '电视'],
+  };
+
+  static const _sceneTypeKeywords = {
+    'abandoned': ['废弃', '荒废', '破旧', '坍塌', '残破', '无人', '废弃磨坊'],
+    'outdoor': ['户外', '码头', '巷子', '街道', '江边', '山坡', '树林'],
+    'dock': ['码头', '栈桥', '货轮', '集装箱', '港口'],
+    'warehouse': ['仓库', '厂房', '工棚'],
+  };
+
+  SceneReviewResult? _reviewPropConsistency({
+    required SceneBrief brief,
+    required SceneProseDraft prose,
+  }) {
+    final text = prose.text.trim();
+    if (text.isEmpty) return null;
+
+    // Determine scene type from scene summary and title.
+    final sceneContext = '${brief.sceneSummary} ${brief.sceneTitle}';
+    String? matchedType;
+    for (final entry in _sceneTypeKeywords.entries) {
+      if (entry.value.any((kw) => sceneContext.contains(kw))) {
+        matchedType = entry.key;
+        break;
+      }
+    }
+    if (matchedType == null) return null;
+
+    final forbidden = _scenePropConflicts[matchedType]!;
+    final violations = forbidden.where((p) => text.contains(p)).toList();
+    if (violations.isEmpty) return null;
+
+    final reason =
+        '场景类型「$matchedType」中出现了不合理的道具：${violations.join('、')}。'
+        '请在重写时移除这些与场景设定矛盾的物品。';
+
+    return _buildRewriteReview(
+      reason: reason,
+      judgeCategories: const [SceneReviewCategory.worldState],
+      consistencyPassReason: 'prop consistency gate 未进入一致性审查。',
+      consistencyCategories: const [
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+      ],
+    );
+  }
+
+  /// Compute opening hook strength using the same criteria as the benchmark
+  /// scorer. Returns null when the scene passes the threshold (>= 0.30).
+  SceneReviewResult? _reviewOpeningHookDeficit({
+    required SceneBrief brief,
+    required SceneProseDraft prose,
+  }) {
+    final isFirstScene = brief.sceneIndex == 0;
+    if (!isFirstScene) return null;
+
+    final text = prose.text.trim();
+    if (text.isEmpty) return null;
+
+    final first100 = text.length > 100 ? text.substring(0, 100) : text;
+    final first20 = text.length > 20 ? text.substring(0, 20) : text;
+
+    // Compute hook strength aligned with benchmark _computeHookStrength.
+    var score = 0.0;
+    final List<String> hits = [];
+    final List<String> missing = [];
+
+    // Action verbs (+0.2)
+    if (_hookActionVerbs.any((v) => first100.contains(v))) {
+      score += 0.2;
+      hits.add('动作动词');
+    } else {
+      missing.add('动作动词(冲/跑/抓/摔/撞/翻/喊)');
+    }
+
+    // Question mark (+0.2)
+    if (first100.contains('？') || first100.contains('?')) {
+      score += 0.2;
+      hits.add('疑问句');
+    } else {
+      missing.add('疑问句(？)');
+    }
+
+    // Exclamation mark (+0.15)
+    if (first100.contains('！') || first100.contains('!')) {
+      score += 0.15;
+      hits.add('感叹句');
+    }
+
+    // Dialogue opening (+0.15)
+    if (text.startsWith('「') || text.startsWith('"')) {
+      score += 0.15;
+      hits.add('对话开头');
+    }
+
+    // Short sentence opening (+0.15)
+    if (first20.contains('。') || first20.contains('…')) {
+      score += 0.15;
+      hits.add('短句开头');
+    }
+
+    // Suspense words (+0.15)
+    if (_hookSuspenseWords.any((w) => first100.contains(w))) {
+      score += 0.15;
+      hits.add('悬念词');
+    } else {
+      missing.add('悬念词(突然/竟然/意外/发现/秘密/失踪)');
+    }
+
+    if (score >= 0.30) return null;
+
+    // Build diagnostic feedback.
+    final forbidden = _forbiddenEnvironmentOpenings
+        .where((p) => text.startsWith(p))
+        .toList();
+    final forbiddenNote = forbidden.isNotEmpty
+        ? ' 命中禁止环境白描开头「${forbidden.first}」。'
+        : '';
+    final opening = text.length > 50 ? text.substring(0, 50) : text;
+    final pct = (score * 100).toStringAsFixed(0);
+    final missingNote =
+        missing.isEmpty ? '' : '缺少：${missing.join("、")}。';
+    final hitsNote =
+        hits.isEmpty ? '' : '已有：${hits.join("、")}。';
+
+    final reason =
+        '开头钩子强度$pct%低于30%阈值。'
+        '前50字「$opening」$forbiddenNote$hitsNote$missingNote'
+        '请在重写时：1）用动作动词或角色对话开场，禁止环境白描；'
+        '2）前100字内加入悬念词(突然/竟然/意外/发现/秘密/失踪)；'
+        '3）用短句开头增加冲击力（前20字内出现句号或省略号）；'
+        '4）参考好开头：角色直接行动+悬念，如「苏薇冲进办公室，手里攥着一份失踪报告」。';
+    return _buildHookGateReview(reason: reason);
+  }
+
+  SceneReviewResult? _reviewClosingHookDeficit({
+    required SceneBrief brief,
+    required SceneProseDraft prose,
+  }) {
+    final isLastScene = brief.totalScenesInChapter > 0 &&
+        brief.sceneIndex == brief.totalScenesInChapter - 1;
+    if (!isLastScene) return null;
+
+    final text = prose.text.trim();
+    if (text.isEmpty) return null;
+
+    // Check last 150 chars for neat resolution patterns (hard reject).
+    final tail = text.length > 150 ? text.substring(text.length - 150) : text;
+
+    final matchedPatterns = _closingResolutionPatterns
+        .where((pattern) => tail.contains(pattern))
+        .toList();
+    if (matchedPatterns.isNotEmpty) {
+      final reason =
+          '本章最后场景结尾命中圆满收尾模式「${matchedPatterns.join('、')}」，缺少悬念钩子。'
+          '请在重写时：1）最后一段留下未决冲突或紧急选择；'
+          '2）禁止使用"恢复平静/一切都解决了"式结局；'
+          '3）用悬念或威胁暗示引向下一章。';
+      return _buildHookGateReview(reason: reason);
+    }
+
+    // Positive scoring aligned with benchmark _computeChapterEndHook.
+    var score = 0.0;
+    if (tail.contains('…') || tail.contains('——')) score += 0.25;
+    if (tail.contains('？') || tail.contains('?')) score += 0.2;
+    if (tail.contains('！') || tail.contains('!')) score += 0.15;
+    for (final a in _endingUnfinishedActions) {
+      if (tail.contains(a)) { score += 0.2; break; }
+    }
+    for (final w in _endingHookWords) {
+      if (tail.contains(w)) { score += 0.2; break; }
+    }
+
+    if (score >= 0.30) return null; // Threshold aligned with benchmark.
+
+    final hits = <String>[];
+    if (tail.contains('…') || tail.contains('——')) hits.add('悬念标点');
+    if (tail.contains('？') || tail.contains('?')) hits.add('疑问');
+    if (tail.contains('！') || tail.contains('!')) hits.add('感叹');
+    for (final a in _endingUnfinishedActions) {
+      if (tail.contains(a)) { hits.add('未完成动作($a)'); break; }
+    }
+    for (final w in _endingHookWords) {
+      if (tail.contains(w)) { hits.add('悬念词($w)'); break; }
+    }
+
+    final reason =
+        '章末钩子评分${(score * 100).toStringAsFixed(0)}%低于阈值30%。'
+        '命中项：${hits.isEmpty ? "无" : hits.join("、")}。'
+        '请在重写时在最后150字内加入：1）未完成动作（来不及/正要/眼看）；'
+        '2）悬念词（真相/秘密/危险/背后）；'
+        '3）破折号——或省略号…制造未决感。';
+    return _buildHookGateReview(reason: reason);
+  }
+
+  SceneReviewResult _buildRewriteReview({
+    required String reason,
+    required List<SceneReviewCategory> judgeCategories,
+    required String consistencyPassReason,
+    required List<SceneReviewCategory> consistencyCategories,
+  }) {
+    final judge = SceneReviewPassResult(
+      status: SceneReviewStatus.rewriteProse,
+      reason: reason,
+      rawText: '决定：REWRITE_PROSE\n原因：$reason',
+      categories: judgeCategories,
+    );
+    final consistency = SceneReviewPassResult(
+      status: SceneReviewStatus.pass,
+      reason: '',
+      rawText: '决定：PASS\n原因：$consistencyPassReason',
+      categories: consistencyCategories,
+    );
+    final review = SceneReviewResult(
+      judge: judge,
+      consistency: consistency,
+      decision: SceneReviewDecision.rewriteProse,
+    );
+    return SceneReviewResult(
+      judge: review.judge,
+      consistency: review.consistency,
+      decision: review.decision,
+      refinementGuidance: review.synthesizeGuidance(),
+    );
+  }
+
+  SceneReviewResult _buildHookGateReview({required String reason}) {
     final judge = SceneReviewPassResult(
       status: SceneReviewStatus.rewriteProse,
       reason: reason,
@@ -176,7 +471,7 @@ class ReviewStep {
     const consistency = SceneReviewPassResult(
       status: SceneReviewStatus.pass,
       reason: '',
-      rawText: '决定：PASS\n原因：style gate 未进入一致性审查。',
+      rawText: '决定：PASS\n原因：hook gate 未进入一致性审查。',
       categories: [
         SceneReviewCategory.chapterPlan,
         SceneReviewCategory.continuity,

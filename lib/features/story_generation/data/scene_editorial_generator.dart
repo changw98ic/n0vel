@@ -3,6 +3,7 @@ import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'prompt_string_utils.dart';
 import 'scene_cast_roleplay_policy.dart';
+import 'scene_runtime_models.dart' show SceneBrief;
 import 'scene_stage_narrator.dart';
 import 'story_generation_pass_retry.dart';
 import 'scene_pipeline_models.dart';
@@ -20,9 +21,31 @@ class SceneEditorialGenerator {
 
   final AppSettingsStore _settingsStore;
 
+  /// Build scene-position and hook warning lines for the editorial user prompt.
+  static String buildUserPrompt({
+    required SceneBrief brief,
+    required int attempt,
+  }) {
+    final isFirstScene = brief.sceneIndex == 0;
+    final isLastScene = brief.totalScenesInChapter > 0 &&
+        brief.sceneIndex == brief.totalScenesInChapter - 1;
+
+    return [
+      '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
+      if (isFirstScene)
+        '⚠️ 这是本章首个场景。开头硬约束：第一句禁止环境白描，必须用动作或对话开场，前100字内加入动作动词(冲/跑/抓/摔/撞/翻/喊)和悬念词(突然/竟然/意外/发现/秘密/失踪)，前20字内出现句号形成短句冲击。参考："苏薇冲进办公室，手里攥着一份失踪报告。"',
+      if (isLastScene)
+        '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
+      if (brief.sceneSummary.isNotEmpty)
+        '【场景道具约束】场景概要：${brief.sceneSummary.length > 60 ? '${brief.sceneSummary.substring(0, 57)}...' : brief.sceneSummary}。所有角色互动的物品必须在场景中合理存在。禁止引入与场景矛盾的现代便利设施。',
+    ].join('\n');
+  }
+
   /// Generate an editorial draft from resolved beats.
   ///
   /// [reviewFeedback] from a previous attempt is included for rewrite passes.
+  /// [previousProse] is the full text of the previous attempt so the model can
+  /// see what it wrote and make targeted improvements.
   Future<SceneEditorialDraft> generate({
     required SceneTaskCard taskCard,
     required List<SceneBeat> resolvedBeats,
@@ -30,6 +53,7 @@ class SceneEditorialGenerator {
     required int attempt,
     SceneRoleplaySession? roleplaySession,
     String? reviewFeedback,
+    String? previousProse,
   }) async {
     if (taskCard.metadata['localEditorialOnly'] == true ||
         taskCard.brief.metadata['localEditorialOnly'] == true) {
@@ -66,6 +90,7 @@ class SceneEditorialGenerator {
             '${l.sceneShortLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneTitle, maxChars: 40)}',
             '${l.targetLengthLabel}${l.colon}~${taskCard.brief.targetLength} ${l.charactersUnit}',
             '长度边界${l.colon}接近目标长度，硬上限为$hardLimit ${l.charactersUnit}',
+            buildUserPrompt(brief: taskCard.brief, attempt: attempt),
             '${l.summaryLabel}${l.colon}${PromptStringUtils.compact(taskCard.brief.sceneSummary, maxChars: 120)}',
             if (noninteractiveCastBoundary.isNotEmpty)
               noninteractiveCastBoundary,
@@ -86,6 +111,10 @@ class SceneEditorialGenerator {
             '${l.currentAttemptLabel}${l.colon}$attempt',
             if (reviewFeedback != null)
               '${l.editorialFeedbackLabel}${l.colon}${reviewFeedback.trim()}',
+            if (previousProse != null && previousProse.trim().isNotEmpty) ...[
+              '上一版正文（请在此版基础上针对性修改）：',
+              previousProse.trim(),
+            ],
           ].join('\n'),
         ),
       ],

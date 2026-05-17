@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqlite3/sqlite3.dart';
-
 import 'package:novel_writer/app/state/app_authoring_storage_io_support.dart';
 import 'package:novel_writer/app/events/app_domain_events.dart';
 import 'package:novel_writer/features/writing_stats/data/writing_stats_service.dart';

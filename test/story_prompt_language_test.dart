@@ -116,6 +116,37 @@ void main() {
         expect(locale.sysSceneReviewTemplate, contains('{passName}'));
       }
     });
+
+    test('sysSceneEditorial contains dialogue hard constraint', () {
+      for (final locale in [PromptLocale.zh, PromptLocale.en]) {
+        expect(locale.sysSceneEditorial, contains('25%'));
+      }
+    });
+
+    test('sysSceneEditorial contains chapter opening hook rule', () {
+      // The active prompt must include opening hook constraints
+      // (keyword whitelist + forbidden patterns for first scene of chapter).
+      expect(PromptLocale.zh.sysSceneEditorial, contains('首个场景'));
+      expect(PromptLocale.en.sysSceneEditorial, contains('first scene'));
+    });
+
+    test('sysSceneEditorial contains chapter ending hook rule', () {
+      // The active prompt must include ending hook constraints
+      // (unresolved conflict / suspense hook for last scene of chapter).
+      expect(PromptLocale.zh.sysSceneEditorial, contains('最后场景'));
+      expect(PromptLocale.en.sysSceneEditorial, contains('last scene'));
+    });
+
+    test('sysSceneEditorial opening hook specifies forbidden patterns', () {
+      expect(
+        PromptLocale.zh.sysSceneEditorial,
+        contains('环境'),
+      );
+      expect(
+        PromptLocale.en.sysSceneEditorial,
+        contains('environment'),
+      );
+    });
   });
 
   // ===========================================================================
@@ -144,7 +175,8 @@ void main() {
     test('switching to zh restores Chinese templates', () {
       StoryPromptTemplates.language = PromptLanguage.en;
       StoryPromptTemplates.language = PromptLanguage.zh;
-      expect(StoryPromptTemplates.sysSceneProse, contains('Chinese'));
+      expect(StoryPromptTemplates.sysSceneEditorial, contains('正文'));
+      expect(StoryPromptTemplates.locale.novelLanguage, 'Chinese');
     });
 
     test(

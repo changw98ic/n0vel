@@ -10,15 +10,35 @@ this repository — including trivial lookups and single-file edits.
 The user should not need to repeatedly say "use subagents" or
 paste the agent-workflow prompt.
 
-This is an explicit standing user request to prefer agent-flow for
-non-trivial work. Simple queries and single-file edits may run solo
-without the full agent-flow pattern.
+This is an explicit standing user request to prefer the flow project's
+process for non-trivial work. Simple queries and single-file edits may
+run solo without the full flow pattern.
+
+### Flow Project Declaration
+
+- **Location**: `/Users/chengwen/dev/flow`
+- **Entrypoint**: `/Users/chengwen/dev/flow/flow` (Bash CLI, v0.2.0)
+- **How to invoke**: `flow pipeline novel-writer "<task>"` runs the full
+  plan → execute → verify loop automatically. For manual control:
+  `flow plan novel-writer "<task>"` → `flow execute novel-writer <id>`
+  → `flow verify novel-writer <id>`. All commands assume `$PWD` or
+  `FLOW_ROOT` resolves to `/Users/chengwen/dev/flow`; use the absolute
+  path if the script is not on `$PATH`.
+- **Default behavior for Codex tasks**: When the leader classifies a task
+  as `flow`, run it through the flow CLI's `pipeline` command (or the
+  manual plan/execute/verify sequence) instead of raw subagent delegation.
+  The flow CLI handles ACP bridge dispatch, durable jobs, wiki handoff,
+  and verification — do not reimplement these.
+- **If flow is unavailable**: If `/Users/chengwen/dev/flow/flow` does not
+  exist or the CLI exits non-zero on invocation, fall back to native
+  Codex subagent lanes (explore → executor → verifier) as described
+  below. Report the fallback to the user so they know flow was skipped.
 
 Leader protocol:
-- First classify the task as `solo`, `agent-flow`, or `OMX-runtime`.
+- First classify the task as `solo`, `flow`, or `OMX-runtime`.
 - Use `solo` for simple lookups, single-file edits, or one-command
   verifications that do not require cross-module reasoning.
-- Use `agent-flow` for tasks involving more than 3 files, multiple
+- Use `flow` for tasks involving more than 3 files, multiple
   modules, command execution with side effects, or final verification
   claims. These must follow the full classification, delegation, and
   verification pattern.

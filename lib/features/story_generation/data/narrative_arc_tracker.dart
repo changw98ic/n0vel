@@ -5,6 +5,8 @@ class NarrativeArcTracker {
     required NarrativeArcState current,
     required SceneRuntimeOutput output,
   }) {
+    final sceneKey =
+        '${output.brief.chapterId}/${output.brief.sceneId}';
     final newThreads = <PlotThread>[];
     final updatedThreads = <PlotThread>[...current.activeThreads];
     final closedThreads = <PlotThread>[...current.closedThreads];
@@ -23,6 +25,14 @@ class NarrativeArcTracker {
       newForeshadowing: newForeshadowing,
       updatedForeshadowing: updatedForeshadowing,
       currentForeshadowing: current.pendingForeshadowing,
+    );
+
+    // Fix 5a: prose-based thread resolution for threads created via fallback.
+    _checkThreadResolution(
+      prose: output.prose.text,
+      sceneKey: sceneKey,
+      updatedThreads: updatedThreads,
+      closedThreads: closedThreads,
     );
 
     return current.copyWith(
@@ -113,6 +123,15 @@ class NarrativeArcTracker {
         }
       }
     }
+
+    // Fallback: if no state deltas produced threads, extract from prose text
+    if (newThreads.isEmpty && updatedThreads.isEmpty) {
+      _extractThreadsFromProse(
+        output: output,
+        newThreads: newThreads,
+        sceneKey: sceneKey,
+      );
+    }
   }
 
   void _extractForeshadowingChanges({
@@ -164,6 +183,80 @@ class NarrativeArcTracker {
         updatedForeshadowing.add(existing.copyWith(urgency: newUrgency));
       }
     }
+
+    // Fix 5b: prose-based foreshadowing extraction when roleplay fields are empty.
+    if (newForeshadowing.isEmpty) {
+      final text = output.prose.text;
+      if (text.isNotEmpty) {
+        final foreshadowPatterns = [
+          RegExp(r'尚未(.{2,10})'),
+          RegExp(r'还(没|未)(.{2,10})'),
+          RegExp(r'隐藏.{0,4}(.{2,15})'),
+          RegExp(r'不(敢|愿)说.{0,4}(.{2,15})'),
+        ];
+        for (final pattern in foreshadowPatterns) {
+          final match = pattern.firstMatch(text);
+          if (match != null) {
+            newForeshadowing.add(Foreshadowing(
+              id: 'foreshadow-$sceneKey-prose-${newForeshadowing.length}',
+              hint: match.group(0)!,
+              plantedInScene: sceneKey,
+              plannedPayoff: output.brief.sceneSummary,
+              urgency: 1,
+            ));
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  void _extractThreadsFromProse({
+    required SceneRuntimeOutput output,
+    required List<PlotThread> newThreads,
+    required String sceneKey,
+  }) {
+    final text = output.prose.text;
+    if (text.isEmpty) return;
+
+    // Narrative development keywords and their implied thread status
+    final plotMarkers = <(String, PlotThreadStatus)>[
+      ('发现', PlotThreadStatus.rising),
+      ('揭露', PlotThreadStatus.rising),
+      ('暴露', PlotThreadStatus.climax),
+      ('冲突', PlotThreadStatus.climax),
+      ('解决', PlotThreadStatus.falling),
+      ('真相', PlotThreadStatus.rising),
+      ('背叛', PlotThreadStatus.climax),
+      ('威胁', PlotThreadStatus.rising),
+      ('追击', PlotThreadStatus.climax),
+      ('逃亡', PlotThreadStatus.climax),
+      ('计划', PlotThreadStatus.rising),
+      ('行动', PlotThreadStatus.rising),
+      ('对峙', PlotThreadStatus.climax),
+      ('陷阱', PlotThreadStatus.climax),
+      ('线索', PlotThreadStatus.rising),
+      ('证据', PlotThreadStatus.rising),
+    ];
+
+    final involved = _charactersInText(text, output.resolvedCast);
+    if (involved.isEmpty) return;
+
+    for (final (keyword, status) in plotMarkers) {
+      if (text.contains(keyword)) {
+        final threadId = 'thread-$sceneKey-prose-$keyword-${involved.join('-')}';
+        if (!newThreads.any((t) => t.id == threadId)) {
+          newThreads.add(PlotThread(
+            id: threadId,
+            description: '$keyword: ${output.brief.sceneSummary}',
+            status: status,
+            involvedCharacters: involved,
+            introducedInScene: sceneKey,
+          ));
+        }
+        break; // One prose-derived thread per scene is sufficient
+      }
+    }
   }
 
   List<String> _charactersInText(
@@ -174,6 +267,42 @@ class NarrativeArcTracker {
         .where((member) => text.contains(member.name))
         .map((member) => member.characterId)
         .toList(growable: false);
+  }
+
+  /// Fix 5a: Check if active threads can be advanced/resolved via prose text.
+  void _checkThreadResolution({
+    required String prose,
+    required String sceneKey,
+    required List<PlotThread> updatedThreads,
+    required List<PlotThread> closedThreads,
+  }) {
+    const resolutionMarkers = [
+      '真相大白', '水落石出', '终于明白', '谜底揭晓',
+      '原来如此', '一切都清楚了', '找到了答案', '尘埃落定',
+    ];
+    const fallingMarkers = [
+      '撤退', '放弃', '妥协', '让步', '逃离', '消失在',
+    ];
+
+    final hasResolution = resolutionMarkers.any((m) => prose.contains(m));
+    final hasFalling = fallingMarkers.any((m) => prose.contains(m));
+    if (!hasResolution && !hasFalling) return;
+
+    for (int i = updatedThreads.length - 1; i >= 0; i--) {
+      final thread = updatedThreads[i];
+      if (thread.resolvedInScene != null) continue;
+      if (hasResolution && thread.status == PlotThreadStatus.falling) {
+        updatedThreads.removeAt(i);
+        closedThreads.add(thread.copyWith(
+          status: PlotThreadStatus.resolved,
+          resolvedInScene: sceneKey,
+        ));
+      } else if (hasFalling && thread.status == PlotThreadStatus.climax) {
+        updatedThreads[i] = thread.copyWith(
+          status: PlotThreadStatus.falling,
+        );
+      }
+    }
   }
 
   bool _overlapsCharacters(List<String> a, List<String> b) {

@@ -535,7 +535,6 @@ void main() {
         ));
       }
 
-      final indexTime = stopwatch.elapsedMilliseconds;
       stopwatch.stop();
 
       // 搜索

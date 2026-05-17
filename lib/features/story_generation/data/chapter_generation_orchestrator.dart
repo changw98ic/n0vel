@@ -277,6 +277,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       var attempt = 1;
       var softFailureCount = 0;
       String? reviewFeedback;
+      String? previousProse;
 
       // Inner loop: editorial retry
       while (true) {
@@ -294,6 +295,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             stage: stageOutput,
             attempt: attempt,
             reviewFeedback: reviewFeedback,
+            previousProse: previousProse,
           ),
         );
 
@@ -358,6 +360,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             );
             attempt += 1;
             reviewFeedback = reviewOutput.review.editorialFeedback;
+            previousProse = editorialOutput.prose.text;
             continue;
           }
         }
@@ -377,6 +380,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           );
           proseForOutput = polishOutput.prose;
         } else if (reviewOutput.action == SceneReviewDecision.pass) {
+          markSpeculationReady();
           final polishOutput = await _polishStep.execute(
             PolishInput(
               brief: currentBrief,
@@ -415,7 +419,6 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           output: finalizationOutput.output,
         );
 
-        markSpeculationReady();
         return finalizationOutput.output;
       }
     }

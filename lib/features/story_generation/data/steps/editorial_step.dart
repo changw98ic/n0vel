@@ -26,6 +26,7 @@ class EditorialStep {
       attempt: input.attempt,
       roleplaySession: input.roleplay.session,
       reviewFeedback: input.reviewFeedback,
+      previousProse: input.previousProse,
     );
 
     final prose = SceneProseDraft(

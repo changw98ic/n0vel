@@ -8,12 +8,16 @@ class GenerationPipelineConfig {
     this.enableWritingReference = true,
     this.styleReferenceConfig =
         const StyleReferenceConfig.defaultEnabled(),
+    this.maxConcurrentScenes = 2,
+    this.maxSceneRetries = 2,
   });
 
   final int maxProseRetries;
   final int maxSceneReplanRetries;
   final bool enableWritingReference;
   final StyleReferenceConfig styleReferenceConfig;
+  final int maxConcurrentScenes;
+  final int maxSceneRetries;
 
   factory GenerationPipelineConfig.fromWorkspace(
     AppWorkspaceStore workspaceStore,

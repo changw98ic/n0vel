@@ -993,6 +993,707 @@ const _benchmarkChapters = <_BenchmarkChapter>[
 ];
 
 // ---------------------------------------------------------------------------
+// 十章玄幻故事定义：青云宗秘境
+// ---------------------------------------------------------------------------
+
+const _xianxiaChapters = <_BenchmarkChapter>[
+  _BenchmarkChapter(
+    id: 'x-chapter-01',
+    title: '第一章 灵根觉醒',
+    summary: '青云宗门外弟子叶尘在后山采药时意外触发上古阵法，被封印千年的残缺灵根觉醒。'
+        '他发现自己能看到别人看不到的灵气流动。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s01',
+        title: '后山异变',
+        targetLength: 1000,
+        summary: '叶尘在悬崖边采一株罕见的星雾草时脚下石壁崩塌，跌入隐秘洞穴。'
+            '洞穴中央的石台上放着一枚古旧玉简，触碰的瞬间灵气暴涌。',
+        targetBeat: '建立悬念，引出上古传承的核心线索，确立叶尘的特殊体质。',
+        worldNodeIds: ['qyun-mountain'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '青云宗门外弟子',
+            participation: SceneCastParticipation(
+              action: '跌入洞穴，触碰玉简引发灵气暴涌',
+              dialogue: '"这是……什么东西？玉简上的字在动！"',
+              interaction: '从玉简中看到模糊的上古画面',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'suyao',
+            name: '苏瑶',
+            role: '内门弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"后山灵气波动异常，你碰了什么？"',
+              interaction: '感应到灵气异变赶来查看，发现叶尘浑身灵气环绕',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s02',
+        title: '宗门质询',
+        targetLength: 1000,
+        summary: '叶尘被带到宗门大殿，玄清长老亲自查验他的灵根。'
+            '结果令人震惊——五行废灵根中竟隐藏着消失万年的混沌灵根残片。',
+        targetBeat: '揭示叶尘的特殊体质，引发宗门高层关注和暗中的觊觎。',
+        worldNodeIds: ['qyun-hall'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '门外弟子',
+            participation: SceneCastParticipation(
+              action: '接受灵根测试，体内灵力失控暴走',
+              dialogue: '"长老，我真的不知道发生了什么，我从小就是废灵根。"',
+              interaction: '感受到长老探查灵根时带来的巨大压力',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'xuanqing',
+            name: '玄清长老',
+            role: '宗门长老',
+            participation: SceneCastParticipation(
+              dialogue: '"混沌残片……这不可能，万年前的传承怎么会出现在一个废灵根上。"',
+              interaction: '神色复杂地看着叶尘，似乎在权衡什么',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '内门首席弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"长老，此人来路不明，应当严加看管。"',
+              interaction: '在大殿角落冷眼旁观，眼神中闪过一丝贪婪',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-02',
+    title: '第二章 宗门大比',
+    summary: '一年一度的宗门大比开始，叶尘意外获得参赛资格。'
+        '他在比武场上展现出不同寻常的战斗直觉，引起各方关注。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s03',
+        title: '擂台初战',
+        targetLength: 1000,
+        summary: '叶尘在首场对决中面对筑基期弟子周明。所有人都认为他必败无疑，'
+            '但他凭借灵眼能力看穿对手灵力运转轨迹，以弱胜强。',
+        targetBeat: '展示叶尘独特能力，制造以弱胜强的反转效果。',
+        worldNodeIds: ['qyun-arena'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '参赛弟子',
+            participation: SceneCastParticipation(
+              action: '在擂台上以灵眼洞悉对手破绽，一击制胜',
+              dialogue: '"你的灵力运转在左肋有一个半息的间断，足够了。"',
+              interaction: '全场震惊中走下擂台',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '内门首席弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"一个练气期的废物，居然能看穿筑基期的灵力运转？有意思。"',
+              interaction: '在高台上冷笑，暗中记下叶尘的能力特征',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s04',
+        title: '暗夜警告',
+        targetLength: 1000,
+        summary: '比武结束后苏瑶找到叶尘，警告他赵元不是表面看上去那么简单。'
+            '赵元曾让三名发现他秘密的弟子"意外"陨落。',
+        targetBeat: '揭示赵元的危险性，建立紧张感和阵营对立。',
+        worldNodeIds: ['qyun-disciple-quarters'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '参赛弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"赵元真有那么可怕？他可是长老看重的首席弟子。"',
+              interaction: '对苏瑶的警告半信半疑，但决定保持警惕',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'suyao',
+            name: '苏瑶',
+            role: '内门弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"去年失踪的李师兄，就是在赵元值守灵药园那天不见的。你小心。"',
+              interaction: '将一枚防御玉符递给叶尘',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-03',
+    title: '第三章 秘境试炼',
+    summary: '宗门开启千年秘境"天玄洞"，各门派弟子进入争夺机缘。'
+        '叶尘在秘境中发现一座上古炼丹师的洞府遗迹。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s05',
+        title: '迷雾森林',
+        targetLength: 1000,
+        summary: '叶尘进入秘境后被传送至一片灵气紊乱的迷雾森林。'
+            '他的灵眼能力在这里意外地能看穿迷雾中的灵兽陷阱和隐藏路径。',
+        targetBeat: '秘境探险开局，展示叶尘在极端环境中的独特优势。',
+        worldNodeIds: ['tianxuan-forest'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '秘境试炼者',
+            participation: SceneCastParticipation(
+              action: '用灵眼避开三头潜伏的灵兽，找到通往深处的路径',
+              dialogue: '"灵气流向全乱了，但有规律——像是被什么东西牵引着。"',
+              interaction: '在迷雾中独自行进，保持高度警觉',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'liuwushuang',
+            name: '柳无双',
+            role: '魔修',
+            participation: SceneCastParticipation(
+              dialogue: '"有意思，竟然有人在迷雾里如鱼得水。你是什么人？"',
+              interaction: '从暗处现身，语气玩味但并无敌意',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s06',
+        title: '古丹府',
+        targetLength: 1000,
+        summary: '叶尘跟随灵气指引找到上古炼丹师洞府。洞府内有完整的丹方石刻和一枚空间戒指。'
+            '但赵元也追踪到了这里，企图抢夺。',
+        targetBeat: '核心机缘获取，同时引出与赵元的正面对抗。',
+        worldNodeIds: ['tianxuan-cave'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '试炼者',
+            participation: SceneCastParticipation(
+              action: '用灵眼解读丹方石刻，快速记下关键内容',
+              dialogue: '"这些丹方……在外面早就失传了。"',
+              interaction: '发现赵元闯入后迅速将空间戒指收入储物袋',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '内门首席弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"叶尘，把洞府里的东西交出来，我可以当作什么都没发生。"',
+              interaction: '以筑基后期的修为施压，堵住洞府出口',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-04',
+    title: '第四章 故人之叛',
+    summary: '叶尘在秘境中遭遇赵元伏击，危急时刻同伴张远突然反水投靠赵元。'
+        '叶尘凭借古丹府中获得的阵法知识勉强脱困。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s07',
+        title: '暗林伏击',
+        targetLength: 1000,
+        summary: '叶尘在秘境深处遭遇赵元和两名内门弟子的围攻。'
+            '赵元使出禁术级别的攻击，叶尘被困在灵力牢笼中。',
+        targetBeat: '危机升级，展示赵元隐藏的实力和冷酷手段。',
+        worldNodeIds: ['tianxuan-deep'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被围攻者',
+            participation: SceneCastParticipation(
+              action: '被灵力牢笼困住，以灵眼寻找牢笼灵力节点的薄弱处',
+              dialogue: '"赵元，你用禁术围杀同门，就不怕长老追究？"',
+              interaction: '在牢笼中冷静观察对手灵力消耗',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '围攻者',
+            participation: SceneCastParticipation(
+              dialogue: '"长老？你以为长老不知道？天真。"',
+              interaction: '释放出远超筑基期的灵力压制叶尘',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s08',
+        title: '破阵脱困',
+        targetLength: 1000,
+        summary: '叶尘利用灵眼找到灵力牢笼的阵法缺陷，引爆自身灵根混沌残片的力量破阵。'
+            '脱困后他发现张远一直暗中给赵元传递自己的位置信息。',
+        targetBeat: '背叛揭露，叶尘被迫独自面对强敌，激发潜藏力量。',
+        worldNodeIds: ['tianxuan-deep'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '脱困者',
+            participation: SceneCastParticipation(
+              action: '引爆混沌灵根残片的力量破开牢笼，趁乱遁走',
+              dialogue: '"张远……原来从进秘境开始你就是他的人。"',
+              interaction: '以秘境传送阵法紧急传送离开',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhangyuan',
+            name: '张远',
+            role: '叛变的同伴',
+            participation: SceneCastParticipation(
+              dialogue: '"叶尘，别怪我。赵师兄答应帮我突破筑基，我只是做了正确的选择。"',
+              interaction: '不敢与叶尘对视，后退到赵元身后',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-05',
+    title: '第五章 破境重生',
+    summary: '叶尘在秘境深处闭关疗伤，混沌灵根残片与上古玉简中的传承产生共鸣，'
+        '助他一举突破筑基期。出关后恰逢秘境即将关闭。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s09',
+        title: '混沌共鸣',
+        targetLength: 1000,
+        summary: '叶尘在秘境深处的灵泉旁打坐疗伤，混沌灵根残片在灵气充裕的环境下主动运转，'
+            '玉简中的功法自行灌入识海。他在短短一天内完成练气到筑基的突破。',
+        targetBeat: '实力飞跃的转折点，展示传承力量的深远影响。',
+        worldNodeIds: ['tianxuan-spring'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '突破者',
+            participation: SceneCastParticipation(
+              action: '在灵泉中引导混沌灵根运转，突破筑基期',
+              dialogue: '"这就是……筑基？灵气像江河一样涌入丹田。"',
+              interaction: '突破时引发灵气异象被远处的人感知到',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s10',
+        title: '秘境出口',
+        targetLength: 1000,
+        summary: '叶尘赶到秘境出口时发现传送阵已被赵元的人控制。'
+            '他必须在新实力尚未稳固的情况下强行突围。',
+        targetBeat: '新力量的首次实战检验，紧张的逃亡节奏。',
+        worldNodeIds: ['tianxuan-exit'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '突围者',
+            participation: SceneCastParticipation(
+              action: '以刚突破的筑基修为强闯传送阵',
+              dialogue: '"让开，秘境要关闭了，谁也别想拦我。"',
+              interaction: '与守阵弟子短暂交手后跳入传送光柱',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '阻拦者',
+            participation: SceneCastParticipation(
+              dialogue: '"你居然突破了？不可能这么快……"',
+              interaction: '赶到时叶尘已消失在传送光柱中',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-06',
+    title: '第六章 魔修之约',
+    summary: '回到宗门后叶尘被隔离审查。柳无双主动现身邀他合作——'
+        '她知道赵元背后的真正秘密，但需要叶尘的灵眼能力作为交换。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s11',
+        title: '静室对峙',
+        targetLength: 1000,
+        summary: '叶尘被关在宗门静室中等待长老问询。柳无双通过秘术潜入，'
+            '提出一个惊人的说法——赵元身上有魔修的功法气息。',
+        targetBeat: '引入魔修视角，揭示赵元背后更大的阴谋。',
+        worldNodeIds: ['qyun-seal-room'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被审查者',
+            participation: SceneCastParticipation(
+              dialogue: '"你是魔修，我凭什么相信你？"',
+              interaction: '保持戒备，但认真分析柳无双提供的信息',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'liuwushuang',
+            name: '柳无双',
+            role: '魔修',
+            participation: SceneCastParticipation(
+              dialogue: '"赵元修炼的功法里有噬灵诀的痕迹，那是三百年前被灭宗的魔道功法。你的长老不可能看不出来。"',
+              interaction: '展示一段赵元在秘境中使用魔功的灵气波动记录',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s12',
+        title: '危险同盟',
+        targetLength: 1000,
+        summary: '叶尘经过慎重考虑决定与柳无双临时结盟。柳无双透露赵元的师父——'
+            '宗门二长老暗渊真人——才是幕后黑手，他在借赵元收集宗门弟子的灵根精华。',
+        targetBeat: '建立主角与魔修的非典型联盟，揭示更高层阴谋。',
+        worldNodeIds: ['qyun-seal-room'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '结盟者',
+            participation: SceneCastParticipation(
+              dialogue: '"合作可以，但你得告诉我暗渊真人的真正目的。"',
+              interaction: '与柳无双交换情报，制定初步计划',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'liuwushuang',
+            name: '柳无双',
+            role: '魔修盟友',
+            participation: SceneCastParticipation(
+              dialogue: '"暗渊真人要的不是灵根精华，是混沌灵根——就是你现在身上那块残片。"',
+              interaction: '留下一枚联络玉符后悄然离去',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-07',
+    title: '第七章 灵药园之谜',
+    summary: '叶尘被指派到灵药园劳作，暗中调查失踪弟子的线索。'
+        '他在灵药园地下发现了一条隐藏的灵脉通道。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s13',
+        title: '灵药园当值',
+        targetLength: 1000,
+        summary: '叶尘以劳改名义进入灵药园，暗中用灵眼观察灵气流向。'
+            '他发现灵药园中央的古井灵气流向异常——不是向外扩散，而是向内汇聚。',
+        targetBeat: '调查推进，发现隐藏线索，保持悬疑节奏。',
+        worldNodeIds: ['qyun-garden'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '灵药园杂役',
+            participation: SceneCastParticipation(
+              action: '假意浇药，实则用灵眼探测古井下的灵脉结构',
+              dialogue: '"灵气全被吸到地下了……下面有什么东西在吞噬灵力。"',
+              interaction: '在不引起注意的情况下反复观察古井区域',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'suyao',
+            name: '苏瑶',
+            role: '内门弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"你小心点，灵药园夜间有禁制巡逻，被抓到就完了。"',
+              interaction: '暗中帮叶尘打掩护，吸引巡逻弟子注意',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s14',
+        title: '地下灵脉',
+        targetLength: 1000,
+        summary: '叶尘趁夜潜入古井下的通道，发现一处地下密室。'
+            '密室中有七具干枯的尸体——都是失踪的弟子，他们的灵根精华被完全抽空。',
+        targetBeat: '核心发现，揭露暗渊真人的罪行证据。',
+        worldNodeIds: ['qyun-underground'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '调查者',
+            participation: SceneCastParticipation(
+              action: '在密室中找到被抽空灵根的弟子尸体和记录仪',
+              dialogue: '"七个人……全被抽干了灵根精华。这不是赵元一个人能做的事。"',
+              interaction: '用玉简记录密室证据后迅速撤离',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-08',
+    title: '第八章 宗门审判',
+    summary: '叶尘将证据呈交玄清长老，请求公开审判暗渊真人。'
+        '但宗主的态度暧昧不明，叶尘意识到宗门高层内部早已分裂。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s15',
+        title: '长老密会',
+        targetLength: 1000,
+        summary: '叶尘私下向玄清长老展示地下密室的证据。'
+            '玄清长老震惊之余透露，暗渊真人的修为已臻金丹巅峰，宗内无人能单独制衡。',
+        targetBeat: '证据提交，但面临实力悬殊的困境。',
+        worldNodeIds: ['qyun-elder-hall'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '举报者',
+            participation: SceneCastParticipation(
+              dialogue: '"长老，七具尸体就在灵药园地下，这证据够不够？"',
+              interaction: '将记录玉简交给玄清长老',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'xuanqing',
+            name: '玄清长老',
+            role: '宗门长老',
+            participation: SceneCastParticipation(
+              dialogue: '"证据确凿，但暗渊的实力远超你想象。就算公开，他也能在众目睽睽下脱身。"',
+              interaction: '神色凝重，似乎在做艰难的决定',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s16',
+        title: '大殿风云',
+        targetLength: 1000,
+        summary: '玄清长老召开宗门大会公开证据。暗渊真人当众否认，'
+            '反而指控叶尘与魔修勾结图谋不轨。宗主最终决定将叶尘收押候审。',
+        targetBeat: '正义受挫，反派反咬一口，主角陷入更大危机。',
+        worldNodeIds: ['qyun-hall'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被指控者',
+            participation: SceneCastParticipation(
+              dialogue: '"灵药园地下七具尸体的灵根精华流向了谁的丹田？长老验一验便知！"',
+              interaction: '面对暗渊真人的威压毫不退缩',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'xuanqing',
+            name: '玄清长老',
+            role: '宗门长老',
+            participation: SceneCastParticipation(
+              dialogue: '"宗主，证据确凿，应当彻查。"',
+              interaction: '与暗渊真人在大殿上形成对峙',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-09',
+    title: '第九章 绝境逢生',
+    summary: '叶尘被关押在宗门禁地，赵元奉命"看守"实则要取他性命。'
+        '柳无双和苏瑶联手劫狱，三方在禁地中展开混战。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s17',
+        title: '禁地囚笼',
+        targetLength: 1000,
+        summary: '赵元深夜来到禁地，以审讯为名准备处决叶尘。'
+            '他透露自己不过是一枚棋子，真正的目标是唤醒叶尘体内的混沌灵根完整形态。',
+        targetBeat: '反派揭示真实目的，危机达到顶点。',
+        worldNodeIds: ['qyun-prison'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被囚者',
+            participation: SceneCastParticipation(
+              dialogue: '"混沌灵根的完整形态？你们要的不是我的人，是这块残片。"',
+              interaction: '在被困中冷静分析赵元话中的信息',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'zhaoyuan',
+            name: '赵元',
+            role: '处决者',
+            participation: SceneCastParticipation(
+              dialogue: '"你以为你很特别？你不过是容器。混沌灵根完整觉醒的那一刻，你就不存在了。"',
+              interaction: '释放魔气逼近叶尘',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s18',
+        title: '劫狱混战',
+        targetLength: 1000,
+        summary: '柳无双破开禁地阵法，苏瑶在外围策应。三方合力击退赵元，'
+            '但赵元在逃走前启动了暗渊真人留下的禁制，整个禁地开始崩塌。',
+        targetBeat: '多角色协作战斗，紧张的逃亡节奏。',
+        worldNodeIds: ['qyun-prison'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被救者',
+            participation: SceneCastParticipation(
+              action: '与柳无双配合攻击赵元的阵法破绽',
+              dialogue: '"禁制要崩了，先撤！"',
+              interaction: '在崩塌中掩护苏瑶撤离',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'liuwushuang',
+            name: '柳无双',
+            role: '劫狱者',
+            participation: SceneCastParticipation(
+              dialogue: '"我来救你不是因为喜欢你，是因为你死了我就找不到暗渊那个老狐狸了。"',
+              interaction: '以魔道秘术强攻禁地阵法',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'suyao',
+            name: '苏瑶',
+            role: '策应者',
+            participation: SceneCastParticipation(
+              dialogue: '"快走，我断后！"',
+              interaction: '在外围布下防御阵法阻挡追兵',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  _BenchmarkChapter(
+    id: 'x-chapter-10',
+    title: '第十章 混沌觉醒',
+    summary: '暗渊真人现身强夺混沌灵根，叶尘在生死关头与玉简传承完全融合。'
+        '混沌灵根全面觉醒，叶尘以超越境界的力量击退暗渊真人，但代价惨重。',
+    targetLength: 2500,
+    scenes: [
+      _BenchmarkScene(
+        id: 'x-s19',
+        title: '暗渊降临',
+        targetLength: 1000,
+        summary: '叶尘逃出禁地后被暗渊真人拦截。金丹巅峰的威压如山般倾泻，'
+            '叶尘的筑基修为在绝对实力面前毫无还手之力。暗渊开始强行抽取混沌灵根。',
+        targetBeat: '最终 boss 登场，实力差距悬殊制造绝望感。',
+        worldNodeIds: ['qyun-summit'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '被压制者',
+            participation: SceneCastParticipation(
+              action: '在暗渊真人的灵力碾压下被迫跪地，体内混沌灵根开始剧烈震荡',
+              dialogue: '"你……为了一个灵根残片，杀了七个人……值得吗？"',
+              interaction: '灵根被抽取时与玉简传承产生共鸣',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'anyuan',
+            name: '暗渊真人',
+            role: '宗门二长老/幕后黑手',
+            participation: SceneCastParticipation(
+              dialogue: '"七个人？格局太小了。我要的是打开天玄洞的钥匙——完整的混沌灵根。"',
+              interaction: '释放金丹巅峰的恐怖威压',
+            ),
+          ),
+        ],
+      ),
+      _BenchmarkScene(
+        id: 'x-s20',
+        title: '传承觉醒',
+        targetLength: 1000,
+        summary: '在混沌灵根即将被剥离的刹那，玉简传承彻底激活。'
+            '叶尘获得上古大能的战斗经验和临时境界提升，击退暗渊真人。'
+            '但觉醒后的反噬让他修为跌落，经脉寸断。',
+        targetBeat: '高潮决战，胜利伴随惨痛代价，为后续故事留悬念。',
+        worldNodeIds: ['qyun-summit'],
+        cast: [
+          _BenchmarkCast(
+            characterId: 'yechen',
+            name: '叶尘',
+            role: '觉醒者',
+            participation: SceneCastParticipation(
+              action: '混沌灵根完全觉醒，以上古大能的战技击退暗渊真人',
+              dialogue: '"你想要混沌灵根？那就来拿——如果你还站得起来的话。"',
+              interaction: '击败暗渊后修为暴跌，昏倒在苏瑶怀中',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'xuanqing',
+            name: '玄清长老',
+            role: '宗门长老',
+            participation: SceneCastParticipation(
+              dialogue: '"暗渊，你的罪行今日大白于天下。宗门不会放过你。"',
+              interaction: '趁暗渊受创将其封印',
+            ),
+          ),
+          _BenchmarkCast(
+            characterId: 'suyao',
+            name: '苏瑶',
+            role: '内门弟子',
+            participation: SceneCastParticipation(
+              dialogue: '"叶尘！你醒醒——你的经脉全断了……"',
+              interaction: '接住昏倒的叶尘，泪水落在他的脸上',
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+];
+
+// ---------------------------------------------------------------------------
 // 质量分析（纯规则，无 LLM 调用）
 // ---------------------------------------------------------------------------
 
@@ -1004,7 +1705,17 @@ const _tensionKeywords = [
 ];
 
 double _computeHookStrength(String text) {
-  final first100 = text.length > 100 ? text.substring(0, 100) : text;
+  // Strip markdown headers (#), blockquote summaries (>), and blank lines
+  // so the scorer evaluates actual prose, not formatting.
+  final proseStart = text
+      .split('\n')
+      .where((line) {
+        final t = line.trim();
+        return t.isNotEmpty && !t.startsWith('#') && !t.startsWith('>');
+      })
+      .join('\n');
+  final clean = proseStart.trim();
+  final first100 = clean.length > 100 ? clean.substring(0, 100) : clean;
   var score = 0.0;
 
   // 动作动词
@@ -1021,7 +1732,7 @@ double _computeHookStrength(String text) {
   if (first100.startsWith('"') || first100.startsWith('「')) score += 0.15;
 
   // 短句开头（前20字内出现句号）
-  final first20 = text.length > 20 ? text.substring(0, 20) : text;
+  final first20 = clean.length > 20 ? clean.substring(0, 20) : clean;
   if (first20.contains('。') || first20.contains('…')) score += 0.15;
 
   // 悬念关键词
@@ -1878,6 +2589,194 @@ void main() {
         final rate = accumulatedArc.closedThreads.length / totalThreads;
         expect(rate, greaterThanOrEqualTo(0.5), reason: '情节线解决率应 ≥ 50%');
       }
+    }, timeout: Timeout.none);
+  });
+
+  group('玄幻十章', () {
+    test('玄幻小说十章完整流水线', () async {
+      if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
+        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        return;
+      }
+
+      final heartbeat = _Heartbeat(
+        label: '玄幻十章',
+        testFail: fail,
+      )..start();
+      _globalHeartbeat = heartbeat;
+      addTearDown(heartbeat.stop);
+
+      _currentStep = 'setup';
+      final settings = await _resolveSettings();
+      final trackingClient = _TrackingLlmClient(createDefaultAppLlmClient());
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: trackingClient,
+      );
+
+      await settingsStore.save(
+        providerName: settings.providerName,
+        baseUrl: settings.baseUrl,
+        model: settings.model,
+        apiKey: settings.apiKey,
+        timeout: AppLlmTimeoutConfig.uniform(settings.timeoutMs),
+        maxConcurrentRequests: settings.maxConcurrentRequests,
+      );
+
+      final outputRoot = Directory('$_outputRoot/xianxia');
+      if (await outputRoot.exists()) {
+        await outputRoot.delete(recursive: true);
+      }
+      await outputRoot.create(recursive: true);
+      final recorder = ArtifactRecorder(rootDirectory: outputRoot);
+
+      final runner = ChapterConcurrentRunner(
+        settingsStore: settingsStore,
+        pipelineConfig: const GenerationPipelineConfig(
+          maxProseRetries: 2,
+          maxConcurrentScenes: 3,
+          maxSceneRetries: 2,
+        ),
+      );
+
+      final runSw = Stopwatch()..start();
+      final allOutputs = <SceneRuntimeOutput>[];
+      final summaries = <_ChapterSummary>[];
+      final chapterTexts = <String>[];
+      var accumulatedArc = NarrativeArcState();
+
+      // Sequential chapter generation: one chapter at a time, write immediately.
+      var totalCompletedScenes = 0;
+      final totalScenes = _xianxiaChapters.fold<int>(
+        0, (sum, ch) => sum + ch.scenes.length,
+      );
+
+      for (var ci = 0; ci < _xianxiaChapters.length; ci++) {
+        final chapter = _xianxiaChapters[ci];
+        _log('=== 开始 ${chapter.title} (${ci + 1}/${_xianxiaChapters.length}) ===');
+
+        final chapterBriefs = <SceneBrief>[];
+        for (final scene in chapter.scenes) {
+          chapterBriefs.add(SceneBrief(
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            sceneId: scene.id,
+            sceneIndex: chapter.scenes.indexOf(scene),
+            sceneTitle: scene.title,
+            sceneSummary: scene.summary,
+            targetLength: scene.targetLength,
+            targetBeat: scene.targetBeat,
+            worldNodeIds: scene.worldNodeIds,
+            cast: [
+              for (final c in scene.cast)
+                SceneCastCandidate(
+                  characterId: c.characterId,
+                  name: c.name,
+                  role: c.role,
+                  participation: c.participation,
+                ),
+            ],
+          ));
+        }
+
+        final chapterOutputs = await runner.runAll(
+          chapterBriefs,
+          initialArc: accumulatedArc,
+          onSceneComplete: (completed, total, output) {
+            totalCompletedScenes++;
+            heartbeat.beat(
+              '${chapter.title} scene $completed/$total '
+              'review=${output.review.decision.name} '
+              'chars=${output.prose.text.length}',
+            );
+            _currentStep = chapter.id;
+            _writeLiveStatus(
+              phase: '玄幻十章',
+              completedScenes: totalCompletedScenes,
+              totalScenes: totalScenes,
+              currentChapter: chapter.id,
+              totalPromptTokens: trackingClient.totalPromptTokens,
+              totalCompletionTokens: trackingClient.totalCompletionTokens,
+              llmCalls: trackingClient.callCount,
+            );
+          },
+        );
+
+        allOutputs.addAll(chapterOutputs);
+
+        // Write chapter immediately.
+        final buf = StringBuffer()
+          ..writeln('# ${chapter.title}')
+          ..writeln()
+          ..writeln('> ${chapter.summary}')
+          ..writeln();
+        for (final output in chapterOutputs) {
+          buf
+            ..writeln('## ${output.brief.sceneTitle}')
+            ..writeln()
+            ..writeln(output.prose.text.trim())
+            ..writeln();
+        }
+        final chapterText = buf.toString().trimRight();
+        chapterTexts.add(chapterText);
+
+        await recorder.recordChapterText(
+          chapterId: chapter.id,
+          text: chapterText,
+        );
+
+        summaries.add(_ChapterSummary(
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          sceneCount: chapterOutputs.length,
+          actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
+          reviewPassed: chapterOutputs.every(
+            (o) => o.review.decision == SceneReviewDecision.pass,
+          ),
+          proseRetryCount: chapterOutputs.fold<int>(
+            0,
+            (sum, o) => sum + o.softFailureCount,
+          ),
+          totalMs: runSw.elapsedMilliseconds,
+          promptTokens: trackingClient.totalPromptTokens,
+          completionTokens: trackingClient.totalCompletionTokens,
+        ));
+
+        final charCount = chapterText.replaceAll(RegExp(r'\s'), '').length;
+        _log('=== ${chapter.title} 完成 '
+            'chars=$charCount '
+            'pass=${summaries.last.reviewPassed} ===');
+      }
+
+      runSw.stop();
+      _log('xianxia all chapters completed in ${runSw.elapsedMilliseconds}ms');
+
+      // Arc tracking from collected outputs.
+      final arcTracker = NarrativeArcTracker();
+      for (final output in allOutputs) {
+        accumulatedArc = arcTracker.update(
+          current: accumulatedArc,
+          output: output,
+        );
+      }
+
+      final report = _goldenThreeReport(summaries, chapterTexts, allOutputs);
+      await recorder.recordReport(
+        relativePath: 'reports/xianxia_quality.md',
+        content: report,
+      );
+
+      await recorder.recordReport(
+        relativePath: 'reports/xianxia_quality-report.json',
+        content: SceneQualityReporter.toJson(allOutputs),
+      );
+
+      settingsStore.dispose();
+
+      stdout.writeln(report);
+
+      final passedCount = summaries.where((s) => s.reviewPassed).length;
+      expect(passedCount, greaterThanOrEqualTo(8), reason: '玄幻十章至少 8 章应 review pass');
     }, timeout: Timeout.none);
   });
 

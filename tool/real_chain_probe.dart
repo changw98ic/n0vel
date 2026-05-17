@@ -7,6 +7,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/state/local_settings_file.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
@@ -145,7 +146,7 @@ Future<void> main() async {
   ChapterGenerationOrchestrator createOrchestrator() =>
       ChapterGenerationOrchestrator(
         settingsStore: settingsStore,
-        maxProseRetries: 1,
+        pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
         reviewCoordinator: SceneReviewCoordinator(
           settingsStore: settingsStore,
           formatterTraceSink: formatterTraceSink,

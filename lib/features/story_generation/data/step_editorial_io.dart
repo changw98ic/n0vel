@@ -18,6 +18,7 @@ class EditorialInput {
     required this.stage,
     required this.attempt,
     this.reviewFeedback,
+    this.previousProse,
   });
 
   final SceneBrief brief;
@@ -27,6 +28,7 @@ class EditorialInput {
   final StageNarrationOutput stage;
   final int attempt;
   final String? reviewFeedback;
+  final String? previousProse;
 }
 
 class EditorialOutput {
