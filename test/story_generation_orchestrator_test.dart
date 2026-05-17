@@ -846,7 +846,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
         );
         final result = await orchestrator.runScene(
           SceneBrief(
@@ -941,7 +941,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1023,7 +1023,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
         );
 
         final result = await orchestrator.runScene(
@@ -1191,7 +1191,7 @@ void main() {
 
       final orchestrator = ChapterGenerationOrchestrator(
         settingsStore: settingsStore,
-        pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
+        pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1256,7 +1256,7 @@ void main() {
 
         final orchestrator = ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 1),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
         );
 
         final result = await orchestrator.runScene(

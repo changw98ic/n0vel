@@ -61,14 +61,14 @@ void main() {
     });
 
     test('detects short sentence run (5+ consecutive short sentences)', () {
-      final shortPara = '下雨了。起风了。天黑了。人走了。灯灭了。路远了。';
+      const shortPara = '下雨了。起风了。天黑了。人走了。灯灭了。路远了。';
       final report = detector.detect(shortPara);
       final runs = report.findingsOf(AiClicheKind.shortSentenceRun);
       expect(runs, isNotEmpty);
     });
 
     test('no short sentence run when sentences are varied', () {
-      final varied = '这是第一句比较长的句子，有十几个汉字。短句。这也是一段中等长度的句子，包含一些内容。';
+      const varied = '这是第一句比较长的句子，有十几个汉字。短句。这也是一段中等长度的句子，包含一些内容。';
       final report = detector.detect(varied);
       final runs = report.findingsOf(AiClicheKind.shortSentenceRun);
       expect(runs, isEmpty);

@@ -363,7 +363,7 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
     ChapterGenerationOrchestrator createSceneOrchestrator() =>
         ChapterGenerationOrchestrator(
           settingsStore: settingsStore,
-          pipelineConfig: GenerationPipelineConfig(maxProseRetries: 2),
+          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
           reviewCoordinator: SceneReviewCoordinator(
             settingsStore: settingsStore,
             formatterTraceSink: formatterTraceSink,

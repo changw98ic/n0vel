@@ -35,20 +35,20 @@ void main() {
     });
 
     test('counts dialogue characters inside 「」', () {
-      final text = '他说：「你好世界」然后走了。';
+      const text = '他说：「你好世界」然后走了。';
       final fp = analyzer.analyze(text);
       expect(fp.dialogueRatio, greaterThan(0));
       expect(fp.dialogueRatio, lessThan(1));
     });
 
     test('counts dialogue characters inside ""', () {
-      final text = '她说"今天天气不错"就离开了。';
+      const text = '她说"今天天气不错"就离开了。';
       final fp = analyzer.analyze(text);
       expect(fp.dialogueRatio, greaterThan(0));
     });
 
     test('punctuation ratios include 。！？…；', () {
-      final text = '陈述句。感叹句！疑问句？省略号……分号；';
+      const text = '陈述句。感叹句！疑问句？省略号……分号；';
       final fp = analyzer.analyze(text);
       expect(fp.punctuationRatios, isNotEmpty);
       expect(fp.statementRatio, greaterThan(0));
@@ -58,19 +58,19 @@ void main() {
     });
 
     test('ellipsis …… counts as one not two', () {
-      final text = '他说了一句话……';
+      const text = '他说了一句话……';
       final fp = analyzer.analyze(text);
       expect(fp.ellipsisRatio, greaterThan(0));
     });
 
     test('splits paragraphs on double newline', () {
-      final text = '第一段内容。\n\n第二段内容。\n\n第三段内容。';
+      const text = '第一段内容。\n\n第二段内容。\n\n第三段内容。';
       final fp = analyzer.analyze(text);
       expect(fp.paragraphCount, 3);
     });
 
     test('avgSentenceLength for mixed text', () {
-      final text = '短句。这是一句比较长的话，包含了更多汉字。';
+      const text = '短句。这是一句比较长的话，包含了更多汉字。';
       final fp = analyzer.analyze(text);
       expect(fp.avgSentenceLength, greaterThan(0));
       expect(fp.sentenceLengthVariance, greaterThan(0));
@@ -83,19 +83,19 @@ void main() {
     });
 
     test('extracts adjective patterns X的', () {
-      final text = '美丽的花朵在灿烂的阳光下。';
+      const text = '美丽的花朵在灿烂的阳光下。';
       final fp = analyzer.analyze(text);
       expect(fp.topAdjectives, isNotEmpty);
     });
 
     test('exclamation with half-width ! detected', () {
-      final text = '他大喊stop!';
+      const text = '他大喊stop!';
       final fp = analyzer.analyze(text);
       expect(fp.exclamationRatio, greaterThan(0));
     });
 
     test('question with half-width ? detected', () {
-      final text = '他在想what?';
+      const text = '他在想what?';
       final fp = analyzer.analyze(text);
       expect(fp.questionRatio, greaterThan(0));
     });

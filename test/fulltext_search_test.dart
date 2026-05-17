@@ -18,7 +18,7 @@ void main() {
     });
 
     test('索引和搜索基本英文内容', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章 开端',
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('搜索中文内容（CJK 回退）', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章 开端',
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('按角色名过滤', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -70,7 +70,7 @@ void main() {
         characterNames: '刘锡',
         content: '刘锡在黑塔中发现了古老的钥匙。',
       ));
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 2,
         chapterTitle: '第二章',
@@ -171,7 +171,7 @@ void main() {
     });
 
     test('项目隔离：不同项目互不影响', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -180,7 +180,7 @@ void main() {
         characterNames: '',
         content: '项目一的秘密内容。',
       ));
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-2',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -199,7 +199,7 @@ void main() {
     });
 
     test('更新索引后搜索到新内容', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -210,7 +210,7 @@ void main() {
       ));
 
       // 更新内容
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -236,7 +236,7 @@ void main() {
     });
 
     test('删除场景索引', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -297,7 +297,7 @@ void main() {
     });
 
     test('indexedCharacterNames 返回去重角色列表', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -306,7 +306,7 @@ void main() {
         characterNames: '刘锡,柳絮',
         content: '内容1',
       ));
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 2,
         chapterTitle: '第二章',
@@ -322,7 +322,7 @@ void main() {
     });
 
     test('空查询返回空结果', () async {
-      await storage.indexScene(FulltextIndexEntry(
+      await storage.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -355,7 +355,7 @@ void main() {
     });
 
     test('indexScene 增量索引成功', () async {
-      await service.indexScene(FulltextIndexEntry(
+      await service.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -479,7 +479,7 @@ void main() {
     });
 
     test('removeScene 删除单个场景索引', () async {
-      await service.indexScene(FulltextIndexEntry(
+      await service.indexScene(const FulltextIndexEntry(
         projectId: 'proj-1',
         chapterIndex: 1,
         chapterTitle: '第一章',
@@ -519,7 +519,7 @@ void main() {
       for (var ch = 1; ch <= 100; ch++) {
         final content = StringBuffer();
         for (var p = 0; p < 30; p++) {
-          content.write('第${ch}章第${p + 1}段落。');
+          content.write('第$ch章第${p + 1}段落。');
           content.write('这是一段关于古代遗迹的描述，蕴含着深邃的智慧。');
           content.write('主角刘锡在黑暗中前行，寻找失落的文明线索。');
           content.write('黑塔的秘密等待着勇敢的探索者去揭开。');

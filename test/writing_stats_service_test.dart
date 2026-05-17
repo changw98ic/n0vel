@@ -101,7 +101,7 @@ void main() {
     setUp(() => ensureSchema());
 
     test('handleDraftUpdated creates daily stat with correct delta', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
@@ -117,14 +117,14 @@ void main() {
 
     test('handleDraftUpdated accumulates delta for same day', () async {
       // 第一次写入
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
         currentText: '你好', // +2
       ));
       // 第二次写入
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '你好',
@@ -138,7 +138,7 @@ void main() {
     });
 
     test('handleDraftUpdated skips when delta is zero', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '你好',
@@ -150,7 +150,7 @@ void main() {
     });
 
     test('handleDraftUpdated creates project stat on first write', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
@@ -180,7 +180,7 @@ void main() {
 
     test('handleChapterCompleted increments chapter count', () async {
       // 先创建日级记录
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
@@ -199,13 +199,13 @@ void main() {
     });
 
     test('multiple scene scopes tracked separately', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
         currentText: '场景一',
       ));
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-02',
         previousText: '',
@@ -226,14 +226,14 @@ void main() {
 
     test('negative delta (deletion) is tracked correctly', () async {
       // 先写入
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
         currentText: '你好世界测试内容',
       ));
       // 删除部分内容
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '你好世界测试内容',
@@ -254,7 +254,7 @@ void main() {
     setUp(() => ensureSchema());
 
     test('loadSnapshot returns correct aggregated values', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
@@ -283,7 +283,7 @@ void main() {
     setUp(() => ensureSchema());
 
     test('save and load goal round-trip', () async {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'goal-1',
         projectId: 'proj-1',
         goalType: WritingGoalType.dailyChars,
@@ -303,7 +303,7 @@ void main() {
     });
 
     test('update existing goal', () async {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'goal-1',
         projectId: 'proj-1',
         goalType: WritingGoalType.dailyChars,
@@ -324,7 +324,7 @@ void main() {
     });
 
     test('delete goal', () async {
-      await service.saveGoal(WritingGoal(
+      await service.saveGoal(const WritingGoal(
         id: 'goal-1',
         projectId: 'proj-1',
         goalType: WritingGoalType.dailyChars,
@@ -340,7 +340,7 @@ void main() {
     });
 
     test('global goal (empty projectId) visible for all projects', () async {
-      await service.saveGoal(WritingGoal(
+      await service.saveGoal(const WritingGoal(
         id: 'global-goal',
         projectId: '',
         goalType: WritingGoalType.dailyChars,
@@ -356,13 +356,13 @@ void main() {
     });
 
     test('clearProject removes all stats and goals', () async {
-      await service.handleDraftUpdated(DraftUpdatedEvent(
+      await service.handleDraftUpdated(const DraftUpdatedEvent(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
         previousText: '',
         currentText: '内容',
       ));
-      await service.saveGoal(WritingGoal(
+      await service.saveGoal(const WritingGoal(
         id: 'goal-1',
         projectId: 'proj-1',
         goalType: WritingGoalType.dailyChars,
@@ -389,7 +389,7 @@ void main() {
 
   group('WritingGoal model', () {
     test('toJson and fromJson round-trip', () {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'g1',
         projectId: 'p1',
         goalType: WritingGoalType.weeklyChars,
@@ -410,7 +410,7 @@ void main() {
     });
 
     test('copyWith preserves unmodified fields', () {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'g1',
         projectId: 'p1',
         goalType: WritingGoalType.dailyChars,
@@ -487,7 +487,7 @@ void main() {
 
   group('DraftUpdatedEvent.charDelta', () {
     test('positive delta for new text', () {
-      final event = DraftUpdatedEvent(
+      const event = DraftUpdatedEvent(
         projectId: 'p1',
         sceneScopeId: 'p1::s1',
         previousText: '',
@@ -497,7 +497,7 @@ void main() {
     });
 
     test('negative delta for deletion', () {
-      final event = DraftUpdatedEvent(
+      const event = DraftUpdatedEvent(
         projectId: 'p1',
         sceneScopeId: 'p1::s1',
         previousText: '你好世界',
@@ -507,7 +507,7 @@ void main() {
     });
 
     test('zero delta for unchanged text', () {
-      final event = DraftUpdatedEvent(
+      const event = DraftUpdatedEvent(
         projectId: 'p1',
         sceneScopeId: 'p1::s1',
         previousText: '你好',
@@ -517,7 +517,7 @@ void main() {
     });
 
     test('whitespace-only changes produce zero delta', () {
-      final event = DraftUpdatedEvent(
+      const event = DraftUpdatedEvent(
         projectId: 'p1',
         sceneScopeId: 'p1::s1',
         previousText: '你好',
@@ -533,7 +533,7 @@ void main() {
 
   group('WritingStatsSnapshot goalProgress', () {
     test('reports progress for daily char goal', () {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'g1',
         projectId: 'p1',
         goalType: WritingGoalType.dailyChars,
@@ -542,8 +542,8 @@ void main() {
         enabled: true,
         createdAtMs: 0,
       );
-      final snapshot = WritingStatsSnapshot(
-        dailyStats: const [],
+      const snapshot = WritingStatsSnapshot(
+        dailyStats: [],
         projectStat: WritingProjectStat.empty,
         goals: [goal],
         todayCharCount: 1000,
@@ -555,7 +555,7 @@ void main() {
     });
 
     test('reports reached when progress >= 1.0', () {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'g1',
         projectId: 'p1',
         goalType: WritingGoalType.dailyChars,
@@ -564,8 +564,8 @@ void main() {
         enabled: true,
         createdAtMs: 0,
       );
-      final snapshot = WritingStatsSnapshot(
-        dailyStats: const [],
+      const snapshot = WritingStatsSnapshot(
+        dailyStats: [],
         projectStat: WritingProjectStat.empty,
         goals: [goal],
         todayCharCount: 2500,
@@ -577,7 +577,7 @@ void main() {
     });
 
     test('weekly goal uses weekCharCount', () {
-      final goal = WritingGoal(
+      const goal = WritingGoal(
         id: 'g2',
         projectId: 'p1',
         goalType: WritingGoalType.weeklyChars,
@@ -586,8 +586,8 @@ void main() {
         enabled: true,
         createdAtMs: 0,
       );
-      final snapshot = WritingStatsSnapshot(
-        dailyStats: const [],
+      const snapshot = WritingStatsSnapshot(
+        dailyStats: [],
         projectStat: WritingProjectStat.empty,
         goals: [goal],
         todayCharCount: 1000,

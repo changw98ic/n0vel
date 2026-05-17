@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/features/story_generation/data/prose_style_analyzer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart' as pipeline;
 import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
-import 'package:novel_writer/features/story_generation/data/scene_runtime_models.dart';
 import 'package:novel_writer/features/story_generation/data/steps/review_step.dart';
 import 'package:novel_writer/features/story_generation/data/step_io.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
@@ -38,25 +37,25 @@ pipeline.SceneTaskCard _stubTaskCard(SceneBrief brief) => pipeline.SceneTaskCard
 /// Minimal stubs to satisfy ReviewInput fields.
 ScenePlanningOutput _stubPlan(SceneBrief brief) => ScenePlanningOutput(
       resolvedCast: [],
-      director: SceneDirectorOutput(
+      director: const SceneDirectorOutput(
         text: 'director plan text',
         taskCard: null,
       ),
       taskCard: _stubTaskCard(brief),
     );
 
-RoleplayOutput _stubRoleplay() => RoleplayOutput(
+RoleplayOutput _stubRoleplay() => const RoleplayOutput(
       roleOutputs: [],
       session: null,
       roleTurns: [],
     );
 
 EditorialOutput _stubEditorial(String proseText) => EditorialOutput(
-      draft: pipeline.SceneEditorialDraft(text: 'draft', beatCount: 1, attempt: 1),
+      draft: const pipeline.SceneEditorialDraft(text: 'draft', beatCount: 1, attempt: 1),
       prose: SceneProseDraft(text: proseText, attempt: 1),
     );
 
-ContextEnrichmentOutput _stubContext() => ContextEnrichmentOutput(
+ContextEnrichmentOutput _stubContext() => const ContextEnrichmentOutput(
       effectiveMaterials: ProjectMaterialSnapshot(),
       retrievalPack: null,
     );

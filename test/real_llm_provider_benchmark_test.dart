@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -43,7 +44,7 @@ void main() {
         return;
       }
 
-      final provider = providers.AppLlmProviderRegistry.zhipuCodingPlanCn;
+      const provider = providers.AppLlmProviderRegistry.zhipuCodingPlanCn;
       final result = await _runWorkflowBenchmark(
         providerName: '智谱 GLM',
         baseUrl: provider.defaultBaseUrl,
@@ -65,7 +66,7 @@ void main() {
         return;
       }
 
-      final provider = providers.AppLlmProviderRegistry.mimo;
+      const provider = providers.AppLlmProviderRegistry.mimo;
       final result = await _runWorkflowBenchmark(
         providerName: '小米 MiMo',
         baseUrl: provider.defaultBaseUrl,
@@ -116,8 +117,8 @@ void main() {
         return;
       }
 
-      final zhipuProvider = providers.AppLlmProviderRegistry.zhipuCodingPlanCn;
-      final mimoProvider = providers.AppLlmProviderRegistry.mimo;
+      const zhipuProvider = providers.AppLlmProviderRegistry.zhipuCodingPlanCn;
+      const mimoProvider = providers.AppLlmProviderRegistry.mimo;
       final kimiBaseUrl = ollamaCloudUrl != null && ollamaCloudUrl.isNotEmpty
           ? '$ollamaCloudUrl/v1'
           : 'https://ollama.com/v1';
@@ -161,7 +162,7 @@ void main() {
       print('═══ 工作流并行对比 (总耗时: ${sw.elapsedMilliseconds}ms) ═══');
       print('');
 
-      final colWidth = 18;
+      const colWidth = 18;
       final header = labels.map((l) => l.padLeft(colWidth)).join(' │ ');
       print('│ 指标${' ' * 12} │ $header │');
       print('├${'─' * 17}┼${labels.map((_) => '─' * (colWidth + 2)).join('┼')}┤');

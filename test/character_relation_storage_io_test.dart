@@ -53,21 +53,21 @@ void main() {
 
     test('saveAll 批量插入', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-b',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
           toCharacterId: 'char-c',
           relationType: '敌人',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-3',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
@@ -81,7 +81,7 @@ void main() {
     });
 
     test('upsert 更新已有关系', () async {
-      await storage.save(CharacterRelationRecord(
+      await storage.save(const CharacterRelationRecord(
         id: 'rel-1',
         projectId: 'proj-a',
         fromCharacterId: 'char-a',
@@ -90,7 +90,7 @@ void main() {
         note: '相识多年',
       ));
 
-      await storage.save(CharacterRelationRecord(
+      await storage.save(const CharacterRelationRecord(
         id: 'rel-1-updated',
         projectId: 'proj-a',
         fromCharacterId: 'char-a',
@@ -108,21 +108,21 @@ void main() {
 
     test('loadByFromCharacter 按出发方查询', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-b',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-c',
           relationType: '敌人',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-3',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
@@ -138,14 +138,14 @@ void main() {
 
     test('loadByToCharacter 按目标方查询', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-c',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
@@ -161,21 +161,21 @@ void main() {
 
     test('loadAllForCharacter 查找涉及某角色的所有关系', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-b',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
           toCharacterId: 'char-c',
           relationType: '敌人',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-3',
           projectId: 'proj-a',
           fromCharacterId: 'char-c',
@@ -198,7 +198,7 @@ void main() {
     });
 
     test('delete 删除指定关系', () async {
-      await storage.save(CharacterRelationRecord(
+      await storage.save(const CharacterRelationRecord(
         id: 'rel-1',
         projectId: 'proj-a',
         fromCharacterId: 'char-a',
@@ -220,14 +220,14 @@ void main() {
 
     test('clearProject 只清除指定项目', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-a1',
           projectId: 'proj-a',
           fromCharacterId: 'a1',
           toCharacterId: 'a2',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-b1',
           projectId: 'proj-b',
           fromCharacterId: 'b1',
@@ -246,21 +246,21 @@ void main() {
 
     test('clearForCharacter 删除涉及某角色的所有关系', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-b',
           relationType: '朋友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
           toCharacterId: 'char-c',
           relationType: '敌人',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-3',
           projectId: 'proj-a',
           fromCharacterId: 'char-c',
@@ -278,14 +278,14 @@ void main() {
     });
 
     test('项目隔离：不同项目的关系互不影响', () async {
-      await storage.save(CharacterRelationRecord(
+      await storage.save(const CharacterRelationRecord(
         id: 'rel-a',
         projectId: 'proj-a',
         fromCharacterId: 'x',
         toCharacterId: 'y',
         relationType: '朋友',
       ));
-      await storage.save(CharacterRelationRecord(
+      await storage.save(const CharacterRelationRecord(
         id: 'rel-b',
         projectId: 'proj-b',
         fromCharacterId: 'x',
@@ -301,21 +301,21 @@ void main() {
 
     test('一对多关系：一个角色可以有多个关系', () async {
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-hero',
           toCharacterId: 'char-mentor',
           relationType: '师徒',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-2',
           projectId: 'proj-a',
           fromCharacterId: 'char-hero',
           toCharacterId: 'char-love',
           relationType: '恋人',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-3',
           projectId: 'proj-a',
           fromCharacterId: 'char-hero',
@@ -334,14 +334,14 @@ void main() {
     test('多对多关系：双方互有指向', () async {
       // A→B 和 B→A 表示双向关系
       await storage.saveAll([
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-ab',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
           toCharacterId: 'char-b',
           relationType: '盟友',
         ),
-        CharacterRelationRecord(
+        const CharacterRelationRecord(
           id: 'rel-ba',
           projectId: 'proj-a',
           fromCharacterId: 'char-b',
@@ -357,7 +357,7 @@ void main() {
     });
 
     test('自反关系（角色指向自己）允许保存', () async {
-      final relation = CharacterRelationRecord(
+      const relation = CharacterRelationRecord(
         id: 'rel-self',
         projectId: 'proj-a',
         fromCharacterId: 'char-a',
@@ -376,21 +376,21 @@ void main() {
     group('validateAndRepair', () {
       test('删除引用不存在角色的孤儿关系', () async {
         await storage.saveAll([
-          CharacterRelationRecord(
+          const CharacterRelationRecord(
             id: 'rel-valid',
             projectId: 'proj-a',
             fromCharacterId: 'char-a',
             toCharacterId: 'char-b',
             relationType: '朋友',
           ),
-          CharacterRelationRecord(
+          const CharacterRelationRecord(
             id: 'rel-orphan-from',
             projectId: 'proj-a',
             fromCharacterId: 'char-ghost',
             toCharacterId: 'char-a',
             relationType: '幽灵',
           ),
-          CharacterRelationRecord(
+          const CharacterRelationRecord(
             id: 'rel-orphan-to',
             projectId: 'proj-a',
             fromCharacterId: 'char-a',
@@ -414,7 +414,7 @@ void main() {
       });
 
       test('所有角色都存在时无修复', () async {
-        await storage.save(CharacterRelationRecord(
+        await storage.save(const CharacterRelationRecord(
           id: 'rel-1',
           projectId: 'proj-a',
           fromCharacterId: 'char-a',
