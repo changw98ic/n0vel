@@ -1,25 +1,25 @@
 <svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1280" height="640" fill="#f4efe7"/>
-  <rect x="64" y="64" width="1152" height="512" rx="36" fill="#263238"/>
-  <rect x="100" y="100" width="1080" height="440" rx="24" fill="#fbfaf7"/>
-  <rect x="130" y="132" width="270" height="376" rx="18" fill="#ece6dc"/>
+  <rect width="1280" height="640" fill="#F7F2E8"/>
+  <rect x="64" y="64" width="1152" height="512" rx="36" fill="#243226"/>
+  <rect x="100" y="100" width="1080" height="440" rx="24" fill="#FBFAF6"/>
+  <rect x="130" y="132" width="270" height="376" rx="18" fill="#EEE6DA"/>
   <rect x="430" y="132" width="440" height="376" rx="18" fill="#ffffff"/>
-  <rect x="900" y="132" width="250" height="376" rx="18" fill="#f8f4ec"/>
-  <text x="160" y="200" fill="#31525b" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">Novel Writer</text>
-  <text x="160" y="248" fill="#25313c" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Local-first AI workspace</text>
-  <text x="160" y="288" fill="#56616b" font-family="Inter, Arial, sans-serif" font-size="20">for long-form fiction</text>
-  <rect x="160" y="350" width="190" height="46" rx="12" fill="#31525b"/>
+  <rect x="900" y="132" width="250" height="376" rx="18" fill="#F3EFE6"/>
+  <text x="160" y="200" fill="#2D5E3A" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">Novel Writer</text>
+  <text x="160" y="248" fill="#1B3A28" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Local-first AI workspace</text>
+  <text x="160" y="288" fill="#6E746A" font-family="Inter, Arial, sans-serif" font-size="20">for long-form fiction</text>
+  <rect x="160" y="350" width="190" height="46" rx="12" fill="#2D5E3A"/>
   <text x="188" y="380" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Draft with memory</text>
-  <text x="466" y="204" fill="#1f2933" font-family="Georgia, serif" font-size="32" font-weight="700">Characters, world rules,</text>
-  <text x="466" y="250" fill="#1f2933" font-family="Georgia, serif" font-size="32" font-weight="700">scenes, and AI output</text>
-  <text x="466" y="296" fill="#1f2933" font-family="Georgia, serif" font-size="32" font-weight="700">stay in one flow.</text>
-  <line x1="466" y1="344" x2="820" y2="344" stroke="#e5e0d8" stroke-width="4"/>
-  <text x="466" y="394" fill="#56616b" font-family="Inter, Arial, sans-serif" font-size="21">Generated text is a reviewable candidate,</text>
-  <text x="466" y="428" fill="#56616b" font-family="Inter, Arial, sans-serif" font-size="21">not an automatic overwrite.</text>
-  <text x="930" y="204" fill="#31525b" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">OpenAI-compatible</text>
-  <text x="930" y="252" fill="#31525b" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">Author-in-the-loop</text>
-  <text x="930" y="300" fill="#31525b" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">Continuity aware</text>
-  <rect x="930" y="372" width="180" height="14" rx="7" fill="#5dd39e"/>
-  <rect x="930" y="410" width="145" height="14" rx="7" fill="#ffd166"/>
-  <rect x="930" y="448" width="205" height="14" rx="7" fill="#31525b"/>
+  <text x="466" y="204" fill="#1B3A28" font-family="Georgia, serif" font-size="32" font-weight="700">Characters, world rules,</text>
+  <text x="466" y="250" fill="#1B3A28" font-family="Georgia, serif" font-size="32" font-weight="700">scenes, and AI output</text>
+  <text x="466" y="296" fill="#1B3A28" font-family="Georgia, serif" font-size="32" font-weight="700">stay in one flow.</text>
+  <line x1="466" y1="344" x2="820" y2="344" stroke="#D6DDD0" stroke-width="4"/>
+  <text x="466" y="394" fill="#6E746A" font-family="Inter, Arial, sans-serif" font-size="21">Generated text is a reviewable candidate,</text>
+  <text x="466" y="428" fill="#6E746A" font-family="Inter, Arial, sans-serif" font-size="21">not an automatic overwrite.</text>
+  <text x="930" y="204" fill="#2D5E3A" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">OpenAI-compatible</text>
+  <text x="930" y="252" fill="#2D5E3A" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">Author-in-the-loop</text>
+  <text x="930" y="300" fill="#2D5E3A" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="800">Continuity aware</text>
+  <rect x="930" y="372" width="180" height="14" rx="7" fill="#5B7A5A"/>
+  <rect x="930" y="410" width="145" height="14" rx="7" fill="#B6813B"/>
+  <rect x="930" y="448" width="205" height="14" rx="7" fill="#2D5E3A"/>
 </svg>
