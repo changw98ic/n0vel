@@ -58,6 +58,10 @@ docs/pencil-dark-mode/.omx/
 
 # Local workflow artifacts
 .claude/
-artifacts/
+artifacts/*
+!artifacts/sample_chapters/
+artifacts/sample_chapters/*
+!artifacts/sample_chapters/qidian_main/
+!artifacts/sample_chapters/qidian_main/**
 .codex_tmp_pen_exports/
 manual-test-assets/
