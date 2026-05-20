@@ -81,6 +81,19 @@ Novel-generation quality defaults:
 - For quality gates, target 95 as the passing threshold unless the user gives a
   different number.
 
+## GitHub Issue Record Policy
+
+- Every durable content update must have a GitHub issue record before or during
+  the change. This includes README, docs, AGENTS/project guidance,
+  user-facing copy, architecture reports, and other persistent content
+  artifacts.
+- Update the issue with the resulting commit or PR when available, plus
+  verification performed and any known gaps.
+- Temporary local logs, generated traces, and throwaway test outputs do not need
+  separate issues unless they become durable project artifacts.
+- The standing policy is tracked in
+  https://github.com/changw98ic/n0vel/issues/2.
+
 ## RTK Command Prefix
 
 OMX agent-flow and auto-team workers use a `rtk_cmd()` helper that prefixes
