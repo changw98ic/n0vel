@@ -2,6 +2,7 @@ import 'dart:convert';
 
 export '../domain/memory_models.dart' show ThoughtUpdateResult;
 
+import '../domain/contracts/memory_writeback_gate.dart';
 import '../domain/memory_models.dart';
 import 'story_memory_dedupe.dart';
 import 'story_memory_storage.dart';
@@ -28,13 +29,15 @@ const String _llmSystemPrompt =
 
 /// Extracts Thought-Retriever-style thought atoms after scene acceptance.
 class ThoughtMemoryUpdater implements ThoughtMemoryService {
-  ThoughtMemoryUpdater({
+  ThoughtMemoryUpdater({ // MemoryWritebackGate required
     required this.storage,
+    required this.gate,
     StoryMemoryDedupe? dedupe,
     this.llmCaller,
   }) : _dedupe = dedupe ?? StoryMemoryDedupe();
 
   final StoryMemoryStorage storage;
+  final MemoryWritebackGate gate;
   final StoryMemoryDedupe _dedupe;
   final LlmThoughtCaller? llmCaller;
 
@@ -226,7 +229,8 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     return _filterAndPersist(projectId, candidates);
   }
 
-  /// Filters candidates through quality gates and dedupe, then persists.
+  /// Filters candidates through quality gates, dedupe, and writeback gate,
+  /// then persists approved thoughts.
   Future<ThoughtUpdateResult> _filterAndPersist(
     String projectId,
     List<ThoughtAtom> candidates,
@@ -234,6 +238,7 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
     final existing = await storage.loadThoughts(projectId);
     final accepted = <ThoughtAtom>[];
     final rejected = <ThoughtAtom>[];
+    final gateCandidates = <ThoughtAtom>[];
 
     for (final candidate in candidates) {
       if (!_dedupe.passesQualityGate(candidate)) {
@@ -244,8 +249,31 @@ class ThoughtMemoryUpdater implements ThoughtMemoryService {
         rejected.add(candidate);
         continue;
       }
-      accepted.add(candidate);
-      existing.add(candidate);
+      gateCandidates.add(candidate);
+    }
+
+    if (gateCandidates.isNotEmpty) {
+      final proposed = gateCandidates
+          .map(
+            (c) => ProposedWrite(
+              tier: c.tier,
+              content: c.content,
+              sourceRefs: c.rootSourceIds,
+              producer: 'thought-memory-updater',
+            ),
+          )
+          .toList();
+      final gateResult = await gate.validate(proposed);
+      final approvedSet = gateResult.accepted.toSet();
+
+      for (var i = 0; i < gateCandidates.length; i++) {
+        if (approvedSet.contains(proposed[i])) {
+          accepted.add(gateCandidates[i]);
+          existing.add(gateCandidates[i]);
+        } else {
+          rejected.add(gateCandidates[i]);
+        }
+      }
     }
 
     if (accepted.isNotEmpty) {

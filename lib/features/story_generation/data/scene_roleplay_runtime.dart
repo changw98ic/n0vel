@@ -10,6 +10,8 @@ import 'scene_roleplay_output_builder.dart';
 import 'scene_roleplay_log_helpers.dart';
 import 'scene_roleplay_speaker_boundary.dart';
 import 'scene_roleplay_speaker_scheduler.dart';
+import '../domain/contracts/event_log.dart';
+import '../domain/contracts/stage_runner.dart';
 import '../domain/scene_models.dart';
 
 // Barrel exports — external consumers import only this file.
@@ -32,6 +34,7 @@ class SceneRoleplayRuntime {
   SceneRoleplayRuntime({
     required AppSettingsStore settingsStore,
     this.defaultMaxRounds = 1,
+    PipelineEventLog? eventLog,
     CharacterVisibleContextBuilder? visibleContextBuilder,
     RoleSkillRegistry? roleSkillRegistry,
     SceneArbiterSkill? arbiterSkill,
@@ -44,13 +47,15 @@ class SceneRoleplayRuntime {
            arbiterSkill ?? BasicSceneArbiterSkill(settingsStore: settingsStore),
        _speakerScheduler =
            speakerScheduler ?? const SceneRoleplaySpeakerScheduler(),
-       _boundary = const SceneRoleplaySpeakerBoundary();
+       _boundary = const SceneRoleplaySpeakerBoundary(),
+       _eventLog = eventLog;
 
   final CharacterVisibleContextBuilder _visibleContextBuilder;
   final RoleSkillRegistry _roleSkillRegistry;
   final SceneArbiterSkill _arbiterSkill;
   final SceneRoleplaySpeakerScheduler _speakerScheduler;
   final SceneRoleplaySpeakerBoundary _boundary;
+  final PipelineEventLog? _eventLog;
   final int defaultMaxRounds;
 
   Future<List<DynamicRoleAgentOutput>> run({
@@ -60,7 +65,6 @@ class SceneRoleplayRuntime {
     SceneTaskCard? taskCard,
     String? ragContext,
     Map<String, List<CharacterMemoryDelta>> memoryDeltasByCharacter = const {},
-    void Function(String message)? onStatus,
   }) async {
     final result = await runSession(
       brief: brief,
@@ -69,7 +73,6 @@ class SceneRoleplayRuntime {
       taskCard: taskCard,
       ragContext: ragContext,
       memoryDeltasByCharacter: memoryDeltasByCharacter,
-      onStatus: onStatus,
     );
     return result.outputs;
   }
@@ -81,7 +84,6 @@ class SceneRoleplayRuntime {
     SceneTaskCard? taskCard,
     String? ragContext,
     Map<String, List<CharacterMemoryDelta>> memoryDeltasByCharacter = const {},
-    void Function(String message)? onStatus,
   }) async {
     if (cast.isEmpty) {
       return SceneRoleplayRuntimeResult(
@@ -117,8 +119,9 @@ class SceneRoleplayRuntime {
     };
 
     for (var round = 1; round <= maxRounds; round += 1) {
-      onStatus?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · roleplay round $round',
+      _emitStatus(
+        '${brief.chapterId}/${brief.sceneId}',
+        'roleplay round $round',
       );
       final speakerPlan = _speakerScheduler.planRound(
         brief: brief,
@@ -127,14 +130,12 @@ class SceneRoleplayRuntime {
         round: round,
         transcript: transcript,
       );
-      onStatus?.call(
-        SceneRoleplayLog.speakerScheduleLogLine(
-          brief: brief,
-          round: round,
-          plan: speakerPlan,
-          parallelTurns: parallelRoleplayTurns,
-        ),
-      );
+      _emitLog(SceneRoleplayLog.speakerScheduleLogLine(
+        brief: brief,
+        round: round,
+        plan: speakerPlan,
+        parallelTurns: parallelRoleplayTurns,
+      ));
 
       final roundTurns = await _runRoundTurns(
         brief: brief,
@@ -149,7 +150,6 @@ class SceneRoleplayRuntime {
         visibleTranscriptWindow: visibleTranscriptWindow,
         speakerPlan: speakerPlan,
         parallelTurns: parallelRoleplayTurns,
-        onStatus: onStatus,
       );
 
       for (final turn in roundTurns) {
@@ -179,14 +179,12 @@ class SceneRoleplayRuntime {
           existingFacts: committedFacts,
         ),
       );
-      onStatus?.call(
-        SceneRoleplayLog.arbitrationLogLine(
-          brief: brief,
-          round: round,
-          arbitration: arbitration,
-          committedFactCount: committedFacts.length,
-        ),
-      );
+      _emitLog(SceneRoleplayLog.arbitrationLogLine(
+        brief: brief,
+        round: round,
+        arbitration: arbitration,
+        committedFactCount: committedFacts.length,
+      ));
       rounds.add(
         SceneRoleplayRound(
           round: round,
@@ -202,22 +200,20 @@ class SceneRoleplayRuntime {
             roundTurns: roundTurns,
             arbitrationFact: arbitration.fact,
           )) {
-        onStatus?.call(
-          '场景 ${brief.chapterId}/${brief.sceneId} · round $round '
-          '未产生新公开内容，提前结束',
+        _emitStatus(
+          '${brief.chapterId}/${brief.sceneId}',
+          'round $round 未产生新公开内容，提前结束',
         );
         break;
       }
     }
 
-    onStatus?.call(
-      SceneRoleplayLog.completeLogLine(
-        brief: brief,
-        rounds: rounds,
-        committedFactCount: committedFacts.length,
-        finalPublicState: sceneState,
-      ),
-    );
+    _emitLog(SceneRoleplayLog.completeLogLine(
+      brief: brief,
+      rounds: rounds,
+      committedFactCount: committedFacts.length,
+      finalPublicState: sceneState,
+    ));
 
     return SceneRoleplayRuntimeResult(
       outputs: [
@@ -288,7 +284,6 @@ class SceneRoleplayRuntime {
     required SceneRoleplaySpeakerPlan speakerPlan,
     required bool parallelTurns,
     SceneTaskCard? taskCard,
-    void Function(String message)? onStatus,
   }) async {
     if (parallelTurns) {
       final visibleTranscript = List<SceneRoleplayTurn>.unmodifiable(
@@ -302,8 +297,9 @@ class SceneRoleplayRuntime {
       );
       final futures = <Future<SceneRoleplayTurn>>[];
       for (final member in speakerPlan.speakers) {
-        onStatus?.call(
-          '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log actor-start | ${member.name}',
+        _emitStatus(
+          '${brief.chapterId}/${brief.sceneId}',
+          'roleplay-log actor-start | ${member.name}',
         );
         futures.add(
           _runCharacterTurn(
@@ -324,14 +320,12 @@ class SceneRoleplayRuntime {
       }
       final turns = await Future.wait(futures);
       for (var turnOrder = 0; turnOrder < turns.length; turnOrder += 1) {
-        onStatus?.call(
-          SceneRoleplayLog.turnLogLine(
-            brief: brief,
-            round: round,
-            turnOrder: turnOrder + 1,
-            turn: turns[turnOrder],
-          ),
-        );
+        _emitLog(SceneRoleplayLog.turnLogLine(
+          brief: brief,
+          round: round,
+          turnOrder: turnOrder + 1,
+          turn: turns[turnOrder],
+        ));
       }
       return turns;
     }
@@ -344,8 +338,9 @@ class SceneRoleplayRuntime {
       turnOrder += 1
     ) {
       final member = speakerPlan.speakers[turnOrder];
-      onStatus?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · roleplay-log actor-start | ${member.name}',
+      _emitStatus(
+        '${brief.chapterId}/${brief.sceneId}',
+        'roleplay-log actor-start | ${member.name}',
       );
       final turn = await _runCharacterTurn(
         brief: brief,
@@ -364,14 +359,12 @@ class SceneRoleplayRuntime {
             memoryDeltasByCharacter[member.characterId] ??
             const <CharacterMemoryDelta>[],
       );
-      onStatus?.call(
-        SceneRoleplayLog.turnLogLine(
-          brief: brief,
-          round: round,
-          turnOrder: turnOrder + 1,
-          turn: turn,
-        ),
-      );
+      _emitLog(SceneRoleplayLog.turnLogLine(
+        brief: brief,
+        round: round,
+        turnOrder: turnOrder + 1,
+        turn: turn,
+      ));
       localTranscript.add(turn);
       turns.add(turn);
     }
@@ -429,6 +422,24 @@ class SceneRoleplayRuntime {
   // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
+
+  void _emitStatus(String sceneId, String message) {
+    _eventLog?.emit(PipelineEvent(
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      stageId: 'roleplay',
+      eventType: 'status',
+      metadata: {'sceneId': sceneId, 'message': message},
+    ));
+  }
+
+  void _emitLog(String line) {
+    _eventLog?.emit(PipelineEvent(
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      stageId: 'roleplay',
+      eventType: 'log',
+      metadata: {'line': line},
+    ));
+  }
 
   String _initialSceneState({
     required SceneBrief brief,

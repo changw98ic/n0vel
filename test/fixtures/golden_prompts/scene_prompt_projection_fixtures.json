@@ -1,0 +1,65 @@
+{
+  "fixtures": [
+    {
+      "id": "fixture-001",
+      "sceneId": "scene-001",
+      "projectId": "proj-detective",
+      "sceneTitle": "The Broken Alibi",
+      "sceneSummary": "Detective Lin confronts the suspect in an interrogation room. The suspect's alibi unravels when security footage contradicts their timeline. A second witness emerges unexpectedly.",
+      "cast": [
+        { "name": "Lin Wei", "role": "Detective", "traits": ["methodical", "stoic", "perceptive"] },
+        { "name": "Chen Bo", "role": "Suspect", "traits": ["nervous", "evasive", "charismatic"] }
+      ],
+      "memoryContext": [
+        "Lin recovered a burnt ledger from the warehouse fire in Scene 3",
+        "Chen claimed to be at the Lotus Cafe between 9pm and midnight",
+        "The victim was Chen's business partner of twelve years"
+      ],
+      "targetBeat": "Lin reveals the security footage discrepancy; Chen's composure cracks and he lets slip a detail only the killer would know",
+      "requiredSections": ["SCENE BRIEF", "CAST", "MEMORY CONTEXT", "TARGET BEAT", "OUTPUT CONTRACT"],
+      "expectedTokenRange": { "min": 180, "max": 350 },
+      "goldenPrompt": "## SCENE BRIEF\nScene: The Broken Alibi\nDetective Lin confronts the suspect in an interrogation room. The suspect's alibi unravels when security footage contradicts their timeline. A second witness emerges unexpectedly.\n\n## CAST\n- Lin Wei (Detective): methodical, stoic, perceptive\n- Chen Bo (Suspect): nervous, evasive, charismatic\n\n## MEMORY CONTEXT\n- Lin recovered a burnt ledger from the warehouse fire in Scene 3\n- Chen claimed to be at the Lotus Cafe between 9pm and midnight\n- The victim was Chen's business partner of twelve years\n\n## TARGET BEAT\nLin reveals the security footage discrepancy; Chen's composure cracks and he lets slip a detail only the killer would know\n\n## OUTPUT CONTRACT\nWrite prose following the scene brief and target beat above."
+    },
+    {
+      "id": "fixture-002",
+      "sceneId": "scene-002",
+      "projectId": "proj-romance",
+      "sceneTitle": "Letters Never Sent",
+      "sceneSummary": "Mei finds a box of unsent letters in her grandmother's attic, revealing a secret love affair from the 1960s. She reads the first letter aloud to her cousin, sparking a quest to find the unknown lover.",
+      "cast": [
+        { "name": "Mei Fang", "role": "Protagonist", "traits": ["curious", "sentimental", "determined"] },
+        { "name": "Cousin Rong", "role": "Companion", "traits": ["practical", "skeptical", "loyal"] }
+      ],
+      "memoryContext": [
+        "Grandmother passed away last week; the family is clearing her house",
+        "Mei's own relationship ended six months ago; she avoids talking about it",
+        "The letters are addressed to 'Y.H.' and postmarked between 1963 and 1967"
+      ],
+      "targetBeat": "Mei opens the first letter and reads it to Rong. The emotional weight of the words forces Mei to confront her own unresolved grief over her recent breakup.",
+      "requiredSections": ["SCENE BRIEF", "CAST", "MEMORY CONTEXT", "TARGET BEAT", "OUTPUT CONTRACT"],
+      "expectedTokenRange": { "min": 200, "max": 400 },
+      "goldenPrompt": "## SCENE BRIEF\nScene: Letters Never Sent\nMei finds a box of unsent letters in her grandmother's attic, revealing a secret love affair from the 1960s. She reads the first letter aloud to her cousin, sparking a quest to find the unknown lover.\n\n## CAST\n- Mei Fang (Protagonist): curious, sentimental, determined\n- Cousin Rong (Companion): practical, skeptical, loyal\n\n## MEMORY CONTEXT\n- Grandmother passed away last week; the family is clearing her house\n- Mei's own relationship ended six months ago; she avoids talking about it\n- The letters are addressed to 'Y.H.' and postmarked between 1963 and 1967\n\n## TARGET BEAT\nMei opens the first letter and reads it to Rong. The emotional weight of the words forces Mei to confront her own unresolved grief over her recent breakup.\n\n## OUTPUT CONTRACT\nWrite prose following the scene brief and target beat above."
+    },
+    {
+      "id": "fixture-003",
+      "sceneId": "scene-003",
+      "projectId": "proj-scifi",
+      "sceneTitle": "Signal from the Void",
+      "sceneSummary": "Aboard the research vessel Kepler, communications officer Yuki intercepts a structured signal from an empty sector of space. The captain orders silence while the crew debates whether to respond. The signal repeats, each cycle slightly different.",
+      "cast": [
+        { "name": "Yuki Tanaka", "role": "Comms Officer", "traits": ["analytical", "cautious", "fascinated"] },
+        { "name": "Captain Osei", "role": "Commanding Officer", "traits": ["decisive", "pragmatic", "haunted"] },
+        { "name": "Dr. Petrova", "role": "Xenolinguist", "traits": ["brilliant", "obsessive", "reckless"] }
+      ],
+      "memoryContext": [
+        "Kepler is 14 months into a solo deep-space survey mission; nearest ship is 8 light-years away",
+        "The signal originates from a region catalogued as devoid of stellar objects",
+        "Captain Osei lost a previous crew to a first-contact protocol failure on the Artemis mission"
+      ],
+      "targetBeat": "Dr. Petrova decodes a fragment of the signal as a mathematical prime sequence. Before the captain can decide, Yuki realizes the signal has changed—it now includes a timestamp matching Kepler's transmission log. Something is already listening.",
+      "requiredSections": ["SCENE BRIEF", "CAST", "MEMORY CONTEXT", "TARGET BEAT", "OUTPUT CONTRACT"],
+      "expectedTokenRange": { "min": 220, "max": 420 },
+      "goldenPrompt": "## SCENE BRIEF\nScene: Signal from the Void\nAboard the research vessel Kepler, communications officer Yuki intercepts a structured signal from an empty sector of space. The captain orders silence while the crew debates whether to respond. The signal repeats, each cycle slightly different.\n\n## CAST\n- Yuki Tanaka (Comms Officer): analytical, cautious, fascinated\n- Captain Osei (Commanding Officer): decisive, pragmatic, haunted\n- Dr. Petrova (Xenolinguist): brilliant, obsessive, reckless\n\n## MEMORY CONTEXT\n- Kepler is 14 months into a solo deep-space survey mission; nearest ship is 8 light-years away\n- The signal originates from a region catalogued as devoid of stellar objects\n- Captain Osei lost a previous crew to a first-contact protocol failure on the Artemis mission\n\n## TARGET BEAT\nDr. Petrova decodes a fragment of the signal as a mathematical prime sequence. Before the captain can decide, Yuki realizes the signal has changed—it now includes a timestamp matching Kepler's transmission log. Something is already listening.\n\n## OUTPUT CONTRACT\nWrite prose following the scene brief and target beat above."
+    }
+  ]
+}

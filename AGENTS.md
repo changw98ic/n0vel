@@ -60,9 +60,9 @@ Delegation rules:
 - Keep child-agent tasks bounded, independent, and verifiable.
 - The Codex leader must never execute shell commands or edit files directly.
   All command execution and file edits must be delegated through
-  Claude/`ask-claude`. When invoking Claude CLI for execution, always include
-  the permission bypass flag: `claude --dangerously-skip-permissions -p ...`.
-- If Claude/`ask-claude` is unavailable or fails after one retry, the leader
+  Claude ACP, using the flow project's ACP bridge rather than local
+  Claude/`ask-claude` print-mode execution.
+- If Claude ACP is unavailable or fails after one retry, the leader
   must stop and report the failure to the user. Do not fall back to direct
   execution. No exceptions.
 - Do not use `worker` outside active OMX team/swarm runtime.

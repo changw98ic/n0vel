@@ -4,7 +4,7 @@ import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
 
@@ -19,7 +19,7 @@ void main() {
       addTearDown(settingsStore.dispose);
 
       final director = _CapturingDirector(settingsStore: settingsStore);
-      final orchestrator = ChapterGenerationOrchestrator(
+      final orchestrator = PipelineStageRunnerImpl(
         settingsStore: settingsStore,
         directorOrchestrator: director,
       );

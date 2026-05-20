@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:novel_writer/app/rag/local_rag_search.dart';
+import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/app/rag/local_rag_storage.dart';
-import 'package:novel_writer/app/rag/rag_orchestrator.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -136,14 +135,11 @@ void main() {
       expect(results.single.content, contains('黑塔'));
     });
 
-    test('retrieves Chinese scene context via RagOrchestrator', () async {
+    test('retrieves Chinese scene context through HybridRetriever', () async {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      final rag = RagOrchestrator.local(
-        db: db,
-        searchConfig: const LocalRagSearchConfig(scoreThreshold: 0.0),
-      );
+      final rag = HybridRetriever.local(db: db);
       await rag.syncProject(
         projectId: 'project-1',
         characterProfiles: const ['刘锡是一位谨慎而富有分析力的学者。他总是带着一把备用钥匙。'],
@@ -162,15 +158,12 @@ void main() {
     });
   });
 
-  group('RagOrchestrator local flow', () {
+  group('HybridRetriever local flow', () {
     test('indexes parsed annotations and formats scene context', () async {
       final db = sqlite3.openInMemory();
       addTearDown(db.dispose);
 
-      final rag = RagOrchestrator.local(
-        db: db,
-        searchConfig: const LocalRagSearchConfig(scoreThreshold: 0.0),
-      );
+      final rag = HybridRetriever.local(db: db);
       await rag.syncProject(
         projectId: 'project-1',
         characterProfiles: const [

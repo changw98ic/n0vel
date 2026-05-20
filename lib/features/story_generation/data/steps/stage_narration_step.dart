@@ -1,9 +1,11 @@
 import '../retrieval_controller.dart' show RetrievalController;
 import '../scene_stage_narrator.dart' show SceneStageNarrator;
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 4: resolve retrieval capsules and generate stage narration.
-class StageNarrationStep {
+class StageNarrationStep implements PipelineStage<StageNarrationInput, StageNarrationOutput> {
   StageNarrationStep({
     required SceneStageNarrator stageNarrator,
     required RetrievalController retrievalController,
@@ -13,10 +15,18 @@ class StageNarrationStep {
   final SceneStageNarrator _stageNarrator;
   final RetrievalController _retrievalController;
 
+  @override
+  String get roleId => 'stage_narration';
+  @override
+  ArtifactType get outputType => ArtifactType.stageNarration;
+  @override
+  int get maxRetries => 2;
+
+  @override
   Future<StageNarrationOutput> execute(
-    StageNarrationInput input, {
-    void Function(String)? onStatus,
-  }) async {
+    StageNarrationInput input,
+    Object context,
+  ) async {
     final taskCard = input.plan.taskCard;
     final director = input.plan.director;
     final roleOutputs = input.roleplay.roleOutputs;
@@ -35,7 +45,6 @@ class StageNarrationStep {
       retrievalCapsules: capsules,
       roleplaySession: input.roleplay.session,
       ragContext: input.ragContext?.formattedContext,
-      onStatus: onStatus,
     );
 
     return StageNarrationOutput(

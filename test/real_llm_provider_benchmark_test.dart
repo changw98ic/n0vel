@@ -6,13 +6,13 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/llm/app_llm_providers.dart' as providers;
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
 /// 真实 LLM 供应商工作流集成测试。
 ///
-/// 测试完整的 ChapterGenerationOrchestrator 9 步流水线：
+/// 测试完整的 PipelineStageRunnerImpl 9 步流水线：
 ///   ContextEnrichment → ScenePlanning → Roleplay → StageNarration →
 ///   BeatResolution → Editorial → Review → Polish → Finalization
 ///
@@ -54,8 +54,11 @@ void main() {
 
       _printWorkflowResult('智谱 GLM', 'glm-5.1', result);
       expect(result.succeeded, isTrue, reason: 'GLM 流水线应成功完成');
-      expect(result.output!.prose.text.trim().length, greaterThan(100),
-          reason: '正文输出应超过 100 字');
+      expect(
+        result.output!.prose.text.trim().length,
+        greaterThan(100),
+        reason: '正文输出应超过 100 字',
+      );
     }, timeout: const Timeout(Duration(minutes: 20)));
   });
 
@@ -76,8 +79,11 @@ void main() {
 
       _printWorkflowResult('小米 MiMo', 'mimo-v2.5-pro', result);
       expect(result.succeeded, isTrue, reason: 'MiMo 流水线应成功完成');
-      expect(result.output!.prose.text.trim().length, greaterThan(100),
-          reason: '正文输出应超过 100 字');
+      expect(
+        result.output!.prose.text.trim().length,
+        greaterThan(100),
+        reason: '正文输出应超过 100 字',
+      );
     }, timeout: const Timeout(Duration(minutes: 20)));
   });
 
@@ -101,8 +107,11 @@ void main() {
 
       _printWorkflowResult('Kimi', ollamaCloudModel, result);
       expect(result.succeeded, isTrue, reason: 'Kimi 流水线应成功完成');
-      expect(result.output!.prose.text.trim().length, greaterThan(100),
-          reason: '正文输出应超过 100 字');
+      expect(
+        result.output!.prose.text.trim().length,
+        greaterThan(100),
+        reason: '正文输出应超过 100 字',
+      );
     }, timeout: const Timeout(Duration(minutes: 20)));
   });
 
@@ -127,30 +136,36 @@ void main() {
       final labels = <String>[];
 
       if (hasZhipu) {
-        futures.add(_runWorkflowBenchmark(
-          providerName: '智谱 GLM',
-          baseUrl: zhipuProvider.defaultBaseUrl,
-          apiKey: anthropicKey,
-          model: 'glm-5.1',
-        ));
+        futures.add(
+          _runWorkflowBenchmark(
+            providerName: '智谱 GLM',
+            baseUrl: zhipuProvider.defaultBaseUrl,
+            apiKey: anthropicKey,
+            model: 'glm-5.1',
+          ),
+        );
         labels.add('GLM');
       }
       if (hasMimo) {
-        futures.add(_runWorkflowBenchmark(
-          providerName: '小米 MiMo',
-          baseUrl: mimoProvider.defaultBaseUrl,
-          apiKey: xiaomiKey,
-          model: 'mimo-v2.5-pro',
-        ));
+        futures.add(
+          _runWorkflowBenchmark(
+            providerName: '小米 MiMo',
+            baseUrl: mimoProvider.defaultBaseUrl,
+            apiKey: xiaomiKey,
+            model: 'mimo-v2.5-pro',
+          ),
+        );
         labels.add('MiMo');
       }
       if (hasKimi) {
-        futures.add(_runWorkflowBenchmark(
-          providerName: 'Kimi',
-          baseUrl: kimiBaseUrl,
-          apiKey: ollamaCloudKey,
-          model: ollamaCloudModel,
-        ));
+        futures.add(
+          _runWorkflowBenchmark(
+            providerName: 'Kimi',
+            baseUrl: kimiBaseUrl,
+            apiKey: ollamaCloudKey,
+            model: ollamaCloudModel,
+          ),
+        );
         labels.add('Kimi');
       }
 
@@ -165,7 +180,9 @@ void main() {
       const colWidth = 18;
       final header = labels.map((l) => l.padLeft(colWidth)).join(' │ ');
       print('│ 指标${' ' * 12} │ $header │');
-      print('├${'─' * 17}┼${labels.map((_) => '─' * (colWidth + 2)).join('┼')}┤');
+      print(
+        '├${'─' * 17}┼${labels.map((_) => '─' * (colWidth + 2)).join('┼')}┤',
+      );
 
       // 模型名
       final modelNames = <String>[];
@@ -173,50 +190,65 @@ void main() {
       if (hasMimo) modelNames.add('mimo-v2.5-pro');
       if (hasKimi) modelNames.add(ollamaCloudModel);
       print(
-          '│ 模型${' ' * 12} │ ${modelNames.map((m) => m.padLeft(colWidth)).join(' │ ')} │');
+        '│ 模型${' ' * 12} │ ${modelNames.map((m) => m.padLeft(colWidth)).join(' │ ')} │',
+      );
 
       // 成功状态
       print(
-          '│ 成功${' ' * 12} │ ${results.map((r) => (r.succeeded ? "✅" : "❌").padLeft(colWidth)).join(' │ ')} │');
+        '│ 成功${' ' * 12} │ ${results.map((r) => (r.succeeded ? "✅" : "❌").padLeft(colWidth)).join(' │ ')} │',
+      );
 
       // 总耗时
       print(
-          '│ 总耗时${' ' * 10} │ ${results.map((r) => "${r.totalMs}ms".padLeft(colWidth)).join(' │ ')} │');
+        '│ 总耗时${' ' * 10} │ ${results.map((r) => "${r.totalMs}ms".padLeft(colWidth)).join(' │ ')} │',
+      );
 
       // 总 LLM 调用次数
       print(
-          '│ LLM 调用次数${' ' * 4} │ ${results.map((r) => r.llmCallCount.toString().padLeft(colWidth)).join(' │ ')} │');
+        '│ LLM 调用次数${' ' * 4} │ ${results.map((r) => r.llmCallCount.toString().padLeft(colWidth)).join(' │ ')} │',
+      );
 
       // 输出字数
       final allOk = results.every((r) => r.succeeded);
       if (allOk) {
         final chars = results
-            .map((r) => (r.output?.prose.text ?? '')
-                .replaceAll(RegExp(r'\s'), '')
-                .length)
+            .map(
+              (r) => (r.output?.prose.text ?? '')
+                  .replaceAll(RegExp(r'\s'), '')
+                  .length,
+            )
             .toList();
         print(
-            '│ 输出字数${' ' * 8} │ ${chars.map((c) => c.toString().padLeft(colWidth)).join(' │ ')} │');
+          '│ 输出字数${' ' * 8} │ ${chars.map((c) => c.toString().padLeft(colWidth)).join(' │ ')} │',
+        );
 
         // Review 决定
-        final decisions =
-            results.map((r) => r.output?.review.decision.name ?? 'N/A').toList();
+        final decisions = results
+            .map((r) => r.output?.review.decision.name ?? 'N/A')
+            .toList();
         print(
-            '│ Review 决定${' ' * 5} │ ${decisions.map((d) => d.padLeft(colWidth)).join(' │ ')} │');
+          '│ Review 决定${' ' * 5} │ ${decisions.map((d) => d.padLeft(colWidth)).join(' │ ')} │',
+        );
 
         // Prose 尝试次数
-        final attempts = results.map((r) => (r.output?.prose.attempt ?? 0)).toList();
+        final attempts = results
+            .map((r) => (r.output?.prose.attempt ?? 0))
+            .toList();
         print(
-            '│ Prose 尝试${' ' * 5} │ ${attempts.map((a) => a.toString().padLeft(colWidth)).join(' │ ')} │');
+          '│ Prose 尝试${' ' * 5} │ ${attempts.map((a) => a.toString().padLeft(colWidth)).join(' │ ')} │',
+        );
 
         // 质量评分
         final scores = results
-            .map((r) => r.output?.qualityScore != null
-                ? r.output!.qualityScore!.overall.toStringAsFixed(1)
-                : 'N/A')
+            .map(
+              (r) => r.output?.qualityScore != null
+                  ? r.output!.qualityScore!.overall.toStringAsFixed(1)
+                  : 'N/A',
+            )
             .toList();
         print(
-            '│ 质量评分${' ' * 8} │ ${scores.map((s) => s.padLeft(colWidth)).join(' │ ')} │');
+          '│ 质量评分${' ' * 8} │ ${scores.map((s) => s.padLeft(colWidth)).join(' │ ')} │',
+        );
       }
       print('');
 
@@ -312,7 +344,7 @@ Future<_WorkflowBenchmarkResult> _runWorkflowBenchmark({
     );
 
     // 创建 orchestrator
-    final orchestrator = ChapterGenerationOrchestrator(
+    final orchestrator = PipelineStageRunnerImpl(
       settingsStore: settingsStore,
       pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
     );
@@ -351,7 +383,8 @@ SceneBrief _workflowBrief() {
     chapterTitle: '第一章 雨夜码头',
     sceneId: 'scene-01',
     sceneTitle: '码头对峙',
-    sceneSummary: '柳溪在封港前夜赶到旧码头，拦住准备带着账本线索离开的沈渡。'
+    sceneSummary:
+        '柳溪在封港前夜赶到旧码头，拦住准备带着账本线索离开的沈渡。'
         '暴雨将至，她必须在清场广播落下前从沈渡口中撬出账本去向。'
         '沈渡表面抗拒，实则在试探柳溪是否值得信任。',
     targetBeat: '柳溪逼出沈渡的底线，双方达成脆弱的临时合作协议。',
@@ -405,10 +438,14 @@ void _printWorkflowResult(
   final proseText = output.prose.text;
   final charCount = proseText.replaceAll(RegExp(r'\s'), '').length;
 
-  print('总耗时: ${result.totalMs} ms '
-      '(${(result.totalMs / 1000).toStringAsFixed(1)}s)');
+  print(
+    '总耗时: ${result.totalMs} ms '
+    '(${(result.totalMs / 1000).toStringAsFixed(1)}s)',
+  );
   print('LLM 调用次数: ${result.llmCallCount}');
-  print('平均每次调用: ${(result.totalMs / result.llmCallCount).toStringAsFixed(0)} ms');
+  print(
+    '平均每次调用: ${(result.totalMs / result.llmCallCount).toStringAsFixed(0)} ms',
+  );
   print('输出字数: $charCount 字');
   print('Review 决定: ${output.review.decision.name}');
   print('Prose 尝试次数: ${output.prose.attempt}');
@@ -416,11 +453,13 @@ void _printWorkflowResult(
 
   if (output.qualityScore != null) {
     final q = output.qualityScore!;
-    print('质量评分: 综合=${q.overall.toStringAsFixed(1)} '
-        '文笔=${q.prose.toStringAsFixed(1)} '
-        '连贯=${q.coherence.toStringAsFixed(1)} '
-        '角色=${q.character.toStringAsFixed(1)} '
-        '完整=${q.completeness.toStringAsFixed(1)}');
+    print(
+      '质量评分: 综合=${q.overall.toStringAsFixed(1)} '
+      '文笔=${q.prose.toStringAsFixed(1)} '
+      '连贯=${q.coherence.toStringAsFixed(1)} '
+      '角色=${q.character.toStringAsFixed(1)} '
+      '完整=${q.completeness.toStringAsFixed(1)}',
+    );
     if (q.summary.isNotEmpty) {
       print('质量评语: ${q.summary}');
     }
@@ -428,15 +467,19 @@ void _printWorkflowResult(
 
   // 流水线各阶段输出摘要
   print('─────────────────────────────');
-  print('导演计划 (前 100 字): '
-      '${_truncate(output.director.text, 100)}');
+  print(
+    '导演计划 (前 100 字): '
+    '${_truncate(output.director.text, 100)}',
+  );
   print('角色输出数: ${output.roleOutputs.length}');
   for (final role in output.roleOutputs) {
     print('  - ${role.name}: ${_truncate(role.text, 80)}');
   }
   print('Beat 解析数: ${output.resolvedBeats.length}');
   print('正文 (前 300 字):');
-  print(proseText.substring(0, proseText.length > 300 ? 300 : proseText.length));
+  print(
+    proseText.substring(0, proseText.length > 300 ? 300 : proseText.length),
+  );
   print('');
 }
 

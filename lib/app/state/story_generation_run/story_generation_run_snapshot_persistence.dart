@@ -54,25 +54,6 @@ extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
     }
   }
 
-  void _queueSnapshotPersistence(StoryGenerationRunSnapshot next) {
-    _queuedSnapshotPersistence = _setSnapshot(next).catchError((
-      Object error,
-      StackTrace stackTrace,
-    ) {
-      _queuedSnapshotPersistenceError ??= AsyncError(error, stackTrace);
-    });
-    unawaited(_queuedSnapshotPersistence);
-  }
-
-  Future<void> _waitForQueuedSnapshotPersistence() async {
-    await _queuedSnapshotPersistence;
-    final queuedError = _queuedSnapshotPersistenceError;
-    if (queuedError == null) {
-      return;
-    }
-    _queuedSnapshotPersistenceError = null;
-    Error.throwWithStackTrace(queuedError.error, queuedError.stackTrace);
-  }
 }
 
 Map<String, Object?> _asStringObjectMap(Object? value) {

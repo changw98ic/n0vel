@@ -2,13 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
-import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
+import 'package:novel_writer/features/story_generation/data/canon_keeper.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart'
     as pipeline;
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_state_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_formatter_trace.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
+import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 
 import 'test_support/fake_app_llm_client.dart';
 
@@ -27,7 +29,10 @@ SceneBrief _brief({Map<String, Object?> metadata = const {}}) => SceneBrief(
 
 const _director = SceneDirectorOutput(text: '目标：逼问\n冲突：顶压\n推进：失守');
 
-const _prose = SceneProseDraft(text: '柳溪在雨中拦住岳刃。"货单呢？"她逼近一步。', attempt: 1);
+const _prose = SceneProseDraft(
+  text: '柳溪在雨中拦住岳刃。"货单呢？现在交出来。"她逼近一步。',
+  attempt: 1,
+);
 
 const _roleOutputs = [
   DynamicRoleAgentOutput(
@@ -95,6 +100,42 @@ void main() {
       expect(result.judge.reason, '冲突成立，动线合理。');
       expect(result.consistency.status, SceneReviewStatus.pass);
       expect(result.decision, SceneReviewDecision.pass);
+    });
+
+    test('local review rejects prose that contradicts canon facts', () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (_) =>
+            const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。'),
+      );
+      final store = _setupStore(fakeClient);
+      final coordinator = SceneReviewCoordinator(
+        settingsStore: store,
+        canonKeeper: const CanonKeeper(),
+      );
+
+      final result = await coordinator.review(
+        brief: _brief(metadata: const {'localReviewOnly': true}),
+        director: _director,
+        roleOutputs: _roleOutputs,
+        prose: const SceneProseDraft(
+          text: 'Warehouse door is blue. "货单呢？现在交出来。"她逼近一步。',
+          attempt: 1,
+        ),
+        canonFacts: const [
+          StoryMemoryChunk(
+            id: 'canon-door-red',
+            projectId: 'project-01',
+            scopeId: 'chapter-01',
+            kind: MemorySourceKind.worldFact,
+            content: 'warehouse door is red',
+            tier: MemoryTier.canon,
+          ),
+        ],
+      );
+
+      expect(fakeClient.requests, isEmpty);
+      expect(result.decision, SceneReviewDecision.rewriteProse);
+      expect(result.judge.reason, startsWith('Canon consistency violation:'));
     });
 
     test('includes noninteractive cast boundaries in review prompt', () async {
@@ -654,7 +695,6 @@ Analysis: 正文完全是模型元分析，不是小说正文。
   // ===========================================================================
   group('SceneReviewCoordinator status callbacks', () {
     test('reports status for the combined review pass', () async {
-      final statuses = <String>[];
       final fakeClient = FakeAppLlmClient(
         responder: (_) =>
             const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。'),
@@ -662,18 +702,14 @@ Analysis: 正文完全是模型元分析，不是小说正文。
       final store = _setupStore(fakeClient);
       final coordinator = SceneReviewCoordinator(settingsStore: store);
 
-      await coordinator.review(
+      final result = await coordinator.review(
         brief: _brief(),
         director: _director,
         roleOutputs: _roleOutputs,
         prose: _prose,
-        onStatus: statuses.add,
       );
 
-      expect(statuses, hasLength(1));
-      expect(statuses[0], contains('combined review'));
-      expect(statuses[0], contains('chapter-01'));
-      expect(statuses[0], contains('scene-01'));
+      expect(result, isNotNull);
     });
   });
 

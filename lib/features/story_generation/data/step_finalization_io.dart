@@ -9,12 +9,13 @@ import 'scene_review_models.dart' show SceneRuntimeOutput;
 import 'scene_runtime_models.dart' show SceneBrief;
 import 'narrative_arc_models.dart' show NarrativeArcState;
 import '../domain/memory_models.dart' show RetrievalTrace;
+import '../domain/contracts/typed_artifact.dart';
 
 // ---------------------------------------------------------------------------
 // Step 9: Finalization
 // ---------------------------------------------------------------------------
 
-class FinalizationInput {
+class FinalizationInput extends TypedArtifact {
   const FinalizationInput({
     required this.brief,
     required this.plan,
@@ -40,11 +41,33 @@ class FinalizationInput {
   final int attempt;
   final int softFailureCount;
   final NarrativeArcState narrativeArcBeforeScene;
+
+  @override
+  ArtifactType get type => ArtifactType.sceneOutput;
+
+  @override
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'attempt': attempt,
+    'softFailureCount': softFailureCount,
+  };
+
+  @override
+  int get tokenEstimate => 0;
 }
 
-class FinalizationOutput {
+class FinalizationOutput extends TypedArtifact {
   const FinalizationOutput({required this.output, required this.retrievalTrace});
 
   final SceneRuntimeOutput output;
   final RetrievalTrace retrievalTrace;
+
+  @override
+  ArtifactType get type => ArtifactType.sceneOutput;
+
+  @override
+  Map<String, Object?> toJson() => {'type': type.name};
+
+  @override
+  int get tokenEstimate => 0;
 }

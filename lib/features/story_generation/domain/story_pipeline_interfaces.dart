@@ -31,7 +31,6 @@ abstract interface class DynamicRoleAgentService {
     required SceneDirectorOutput director,
     SceneTaskCard? taskCard,
     String? ragContext,
-    void Function(String message)? onStatus,
   });
 }
 
@@ -57,7 +56,7 @@ abstract interface class SceneReviewService {
     StoryRetrievalPack? retrievalPack,
     bool enableReaderFlowReview,
     bool enableLexiconReview,
-    void Function(String message)? onStatus,
+    List<StoryMemoryChunk> canonFacts = const [],
   });
 }
 
@@ -70,7 +69,7 @@ abstract interface class SceneContextAssemblerService {
 }
 
 /// Retrieves memory packs for scene context enrichment.
-abstract interface class StoryMemoryRetrieverService {
+abstract interface class StoryMemoryRetrievalService {
   Future<StoryRetrievalPack> retrieve(StoryMemoryQuery query);
 }
 
@@ -94,7 +93,6 @@ abstract interface class ChapterGenerationService {
   Future<SceneRuntimeOutput> runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
-    void Function(String message)? onStatus,
     void Function()? onSpeculationReady,
   });
 

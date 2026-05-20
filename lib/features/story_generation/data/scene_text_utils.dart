@@ -8,25 +8,48 @@ String compactText(String value, {required int maxChars}) {
   return '${normalized.substring(0, maxChars - 3)}...';
 }
 
-String characterAnchorsText(List<CharacterProfile> profiles) {
+String characterAnchorsText(List<StructuredProfile> profiles) {
   if (profiles.isEmpty) return '';
   final buffer = StringBuffer();
   for (final profile in profiles) {
-    buffer.writeln('${profile.name}（${profile.role}）');
-    if (profile.coreDrives.isNotEmpty) {
-      buffer.writeln('  核心驱动：${profile.coreDrives.take(3).join('；')}');
+    final role = profile.metadata['role']?.toString();
+    if (role != null && role.isNotEmpty) {
+      buffer.writeln('${profile.name}（$role）');
+    } else {
+      buffer.writeln(profile.name);
     }
-    if (profile.fears.isNotEmpty) {
-      buffer.writeln('  恐惧：${profile.fears.take(2).join('；')}');
+    if (profile.backstory.isNotEmpty) {
+      buffer.writeln('  背景：${profile.backstory}');
     }
-    if (profile.values.isNotEmpty) {
-      buffer.writeln('  价值观：${profile.values.take(2).join('；')}');
+    if (profile.behaviorBounds.mandatoryResponses.isNotEmpty) {
+      buffer.writeln(
+        '  必须回应：${profile.behaviorBounds.mandatoryResponses.take(3).join('；')}',
+      );
     }
-    if (profile.speechTraits.isNotEmpty) {
-      buffer.writeln('  语言特征：${profile.speechTraits.take(3).join('；')}');
+    if (profile.behaviorBounds.forbiddenActions.isNotEmpty) {
+      buffer.writeln(
+        '  禁忌：${profile.behaviorBounds.forbiddenActions.take(3).join('；')}',
+      );
     }
-    if (profile.boundaries.isNotEmpty) {
-      buffer.writeln('  禁忌：${profile.boundaries.take(2).join('；')}');
+    if (profile.voicePrint.speakingPatterns.isNotEmpty) {
+      buffer.writeln(
+        '  语言特征：${profile.voicePrint.speakingPatterns.take(3).join('；')}',
+      );
+    }
+    if (profile.voicePrint.catchphrases.isNotEmpty) {
+      buffer.writeln(
+        '  口头禅：${profile.voicePrint.catchphrases.take(3).join('；')}',
+      );
+    }
+    if (profile.soul.identityAnchors.isNotEmpty) {
+      buffer.writeln(
+        '  身份锚点：${profile.soul.identityAnchors.take(3).join('；')}',
+      );
+    }
+    if (profile.soul.coreValues.isNotEmpty) {
+      buffer.writeln(
+        '  核心价值：${profile.soul.coreValues.take(3).join('；')}',
+      );
     }
   }
   return buffer.toString().trimRight();

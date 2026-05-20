@@ -13,8 +13,9 @@ import 'package:novel_writer/app/state/story_generation_storage.dart';
 import 'package:novel_writer/app/state/story_generation_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_delta_models.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/data/character_visible_context_models.dart';
-import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
@@ -634,7 +635,7 @@ class _FailingStoryGenerationRunStorage
   }
 }
 
-class _ControlledOrchestrator extends ChapterGenerationOrchestrator {
+class _ControlledOrchestrator extends PipelineStageRunnerImpl {
   _ControlledOrchestrator({required super.settingsStore, this.reviewResult});
 
   final SceneReviewResult? reviewResult;
@@ -645,10 +646,8 @@ class _ControlledOrchestrator extends ChapterGenerationOrchestrator {
   Future<SceneRuntimeOutput> runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
-    void Function(String message)? onStatus,
     void Function()? onSpeculationReady,
   }) async {
-    onStatus?.call('fake orchestrator running');
     started.complete();
     await release.future;
     return SceneRuntimeOutput(
@@ -736,6 +735,8 @@ class _RecordingCharacterMemoryStore implements CharacterMemoryStore {
     required String projectId,
     required String chapterId,
     required String sceneId,
+    required MemoryTier tier,
+    required String producer,
     required List<CharacterMemoryDelta> deltas,
   }) async {
     acceptedDeltaWrites.add(List.unmodifiable(deltas));
@@ -745,18 +746,20 @@ class _RecordingCharacterMemoryStore implements CharacterMemoryStore {
   Future<List<CharacterMemoryDelta>> loadCharacterMemories({
     required String projectId,
     required String characterId,
+    required MemoryTier tier,
   }) async => [];
 
   @override
   Future<List<CharacterMemoryDelta>> loadPublicMemories({
     required String projectId,
+    required MemoryTier tier,
   }) async => [];
 
   @override
   Future<void> clearProject(String projectId) async {}
 }
 
-class _MemoryPausingOrchestrator extends ChapterGenerationOrchestrator {
+class _MemoryPausingOrchestrator extends PipelineStageRunnerImpl {
   _MemoryPausingOrchestrator({
     required super.settingsStore,
     required this.pausingStorage,
@@ -770,20 +773,19 @@ class _MemoryPausingOrchestrator extends ChapterGenerationOrchestrator {
   Future<SceneRuntimeOutput> runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
-    void Function(String message)? onStatus,
     void Function()? onSpeculationReady,
   }) async {
-    onStatus?.call('pausing at saveChunks');
     await pausingStorage.saveChunks(
       brief.projectId ?? brief.chapterId,
       const [],
     );
-    onStatus?.call('post-saveChunks: persisting character deltas');
     if (isRunCancelled?.call() != true) {
       await characterMemorySpy.saveAcceptedDeltas(
         projectId: brief.projectId ?? brief.chapterId,
         chapterId: brief.chapterId,
         sceneId: brief.sceneId,
+        tier: MemoryTier.character,
+        producer: 'roleplay',
         deltas: [
           CharacterMemoryDelta(
             deltaId: 'test-delta-1',

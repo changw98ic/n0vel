@@ -1,5 +1,7 @@
 import 'package:novel_writer/app/state/app_storage_clone.dart';
 
+import '../domain/contracts/structured_profile.dart';
+
 enum SceneCastContribution { action, dialogue, interaction }
 
 enum KnowledgeVisibility {
@@ -41,6 +43,7 @@ class ResolvedSceneCastMember {
     required this.role,
     required List<SceneCastContribution> contributions,
     Map<String, Object?> metadata = const {},
+    this.profile,
   }) : contributions = immutableList(contributions),
        metadata = immutableMap(metadata);
 
@@ -49,35 +52,7 @@ class ResolvedSceneCastMember {
   final String role;
   final List<SceneCastContribution> contributions;
   final Map<String, Object?> metadata;
-}
-
-class CharacterProfile {
-  CharacterProfile({
-    required this.characterId,
-    required this.name,
-    required this.role,
-    List<String> coreDrives = const [],
-    List<String> fears = const [],
-    List<String> values = const [],
-    List<String> boundaries = const [],
-    List<String> speechTraits = const [],
-    Map<String, Object?> metadata = const {},
-  }) : coreDrives = immutableList(coreDrives),
-       fears = immutableList(fears),
-       values = immutableList(values),
-       boundaries = immutableList(boundaries),
-       speechTraits = immutableList(speechTraits),
-       metadata = immutableMap(metadata);
-
-  final String characterId;
-  final String name;
-  final String role;
-  final List<String> coreDrives;
-  final List<String> fears;
-  final List<String> values;
-  final List<String> boundaries;
-  final List<String> speechTraits;
-  final Map<String, Object?> metadata;
+  final StructuredProfile? profile;
 }
 
 class RelationshipState {

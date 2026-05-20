@@ -47,7 +47,7 @@ flowchart LR
 
     subgraph Runtime["Runtime / Services"]
         Registry["ServiceRegistry bridge"]
-        Orchestrator["ChapterGenerationOrchestrator"]
+        Orchestrator["PipelineStageRunnerImpl"]
         Roleplay["SceneRoleplayRuntime"]
         Resolver["SceneStateResolver"]
         Review["SceneReviewCoordinator"]
@@ -142,7 +142,7 @@ flowchart LR
 
 ### 3.3 AI 生成数据流
 
-1. 工作台与场景上下文把当前写作状态交给 `ChapterGenerationOrchestrator`。
+1. 工作台与场景上下文把当前写作状态交给 `PipelineStageRunnerImpl`。
 2. 编排器调用 `SceneRoleplayRuntime`、`SceneStateResolver`、`SceneReviewCoordinator` 和记忆层。
 3. 外部模型通信统一经 `AppLlmClient + provider adapters` 发出。
 4. 运行状态、阶段消息、失败摘要和完成快照通过 `StoryGenerationRunStore` 与事件日志回流到 UI。

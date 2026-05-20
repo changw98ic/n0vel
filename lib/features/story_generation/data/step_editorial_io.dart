@@ -4,12 +4,13 @@ import 'step_scene_planning_io.dart';
 import 'step_stage_narration_io.dart';
 import 'scene_pipeline_models.dart' as pipeline show SceneEditorialDraft;
 import 'scene_runtime_models.dart' show SceneBrief, SceneProseDraft;
+import '../domain/contracts/typed_artifact.dart';
 
 // ---------------------------------------------------------------------------
 // Step 6: Editorial
 // ---------------------------------------------------------------------------
 
-class EditorialInput {
+class EditorialInput extends TypedArtifact {
   const EditorialInput({
     required this.brief,
     required this.plan,
@@ -29,11 +30,31 @@ class EditorialInput {
   final int attempt;
   final String? reviewFeedback;
   final String? previousProse;
+
+  @override
+  ArtifactType get type => ArtifactType.proseDraft;
+
+  @override
+  Map<String, Object?> toJson() =>
+      {'type': type.name, 'attempt': attempt};
+
+  @override
+  int get tokenEstimate => 0;
 }
 
-class EditorialOutput {
+class EditorialOutput extends TypedArtifact {
   const EditorialOutput({required this.draft, required this.prose});
 
   final pipeline.SceneEditorialDraft draft;
   final SceneProseDraft prose;
+
+  @override
+  ArtifactType get type => ArtifactType.proseDraft;
+
+  @override
+  Map<String, Object?> toJson() =>
+      {'type': type.name, 'attempt': prose.attempt};
+
+  @override
+  int get tokenEstimate => 0;
 }

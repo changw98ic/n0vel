@@ -54,7 +54,7 @@ class RoleplayTurn {
     );
   }
 
-  String toStructuredText() => '立场：$stance\n动作：$action\n禁忌：$taboo';
+  String toPromptText() => '立场：$stance\n动作：$action\n禁忌：$taboo';
 
   @override
   bool operator ==(Object other) =>

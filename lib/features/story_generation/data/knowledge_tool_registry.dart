@@ -2,7 +2,8 @@ import '../domain/character_cognition_models.dart';
 import '../domain/pipeline_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/roleplay_models.dart';
-import 'story_memory_retriever.dart';
+import '../domain/story_pipeline_interfaces.dart'
+    show StoryMemoryRetrievalService;
 import 'material_reference_retriever.dart';
 
 /// A named retrieval tool that produces [ContextCapsule] objects for agents.
@@ -28,7 +29,7 @@ class KnowledgeToolRegistry {
     : _tools = {for (final t in tools ?? const []) t.name: t};
 
   factory KnowledgeToolRegistry.roleplayDefaults({
-    StoryMemoryRetriever? memoryRetriever,
+    StoryMemoryRetrievalService? memoryRetriever,
     MaterialReferenceRetriever? materialReferenceRetriever,
     bool enableWritingReference = true,
   }) {
@@ -36,7 +37,9 @@ class KnowledgeToolRegistry {
       tools: [
         if (memoryRetriever != null) ...createMemoryTools(memoryRetriever),
         if (enableWritingReference)
-          ...createMaterialReferenceTools(retriever: materialReferenceRetriever),
+          ...createMaterialReferenceTools(
+            retriever: materialReferenceRetriever,
+          ),
       ],
     );
   }
@@ -146,7 +149,7 @@ class KnowledgeToolRegistry {
 ///
 /// Returns tools for: plot_memory, persona_memory, foreshadowing,
 /// state_ledger, thought_memory.
-List<KnowledgeTool> createMemoryTools(StoryMemoryRetriever retriever) {
+List<KnowledgeTool> createMemoryTools(StoryMemoryRetrievalService retriever) {
   return [
     KnowledgeTool(
       name: 'get_plot_memory',
@@ -222,7 +225,7 @@ List<KnowledgeTool> createMaterialReferenceTools({
 }
 
 Future<ContextCapsule> _retrieveToCapsule({
-  required StoryMemoryRetriever retriever,
+  required StoryMemoryRetrievalService retriever,
   required StoryMemoryQueryType queryType,
   required Map<String, Object?> params,
   required String fallbackText,

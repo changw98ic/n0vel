@@ -10,13 +10,15 @@ import '../../domain/story_pipeline_interfaces.dart'
         SceneCastResolverService,
         SceneDirectorService;
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 2: Resolves cast, runs consistency checks, composes director context,
 /// runs the scene director, and builds the task card.
 ///
-/// Extracted from [ChapterGenerationOrchestrator] lines 271-304 plus helper
+/// Extracted from [PipelineStageRunnerImpl] lines 271-304 plus helper
 /// methods 688-709, 1040-1062.
-class ScenePlanningStep {
+class ScenePlanningStep implements PipelineStage<ScenePlanningInput, ScenePlanningOutput> {
   ScenePlanningStep({
     required SceneCastResolverService castResolver,
     CharacterConsistencyVerifier? consistencyVerifier,
@@ -34,6 +36,13 @@ class ScenePlanningStep {
   final NarrativeArcPromptBuilder _arcPromptBuilder;
   final SceneTaskCardBuilder _taskCardBuilder;
 
+  @override
+  String get roleId => 'director';
+  @override
+  ArtifactType get outputType => ArtifactType.directorPlan;
+  @override
+  int get maxRetries => 2;
+
   /// Executes scene planning for a scene brief.
   ///
   /// - Resolves cast via [SceneCastResolverService].
@@ -41,7 +50,8 @@ class ScenePlanningStep {
   /// - Composes director context (memory + RAG + consistency + narrative arc).
   /// - Runs the scene director.
   /// - Builds the task card via [SceneTaskCardBuilder].
-  Future<ScenePlanningOutput> execute(ScenePlanningInput input) async {
+  @override
+  Future<ScenePlanningOutput> execute(ScenePlanningInput input, Object context) async {
     final brief = input.brief;
 
     final resolvedCast = _castResolver.resolve(brief);

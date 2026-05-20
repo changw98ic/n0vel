@@ -39,7 +39,7 @@ class LightRetrievalIntent {
   final String query;
   final String purpose;
 
-  static const String kToolCharacterProfile = 'character_profile';
+  static const String kToolStructuredProfile = 'character_profile';
   static const String kToolRelationship = 'relationship';
   static const String kToolWorldSetting = 'world_setting';
   static const String kToolPastEvent = 'past_event';

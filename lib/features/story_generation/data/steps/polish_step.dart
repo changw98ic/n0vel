@@ -2,17 +2,31 @@ import '../scene_pipeline_models.dart' as pipeline;
 import '../scene_polish_pass.dart';
 import '../scene_review_models.dart';
 import '../scene_runtime_models.dart';
+import '../../domain/contracts/event_log.dart';
+import '../../domain/contracts/stage_runner.dart';
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
-class PolishStep {
-  PolishStep({required ScenePolishPass polishPass}) : _polishPass = polishPass;
+class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
+  PolishStep({
+    required ScenePolishPass polishPass,
+    PipelineEventLog? eventLog,
+  }) : _polishPass = polishPass,
+       _eventLog = eventLog;
 
   final ScenePolishPass _polishPass;
+  final PipelineEventLog? _eventLog;
 
-  Future<PolishOutput> execute(
-    PolishInput input, {
-    void Function(String)? onStatus,
-  }) async {
+  @override
+  String get roleId => 'polish';
+  @override
+  ArtifactType get outputType => ArtifactType.polishedProse;
+  @override
+  int get maxRetries => 2;
+
+  @override
+  Future<PolishOutput> execute(PolishInput input, Object context) async {
     final brief = input.brief;
     final editorial = input.editorial;
     final review = input.review.review;
@@ -41,9 +55,15 @@ class PolishStep {
     if (!input.review.wasLengthRetry &&
         review.decision == SceneReviewDecision.pass &&
         _shouldRunFinalPolish(brief)) {
-      onStatus?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · reader polish',
-      );
+      _eventLog?.emit(PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'polish',
+        eventType: 'status',
+        metadata: {
+          'sceneId': '${brief.chapterId}/${brief.sceneId}',
+          'message': 'reader polish',
+        },
+      ));
       final polishResult = await _polishPass.polish(
         brief: brief,
         editorialDraft: pipeline.SceneEditorialDraft(
@@ -68,7 +88,7 @@ class PolishStep {
   }
 
   // ---------------------------------------------------------------------------
-  // Helpers (ported from ChapterGenerationOrchestrator)
+  // Helpers (ported from PipelineStageRunnerImpl)
   // ---------------------------------------------------------------------------
 
   Future<pipeline.SceneEditorialDraft> _refineDraftIfNeeded({

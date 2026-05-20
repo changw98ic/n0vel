@@ -4,18 +4,28 @@ import '../scene_runtime_models.dart'
     show ResolvedBeat, SceneBrief, SceneState, SceneStateDelta, SceneStateDeltaKind;
 import '../scene_state_resolver.dart' show SceneStateResolver;
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 5: resolve beats, convert to runtime beats, build scene state.
-class BeatResolutionStep {
+class BeatResolutionStep implements PipelineStage<BeatResolutionInput, BeatResolutionOutput> {
   BeatResolutionStep({required SceneStateResolver stateResolver})
       : _stateResolver = stateResolver;
 
   final SceneStateResolver _stateResolver;
 
+  @override
+  String get roleId => 'beat_resolution';
+  @override
+  ArtifactType get outputType => ArtifactType.beatResolution;
+  @override
+  int get maxRetries => 2;
+
+  @override
   Future<BeatResolutionOutput> execute(
-    BeatResolutionInput input, {
-    void Function(String)? onStatus,
-  }) async {
+    BeatResolutionInput input,
+    Object context,
+  ) async {
     final sceneCapsules = <pipeline.LightContextCapsule>[
       ...input.stage.capsules,
       if (input.stage.stageCapsule != null) input.stage.stageCapsule!,
@@ -26,7 +36,6 @@ class BeatResolutionStep {
       roleTurns: input.roleplay.roleTurns,
       capsules: sceneCapsules,
       roleplaySession: input.roleplay.session,
-      onStatus: onStatus,
     );
 
     final runtimeBeats = _runtimeBeatsFromResolved(resolvedBeats);
@@ -43,7 +52,7 @@ class BeatResolutionStep {
   }
 
   // ---------------------------------------------------------------------------
-  // Private helpers (faithfully extracted from ChapterGenerationOrchestrator)
+  // Private helpers (faithfully extracted from PipelineStageRunnerImpl)
   // ---------------------------------------------------------------------------
 
   List<ResolvedBeat> _runtimeBeatsFromResolved(

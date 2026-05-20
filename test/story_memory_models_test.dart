@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 
 void main() {
@@ -68,14 +69,30 @@ void main() {
         scopeId: 'scene-1',
         kind: MemorySourceKind.characterProfile,
         content: 'Liu Xi is a scholar from the north.',
+        tier: MemoryTier.character,
+        producer: 'scene-runtime',
         tags: ['character', 'liuxi'],
         priority: 5,
       );
       final restored = StoryMemoryChunk.fromJson(chunk.toJson());
       expect(restored.kind, MemorySourceKind.characterProfile);
       expect(restored.content, contains('Liu Xi'));
+      expect(restored.tier, MemoryTier.character);
+      expect(restored.producer, 'scene-runtime');
       expect(restored.tags, contains('liuxi'));
       expect(restored.priority, 5);
+    });
+
+    test('defaults tier and producer when missing from JSON', () {
+      final restored = StoryMemoryChunk.fromJson(const {
+        'id': 'c1',
+        'projectId': 'p1',
+        'scopeId': 's1',
+        'kind': 'worldFact',
+        'content': 'x',
+      });
+      expect(restored.tier, MemoryTier.scene);
+      expect(restored.producer, '');
     });
   });
 
@@ -87,6 +104,7 @@ void main() {
         scopeId: 'scene-1',
         thoughtType: ThoughtType.persona,
         content: 'Liu Xi hides fear by asking procedural questions.',
+        tier: MemoryTier.canon,
         confidence: 0.86,
         abstractionLevel: 2.0,
         sourceRefs: [
@@ -103,6 +121,7 @@ void main() {
 
       expect(restored.id, atom.id);
       expect(restored.thoughtType, ThoughtType.persona);
+      expect(restored.tier, MemoryTier.canon);
       expect(restored.sourceRefs.single.sourceId, 'scene-1');
       expect(restored.rootSourceIds, contains('scene-1:beat-2'));
       expect(restored.confidence, 0.86);
@@ -115,6 +134,7 @@ void main() {
       expect(restored.id, '');
       expect(restored.confidence, 0.0);
       expect(restored.thoughtType, ThoughtType.persona);
+      expect(restored.tier, MemoryTier.scene);
       expect(restored.sourceRefs, isEmpty);
     });
   });

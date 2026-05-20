@@ -22,8 +22,8 @@ class LocalRagDocument {
 }
 
 /// A search result from the local RAG index.
-class LocalRagSearchResult {
-  const LocalRagSearchResult({
+class LocalRagFtsResult {
+  const LocalRagFtsResult({
     required this.path,
     required this.content,
     required this.score,
@@ -123,7 +123,7 @@ class LocalRagStorage {
   }
 
   /// Full-text search using FTS5 BM25 ranking.
-  Future<List<LocalRagSearchResult>> searchFts({
+  Future<List<LocalRagFtsResult>> searchFts({
     required String projectId,
     required String query,
     int limit = 10,
@@ -159,7 +159,7 @@ class LocalRagStorage {
 
     final results = [
       for (final row in rows)
-        LocalRagSearchResult(
+        LocalRagFtsResult(
           rowid: row['rowid'] as int,
           path: row['path'] as String,
           content: row['content'] as String,
@@ -177,7 +177,7 @@ class LocalRagStorage {
     );
     if (cjkResults.isEmpty) return results;
 
-    final merged = <String, LocalRagSearchResult>{
+    final merged = <String, LocalRagFtsResult>{
       for (final result in results) result.path: result,
     };
     for (final result in cjkResults) {
@@ -210,7 +210,7 @@ class LocalRagStorage {
     return terms.map(_expandTermForFts).join(' OR ');
   }
 
-  List<LocalRagSearchResult> _searchCjkLexical({
+  List<LocalRagFtsResult> _searchCjkLexical({
     required String projectId,
     required String query,
     required int limit,
@@ -239,7 +239,7 @@ class LocalRagStorage {
 
     final results = [
       for (final row in rows)
-        LocalRagSearchResult(
+        LocalRagFtsResult(
           rowid: row['rowid'] as int,
           path: row['path'] as String,
           content: row['content'] as String,

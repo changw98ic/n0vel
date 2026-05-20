@@ -1,5 +1,5 @@
 import '../../../app/state/app_settings_store.dart';
-import 'chapter_generation_orchestrator.dart';
+import 'pipeline_stage_runner_impl.dart';
 import 'character_memory_store.dart';
 import 'generation_pipeline_config.dart';
 import 'narrative_arc_models.dart';
@@ -53,7 +53,7 @@ class ChapterConcurrentRunner {
 
         for (var attempt = 1;; attempt++) {
           try {
-            final orchestrator = ChapterGenerationOrchestrator(
+            final orchestrator = PipelineStageRunnerImpl(
               settingsStore: settingsStore,
               pipelineConfig: pipelineConfig,
               roleplaySessionStore: roleplaySessionStore,

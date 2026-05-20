@@ -3,7 +3,7 @@ import 'material_reference_retriever.dart';
 
 /// Allowed retrieval tool names when writing reference is enabled.
 const _allowedToolsWithWritingRef = <String>{
-  LightRetrievalIntent.kToolCharacterProfile,
+  LightRetrievalIntent.kToolStructuredProfile,
   LightRetrievalIntent.kToolRelationship,
   LightRetrievalIntent.kToolWorldSetting,
   LightRetrievalIntent.kToolPastEvent,
@@ -12,7 +12,7 @@ const _allowedToolsWithWritingRef = <String>{
 
 /// Allowed retrieval tool names when writing reference is disabled.
 const _allowedToolsWithoutWritingRef = <String>{
-  LightRetrievalIntent.kToolCharacterProfile,
+  LightRetrievalIntent.kToolStructuredProfile,
   LightRetrievalIntent.kToolRelationship,
   LightRetrievalIntent.kToolWorldSetting,
   LightRetrievalIntent.kToolPastEvent,
@@ -88,7 +88,7 @@ class RetrievalController {
     required LightRetrievalIntent intent,
   }) {
     return switch (intent.toolName) {
-      LightRetrievalIntent.kToolCharacterProfile => _retrieveProfile(
+      LightRetrievalIntent.kToolStructuredProfile => _retrieveProfile(
         taskCard: taskCard,
         query: intent.query,
       ),

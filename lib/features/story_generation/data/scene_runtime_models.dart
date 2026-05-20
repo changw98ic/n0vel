@@ -1,5 +1,6 @@
 import 'package:novel_writer/app/state/app_storage_clone.dart';
 
+import '../domain/contracts/structured_profile.dart';
 import 'narrative_arc_models.dart';
 import 'scene_context_models.dart';
 import 'scene_pipeline_models.dart' show SceneDirectorPlan;
@@ -18,7 +19,7 @@ class SceneBrief {
     this.targetBeat = '',
     List<String> worldNodeIds = const [],
     List<SceneCastCandidate> cast = const [],
-    List<CharacterProfile> characterProfiles = const [],
+    List<StructuredProfile> characterProfiles = const [],
     List<RelationshipState> relationshipStates = const [],
     List<SocialPositionState> socialPositions = const [],
     List<BeliefState> beliefStates = const [],
@@ -48,7 +49,7 @@ class SceneBrief {
   final String targetBeat;
   final List<String> worldNodeIds;
   final List<SceneCastCandidate> cast;
-  final List<CharacterProfile> characterProfiles;
+  final List<StructuredProfile> characterProfiles;
   final List<RelationshipState> relationshipStates;
   final List<SocialPositionState> socialPositions;
   final List<BeliefState> beliefStates;
@@ -70,7 +71,7 @@ class SceneBrief {
     String? targetBeat,
     List<String>? worldNodeIds,
     List<SceneCastCandidate>? cast,
-    List<CharacterProfile>? characterProfiles,
+    List<StructuredProfile>? characterProfiles,
     List<RelationshipState>? relationshipStates,
     List<SocialPositionState>? socialPositions,
     List<BeliefState>? beliefStates,

@@ -1,7 +1,8 @@
-import 'package:novel_writer/app/rag/rag_orchestrator.dart';
+import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'character_consistency_verifier.dart';
+import 'pipeline_event_log.dart';
 import 'dynamic_role_agent_runner.dart';
 import 'generation_pipeline_config.dart';
 import 'material_reference_retriever.dart';
@@ -19,7 +20,9 @@ import 'scene_polish_pass.dart';
 import 'scene_stage_narrator.dart';
 import 'roleplay_session_store.dart';
 import 'character_memory_store.dart';
+import 'canon_keeper.dart';
 import 'scene_state_resolver.dart';
+import 'soul_contract_validator.dart';
 import 'story_context_cache.dart';
 import 'story_prompt_templates.dart';
 import 'story_memory_storage.dart';
@@ -27,6 +30,13 @@ import 'style_reference_config.dart';
 import '../domain/scene_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
+import '../domain/contracts/event_log.dart';
+import '../domain/contracts/memory_writeback_gate.dart'
+    hide CanonKeeper, SoulContractValidator;
+import '../domain/contracts/pipeline_role_contract.dart';
+import '../domain/contracts/rag_retrieval_policy.dart';
+import '../domain/contracts/stage_runner.dart';
+import '../domain/contracts/typed_artifact.dart';
 import 'step_io.dart';
 import 'steps/context_enrichment_step.dart';
 import 'steps/scene_planning_step.dart';
@@ -38,12 +48,12 @@ import 'steps/review_step.dart';
 import 'steps/polish_step.dart';
 import 'steps/finalization_step.dart';
 
-class ChapterGenerationOrchestrator implements ChapterGenerationService {
-  ChapterGenerationOrchestrator({
+class PipelineStageRunnerImpl
+    implements ChapterGenerationService, PipelineStageRunner {
+  PipelineStageRunnerImpl({
     required AppSettingsStore settingsStore,
-    GenerationPipelineConfig pipelineConfig =
-        const GenerationPipelineConfig(),
-    this.onStatus,
+    GenerationPipelineConfig pipelineConfig = const GenerationPipelineConfig(),
+    PipelineEventLog? eventLog,
     SceneCastResolverService? castResolver,
     SceneDirectorService? directorOrchestrator,
     DynamicRoleAgentService? dynamicRoleAgentRunner,
@@ -55,36 +65,48 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     SceneQualityScorerService? qualityScorer,
     SceneContextAssemblerService? contextAssembler,
     StoryMemoryStorage? memoryStorage,
-    StoryMemoryRetrieverService? memoryRetriever,
+    StoryMemoryRetrievalService? memoryRetriever,
     ThoughtMemoryService? thoughtUpdater,
     RoleplaySessionStore? roleplaySessionStore,
     CharacterMemoryStore? characterMemoryStore,
-    RagOrchestrator? ragOrchestrator,
+    HybridRetriever? hybridRetriever,
     StoryContextCache? contextCache,
     ChapterContextBridgeService? chapterContextBridge,
     CharacterConsistencyVerifier? consistencyVerifier,
+    CanonKeeper? canonKeeper,
+    SoulContractValidator? soulValidator,
+    MemoryWritebackGate? writebackGate,
   }) : _settingsStore = settingsStore,
        _pipelineConfig = pipelineConfig,
+       _eventLog = eventLog ?? PipelineEventLogImpl(),
+       _writebackGate =
+           writebackGate ??
+           BasicMemoryWritebackGate(
+             soulValidator: soulValidator?.asWritebackValidator(),
+           ),
        _contextEnrichmentStep = ContextEnrichmentStep(
          chapterContextBridge: chapterContextBridge,
          contextAssembler: contextAssembler ?? SceneContextAssembler(),
          memoryStorage: memoryStorage,
          memoryRetriever: memoryRetriever,
-         ragOrchestrator: ragOrchestrator,
+         hybridRetriever: hybridRetriever,
          contextCache: contextCache,
        ),
        _scenePlanningStep = ScenePlanningStep(
          castResolver: castResolver ?? SceneCastResolver(),
          consistencyVerifier: consistencyVerifier,
-         directorOrchestrator: directorOrchestrator ??
+         directorOrchestrator:
+             directorOrchestrator ??
              SceneDirectorOrchestrator(settingsStore: settingsStore),
          arcPromptBuilder: NarrativeArcPromptBuilder(),
        ),
        _roleplayStep = RoleplayStep(
-         dynamicRoleAgentRunner: dynamicRoleAgentRunner ??
+         dynamicRoleAgentRunner:
+             dynamicRoleAgentRunner ??
              DynamicRoleAgentRunner(
                settingsStore: settingsStore,
                characterMemoryStore: characterMemoryStore,
+               eventLog: eventLog,
              ),
          roleplaySessionStore: roleplaySessionStore,
          characterMemoryStore: characterMemoryStore,
@@ -93,44 +115,65 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
              rootPath: pipelineConfig.styleReferenceConfig.rootPath,
            ),
            enableWritingReference:
-               pipelineConfig.enableWritingReference && pipelineConfig.styleReferenceConfig.enabled,
+               pipelineConfig.enableWritingReference &&
+               pipelineConfig.styleReferenceConfig.enabled,
          ),
        ),
        _stageNarrationStep = StageNarrationStep(
-         stageNarrator: stageNarrator ??
-             SceneStageNarrator(settingsStore: settingsStore),
+         stageNarrator:
+             stageNarrator ??
+             SceneStageNarrator(
+               settingsStore: settingsStore,
+               eventLog: eventLog,
+             ),
          retrievalController: RetrievalController(
            materialReferenceRetriever: MaterialReferenceRetriever(
              rootPath: pipelineConfig.styleReferenceConfig.rootPath,
            ),
            enableWritingReference:
-               pipelineConfig.enableWritingReference && pipelineConfig.styleReferenceConfig.enabled,
+               pipelineConfig.enableWritingReference &&
+               pipelineConfig.styleReferenceConfig.enabled,
          ),
        ),
        _beatResolutionStep = BeatResolutionStep(
-         stateResolver: stateResolver ??
-             SceneStateResolver(settingsStore: settingsStore),
+         stateResolver:
+             stateResolver ??
+             SceneStateResolver(
+               settingsStore: settingsStore,
+               eventLog: eventLog,
+             ),
        ),
        _editorialStep = EditorialStep(
-         editorialGenerator: editorialGenerator ??
+         editorialGenerator:
+             editorialGenerator ??
              SceneEditorialGenerator(settingsStore: settingsStore),
        ),
        _reviewStep = ReviewStep(
-         reviewCoordinator: reviewCoordinator ??
+         reviewCoordinator:
+             reviewCoordinator ??
              SceneReviewCoordinator(
                settingsStore: settingsStore,
                hardGatesEnabled: pipelineConfig.hardGatesEnabled,
+               canonKeeper: canonKeeper,
              ),
          consistencyVerifier: consistencyVerifier,
          maxProseRetries: pipelineConfig.maxProseRetries,
          hardGatesEnabled: pipelineConfig.hardGatesEnabled,
+         eventLog: eventLog ?? PipelineEventLogImpl(),
        ),
        _polishStep = PolishStep(
-         polishPass: polishPass ?? ScenePolishPass(settingsStore: settingsStore),
+         polishPass:
+             polishPass ?? ScenePolishPass(settingsStore: settingsStore),
+         eventLog: eventLog,
        ),
        _finalizationStep = FinalizationStep(
          qualityScorer: qualityScorer,
          thoughtUpdater: thoughtUpdater,
+         writebackGate:
+             writebackGate ??
+             BasicMemoryWritebackGate(
+               soulValidator: soulValidator?.asWritebackValidator(),
+             ),
          narrativeArcTracker: NarrativeArcTracker(),
        );
 
@@ -141,7 +184,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   StyleReferenceConfig get styleReferenceConfig =>
       _pipelineConfig.styleReferenceConfig;
 
-  final void Function(String message)? onStatus;
+  final PipelineEventLog _eventLog;
+  final MemoryWritebackGate _writebackGate;
 
   bool Function()? isRunCancelled;
 
@@ -160,6 +204,54 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   NarrativeArcState _narrativeArc = NarrativeArcState();
   RetrievalTrace? _lastRetrievalTrace;
 
+  // -- PipelineStageRunner contract members --
+
+  @override
+  List<PipelineStage<TypedArtifact, TypedArtifact>> get stages => [
+    _contextEnrichmentStep,
+    _scenePlanningStep,
+    _roleplayStep,
+    _stageNarrationStep,
+    _beatResolutionStep,
+    _editorialStep,
+    _reviewStep,
+    _polishStep,
+    _finalizationStep,
+  ].cast<PipelineStage<TypedArtifact, TypedArtifact>>();
+
+  @override
+  PipelineEventLog get eventLog => _eventLog;
+
+  @override
+  int get maxGlobalRetries => 3;
+
+  @override
+  RagRetrievalPolicy get defaultRetrievalPolicy =>
+      RagRetrievalPolicy.director();
+
+  @override
+  MemoryWritebackGate get writebackGate => _writebackGate;
+
+  @override
+  Future<PipelineRunResult> run(
+    SceneBriefRef brief,
+    PipelineContext context,
+  ) async {
+    final sceneBrief = context.metadata['sceneBrief'];
+    if (sceneBrief is SceneBrief) {
+      await runScene(sceneBrief);
+      return PipelineRunResult(success: true, events: _eventLog.query());
+    }
+    return PipelineRunResult(
+      success: false,
+      events: _eventLog.query(),
+      failureCode: FailureCode.blocked,
+      failedStageId: 'runner',
+    );
+  }
+
+  // -- ChapterGenerationService contract members --
+
   @override
   RetrievalTrace? get lastRetrievalTrace => _lastRetrievalTrace;
 
@@ -167,7 +259,6 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   Future<SceneRuntimeOutput> runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
-    void Function(String message)? onStatus,
     void Function()? onSpeculationReady,
   }) {
     return StoryPromptTemplates.runWithLanguage(
@@ -175,7 +266,6 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
       () => _runScene(
         _briefWithStyleReference(brief),
         materials: materials,
-        onStatus: onStatus,
         onSpeculationReady: onSpeculationReady,
       ),
     );
@@ -207,10 +297,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
   Future<SceneRuntimeOutput> _runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
-    void Function(String message)? onStatus,
     void Function()? onSpeculationReady,
   }) async {
-    final statusCallback = onStatus ?? this.onStatus;
     _directorMemory = _directorMemory.withActiveRoundState(
       DirectorRoundState(
         sceneId: brief.sceneId,
@@ -232,6 +320,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
     // Step 1: Context enrichment (runs once)
     final contextOutput = await _contextEnrichmentStep.execute(
       ContextEnrichmentInput(brief: brief, materials: materials),
+      _eventLog,
     );
 
     // Outer loop: scene replan
@@ -244,6 +333,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           directorMemory: _directorMemory,
           narrativeArc: _narrativeArc,
         ),
+        _eventLog,
       );
 
       // Step 3: Roleplay
@@ -253,8 +343,8 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           plan: planOutput,
           ragContext: contextOutput.ragContext,
         ),
+        _eventLog,
         isRunCancelled: isRunCancelled,
-        onStatus: statusCallback,
       );
 
       // Step 4: Stage narration
@@ -264,7 +354,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           roleplay: roleplayOutput,
           ragContext: contextOutput.ragContext,
         ),
-        onStatus: statusCallback,
+        _eventLog,
       );
 
       // Step 5: Beat resolution
@@ -275,7 +365,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
           roleplay: roleplayOutput,
           stage: stageOutput,
         ),
-        onStatus: statusCallback,
+        _eventLog,
       );
 
       var attempt = 1;
@@ -285,9 +375,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
 
       // Inner loop: editorial retry
       while (true) {
-        statusCallback?.call(
-          '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · editorial attempt $attempt',
-        );
+        _emitStatus(currentBrief, 'editorial attempt $attempt');
 
         // Step 6: Editorial
         final editorialOutput = await _editorialStep.execute(
@@ -301,6 +389,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             reviewFeedback: reviewFeedback,
             previousProse: previousProse,
           ),
+          _eventLog,
         );
 
         // Step 7: Review
@@ -314,7 +403,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             attempt: attempt,
             softFailureCount: softFailureCount,
           ),
-          onStatus: statusCallback,
+          _eventLog,
         );
 
         // Update director memory with review digest
@@ -342,8 +431,9 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             reviewOutput.action == SceneReviewDecision.replanScene &&
             sceneReplanCount < maxSceneReplanRetries) {
           sceneReplanCount += 1;
-          statusCallback?.call(
-            '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · review issue -> scene replan $sceneReplanCount/$maxSceneReplanRetries',
+          _emitStatus(
+            currentBrief,
+            'review issue -> scene replan $sceneReplanCount/$maxSceneReplanRetries',
           );
           currentBrief = _briefWithReplanFeedback(
             brief: currentBrief,
@@ -357,10 +447,11 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         if (reviewOutput.action == SceneReviewDecision.rewriteProse) {
           softFailureCount += 1;
           if (softFailureCount <= maxProseRetries) {
-            statusCallback?.call(
+            _emitStatus(
+              currentBrief,
               reviewOutput.wasLengthRetry
-                  ? '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · prose length issue -> editorial retry'
-                  : '场景 ${currentBrief.chapterId}/${currentBrief.sceneId} · review issue -> editorial retry',
+                  ? 'prose length issue -> editorial retry'
+                  : 'review issue -> editorial retry',
             );
             attempt += 1;
             reviewFeedback = reviewOutput.review.editorialFeedback;
@@ -381,6 +472,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
               beats: beatsOutput,
               review: reviewOutput,
             ),
+            _eventLog,
           );
           proseForOutput = polishOutput.prose;
         } else if (reviewOutput.action == SceneReviewDecision.pass) {
@@ -392,7 +484,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
               beats: beatsOutput,
               review: reviewOutput,
             ),
-            onStatus: statusCallback,
+            _eventLog,
           );
           proseForOutput = polishOutput.prose;
         }
@@ -415,6 +507,7 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
             softFailureCount: softFailureCount,
             narrativeArcBeforeScene: narrativeArcBeforeScene,
           ),
+          _eventLog,
         );
 
         _lastRetrievalTrace = finalizationOutput.retrievalTrace;
@@ -426,6 +519,20 @@ class ChapterGenerationOrchestrator implements ChapterGenerationService {
         return finalizationOutput.output;
       }
     }
+  }
+
+  void _emitStatus(SceneBrief brief, String message) {
+    _eventLog.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'orchestrator',
+        eventType: 'status',
+        metadata: {
+          'sceneId': '${brief.chapterId}/${brief.sceneId}',
+          'message': message,
+        },
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------

@@ -3,21 +3,39 @@ import '../../domain/memory_models.dart';
 import '../../domain/scene_models.dart';
 import '../../domain/story_pipeline_interfaces.dart';
 import '../step_io.dart';
+import '../../domain/contracts/memory_writeback_gate.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
-class FinalizationStep {
+class FinalizationStep
+    implements PipelineStage<FinalizationInput, FinalizationOutput> {
   FinalizationStep({
     SceneQualityScorerService? qualityScorer,
     ThoughtMemoryService? thoughtUpdater,
+    MemoryWritebackGate writebackGate = const BasicMemoryWritebackGate(),
     required NarrativeArcTracker narrativeArcTracker,
   }) : _qualityScorer = qualityScorer,
        _thoughtUpdater = thoughtUpdater,
+       _writebackGate = writebackGate,
        _narrativeArcTracker = narrativeArcTracker;
 
   final SceneQualityScorerService? _qualityScorer;
   final ThoughtMemoryService? _thoughtUpdater;
+  final MemoryWritebackGate _writebackGate;
   final NarrativeArcTracker _narrativeArcTracker;
 
-  Future<FinalizationOutput> execute(FinalizationInput input) async {
+  @override
+  String get roleId => 'finalization';
+  @override
+  ArtifactType get outputType => ArtifactType.sceneOutput;
+  @override
+  int get maxRetries => 2;
+
+  @override
+  Future<FinalizationOutput> execute(
+    FinalizationInput input,
+    Object context,
+  ) async {
     final brief = input.brief;
     final plan = input.plan;
     final roleplay = input.roleplay;
@@ -89,6 +107,9 @@ class FinalizationStep {
     // 4. Post-scene thought extraction (only if review passed).
     if (review.review.decision == SceneReviewDecision.pass &&
         _thoughtUpdater != null) {
+      // Persistence owns the concrete write; this keeps the runner-provided
+      // gate anchored at the finalization stage boundary.
+      await _writebackGate.validate(const []);
       final thoughtResult = await _thoughtUpdater.extractWithLlm(
         projectId: brief.projectId ?? brief.chapterId,
         sceneOutput: output,

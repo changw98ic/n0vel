@@ -1,10 +1,11 @@
 import 'package:novel_writer/app/di/service_registry.dart';
-import 'package:novel_writer/app/rag/rag_orchestrator.dart';
+import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
 
 import 'chapter_context_bridge.dart';
 import 'chapter_summarizer.dart';
-import 'chapter_generation_orchestrator.dart';
+import 'canon_keeper.dart';
+import 'pipeline_stage_runner_impl.dart';
 import 'character_consistency_verifier.dart';
 import 'dynamic_role_agent_runner.dart';
 import 'scene_cast_resolver.dart';
@@ -17,12 +18,15 @@ import 'story_generation_formatter_trace.dart';
 import 'roleplay_session_store.dart';
 import 'character_memory_store.dart';
 import 'story_context_cache.dart';
-import 'story_memory_retriever.dart';
 import 'story_memory_storage.dart';
 import 'story_memory_storage_io.dart';
 import 'generation_pipeline_config.dart';
+import 'soul_contract_validator.dart';
 import 'thought_memory_updater.dart';
 
+import '../domain/contracts/memory_writeback_gate.dart'
+    hide CanonKeeper, SoulContractValidator;
+import '../domain/contracts/soul_contract.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
 /// Registers all story generation pipeline services into [registry].
@@ -32,12 +36,32 @@ import '../domain/story_pipeline_interfaces.dart';
 /// - [StoryMemoryStorage] must already be registered (IO or stub).
 ///
 /// Optional pre-registrations:
-/// - [RagOrchestrator] for broad RAG context.
+/// - [HybridRetriever] for fused FTS + vector retrieval.
 ///
-/// When no [RagOrchestrator] is pre-registered, a local SQLite-backed
-/// instance is created automatically using the same database as
-/// [StoryMemoryStorage].
+/// When no [HybridRetriever] is pre-registered, one is created from the
+/// same SQLite database used by [StoryMemoryStorage], if available.
 void registerStoryGenerationServices(ServiceRegistry registry) {
+  if (!registry.isRegistered<CanonKeeper>()) {
+    registry.registerFactory<CanonKeeper>((_) => const CanonKeeper());
+  }
+
+  if (!registry.isRegistered<SoulContractValidator>()) {
+    registry.registerFactory<SoulContractValidator>(
+      (_) => const SoulContractValidator(SoulContract()),
+    );
+  }
+
+  if (!registry.isRegistered<MemoryWritebackGate>()) {
+    registry.registerFactory<MemoryWritebackGate>(
+      (r) => BasicMemoryWritebackGate(
+        soulValidator: r
+            .resolve<SoulContractValidator>()
+            .asWritebackValidator(),
+        canonKeeper: r.resolve<CanonKeeper>().asWritebackCanonKeeper(const []),
+      ),
+    );
+  }
+
   registry.registerFactory<SceneCastResolverService>(
     (_) => SceneCastResolver(),
   );
@@ -66,6 +90,7 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
           registry.isRegistered<StoryGenerationFormatterTraceSink>()
           ? r.resolve()
           : null,
+      canonKeeper: r.resolve(),
     ),
   );
 
@@ -73,12 +98,29 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
     (_) => SceneContextAssembler(),
   );
 
-  registry.registerFactory<StoryMemoryRetrieverService>(
-    (r) => StoryMemoryRetriever(storage: r.resolve()),
-  );
+  // Register HybridRetriever when not already pre-registered.
+  if (!registry.isRegistered<HybridRetriever>()) {
+    final storage = registry.resolve<StoryMemoryStorage>();
+    final db = storage is StoryMemoryStorageIO ? storage.db : null;
+    if (db != null) {
+      registry.registerFactory<HybridRetriever>(
+        (_) => HybridRetriever.local(db: db),
+      );
+    }
+  }
+
+  // StoryMemoryRetrievalService resolves to HybridRetriever when available.
+  if (registry.isRegistered<HybridRetriever>()) {
+    registry.registerFactory<StoryMemoryRetrievalService>(
+      (r) => r.resolve<HybridRetriever>(),
+    );
+  }
 
   registry.registerFactory<ThoughtMemoryService>(
-    (r) => ThoughtMemoryUpdater(storage: r.resolve()),
+    (r) => ThoughtMemoryUpdater /* MemoryWritebackGate */ (
+      storage: r.resolve(),
+      gate: r.resolve(),
+    ),
   );
 
   registry.registerFactory<StoryContextCache>((_) => StoryContextCache());
@@ -94,25 +136,11 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
     (r) => SceneQualityScorer(settingsStore: r.resolve()),
   );
 
-  // Register local RagOrchestrator when not already pre-registered.
-  if (!registry.isRegistered<RagOrchestrator>()) {
-    final storage = registry.resolve<StoryMemoryStorage>();
-    // Reuse the same Database instance if available.
-    final db = storage is StoryMemoryStorageIO ? storage.db : null;
-    if (db != null) {
-      registry.registerFactory<RagOrchestrator>(
-        (_) => RagOrchestrator.local(db: db),
-      );
-    }
-  }
-
   registry.registerFactory<ChapterGenerationService>((r) {
     final pipelineConfig = registry.isRegistered<AppWorkspaceStore>()
-        ? GenerationPipelineConfig.fromWorkspace(
-            r.resolve<AppWorkspaceStore>(),
-          )
+        ? GenerationPipelineConfig.fromWorkspace(r.resolve<AppWorkspaceStore>())
         : const GenerationPipelineConfig();
-    return ChapterGenerationOrchestrator(
+    return PipelineStageRunnerImpl(
       settingsStore: r.resolve(),
       pipelineConfig: pipelineConfig,
       castResolver: r.resolve(),
@@ -122,7 +150,9 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
       qualityScorer: r.resolve(),
       contextAssembler: r.resolve(),
       memoryStorage: r.resolve(),
-      memoryRetriever: r.resolve(),
+      memoryRetriever: registry.isRegistered<StoryMemoryRetrievalService>()
+          ? r.resolve()
+          : null,
       thoughtUpdater: r.resolve(),
       roleplaySessionStore: registry.isRegistered<RoleplaySessionStore>()
           ? r.resolve()
@@ -130,14 +160,18 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
       characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
           ? r.resolve()
           : null,
-      ragOrchestrator: registry.isRegistered<RagOrchestrator>()
+      hybridRetriever: registry.isRegistered<HybridRetriever>()
           ? r.resolve()
           : null,
       contextCache: r.resolve(),
       chapterContextBridge: r.resolve(),
       consistencyVerifier: CharacterConsistencyVerifier(
         settingsStore: r.resolve(),
+        soulValidator: r.resolve(),
       ),
+      canonKeeper: r.resolve(),
+      soulValidator: r.resolve(),
+      writebackGate: r.resolve(),
     );
   });
 }

@@ -2,7 +2,8 @@ import 'context_capsule_compressor.dart';
 import '../domain/pipeline_models.dart';
 import '../domain/memory_models.dart';
 import 'knowledge_tool_registry.dart';
-import 'story_memory_retriever.dart';
+import '../domain/story_pipeline_interfaces.dart'
+    show StoryMemoryRetrievalService;
 
 /// Describes the outcome of a single agent turn with retrieval context.
 class AgentTurnResult {
@@ -43,7 +44,7 @@ class AgentTurnController {
   final int capsuleCharBudget;
 
   /// Optional memory retriever for evidence-backed capsule generation.
-  final StoryMemoryRetriever? memoryRetriever;
+  final StoryMemoryRetrievalService? memoryRetriever;
 
   /// Optional application-level registry for roleplay material tools.
   final KnowledgeToolRegistry? toolRegistry;

@@ -6,17 +6,23 @@ import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_roleplay_session_models.dart';
 import 'story_generation_pass_retry.dart';
 import 'story_prompt_templates.dart';
+import '../domain/contracts/event_log.dart';
+import '../domain/contracts/stage_runner.dart';
 import '../domain/scene_models.dart';
 
 /// Produces scene-level observable context that no character should be forced
 /// to narrate: environment, atmosphere, physical mechanisms, and public clues.
 class SceneStageNarrator {
-  SceneStageNarrator({required AppSettingsStore settingsStore})
-    : _settingsStore = settingsStore;
+  SceneStageNarrator({
+    required AppSettingsStore settingsStore,
+    PipelineEventLog? eventLog,
+  }) : _settingsStore = settingsStore,
+       _eventLog = eventLog;
 
   static const String capsuleToolName = 'scene_stage_narrator';
 
   final AppSettingsStore _settingsStore;
+  final PipelineEventLog? _eventLog;
 
   Future<pipeline.LightContextCapsule?> generate({
     required pipeline.SceneTaskCard taskCard,
@@ -26,15 +32,20 @@ class SceneStageNarrator {
     required List<pipeline.LightContextCapsule> retrievalCapsules,
     SceneRoleplaySession? roleplaySession,
     String? ragContext,
-    void Function(String message)? onStatus,
   }) async {
     if (_disabled(taskCard)) {
       return null;
     }
 
-    onStatus?.call(
-      '场景 ${taskCard.brief.chapterId}/${taskCard.brief.sceneId} · stage narrator',
-    );
+    _eventLog?.emit(PipelineEvent(
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      stageId: 'stage_narrator',
+      eventType: 'status',
+      metadata: {
+        'sceneId': '${taskCard.brief.chapterId}/${taskCard.brief.sceneId}',
+        'message': 'stage narrator',
+      },
+    ));
 
     try {
       final result = await requestStoryGenerationPassWithRetry(

@@ -4,6 +4,9 @@ import 'scene_pipeline_models.dart' show SceneTaskCard;
 import 'scene_roleplay_runtime.dart';
 import 'character_memory_delta_models.dart';
 import 'character_memory_store.dart';
+import '../domain/contracts/event_log.dart';
+import '../domain/contracts/memory_policy.dart';
+import '../domain/contracts/stage_runner.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
@@ -11,11 +14,14 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
   DynamicRoleAgentRunner({
     required AppSettingsStore settingsStore,
     CharacterMemoryStore? characterMemoryStore,
+    PipelineEventLog? eventLog,
   }) : _settingsStore = settingsStore,
-       _characterMemoryStore = characterMemoryStore;
+       _characterMemoryStore = characterMemoryStore,
+       _eventLog = eventLog;
 
   final AppSettingsStore _settingsStore;
   final CharacterMemoryStore? _characterMemoryStore;
+  final PipelineEventLog? _eventLog;
 
   @override
   Future<DynamicRoleAgentResult> run({
@@ -24,7 +30,6 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     required SceneDirectorOutput director,
     SceneTaskCard? taskCard,
     String? ragContext,
-    void Function(String message)? onStatus,
   }) async {
     if (brief.metadata['localStructuredRoleplayOnly'] == true) {
       return (
@@ -35,7 +40,6 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
               director: director,
               member: member,
               taskCard: taskCard,
-              onStatus: onStatus,
             ),
         ],
         session: null,
@@ -46,16 +50,17 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
       brief: brief,
       cast: cast,
     );
-    final result = await SceneRoleplayRuntime(settingsStore: _settingsStore)
-        .runSession(
-          brief: brief,
-          cast: cast,
-          director: director,
-          taskCard: taskCard,
-          ragContext: ragContext,
-          memoryDeltasByCharacter: memoryDeltasByCharacter,
-          onStatus: onStatus,
-        );
+    final result = await SceneRoleplayRuntime(
+      settingsStore: _settingsStore,
+      eventLog: _eventLog,
+    ).runSession(
+      brief: brief,
+      cast: cast,
+      director: director,
+      taskCard: taskCard,
+      ragContext: ragContext,
+      memoryDeltasByCharacter: memoryDeltasByCharacter,
+    );
     return (outputs: result.outputs, session: result.session);
   }
 
@@ -73,6 +78,7 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
         store.loadCharacterMemories(
           projectId: projectId,
           characterId: member.characterId,
+          tier: MemoryTier.character,
         ),
     ]);
     return {
@@ -86,11 +92,16 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     required SceneDirectorOutput director,
     required ResolvedSceneCastMember member,
     SceneTaskCard? taskCard,
-    void Function(String message)? onStatus,
   }) {
-    onStatus?.call(
-      '场景 ${brief.chapterId}/${brief.sceneId} · role ${member.name}',
-    );
+    _eventLog?.emit(PipelineEvent(
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      stageId: 'roleplay',
+      eventType: 'status',
+      metadata: {
+        'sceneId': '${brief.chapterId}/${brief.sceneId}',
+        'message': 'role ${member.name}',
+      },
+    ));
     final note = director.plan?.noteFor(member.characterId);
     final target = _compact(
       brief.targetBeat.trim().isNotEmpty

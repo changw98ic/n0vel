@@ -11,6 +11,8 @@ import 'scene_roleplay_session_models.dart';
 import 'scene_transition_models.dart';
 import 'story_generation_pass_retry.dart';
 import 'story_prompt_templates.dart';
+import '../domain/contracts/event_log.dart';
+import '../domain/contracts/stage_runner.dart';
 
 /// Resolves [RolePlayTurnOutput]s and [LightContextCapsule]s into accepted
 /// [SceneBeat]s before any prose is written.
@@ -18,10 +20,14 @@ import 'story_prompt_templates.dart';
 /// This stage enforces the fact-first pipeline: no prose generation
 /// happens until the resolver has produced an ordered list of beats.
 class SceneStateResolver {
-  SceneStateResolver({required AppSettingsStore settingsStore})
-    : _settingsStore = settingsStore;
+  SceneStateResolver({
+    required AppSettingsStore settingsStore,
+    PipelineEventLog? eventLog,
+  }) : _settingsStore = settingsStore,
+       _eventLog = eventLog;
 
   final AppSettingsStore _settingsStore;
+  final PipelineEventLog? _eventLog;
 
   static SceneTransitionReport trackTransitions({
     required SceneTaskCard taskCard,
@@ -57,11 +63,16 @@ class SceneStateResolver {
     required List<RolePlayTurnOutput> roleTurns,
     required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
-    void Function(String message)? onStatus,
   }) async {
-    onStatus?.call(
-      '场景 ${taskCard.brief.chapterId}/${taskCard.brief.sceneId} · resolving beats',
-    );
+    _eventLog?.emit(PipelineEvent(
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      stageId: 'beat_resolution',
+      eventType: 'status',
+      metadata: {
+        'sceneId': '${taskCard.brief.chapterId}/${taskCard.brief.sceneId}',
+        'message': 'resolving beats',
+      },
+    ));
 
     if (taskCard.metadata['localStructuredRoleplayOnly'] == true ||
         taskCard.brief.metadata['localStructuredRoleplayOnly'] == true) {

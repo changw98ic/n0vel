@@ -5,17 +5,20 @@ import '../character_memory_store.dart';
 import '../scene_roleplay_session_models.dart';
 import '../scene_pipeline_models.dart' as pipeline;
 import '../scene_runtime_models.dart' show SceneBrief, DynamicRoleAgentOutput;
+import '../../domain/contracts/memory_policy.dart';
 import '../../domain/story_pipeline_interfaces.dart'
     show DynamicRoleAgentService;
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 3: Runs dynamic role agents, persists roleplay session and character
 /// memory deltas, converts outputs to pipeline format, and resolves retrieval
 /// capsules.
 ///
-/// Extracted from [ChapterGenerationOrchestrator] lines 305-328 plus helper
+/// Extracted from [PipelineStageRunnerImpl] lines 305-328 plus helper
 /// method 659-686.
-class RoleplayStep {
+class RoleplayStep implements PipelineStage<RoleplayInput, RoleplayOutput> {
   RoleplayStep({
     required DynamicRoleAgentService dynamicRoleAgentRunner,
     RoleplaySessionStore? roleplaySessionStore,
@@ -31,6 +34,13 @@ class RoleplayStep {
   final CharacterMemoryStore? _characterMemoryStore;
   final RetrievalController _retrievalController;
 
+  @override
+  String get roleId => 'roleplay';
+  @override
+  ArtifactType get outputType => ArtifactType.roleplaySession;
+  @override
+  int get maxRetries => 2;
+
   /// Executes the roleplay step.
   ///
   /// - Runs dynamic role agents via [DynamicRoleAgentService].
@@ -38,10 +48,11 @@ class RoleplayStep {
   ///   [DynamicRoleAgentRunner] concrete type).
   /// - Converts [DynamicRoleAgentOutput]s to pipeline [RolePlayTurnOutput]s.
   /// - Resolves retrieval capsules via [RetrievalController].
+  @override
   Future<RoleplayOutput> execute(
-    RoleplayInput input, {
+    RoleplayInput input,
+    Object context, {
     bool Function()? isRunCancelled,
-    void Function(String)? onStatus,
   }) async {
     final brief = input.brief;
     final plan = input.plan;
@@ -52,7 +63,6 @@ class RoleplayStep {
       director: plan.director,
       taskCard: plan.taskCard,
       ragContext: input.ragContext?.formattedContext,
-      onStatus: onStatus,
     );
 
     final roleOutputs = agentResult.outputs;
@@ -111,6 +121,8 @@ class RoleplayStep {
       projectId: projectId,
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
+      tier: MemoryTier.character,
+      producer: 'roleplay',
       deltas: acceptedDeltas,
     );
   }

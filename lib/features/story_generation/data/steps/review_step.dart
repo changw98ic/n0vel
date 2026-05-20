@@ -1,28 +1,42 @@
 import '../character_consistency_verifier.dart';
-import '../prose_style_analyzer.dart';
+import '../scene_hard_gates.dart';
 import '../scene_review_models.dart';
 import '../scene_runtime_models.dart';
+import '../../domain/contracts/event_log.dart';
+import '../../domain/contracts/memory_policy.dart';
+import '../../domain/contracts/stage_runner.dart';
+import '../../domain/memory_models.dart';
 import '../../domain/story_pipeline_interfaces.dart';
 import '../step_io.dart';
+import '../../domain/contracts/pipeline_role_contract.dart';
+import '../../domain/contracts/typed_artifact.dart';
 
-class ReviewStep {
+class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
   ReviewStep({
     required SceneReviewService reviewCoordinator,
     CharacterConsistencyVerifier? consistencyVerifier,
     required this.maxProseRetries,
+    required PipelineEventLog eventLog,
     this.hardGatesEnabled = true,
-  })  : _reviewCoordinator = reviewCoordinator,
-        _consistencyVerifier = consistencyVerifier;
+  }) : _reviewCoordinator = reviewCoordinator,
+       _consistencyVerifier = consistencyVerifier,
+       _eventLog = eventLog;
 
   final SceneReviewService _reviewCoordinator;
   final CharacterConsistencyVerifier? _consistencyVerifier;
+  final PipelineEventLog _eventLog;
   final int maxProseRetries;
   final bool hardGatesEnabled;
 
-  Future<ReviewOutput> execute(
-    ReviewInput input, {
-    void Function(String)? onStatus,
-  }) async {
+  @override
+  String get roleId => 'review';
+  @override
+  ArtifactType get outputType => ArtifactType.reviewResult;
+  @override
+  int get maxRetries => 2;
+
+  @override
+  Future<ReviewOutput> execute(ReviewInput input, Object context) async {
     final brief = input.brief;
     final prose = input.editorial.prose;
 
@@ -32,10 +46,7 @@ class ReviewStep {
     SceneReviewResult? propReview;
 
     // 1. Check length first (always runs — mechanical check).
-    lengthReview = _reviewOverlongProse(
-      brief: brief,
-      prose: prose,
-    );
+    lengthReview = _reviewOverlongProse(brief: brief, prose: prose);
     if (lengthReview != null) {
       if (input.softFailureCount + 1 <= maxProseRetries) {
         return ReviewOutput(
@@ -48,14 +59,13 @@ class ReviewStep {
 
     if (hardGatesEnabled) {
       // 1b. Style gate: dialogue ratio check.
-      styleReview = _reviewStyleDeficit(
-        brief: brief,
-        prose: prose,
-      );
+      styleReview = _reviewStyleDeficit(brief: brief, prose: prose);
       if (styleReview != null) {
         if (input.softFailureCount + 1 <= maxProseRetries) {
-          onStatus?.call(
-            '场景 ${brief.sceneId} · dialogue ratio low -> rewrite',
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'dialogue ratio low -> rewrite',
           );
           return ReviewOutput(
             review: styleReview,
@@ -66,17 +76,15 @@ class ReviewStep {
       }
 
       // 1c. Opening hook gate: first scene must open with suspense.
-      hookReview = _reviewOpeningHookDeficit(
-        brief: brief,
-        prose: prose,
-      ) ?? _reviewClosingHookDeficit(
-        brief: brief,
-        prose: prose,
-      );
+      hookReview =
+          _reviewOpeningHookDeficit(brief: brief, prose: prose) ??
+          _reviewClosingHookDeficit(brief: brief, prose: prose);
       if (hookReview != null) {
         if (input.softFailureCount + 1 <= maxProseRetries) {
-          onStatus?.call(
-            '场景 ${brief.sceneId} · hook deficit -> rewrite',
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'hook deficit -> rewrite',
           );
           return ReviewOutput(
             review: hookReview,
@@ -87,14 +95,13 @@ class ReviewStep {
       }
 
       // 1d. Prop consistency gate: detect scene-setting contradictions.
-      propReview = _reviewPropConsistency(
-        brief: brief,
-        prose: prose,
-      );
+      propReview = _reviewPropConsistency(brief: brief, prose: prose);
       if (propReview != null) {
         if (input.softFailureCount + 1 <= maxProseRetries) {
-          onStatus?.call(
-            '场景 ${brief.sceneId} · prop consistency violation -> rewrite',
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'prop consistency violation -> rewrite',
           );
           return ReviewOutput(
             review: propReview,
@@ -106,7 +113,11 @@ class ReviewStep {
     }
 
     // 2. Quality review (or reuse length/style/hook/prop review when retries exhausted).
-    final review = lengthReview ?? styleReview ?? hookReview ?? propReview ??
+    final review =
+        lengthReview ??
+        styleReview ??
+        hookReview ??
+        propReview ??
         await _reviewCoordinator.review(
           brief: brief,
           director: input.plan.director,
@@ -114,7 +125,7 @@ class ReviewStep {
           prose: prose,
           roleplaySession: input.roleplay.session,
           retrievalPack: input.context.retrievalPack,
-          onStatus: onStatus,
+          canonFacts: _canonFactsFrom(input.context),
         );
 
     // 3. Post-generation consistency check (only when review passed).
@@ -128,8 +139,10 @@ class ReviewStep {
         cast: input.plan.resolvedCast,
       );
       if (consistencyReport.hasBlockingIssues) {
-        onStatus?.call(
-          '场景 ${brief.sceneId} · consistency check failed -> replan',
+        _emitGateEvent(
+          brief: brief,
+          code: FailureCode.soulViolation,
+          message: 'consistency check failed -> replan',
         );
         return ReviewOutput(
           review: review,
@@ -146,8 +159,40 @@ class ReviewStep {
     );
   }
 
+  void _emitGateEvent({
+    required SceneBrief brief,
+    required FailureCode code,
+    required String message,
+  }) {
+    _eventLog.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'review',
+        eventType: 'hard_gate',
+        failureCode: code,
+        metadata: {'sceneId': brief.sceneId, 'message': message},
+      ),
+    );
+  }
+
+  List<StoryMemoryChunk> _canonFactsFrom(ContextEnrichmentOutput context) {
+    final byId = <String, StoryMemoryChunk>{};
+    for (final chunk in context.cachedAssembly?.memoryChunks ?? const []) {
+      if (chunk.tier == MemoryTier.canon) {
+        byId[chunk.id] = chunk;
+      }
+    }
+    for (final hit in context.retrievalPack?.hits ?? const []) {
+      final chunk = hit.chunk;
+      if (chunk.tier == MemoryTier.canon) {
+        byId[chunk.id] = chunk;
+      }
+    }
+    return byId.values.toList(growable: false);
+  }
+
   // ---------------------------------------------------------------------------
-  // Helpers (ported from ChapterGenerationOrchestrator)
+  // Helpers (ported from PipelineStageRunnerImpl)
   // ---------------------------------------------------------------------------
 
   SceneReviewResult? _reviewOverlongProse({
@@ -187,15 +232,9 @@ class ReviewStep {
     required SceneBrief brief,
     required SceneProseDraft prose,
   }) {
-    final fingerprint = ProseStyleAnalyzer().analyze(prose.text);
-    if (fingerprint.dialogueRatio >= 0.20) return null;
+    final reason = sceneDialogueRatioViolationText(prose.text);
+    if (reason == null) return null;
 
-    final percentage = (fingerprint.dialogueRatio * 100).toStringAsFixed(1);
-    final reason =
-        '对话占比$percentage%低于最低要求20%。'
-        '请在重写时：1）将连续纯叙述段落改为角色对白；'
-        '2）每隔2段叙述插入对话；'
-        '3）用「」包裹对白，确保至少6个独立对话回合。';
     return _buildRewriteReview(
       reason: reason,
       judgeCategories: const [SceneReviewCategory.prose],
@@ -213,33 +252,71 @@ class ReviewStep {
 
   // Aligned with _computeHookStrength in the benchmark scorer.
   static const _hookActionVerbs = [
-    '冲', '跑', '跳', '抓', '摔', '撞', '翻', '拽', '喊', '叫',
+    '冲',
+    '跑',
+    '跳',
+    '抓',
+    '摔',
+    '撞',
+    '翻',
+    '拽',
+    '喊',
+    '叫',
   ];
 
-  static const _hookSuspenseWords = [
-    '突然', '竟然', '意外', '发现', '秘密', '失踪',
-  ];
+  static const _hookSuspenseWords = ['突然', '竟然', '意外', '发现', '秘密', '失踪'];
 
   static const _forbiddenEnvironmentOpenings = [
-    '清晨', '夜色', '阴影', '街道', '空气中', '天幕', '远处', '楼道', '窗外',
+    '清晨',
+    '夜色',
+    '阴影',
+    '街道',
+    '空气中',
+    '天幕',
+    '远处',
+    '楼道',
+    '窗外',
   ];
 
   static const _closingResolutionPatterns = [
-    '恢复了平静', '回到了往日', '都解决了', '结束了', '得到了应有的',
-    '安心回家', '从此以后', '一切都恢复', '所有谜团都解开',
+    '恢复了平静',
+    '回到了往日',
+    '都解决了',
+    '结束了',
+    '得到了应有的',
+    '安心回家',
+    '从此以后',
+    '一切都恢复',
+    '所有谜团都解开',
   ];
 
   static const _endingUnfinishedActions = [
-    '还没', '来不及', '正要', '就要', '差一点', '眼看',
+    '还没',
+    '来不及',
+    '正要',
+    '就要',
+    '差一点',
+    '眼看',
   ];
-  static const _endingHookWords = [
-    '真相', '秘密', '危险', '背后', '发现', '到底', '究竟',
-  ];
+  static const _endingHookWords = ['真相', '秘密', '危险', '背后', '发现', '到底', '究竟'];
 
   /// Scene-type to forbidden-prop mapping.
   static const _scenePropConflicts = {
-    'abandoned': ['咖啡杯', '咖啡', '热茶', '茶杯', '桌面', '纸币', '电脑',
-      '空调', '冰箱', '收银', '电视', 'WiFi', '手机充电'],
+    'abandoned': [
+      '咖啡杯',
+      '咖啡',
+      '热茶',
+      '茶杯',
+      '桌面',
+      '纸币',
+      '电脑',
+      '空调',
+      '冰箱',
+      '收银',
+      '电视',
+      'WiFi',
+      '手机充电',
+    ],
     'outdoor': ['桌子', '椅子', '电脑', '文件柜', '茶杯', '沙发', '床', '衣柜'],
     'dock': ['办公桌', '电脑', '文件柜', '空调', '沙发'],
     'warehouse': ['咖啡杯', '热茶', '沙发', '电视'],
@@ -362,10 +439,8 @@ class ReviewStep {
         : '';
     final opening = text.length > 50 ? text.substring(0, 50) : text;
     final pct = (score * 100).toStringAsFixed(0);
-    final missingNote =
-        missing.isEmpty ? '' : '缺少：${missing.join("、")}。';
-    final hitsNote =
-        hits.isEmpty ? '' : '已有：${hits.join("、")}。';
+    final missingNote = missing.isEmpty ? '' : '缺少：${missing.join("、")}。';
+    final hitsNote = hits.isEmpty ? '' : '已有：${hits.join("、")}。';
 
     final reason =
         '开头钩子强度$pct%低于30%阈值。'
@@ -381,7 +456,8 @@ class ReviewStep {
     required SceneBrief brief,
     required SceneProseDraft prose,
   }) {
-    final isLastScene = brief.totalScenesInChapter > 0 &&
+    final isLastScene =
+        brief.totalScenesInChapter > 0 &&
         brief.sceneIndex == brief.totalScenesInChapter - 1;
     if (!isLastScene) return null;
 
@@ -409,10 +485,16 @@ class ReviewStep {
     if (tail.contains('？') || tail.contains('?')) score += 0.2;
     if (tail.contains('！') || tail.contains('!')) score += 0.15;
     for (final a in _endingUnfinishedActions) {
-      if (tail.contains(a)) { score += 0.2; break; }
+      if (tail.contains(a)) {
+        score += 0.2;
+        break;
+      }
     }
     for (final w in _endingHookWords) {
-      if (tail.contains(w)) { score += 0.2; break; }
+      if (tail.contains(w)) {
+        score += 0.2;
+        break;
+      }
     }
 
     if (score >= 0.30) return null; // Threshold aligned with benchmark.
@@ -422,10 +504,16 @@ class ReviewStep {
     if (tail.contains('？') || tail.contains('?')) hits.add('疑问');
     if (tail.contains('！') || tail.contains('!')) hits.add('感叹');
     for (final a in _endingUnfinishedActions) {
-      if (tail.contains(a)) { hits.add('未完成动作($a)'); break; }
+      if (tail.contains(a)) {
+        hits.add('未完成动作($a)');
+        break;
+      }
     }
     for (final w in _endingHookWords) {
-      if (tail.contains(w)) { hits.add('悬念词($w)'); break; }
+      if (tail.contains(w)) {
+        hits.add('悬念词($w)');
+        break;
+      }
     }
 
     final reason =

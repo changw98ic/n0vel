@@ -33,7 +33,7 @@ void main() {
       expect(turn.taboo, '拖延和犹豫');
     });
 
-    test('round-trips through toStructuredText and parse', () {
+    test('round-trips through toPromptText and parse', () {
       const original = RoleplayTurn(
         characterId: 'char-yueren',
         name: '岳人',
@@ -44,7 +44,7 @@ void main() {
       final restored = RoleplayTurn.parse(
         characterId: original.characterId,
         name: original.name,
-        text: original.toStructuredText(),
+        text: original.toPromptText(),
       );
       expect(restored, equals(original));
     });

@@ -1,3 +1,5 @@
+import 'contracts/memory_policy.dart';
+
 /// Visibility scope for memory records.
 enum MemoryVisibility {
   /// Visible to all agents and review passes.
@@ -16,6 +18,7 @@ enum MemorySourceKind {
   sceneSummary,
   acceptedState,
   reviewFinding,
+  draft,
 }
 
 /// Types of thought atoms extracted after scene acceptance.
@@ -141,6 +144,8 @@ class StoryMemoryChunk {
     required this.scopeId,
     required this.kind,
     required this.content,
+    this.tier = MemoryTier.scene,
+    this.producer = '',
     this.sourceRefs = const [],
     this.rootSourceIds = const [],
     this.visibility = MemoryVisibility.publicObservable,
@@ -155,6 +160,8 @@ class StoryMemoryChunk {
   final String scopeId;
   final MemorySourceKind kind;
   final String content;
+  final MemoryTier tier;
+  final String producer;
   final List<MemorySourceRef> sourceRefs;
   final List<String> rootSourceIds;
   final MemoryVisibility visibility;
@@ -169,6 +176,8 @@ class StoryMemoryChunk {
     'scopeId': scopeId,
     'kind': kind.name,
     'content': content,
+    'tier': tier.name,
+    'producer': producer,
     'sourceRefs': [for (final r in sourceRefs) r.toJson()],
     'rootSourceIds': rootSourceIds,
     'visibility': visibility.name,
@@ -185,6 +194,8 @@ class StoryMemoryChunk {
       scopeId: json['scopeId']?.toString() ?? '',
       kind: _parseSourceKind(json['kind']),
       content: json['content']?.toString() ?? '',
+      tier: _parseMemoryTier(json['tier']),
+      producer: json['producer']?.toString() ?? '',
       sourceRefs: _parseSourceRefs(json['sourceRefs']),
       rootSourceIds: _parseStringList(json['rootSourceIds']),
       visibility: _parseVisibility(json['visibility']),
@@ -207,6 +218,7 @@ class ThoughtAtom {
     required this.scopeId,
     required this.thoughtType,
     required this.content,
+    this.tier = MemoryTier.scene,
     this.confidence = 0.0,
     this.abstractionLevel = 1.0,
     this.sourceRefs = const [],
@@ -222,6 +234,7 @@ class ThoughtAtom {
   final String scopeId;
   final ThoughtType thoughtType;
   final String content;
+  final MemoryTier tier;
   final double confidence;
   final double abstractionLevel;
   final List<MemorySourceRef> sourceRefs;
@@ -237,6 +250,7 @@ class ThoughtAtom {
     'scopeId': scopeId,
     'thoughtType': thoughtType.name,
     'content': content,
+    'tier': tier.name,
     'confidence': confidence,
     'abstractionLevel': abstractionLevel,
     'sourceRefs': [for (final r in sourceRefs) r.toJson()],
@@ -254,6 +268,7 @@ class ThoughtAtom {
       scopeId: json['scopeId']?.toString() ?? '',
       thoughtType: _parseThoughtType(json['thoughtType']),
       content: json['content']?.toString() ?? '',
+      tier: _parseMemoryTier(json['tier']),
       confidence: _parseDouble(json['confidence']),
       abstractionLevel: _parseDouble(json['abstractionLevel']),
       sourceRefs: _parseSourceRefs(json['sourceRefs']),
@@ -466,6 +481,13 @@ class CrossChapterContext {
 }
 
 // -- Parse helpers ------------------------------------------------------------
+
+final _memoryTierByName = {
+  for (final v in MemoryTier.values) v.name: v,
+};
+
+MemoryTier _parseMemoryTier(Object? raw) =>
+    _memoryTierByName[raw?.toString()] ?? MemoryTier.scene;
 
 final _sourceKindByName = {
   for (final v in MemorySourceKind.values) v.name: v,

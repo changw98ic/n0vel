@@ -18,3 +18,4 @@ export 'scene_roleplay_session_models.dart';
 export 'narrative_arc_models.dart';
 export 'narrative_arc_tracker.dart';
 export 'director_memory.dart';
+export '../domain/contracts/structured_profile.dart';

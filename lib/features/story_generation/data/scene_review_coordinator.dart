@@ -2,9 +2,12 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
 import 'story_generation_pass_retry.dart';
+import '../domain/contracts/memory_policy.dart';
+import '../domain/contracts/memory_writeback_gate.dart' as gate;
 import '../domain/scene_models.dart';
 import '../domain/memory_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
+import 'canon_keeper.dart';
 import 'scene_roleplay_session_models.dart';
 import 'scene_cast_roleplay_policy.dart';
 import 'scene_hard_gates.dart';
@@ -17,12 +20,15 @@ class SceneReviewCoordinator implements SceneReviewService {
     required AppSettingsStore settingsStore,
     StoryGenerationFormatterTraceSink? formatterTraceSink,
     this.hardGatesEnabled = true,
+    CanonKeeper? canonKeeper,
   }) : _settingsStore = settingsStore,
-       _formatterTraceSink = formatterTraceSink;
+       _formatterTraceSink = formatterTraceSink,
+       _canonKeeper = canonKeeper;
 
   final AppSettingsStore _settingsStore;
   final StoryGenerationFormatterTraceSink? _formatterTraceSink;
   final bool hardGatesEnabled;
+  final CanonKeeper? _canonKeeper;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
   final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
@@ -52,10 +58,14 @@ class SceneReviewCoordinator implements SceneReviewService {
     StoryRetrievalPack? retrievalPack,
     bool enableReaderFlowReview = false,
     bool enableLexiconReview = false,
-    void Function(String message)? onStatus,
+    List<StoryMemoryChunk> canonFacts = const [],
   }) async {
     if (brief.metadata['localReviewOnly'] == true) {
-      return _localReviewResult(brief: brief, prose: prose, onStatus: onStatus);
+      return _localReviewResult(
+        brief: brief,
+        prose: prose,
+        canonFacts: canonFacts,
+      );
     }
 
     final combinedCategories = [
@@ -75,7 +85,7 @@ class SceneReviewCoordinator implements SceneReviewService {
       prose: prose,
       roleplaySession: roleplaySession,
       retrievalPack: retrievalPack,
-      onStatus: onStatus,
+      canonFacts: canonFacts,
     );
     final consistency = _coveredReviewPass(
       source: combined,
@@ -121,14 +131,32 @@ class SceneReviewCoordinator implements SceneReviewService {
   SceneReviewResult _localReviewResult({
     required SceneBrief brief,
     required SceneProseDraft prose,
-    void Function(String message)? onStatus,
+    List<StoryMemoryChunk> canonFacts = const [],
   }) {
-    onStatus?.call('场景 ${brief.chapterId}/${brief.sceneId} · local review');
     final hasDraft = prose.text.trim().isNotEmpty;
     final hardGateViolation = hasDraft
-        ? sceneHardGateViolationText(brief: brief, proseText: prose.text, enabled: hardGatesEnabled)
+        ? sceneHardGateViolationText(
+            brief: brief,
+            proseText: prose.text,
+            enabled: hardGatesEnabled,
+          )
         : '';
-    final passed = hasDraft && hardGateViolation.isEmpty;
+    var passed = hasDraft && hardGateViolation.isEmpty;
+
+    // Canon consistency check: only when hard gates passed.
+    String? canonReason;
+    if (passed && _canonKeeper != null && canonFacts.isNotEmpty) {
+      final write = gate.ProposedWrite(
+        tier: MemoryTier.canon,
+        content: prose.text,
+      );
+      final issues = _canonKeeper.checkConsistency(write, canonFacts);
+      if (issues.isNotEmpty) {
+        passed = false;
+        canonReason = 'Canon consistency violation: ${issues.join("; ")}';
+      }
+    }
+
     final status = passed
         ? SceneReviewStatus.pass
         : SceneReviewStatus.rewriteProse;
@@ -138,12 +166,12 @@ class SceneReviewCoordinator implements SceneReviewService {
     final reason = !hasDraft
         ? '正文为空，需要补写。'
         : hardGateViolation.isNotEmpty
-            ? hardGateViolation
-            : '本地结构化审查通过。';
+        ? hardGateViolation
+        : canonReason ?? '本地结构化审查通过。';
     final judge = SceneReviewPassResult(
       status: status,
       reason: reason,
-      rawText: '决定：${hasDraft ? 'PASS' : 'REWRITE_PROSE'}\n原因：$reason',
+      rawText: '决定：${passed ? 'PASS' : 'REWRITE_PROSE'}\n原因：$reason',
       categories: const [
         SceneReviewCategory.prose,
         SceneReviewCategory.scenePlan,
@@ -152,7 +180,7 @@ class SceneReviewCoordinator implements SceneReviewService {
     final consistency = SceneReviewPassResult(
       status: status,
       reason: reason,
-      rawText: '决定：${hasDraft ? 'PASS' : 'REWRITE_PROSE'}\n原因：$reason',
+      rawText: '决定：${passed ? 'PASS' : 'REWRITE_PROSE'}\n原因：$reason',
       categories: const [
         SceneReviewCategory.chapterPlan,
         SceneReviewCategory.continuity,
@@ -198,9 +226,8 @@ class SceneReviewCoordinator implements SceneReviewService {
     required SceneProseDraft prose,
     SceneRoleplaySession? roleplaySession,
     StoryRetrievalPack? retrievalPack,
-    void Function(String message)? onStatus,
+    List<StoryMemoryChunk> canonFacts = const [],
   }) async {
-    onStatus?.call('场景 ${brief.chapterId}/${brief.sceneId} · $passName');
     final evidenceSection = _buildEvidenceSection(retrievalPack);
     final noninteractiveCastBoundary = noninteractiveCastBoundaryText(brief);
     final result = await requestStoryGenerationPassWithRetry(
@@ -232,8 +259,7 @@ class SceneReviewCoordinator implements SceneReviewService {
             '评审类别：${_categoryList(categories)}',
             '规则：聚焦阻塞问题，正文改写交给后续步骤；读者会出戏的角色越权、测试说明、明显 AI 套话均视为阻塞问题',
             '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
-            if (brief.sceneIndex == 0)
-              '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
+            if (brief.sceneIndex == 0) '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
             if (brief.totalScenesInChapter > 0 &&
                 brief.sceneIndex == brief.totalScenesInChapter - 1)
               '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
@@ -272,9 +298,6 @@ class SceneReviewCoordinator implements SceneReviewService {
     String? repairedRawText;
     if (parsed.usedFallback) {
       repairAttempted = true;
-      onStatus?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · $passName format retry',
-      );
       final repaired = await _repairReviewFormat(
         passName: passName,
         passLabel: passLabel,
@@ -289,9 +312,7 @@ class SceneReviewCoordinator implements SceneReviewService {
       }
     }
     if (parsed.usedFallback) {
-      onStatus?.call(
-        '场景 ${brief.chapterId}/${brief.sceneId} · $passName format fallback',
-      );
+      // Format fallback occurred — no status callback needed.
     }
     final noninteractiveViolation = noninteractiveCastViolationText(
       brief,
@@ -318,6 +339,25 @@ class SceneReviewCoordinator implements SceneReviewService {
         reason: hardGateViolation,
       );
       rawText = '决定：REWRITE_PROSE\n原因：$hardGateViolation';
+    }
+
+    // Canon consistency check: only when status is still pass.
+    if (parsed.status == SceneReviewStatus.pass &&
+        _canonKeeper != null &&
+        canonFacts.isNotEmpty) {
+      final write = gate.ProposedWrite(
+        tier: MemoryTier.canon,
+        content: prose.text,
+      );
+      final issues = _canonKeeper.checkConsistency(write, canonFacts);
+      if (issues.isNotEmpty) {
+        final canonReason = 'Canon consistency violation: ${issues.join("; ")}';
+        parsed = _ParsedReviewOutput(
+          status: SceneReviewStatus.rewriteProse,
+          reason: canonReason,
+        );
+        rawText = '决定：REWRITE_PROSE\n原因：$canonReason';
+      }
     }
     await _recordFormatterTrace(
       brief: brief,

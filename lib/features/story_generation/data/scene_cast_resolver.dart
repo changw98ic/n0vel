@@ -1,3 +1,4 @@
+import '../domain/contracts/structured_profile.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 import 'scene_cast_roleplay_policy.dart';
@@ -5,6 +6,9 @@ import 'scene_cast_roleplay_policy.dart';
 class SceneCastResolver implements SceneCastResolverService {
   @override
   List<ResolvedSceneCastMember> resolve(SceneBrief brief) {
+    final profileById = <String, StructuredProfile>{
+      for (final p in brief.characterProfiles) p.id: p,
+    };
     return [
       for (final candidate in brief.cast)
         if (!isNoninteractiveCastCandidate(candidate))
@@ -15,6 +19,7 @@ class SceneCastResolver implements SceneCastResolverService {
             role: candidate.role,
             contributions: _resolveContributions(candidate.participation),
             metadata: candidate.metadata,
+            profile: profileById[candidate.characterId],
           ),
     ];
   }

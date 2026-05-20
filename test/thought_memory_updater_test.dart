@@ -3,6 +3,8 @@ import 'package:novel_writer/features/story_generation/domain/memory_models.dart
 import 'package:novel_writer/features/story_generation/data/story_memory_dedupe.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage_stub.dart';
 import 'package:novel_writer/features/story_generation/data/thought_memory_updater.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_writeback_gate.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
 void main() {
@@ -12,7 +14,10 @@ void main() {
 
     setUp(() {
       storage = StoryMemoryStorageStub();
-      updater = ThoughtMemoryUpdater(storage: storage);
+      updater = ThoughtMemoryUpdater(
+        storage: storage,
+        gate: const BasicMemoryWritebackGate(),
+      );
     });
 
     SceneRuntimeOutput buildOutput({
@@ -158,6 +163,24 @@ void main() {
       // Second run should produce duplicates that are rejected
       expect(secondBatch.length, greaterThan(0));
       expect(secondBatch.length, greaterThanOrEqualTo(firstBatch.length));
+    });
+
+    test('rejecting gate prevents persistence', () async {
+      final rejectingUpdater = ThoughtMemoryUpdater(
+        storage: storage,
+        gate: const _RejectingGate(),
+      );
+
+      final result = await rejectingUpdater.extractLocal(
+        projectId: 'p1',
+        sceneOutput: buildOutput(),
+        nowMs: 10000,
+      );
+
+      expect(result.accepted, isEmpty);
+      expect(result.rejected, isNotEmpty);
+      final stored = await storage.loadThoughts('p1');
+      expect(stored, isEmpty);
     });
   });
 
@@ -379,6 +402,7 @@ void main() {
 
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async {
           capturedSystem = system;
           capturedUser = user;
@@ -401,6 +425,7 @@ void main() {
     test('persists LLM-extracted thoughts to storage', () async {
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async {
           return '[{"thoughtType":"plotCausality","content":"The key loss forces a new path","confidence":0.88,"sourceIds":["sc1"],"rootSourceIds":["sc1"],"tags":["plot","causality"]}]';
         },
@@ -420,6 +445,7 @@ void main() {
     test('falls back to local on null LLM response', () async {
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async => null,
       );
 
@@ -440,6 +466,7 @@ void main() {
     test('falls back to local on invalid JSON', () async {
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async => 'not valid json at all',
       );
 
@@ -455,6 +482,7 @@ void main() {
     test('falls back to local on LLM exception', () async {
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async {
           throw StateError('LLM unavailable');
         },
@@ -470,7 +498,10 @@ void main() {
     });
 
     test('extractWithLlm without caller delegates to extractLocal', () async {
-      final noLlmUpdater = ThoughtMemoryUpdater(storage: storage);
+      final noLlmUpdater = ThoughtMemoryUpdater(
+        storage: storage,
+        gate: const BasicMemoryWritebackGate(),
+      );
 
       final result = await noLlmUpdater.extractWithLlm(
         projectId: 'p1',
@@ -489,6 +520,7 @@ void main() {
     test('strips markdown fences from LLM response', () async {
       final llmUpdater = ThoughtMemoryUpdater(
         storage: storage,
+        gate: const BasicMemoryWritebackGate(),
         llmCaller: (system, user) async {
           return '```json\n[{"thoughtType":"style","content":"Short sentences build tension","confidence":0.82,"sourceIds":["sc1"],"rootSourceIds":["sc1"],"tags":["style"]}]\n```';
         },
@@ -507,4 +539,22 @@ void main() {
       );
     });
   });
+}
+
+class _RejectingGate extends MemoryWritebackGate {
+  const _RejectingGate();
+
+  @override
+  Future<WritebackResult> validate(List<ProposedWrite> writes) async {
+    return WritebackResult(
+      accepted: [],
+      rejected: writes
+          .map((w) => RejectedWrite(write: w, reasons: ['blocked by test gate']))
+          .toList(),
+    );
+  }
+
+  @override
+  bool isTierTransitionAllowed(MemoryTier sourceTier, MemoryTier targetTier) =>
+      false;
 }

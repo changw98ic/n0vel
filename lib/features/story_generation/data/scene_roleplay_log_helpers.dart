@@ -5,7 +5,7 @@ import '../domain/scene_models.dart';
 /// Structured log-line builders for the roleplay runtime.
 ///
 /// Each method returns a single `|`-delimited log line that can be fed
-/// directly to an `onStatus` callback.  All members are static so the
+/// via `PipelineEventLog.emit()`.  All members are static so the
 /// class never needs instantiation.
 class SceneRoleplayLog {
   SceneRoleplayLog._();

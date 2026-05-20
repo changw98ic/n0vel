@@ -1,27 +1,118 @@
+// ignore_for_file: deprecated_member_use
+import '../domain/contracts/event_log.dart';
 import 'scene_runtime_models.dart';
 
-/// Programmatic hard-gate checks for scene prose quality.
+const double sceneDialogueRatioMinimum = 0.25;
+
+/// A typed hard-gate violation carrying both description text and FailureCode.
+class HardGateViolation {
+  const HardGateViolation({required this.text, required this.failureCode});
+
+  /// Human-readable violation description.
+  final String text;
+
+  /// Machine-readable failure code for pipeline event logging.
+  final FailureCode failureCode;
+}
+
+class SceneDialogueRatioStats {
+  const SceneDialogueRatioStats({
+    required this.dialogueChars,
+    required this.totalChars,
+  });
+
+  final int dialogueChars;
+  final int totalChars;
+
+  double get ratio => totalChars == 0 ? 0 : dialogueChars / totalChars;
+
+  int additionalDialogueCharsNeeded({
+    double minimum = sceneDialogueRatioMinimum,
+  }) {
+    if (totalChars == 0 || ratio >= minimum) return 0;
+    final missingShare = minimum * totalChars - dialogueChars;
+    return (missingShare / (1 - minimum)).ceil();
+  }
+}
+
+SceneDialogueRatioStats sceneDialogueRatioStats(String prose) {
+  var totalCjkChars = 0;
+  var dialogueCjkChars = 0;
+  var totalVisibleChars = 0;
+  var dialogueVisibleChars = 0;
+  var inQuote = false;
+
+  for (final rune in prose.runes) {
+    final ch = String.fromCharCode(rune);
+    if (_isDialogueQuote(ch)) {
+      inQuote = !inQuote;
+      continue;
+    }
+    if (_isWhitespace(rune)) continue;
+
+    totalVisibleChars += 1;
+    if (inQuote) dialogueVisibleChars += 1;
+
+    if (_isCjk(rune)) {
+      totalCjkChars += 1;
+      if (inQuote) dialogueCjkChars += 1;
+    }
+  }
+
+  if (totalCjkChars > 0) {
+    return SceneDialogueRatioStats(
+      dialogueChars: dialogueCjkChars,
+      totalChars: totalCjkChars,
+    );
+  }
+  return SceneDialogueRatioStats(
+    dialogueChars: dialogueVisibleChars,
+    totalChars: totalVisibleChars,
+  );
+}
+
+String? sceneDialogueRatioViolationText(String prose) {
+  final stats = sceneDialogueRatioStats(prose);
+  if (stats.totalChars == 0 || stats.ratio >= sceneDialogueRatioMinimum) {
+    return null;
+  }
+
+  final pct = (stats.ratio * 100).toStringAsFixed(1);
+  final targetPct = (sceneDialogueRatioMinimum * 100).toStringAsFixed(0);
+  final needed = stats.additionalDialogueCharsNeeded();
+  return '对话占比$pct%低于$targetPct%硬约束（当前${stats.dialogueChars}/${stats.totalChars}字），'
+      '还需增加约$needed个中文对白字；请将连续纯叙述改为角色对白，'
+      '每2段至少1段含对话，并确保至少6个独立对话回合。';
+}
+
+/// Programmatic hard-gate checks returning typed violations with FailureCodes.
 ///
-/// Returns a violation description string if any gate fails, empty string if
-/// all gates pass. Used by SceneReviewCoordinator to override LLM review
-/// decisions when hard constraints are violated.
-String sceneHardGateViolationText({
+/// Returns a list of [HardGateViolation] for each failing gate. Used by
+/// [ReviewStep] to emit structured events and by [SceneReviewCoordinator]
+/// to override LLM review decisions when hard constraints are violated.
+List<HardGateViolation> sceneHardGateViolations({
   required SceneBrief brief,
   required String proseText,
   bool enabled = true,
 }) {
-  if (!enabled) return '';
-  final violations = <String>[];
+  if (!enabled) return const [];
+  final violations = <HardGateViolation>[];
 
   final dialogueViolation = _checkDialogueRatio(proseText);
   if (dialogueViolation != null) {
-    violations.add(dialogueViolation);
+    violations.add(HardGateViolation(
+      text: dialogueViolation,
+      failureCode: FailureCode.qualityFail,
+    ));
   }
 
   if (brief.sceneIndex == 0) {
     final hookViolation = _checkChapterOpeningHook(proseText);
     if (hookViolation != null) {
-      violations.add(hookViolation);
+      violations.add(HardGateViolation(
+        text: hookViolation,
+        failureCode: FailureCode.qualityFail,
+      ));
     }
   }
 
@@ -29,36 +120,38 @@ String sceneHardGateViolationText({
       brief.sceneIndex == brief.totalScenesInChapter - 1) {
     final hookViolation = _checkChapterEndingHook(proseText);
     if (hookViolation != null) {
-      violations.add(hookViolation);
+      violations.add(HardGateViolation(
+        text: hookViolation,
+        failureCode: FailureCode.qualityFail,
+      ));
     }
   }
 
-  return violations.isEmpty ? '' : violations.join('；');
+  return violations;
+}
+
+/// Convenience wrapper returning joined violation text or empty string.
+///
+/// Delegates to [sceneHardGateViolations]. Prefer the typed function when
+/// FailureCode information is needed.
+String sceneHardGateViolationText({
+  required SceneBrief brief,
+  required String proseText,
+  bool enabled = true,
+}) {
+  final violations = sceneHardGateViolations(
+    brief: brief,
+    proseText: proseText,
+    enabled: enabled,
+  );
+  return violations.isEmpty ? '' : violations.map((v) => v.text).join('；');
 }
 
 /// Check that dialogue text accounts for at least 25% of total prose.
 ///
 /// Dialogue is defined as text inside 「」, "", or 『』 brackets.
 String? _checkDialogueRatio(String prose) {
-  if (prose.isEmpty) return null;
-
-  final dialoguePattern = RegExp(r'[「"『][^」"』]*[」"』]');
-  final matches = dialoguePattern.allMatches(prose);
-  final dialogueChars = matches.fold<int>(
-    0,
-    (sum, m) => sum + (m.end - m.start),
-  );
-
-  // Strip whitespace for fair ratio calculation
-  final totalChars = prose.replaceAll(RegExp(r'\s+'), '').length;
-  if (totalChars == 0) return null;
-
-  final ratio = dialogueChars / totalChars;
-  if (ratio < 0.25) {
-    final pct = (ratio * 100).toStringAsFixed(1);
-    return '对话占比$pct%低于25%硬约束，需增加角色对话';
-  }
-  return null;
+  return sceneDialogueRatioViolationText(prose);
 }
 
 /// Check that the first 50 Chinese characters contain a suspense signal.
@@ -119,7 +212,7 @@ String? _checkChapterEndingHook(String prose) {
   // Check for tension/hook signals in the ending
   final hookPatterns = RegExp(
     r'[？?！!…]|'
-    r'「[^」]*$|"[^"]*$|'  // unclosed dialogue
+    r'「[^」]*$|"[^"]*$|' // unclosed dialogue
     r'突然|忽然|然而|但是|可是|只是|'
     r'威胁|危险|不安|紧张|疑|悬念|未解|未知|'
     r'转身|离开|消失|逃离|逃走|'
@@ -129,8 +222,7 @@ String? _checkChapterEndingHook(String prose) {
   if (hookPatterns.hasMatch(lastParagraph)) return null;
 
   // If ending is very short (under 30 chars), likely a punchline/hook
-  final lastParaChars =
-      lastParagraph.replaceAll(RegExp(r'\s+'), '').length;
+  final lastParaChars = lastParagraph.replaceAll(RegExp(r'\s+'), '').length;
   if (lastParaChars < 30) return null;
 
   // Ending with dialogue is usually a hook
@@ -138,3 +230,24 @@ String? _checkChapterEndingHook(String prose) {
 
   return '章尾缺少悬念钩子，建议留下未决冲突、未知去向或紧急选择';
 }
+
+bool _isDialogueQuote(String ch) {
+  return ch == '「' ||
+      ch == '」' ||
+      ch == '"' ||
+      ch == '『' ||
+      ch == '』' ||
+      ch == '“' ||
+      ch == '”' ||
+      ch == '‘' ||
+      ch == '’';
+}
+
+bool _isCjk(int rune) => rune >= 0x4E00 && rune <= 0x9FFF;
+
+bool _isWhitespace(int rune) =>
+    rune == 0x20 ||
+    rune == 0x09 ||
+    rune == 0x0A ||
+    rune == 0x0D ||
+    rune == 0x3000;

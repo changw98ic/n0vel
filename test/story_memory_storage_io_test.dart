@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage_stub.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage_io.dart';
@@ -274,6 +275,124 @@ void main() {
       expect(bSources.first.id, 'src-b');
       expect(bThoughts.length, 1);
       expect(bThoughts.first.id, 'thought-b');
+    });
+
+    test('new table has tier and producer columns plus idx_memory_tier', () async {
+      final s = openStorage();
+      await s.ensureTables();
+
+      final cols = sqlite3.open(dbPath).select(
+        "SELECT name FROM pragma_table_info('story_memory_chunks')",
+      );
+      final colNames = {for (final r in cols) r['name'] as String};
+      expect(colNames, containsAll(['tier', 'producer']));
+
+      final idxRows = sqlite3.open(dbPath).select(
+        "SELECT name FROM pragma_index_list('story_memory_chunks')",
+      );
+      final idxNames = {for (final r in idxRows) r['name'] as String};
+      expect(idxNames, contains('idx_memory_tier'));
+    });
+
+    test('old table without tier/producer columns gets migrated', () async {
+      // Create a legacy table without tier/producer columns.
+      final raw = sqlite3.open(dbPath);
+      raw.execute('''
+        CREATE TABLE story_memory_chunks (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          data TEXT NOT NULL
+        )
+      ''');
+      raw.execute(
+        'INSERT INTO story_memory_chunks (id, project_id, data) VALUES (?, ?, ?)',
+        ['old-1', 'proj-m', '{"id":"old-1","projectId":"proj-m","scopeId":"s1","kind":"worldFact","content":"legacy"}'],
+      );
+      raw.dispose();
+
+      // Opening storage triggers migration.
+      final s = openStorage();
+      await s.saveChunks('proj-m', [
+        const StoryMemoryChunk(
+          id: 'new-1',
+          projectId: 'proj-m',
+          scopeId: 's1',
+          kind: MemorySourceKind.worldFact,
+          content: 'migrated row',
+          tier: MemoryTier.canon,
+          producer: 'review',
+        ),
+      ]);
+
+      final loaded = await s.loadChunks('proj-m');
+      expect(loaded.length, 2);
+      final byId = {for (final c in loaded) c.id: c};
+      // Old row loaded via JSON (no tier/producer in JSON → defaults).
+      expect(byId['old-1']!.tier, MemoryTier.scene);
+      expect(byId['old-1']!.producer, '');
+      // New row has explicit tier/producer.
+      expect(byId['new-1']!.tier, MemoryTier.canon);
+      expect(byId['new-1']!.producer, 'review');
+    });
+
+    test('saved chunk rows persist tier and producer in columns and model', () async {
+      final s = openStorage();
+      await s.saveChunks('proj-t', [
+        const StoryMemoryChunk(
+          id: 'c-1',
+          projectId: 'proj-t',
+          scopeId: 's1',
+          kind: MemorySourceKind.sceneSummary,
+          content: 'The dragon awakens.',
+          tier: MemoryTier.character,
+          producer: 'scene-agent',
+        ),
+        const StoryMemoryChunk(
+          id: 'c-2',
+          projectId: 'proj-t',
+          scopeId: 's2',
+          kind: MemorySourceKind.outlineBeat,
+          content: 'Hero retreats.',
+          tier: MemoryTier.scene,
+          producer: '',
+        ),
+      ]);
+
+      // Verify row-level columns directly.
+      final raw = sqlite3.open(dbPath);
+      final rows = raw.select(
+        'SELECT id, tier, producer FROM story_memory_chunks WHERE project_id = ? ORDER BY id',
+        ['proj-t'],
+      );
+      expect(rows.length, 2);
+      expect(rows[0]['tier'], 'character');
+      expect(rows[0]['producer'], 'scene-agent');
+      expect(rows[1]['tier'], 'scene');
+      expect(rows[1]['producer'], '');
+      raw.dispose();
+
+      // Verify model round-trip.
+      final loaded = await s.loadChunks('proj-t');
+      expect(loaded.first.tier, MemoryTier.character);
+      expect(loaded.first.producer, 'scene-agent');
+      expect(loaded.last.tier, MemoryTier.scene);
+      expect(loaded.last.producer, '');
+
+      // Upsert changes tier and producer.
+      await s.saveChunks('proj-t', [
+        const StoryMemoryChunk(
+          id: 'c-1',
+          projectId: 'proj-t',
+          scopeId: 's1',
+          kind: MemorySourceKind.sceneSummary,
+          content: 'The dragon sleeps.',
+          tier: MemoryTier.canon,
+          producer: 'review-pass',
+        ),
+      ]);
+      final updated = await s.loadChunks('proj-t');
+      expect(updated.firstWhere((c) => c.id == 'c-1').tier, MemoryTier.canon);
+      expect(updated.firstWhere((c) => c.id == 'c-1').producer, 'review-pass');
     });
 
     test('upsert updates existing records', () async {

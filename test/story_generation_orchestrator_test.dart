@@ -5,13 +5,14 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
-import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/structured_profile.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 
@@ -67,6 +68,50 @@ void main() {
         contains(SceneCastContribution.dialogue),
       );
     });
+
+    test(
+      'attaches matching StructuredProfile from SceneBrief.characterProfiles',
+      () {
+        const liuxiProfile = StructuredProfile(
+          id: 'char-liuxi',
+          name: '柳溪',
+          personality: PersonalityVector(),
+          voicePrint: VoicePrint(),
+          behaviorBounds: BehaviorBounds(),
+        );
+        final resolver = SceneCastResolver();
+        final brief = SceneBrief(
+          chapterId: 'chapter-01',
+          chapterTitle: '第一章 雨夜码头',
+          sceneId: 'scene-01',
+          sceneTitle: '仓库门外',
+          sceneSummary: '柳溪在风雨里拦住准备离开的岳刃。',
+          cast: [
+            SceneCastCandidate(
+              characterId: 'char-liuxi',
+              name: '柳溪',
+              role: '调查记者',
+              participation: const SceneCastParticipation(action: '挡住退路'),
+            ),
+            SceneCastCandidate(
+              characterId: 'char-yueren',
+              name: '岳刃',
+              role: '走私联络人',
+              participation: const SceneCastParticipation(dialogue: '说话'),
+            ),
+          ],
+          characterProfiles: [liuxiProfile],
+        );
+
+        final resolved = resolver.resolve(brief);
+
+        expect(resolved, hasLength(2));
+        expect(resolved.first.characterId, 'char-liuxi');
+        expect(resolved.first.profile, same(liuxiProfile));
+        expect(resolved.last.characterId, 'char-yueren');
+        expect(resolved.last.profile, isNull);
+      },
+    );
 
     test('excludes cast members marked as noninteractive evidence', () {
       final resolver = SceneCastResolver();
@@ -141,11 +186,13 @@ void main() {
     });
 
     test('scene context models keep collections isolated and immutable', () {
-      final profile = CharacterProfile(
-        characterId: 'char-liuxi',
+      const profile = StructuredProfile(
+        id: 'char-liuxi',
         name: '柳溪',
-        role: '调查记者',
-        coreDrives: ['不轻信口头承诺'],
+        personality: PersonalityVector(),
+        voicePrint: VoicePrint(),
+        behaviorBounds: BehaviorBounds(forbiddenActions: ['不轻信口头承诺']),
+        metadata: {'role': '调查记者'},
       );
       final belief = BeliefState(
         ownerCharacterId: 'char-liuxi',
@@ -163,11 +210,11 @@ void main() {
         concealments: ['害怕沈渡也卷入走私'],
       );
 
-      expect(profile.coreDrives, contains('不轻信口头承诺'));
+      expect(profile.behaviorBounds.forbiddenActions, contains('不轻信口头承诺'));
       expect(belief.confidence, 0.7);
       expect(presentation.projectedPersona, '冷静追问');
       expect(
-        () => profile.coreDrives.add('should fail'),
+        () => profile.behaviorBounds.forbiddenActions.add('should fail'),
         throwsUnsupportedError,
       );
     });
@@ -218,7 +265,7 @@ void main() {
     });
   });
 
-  group('ChapterGenerationOrchestrator', () {
+  group('PipelineStageRunnerImpl', () {
     test(
       'runs scene role agents concurrently up to the configured request limit',
       () async {
@@ -339,9 +386,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         await orchestrator.runScene(_brief());
@@ -416,7 +465,7 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
           qualityScorer: _ThrowingQualityScorer(),
         );
@@ -479,9 +528,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -556,9 +607,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -619,9 +672,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -699,9 +754,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -849,9 +906,12 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2, hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            maxProseRetries: 2,
+            hardGatesEnabled: false,
+          ),
         );
         final result = await orchestrator.runScene(
           SceneBrief(
@@ -944,9 +1004,12 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2, hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            maxProseRetries: 2,
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1026,9 +1089,12 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            maxProseRetries: 1,
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -1128,9 +1194,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -1195,9 +1263,12 @@ void main() {
       );
       addTearDown(settingsStore.dispose);
 
-      final orchestrator = ChapterGenerationOrchestrator(
+      final orchestrator = PipelineStageRunnerImpl(
         settingsStore: settingsStore,
-        pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
+        pipelineConfig: const GenerationPipelineConfig(
+          maxProseRetries: 1,
+          hardGatesEnabled: false,
+        ),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1260,9 +1331,12 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1, hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            maxProseRetries: 1,
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(
@@ -1332,9 +1406,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(_brief());
@@ -1399,9 +1475,9 @@ void main() {
       );
       addTearDown(settingsStore.dispose);
 
-      final orchestrator = ChapterGenerationOrchestrator(
+      final orchestrator = PipelineStageRunnerImpl(
         settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+        pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
       );
 
       final result = await orchestrator.runScene(_brief());
@@ -1457,9 +1533,11 @@ void main() {
         );
         addTearDown(settingsStore.dispose);
 
-        final orchestrator = ChapterGenerationOrchestrator(
+        final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+          pipelineConfig: const GenerationPipelineConfig(
+            hardGatesEnabled: false,
+          ),
         );
 
         final result = await orchestrator.runScene(_brief());

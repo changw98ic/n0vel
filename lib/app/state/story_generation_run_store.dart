@@ -7,7 +7,7 @@ import '../../features/author_feedback/domain/author_feedback_models.dart';
 import '../../features/review_tasks/data/review_task_mapper.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
 // Intentional: run store bridges app state to feature pipeline.
-import '../../features/story_generation/data/chapter_generation_orchestrator.dart';
+import '../../features/story_generation/data/pipeline_stage_runner_impl.dart';
 import '../../features/story_generation/data/generation_pipeline_config.dart';
 import '../../features/story_generation/data/scene_context_assembler.dart';
 import '../../features/story_generation/data/story_generation_models.dart';
@@ -42,7 +42,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     AppEventBus? eventBus,
     StoryGenerationRunStorage? storage,
     SceneContextAssembler? sceneContextAssembler,
-    ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)?
+    PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)?
     orchestratorFactory,
   }) : _settingsStore = settingsStore,
        _workspaceStore = workspaceStore,
@@ -54,7 +54,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _orchestratorFactory =
            orchestratorFactory ??
            ((settingsStore) {
-             return ChapterGenerationOrchestrator(
+             return PipelineStageRunnerImpl(
                settingsStore: settingsStore,
                pipelineConfig:
                    GenerationPipelineConfig.fromWorkspace(workspaceStore),
@@ -85,7 +85,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final ReviewTaskStore? _reviewTaskStore;
   final AppEventBus? _eventBus;
   final StoryGenerationRunStorage _storage;
-  final ChapterGenerationOrchestrator Function(AppSettingsStore settingsStore)
+  final PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
   final Map<String, StoryGenerationRunSnapshot> _snapshotsBySceneScope =
       <String, StoryGenerationRunSnapshot>{};
@@ -94,8 +94,6 @@ class StoryGenerationRunStore extends AppStoreListenable {
   late String _activeSceneScopeId;
   late StoryGenerationRunSnapshot _snapshot;
   Future<void> _readyFuture = Future<void>.value();
-  Future<void> _queuedSnapshotPersistence = Future<void>.value();
-  AsyncError? _queuedSnapshotPersistenceError;
   int _mutationVersion = 0;
   int _runToken = 0;
   int? _activeRunToken;
@@ -251,7 +249,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
         participants: baseParticipants,
         messages: [
           const StoryGenerationRunMessage(
-            title: '运行开始',
+            title: '进行中',
             body: 'AI 已开始按当前章节资料试写；生成内容会先作为候选记录，等待作者确认。',
             kind: StoryGenerationRunMessageKind.status,
           ),
@@ -299,30 +297,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
       final orchestrator = _orchestratorFactory(_settingsStore);
       orchestrator.isRunCancelled = () =>
           !_isCurrentRun(runToken, runSceneScopeId);
-      final output = await orchestrator.runScene(
-        brief,
-        onStatus: (message) {
-          if (!_isCurrentRun(runToken, runSceneScopeId)) {
-            return;
-          }
-          _queueSnapshotPersistence(
-            _snapshot.copyWith(
-              stageSummary: message,
-              messages: [
-                ..._snapshot.messages.where(
-                  (entry) => entry.kind != StoryGenerationRunMessageKind.status,
-                ),
-                StoryGenerationRunMessage(
-                  title: '进行中',
-                  body: message,
-                  kind: StoryGenerationRunMessageKind.status,
-                ),
-              ],
-            ),
-          );
-        },
-      );
-      await _waitForQueuedSnapshotPersistence();
+      final output = await orchestrator.runScene(brief);
       if (!_isCurrentRun(runToken, runSceneScopeId)) {
         return;
       }

@@ -32,12 +32,19 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
       CREATE TABLE IF NOT EXISTS story_memory_chunks (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
+        tier TEXT NOT NULL DEFAULT 'scene',
+        producer TEXT NOT NULL DEFAULT '',
         data TEXT NOT NULL
       )
     ''');
+    _migrateChunksColumns();
     db.execute('''
       CREATE INDEX IF NOT EXISTS idx_memory_chunks_project
       ON story_memory_chunks (project_id)
+    ''');
+    db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_memory_tier
+      ON story_memory_chunks (project_id, tier)
     ''');
     db.execute('''
       CREATE TABLE IF NOT EXISTS story_thought_atoms (
@@ -51,6 +58,23 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
       ON story_thought_atoms (project_id)
     ''');
     _migrated = true;
+  }
+
+  void _migrateChunksColumns() {
+    final cols = db.select(
+      "SELECT name FROM pragma_table_info('story_memory_chunks')",
+    );
+    final names = {for (final r in cols) r['name'] as String};
+    if (!names.contains('tier')) {
+      db.execute(
+        "ALTER TABLE story_memory_chunks ADD COLUMN tier TEXT NOT NULL DEFAULT 'scene'",
+      );
+    }
+    if (!names.contains('producer')) {
+      db.execute(
+        "ALTER TABLE story_memory_chunks ADD COLUMN producer TEXT NOT NULL DEFAULT ''",
+      );
+    }
   }
 
   @override
@@ -93,9 +117,11 @@ class StoryMemoryStorageIO implements StoryMemoryStorage {
     for (final chunk in chunks) {
       final json = jsonEncode(chunk.toJson());
       db.execute(
-        'INSERT INTO story_memory_chunks (id, project_id, data) VALUES (?, ?, ?) '
-        'ON CONFLICT(id) DO UPDATE SET data = excluded.data',
-        [chunk.id, projectId, json],
+        'INSERT INTO story_memory_chunks (id, project_id, tier, producer, data) '
+        'VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET '
+        'tier = excluded.tier, producer = excluded.producer, data = excluded.data',
+        [chunk.id, projectId, chunk.tier.name, chunk.producer, json],
       );
     }
   }

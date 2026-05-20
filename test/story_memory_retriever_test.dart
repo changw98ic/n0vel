@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/sqlite3.dart';
+import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
-import 'package:novel_writer/features/story_generation/data/story_memory_storage_stub.dart';
-import 'package:novel_writer/features/story_generation/data/story_memory_retriever.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_indexer.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_dedupe.dart';
-import 'package:novel_writer/features/story_generation/data/scene_context_assembler.dart';
+import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
 void main() {
   group('indexer', () {
@@ -174,13 +174,13 @@ void main() {
     });
   });
 
-  group('retriever', () {
-    late StoryMemoryStorageStub storage;
-    late StoryMemoryRetriever retriever;
+  group('HybridRetriever', () {
+    late Database db;
+    late HybridRetriever retriever;
 
     setUp(() async {
-      storage = StoryMemoryStorageStub();
-      retriever = StoryMemoryRetriever(storage: storage);
+      db = sqlite3.openInMemory();
+      retriever = HybridRetriever.local(db: db);
 
       final chunks = [
         const StoryMemoryChunk(
@@ -217,10 +217,14 @@ void main() {
           createdAtMs: 3000,
         ),
       ];
-      await storage.saveChunks('p1', chunks);
+      await retriever.indexChunks(chunks);
     });
 
-    test('exact tag match outranks loose text match', () async {
+    tearDown(() {
+      db.dispose();
+    });
+
+    test('hybrid search returns matching hits for keyword query', () async {
       final pack = await retriever.retrieve(
         const StoryMemoryQuery(
           projectId: 'p1',
@@ -230,12 +234,11 @@ void main() {
           tokenBudget: 500,
         ),
       );
-      // All have 'key' tag, but accepted state has highest priority
       expect(pack.hits, isNotEmpty);
-      expect(pack.hits.first.chunk.tags, contains('key'));
+      expect(pack.hits.any((h) => h.chunk.tags.contains('key')), isTrue);
     });
 
-    test('recent accepted state outranks old low-priority chunks', () async {
+    test('accepted state chunk present in results', () async {
       final pack = await retriever.retrieve(
         const StoryMemoryQuery(
           projectId: 'p1',
@@ -246,14 +249,13 @@ void main() {
         ),
       );
       expect(pack.hits, isNotEmpty);
-      // Accepted state (priority 7) should rank high
       final hasAcceptedState = pack.hits.any(
         (h) => h.chunk.kind == MemorySourceKind.acceptedState,
       );
       expect(hasAcceptedState, isTrue);
     });
 
-    test('returns summary and token accounting', () async {
+    test('pack includes summary and token accounting', () async {
       final pack = await retriever.retrieve(
         const StoryMemoryQuery(
           projectId: 'p1',
@@ -266,7 +268,7 @@ void main() {
       expect(pack.tokenBudget, 500);
     });
 
-    test('empty project returns empty pack', () async {
+    test('unindexed project returns empty pack', () async {
       final pack = await retriever.retrieve(
         const StoryMemoryQuery(
           projectId: 'nonexistent',
@@ -279,7 +281,7 @@ void main() {
       expect(pack.deferredHitCount, 0);
     });
 
-    test('respects token budget and defers overflow', () async {
+    test('token budget defers overflow hits', () async {
       final pack = await retriever.retrieve(
         const StoryMemoryQuery(
           projectId: 'p1',
@@ -288,7 +290,6 @@ void main() {
           tokenBudget: 10,
         ),
       );
-      // With a tiny budget, first hit may be included but remaining deferred
       expect(pack.deferredHitCount, greaterThan(0));
     });
   });

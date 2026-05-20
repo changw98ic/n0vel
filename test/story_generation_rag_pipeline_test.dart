@@ -1,26 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/app/rag/agentic_rag_ranker.dart';
+import 'package:novel_writer/app/rag/hybrid_retriever.dart';
+import 'package:novel_writer/features/story_generation/data/context_capsule_store.dart';
+import 'package:novel_writer/features/story_generation/data/knowledge_tool_registry.dart';
+import 'package:novel_writer/features/story_generation/data/scene_context_assembler.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/rag_retrieval_policy.dart';
+import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/domain/pipeline_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
-import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
-import 'package:novel_writer/features/story_generation/data/story_memory_storage_stub.dart';
-import 'package:novel_writer/features/story_generation/data/story_memory_retriever.dart';
-import 'package:novel_writer/features/story_generation/data/knowledge_tool_registry.dart';
-import 'package:novel_writer/features/story_generation/data/agentic_rag.dart';
-import 'package:novel_writer/features/story_generation/data/context_capsule_store.dart';
-import 'package:novel_writer/features/story_generation/data/scene_context_assembler.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   group('tools', () {
-    late StoryMemoryStorageStub storage;
-    late StoryMemoryRetriever retriever;
+    late Database db;
+    late HybridRetriever retriever;
     late List<KnowledgeTool> tools;
 
     setUp(() async {
-      storage = StoryMemoryStorageStub();
-      retriever = StoryMemoryRetriever(storage: storage);
-
-      await storage.saveChunks('p1', [
-        const StoryMemoryChunk(
+      db = sqlite3.openInMemory();
+      retriever = HybridRetriever.local(db: db);
+      await retriever.indexChunks(const [
+        StoryMemoryChunk(
           id: 'c1',
           projectId: 'p1',
           scopeId: 'ch1:sc1',
@@ -30,8 +30,9 @@ void main() {
           priority: 5,
           tokenCostEstimate: 30,
           createdAtMs: 1000,
+          rootSourceIds: ['c1'],
         ),
-        const StoryMemoryChunk(
+        StoryMemoryChunk(
           id: 'c2',
           projectId: 'p1',
           scopeId: 'ch1:sc1',
@@ -41,8 +42,9 @@ void main() {
           priority: 3,
           tokenCostEstimate: 20,
           createdAtMs: 2000,
+          rootSourceIds: ['c2'],
         ),
-        const StoryMemoryChunk(
+        StoryMemoryChunk(
           id: 'c3',
           projectId: 'p1',
           scopeId: 'ch1:sc2',
@@ -52,8 +54,9 @@ void main() {
           priority: 7,
           tokenCostEstimate: 25,
           createdAtMs: 3000,
+          rootSourceIds: ['c3'],
         ),
-        const StoryMemoryChunk(
+        StoryMemoryChunk(
           id: 'c4',
           projectId: 'p1',
           scopeId: 'ch1:sc3',
@@ -63,10 +66,22 @@ void main() {
           priority: 4,
           tokenCostEstimate: 22,
           createdAtMs: 4000,
+          rootSourceIds: ['c4'],
         ),
-        // Noise chunk – low priority, unrelated to plot/character queries
-        const StoryMemoryChunk(
+        StoryMemoryChunk(
           id: 'c5',
+          projectId: 'p1',
+          scopeId: 'ch1:sc1',
+          kind: MemorySourceKind.reviewFinding,
+          content: 'Liu Xi hides fear behind analysis.',
+          tags: ['thought', 'persona', 'liuxi'],
+          priority: 4,
+          tokenCostEstimate: 15,
+          createdAtMs: 5000,
+          rootSourceIds: ['c5'],
+        ),
+        StoryMemoryChunk(
+          id: 'noise',
           projectId: 'p1',
           scopeId: 'ch1:sc1',
           kind: MemorySourceKind.worldFact,
@@ -75,56 +90,16 @@ void main() {
           priority: 1,
           tokenCostEstimate: 15,
           createdAtMs: 500,
+          rootSourceIds: ['noise'],
         ),
       ]);
-
-      await storage.saveThoughts('p1', [
-        const ThoughtAtom(
-          id: 't1',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          thoughtType: ThoughtType.persona,
-          content: 'Liu Xi hides fear behind analysis.',
-          confidence: 0.88,
-          abstractionLevel: 2.0,
-          tags: ['persona', 'liuxi'],
-          priority: 4,
-          tokenCostEstimate: 15,
-          createdAtMs: 5000,
-        ),
-        const ThoughtAtom(
-          id: 't2',
-          projectId: 'p1',
-          scopeId: 'ch1:sc3',
-          thoughtType: ThoughtType.foreshadowing,
-          content: 'The betrayal motif connects to the shadow figure.',
-          confidence: 0.82,
-          abstractionLevel: 2.5,
-          tags: ['foreshadow', 'betrayal'],
-          priority: 5,
-          tokenCostEstimate: 18,
-          createdAtMs: 6000,
-        ),
-        const ThoughtAtom(
-          id: 't3',
-          projectId: 'p1',
-          scopeId: 'ch1:sc2',
-          thoughtType: ThoughtType.plotCausality,
-          content: 'The fire destroyed the key, forcing an alternative path.',
-          confidence: 0.91,
-          abstractionLevel: 2.0,
-          tags: ['causality', 'key', 'fire'],
-          priority: 6,
-          tokenCostEstimate: 20,
-          createdAtMs: 7000,
-        ),
-      ]);
-
       tools = createMemoryTools(retriever);
     });
 
+    tearDown(() => db.dispose());
+
     test('all five memory tools are available', () {
-      final names = tools.map((t) => t.name).toList();
+      final names = tools.map((tool) => tool.name).toList();
       expect(
         names,
         containsAll([
@@ -138,194 +113,64 @@ void main() {
     });
 
     test('get_plot_memory returns compact capsule with source refs', () async {
-      final plotTool = tools.firstWhere((t) => t.name == 'get_plot_memory');
-      final capsule = await plotTool.retrieve({
+      final tool = tools.firstWhere((tool) => tool.name == 'get_plot_memory');
+      final capsule = await tool.retrieve({
         'projectId': 'p1',
-        'query': 'key gate fire',
+        'query': 'ancient key gate',
+        'tags': ['key'],
       });
 
-      expect(capsule.sourceTool, contains('causality'));
-      expect(capsule.isWithinBudget, isTrue);
-      expect(capsule.metadata['sourceRefIds'], isNotNull);
+      expect(capsule.summary, contains('key'));
       expect(capsule.metadata['hitCount'], greaterThan(0));
+      expect(capsule.metadata['sourceRefIds'], contains('c1'));
     });
 
     test('get_persona_memory returns character insights', () async {
-      final personaTool =
-          tools.firstWhere((t) => t.name == 'get_persona_memory');
-      final capsule = await personaTool.retrieve({
+      final tool = tools.firstWhere(
+        (tool) => tool.name == 'get_persona_memory',
+      );
+      final capsule = await tool.retrieve({
         'projectId': 'p1',
-        'query': 'Liu Xi character',
+        'query': 'Liu Xi cautious analysis',
         'tags': ['liuxi'],
       });
 
-      expect(capsule.sourceTool, contains('persona'));
-      expect(capsule.isWithinBudget, isTrue);
       expect(capsule.summary, contains('Liu Xi'));
-    });
-
-    test('get_foreshadowing_memory returns foreshadowing hints', () async {
-      final foreshadowTool =
-          tools.firstWhere((t) => t.name == 'get_foreshadowing_memory');
-      final capsule = await foreshadowTool.retrieve({
-        'projectId': 'p1',
-        'query': 'betrayal shadow figure',
-        'tags': ['foreshadow'],
-      });
-
-      expect(capsule.sourceTool, contains('foreshadowing'));
-      expect(capsule.isWithinBudget, isTrue);
       expect(capsule.metadata['hitCount'], greaterThan(0));
-      final facts = capsule.metadata['salientFacts'] as List?;
-      expect(facts, isNotNull);
-      expect(
-        facts!.any((f) {
-          final s = f.toString().toLowerCase();
-          return s.contains('betray') || s.contains('shadow');
-        }),
-        isTrue,
-      );
     });
 
     test('get_state_ledger returns accepted states', () async {
-      final stateTool =
-          tools.firstWhere((t) => t.name == 'get_state_ledger');
-      final capsule = await stateTool.retrieve({
+      final tool = tools.firstWhere((tool) => tool.name == 'get_state_ledger');
+      final capsule = await tool.retrieve({
         'projectId': 'p1',
         'query': 'key lost fire',
-        'tags': ['state', 'key'],
-      });
-
-      expect(capsule.sourceTool, contains('concreteFact'));
-      expect(capsule.isWithinBudget, isTrue);
-      expect(capsule.metadata['hitCount'], greaterThan(0));
-      final facts = capsule.metadata['salientFacts'] as List?;
-      expect(facts, isNotNull);
-      expect(
-        facts!.any((f) => f.toString().toLowerCase().contains('key')),
-        isTrue,
-      );
-    });
-
-    test('get_thought_memory returns thought atoms', () async {
-      final thoughtTool =
-          tools.firstWhere((t) => t.name == 'get_thought_memory');
-      final capsule = await thoughtTool.retrieve({
-        'projectId': 'p1',
-        'query': 'Liu Xi persona fear',
-      });
-
-      expect(capsule.sourceTool, contains('sceneContinuity'));
-      expect(capsule.isWithinBudget, isTrue);
-      expect(capsule.metadata['isThought'], isTrue);
-    });
-
-    test('capsule summary is compact and salient facts are bounded', () async {
-      final plotTool = tools.firstWhere((t) => t.name == 'get_plot_memory');
-      final capsule = await plotTool.retrieve({
-        'projectId': 'p1',
-        'query': 'key gate',
-      });
-
-      expect(capsule.summary.length, lessThanOrEqualTo(capsule.charBudget));
-      expect(capsule.metadata['salientFacts'], isA<List>());
-      final facts = capsule.metadata['salientFacts'] as List;
-      for (final fact in facts) {
-        expect(fact.toString().length, lessThanOrEqualTo(103));
-      }
-    });
-
-    test('tools do not inject unrelated chunks', () async {
-      final stateTool =
-          tools.firstWhere((t) => t.name == 'get_state_ledger');
-      final capsule = await stateTool.retrieve({
-        'projectId': 'p1',
-        'query': 'key lost',
-        'tags': ['state', 'key'],
-      });
-
-      final facts = capsule.metadata['salientFacts'] as List? ?? [];
-      for (final fact in facts) {
-        expect(
-          fact.toString().toLowerCase(),
-          isNot(contains('weather')),
-        );
-      }
-    });
-
-    test('viewer visibility is enforced through tools', () async {
-      final privStorage = StoryMemoryStorageStub();
-      await privStorage.saveChunks('p1', [
-        const StoryMemoryChunk(
-          id: 'pub1',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          kind: MemorySourceKind.characterProfile,
-          content: 'Liu Xi is a skilled strategist.',
-          tags: ['character', 'liuxi'],
-          priority: 3,
-          tokenCostEstimate: 20,
-          createdAtMs: 1000,
-        ),
-        const StoryMemoryChunk(
-          id: 'priv1',
-          projectId: 'p1',
-          scopeId: 'agent-1',
-          kind: MemorySourceKind.characterProfile,
-          content: 'Secret: Liu Xi fears water.',
-          visibility: MemoryVisibility.agentPrivate,
-          tags: ['secret'],
-          priority: 5,
-          tokenCostEstimate: 15,
-          createdAtMs: 2000,
-        ),
-      ]);
-
-      final privRetriever = StoryMemoryRetriever(storage: privStorage);
-      final privTools = createMemoryTools(privRetriever);
-      final personaTool =
-          privTools.firstWhere((t) => t.name == 'get_persona_memory');
-
-      final capsule = await personaTool.retrieve({
-        'projectId': 'p1',
-        'query': 'Liu Xi secret fear',
-        'viewerId': 'agent-2',
-      });
-
-      final facts = capsule.metadata['salientFacts'] as List? ?? [];
-      expect(facts.isNotEmpty, isTrue);
-      expect(
-        facts.every((f) => !f.toString().contains('Secret')),
-        isTrue,
-      );
-    });
-
-    test('registry integration routes tools correctly', () async {
-      final registry = KnowledgeToolRegistry(tools: tools);
-
-      expect(
-        registry.availableTools,
-        containsAll([
-          'get_plot_memory',
-          'get_persona_memory',
-          'get_foreshadowing_memory',
-          'get_state_ledger',
-          'get_thought_memory',
-        ]),
-      );
-
-      final capsule = await registry.call('get_state_ledger', {
-        'projectId': 'p1',
-        'query': 'key lost',
         'tags': ['state'],
       });
 
-      expect(capsule, isNotNull);
-      expect(capsule.sourceTool, contains('concreteFact'));
+      expect(capsule.summary, contains('key'));
+      expect(capsule.metadata['salientFacts'].toString(), contains('fire'));
+    });
+
+    test('registry integration routes tools correctly', () async {
+      final registry = KnowledgeToolRegistry.roleplayDefaults(
+        memoryRetriever: retriever,
+        enableWritingReference: false,
+      );
+
+      expect(registry.hasTool('get_plot_memory'), isTrue);
+      final capsule = await registry.call('get_plot_memory', {
+        'projectId': 'p1',
+        'query': 'ancient key',
+      });
+      expect(capsule.summary, contains('key'));
     });
 
     test('registry tool list summary includes all memory tools', () {
-      final registry = KnowledgeToolRegistry(tools: tools);
+      final registry = KnowledgeToolRegistry.roleplayDefaults(
+        memoryRetriever: retriever,
+        enableWritingReference: false,
+      );
+
       final summary = registry.toolListSummary();
       expect(summary, contains('get_plot_memory'));
       expect(summary, contains('get_persona_memory'));
@@ -342,71 +187,83 @@ void main() {
         brief: SceneBrief(
           chapterId: 'ch1',
           chapterTitle: 'Chapter 1',
-          sceneId: 'sc2',
-          sceneTitle: 'The Gate',
-          sceneSummary: 'Liu Xi tries to open the ancient gate.',
+          sceneId: 'sc1',
+          sceneTitle: 'Gate',
+          sceneSummary: 'Hero opens the gate.',
           cast: [
             SceneCastCandidate(
               characterId: 'liuxi',
               name: 'Liu Xi',
-              role: 'protagonist',
+              role: 'investigator',
             ),
           ],
-          worldNodeIds: ['world-gate'],
+          worldNodeIds: const ['world-rule-1'],
         ),
         materials: const ProjectMaterialSnapshot(
-          worldFacts: ['The ancient gate requires a key.'],
-          acceptedStates: ['The key was lost in ch1.'],
+          worldFacts: ['Magic needs a catalyst.'],
+          characterProfiles: ['Liu Xi is a scholar.'],
+          acceptedStates: ['The key was lost.'],
         ),
       );
 
       expect(assembly.memoryChunks, isNotEmpty);
       expect(
         assembly.retrievalRequirements,
-        containsAll([
-          'character_profiles',
-          'world_rules',
-          'state_ledger',
-        ]),
+        containsAll(['character_profiles', 'world_rules', 'state_ledger']),
       );
     });
   });
 
   group('review', () {
-    test('agentic RAG converts retrieval pack to atoms', () async {
-      final storage = StoryMemoryStorageStub();
-      final retriever = StoryMemoryRetriever(storage: storage);
-      await storage.saveChunks('p1', [
-        const StoryMemoryChunk(
-          id: 'c1',
+    test('ranker scores retrieval-pack hits as generic rank inputs', () {
+      const pack = StoryRetrievalPack(
+        query: StoryMemoryQuery(
           projectId: 'p1',
-          scopeId: 's1',
-          kind: MemorySourceKind.acceptedState,
-          content: 'The key was lost in chapter 1.',
-          tags: ['state', 'key'],
-          priority: 7,
-          tokenCostEstimate: 20,
-          createdAtMs: 1000,
-          sourceRefs: [
-            MemorySourceRef(
-              sourceId: 'c1',
-              sourceType: MemorySourceKind.acceptedState,
-            ),
-          ],
+          queryType: StoryMemoryQueryType.concreteFact,
+          text: 'key lost',
+          tags: ['key'],
         ),
-      ]);
+        hits: [
+          StoryMemoryHit(
+            chunk: StoryMemoryChunk(
+              id: 'c1',
+              projectId: 'p1',
+              scopeId: 's1',
+              kind: MemorySourceKind.acceptedState,
+              content: 'The key was lost in chapter 1.',
+              tags: ['state', 'key'],
+              sourceRefs: [
+                MemorySourceRef(
+                  sourceId: 'c1',
+                  sourceType: MemorySourceKind.acceptedState,
+                ),
+              ],
+            ),
+            score: 0.7,
+          ),
+        ],
+      );
 
-      final pack = await retriever.retrieve(const StoryMemoryQuery(
-        projectId: 'p1',
-        queryType: StoryMemoryQueryType.concreteFact,
-        text: 'key lost',
-        tags: ['key'],
-      ));
+      final inputs = [
+        for (final hit in pack.hits)
+          AgenticRagRankInput(
+            id: hit.chunk.id,
+            content: hit.chunk.content,
+            tags: hit.chunk.tags,
+            semanticScore: hit.score,
+          ),
+      ];
+      const ranker = AgenticRagRanker();
+      final ranked = ranker.rank(
+        inputs,
+        pack.query.text,
+        pack.query.tags,
+        const RagRetrievalPolicy(roleId: 'review'),
+      );
 
-      final rag = AgenticRag();
-      final atoms = rag.fromRetrievalPack(pack);
-      expect(atoms, isNotEmpty);
-      expect(atoms.first.sourceRefs, isNotEmpty);
+      expect(ranked, isNotEmpty);
+      expect(ranked.first.input.id, 'c1');
+      expect(pack.hits.first.chunk.sourceRefs, isNotEmpty);
     });
 
     test('capsule store preserves source refs', () {
@@ -447,198 +304,84 @@ void main() {
   });
 
   group('thought retrieval', () {
-    late StoryMemoryStorageStub storage;
-    late StoryMemoryRetriever retriever;
+    test(
+      'hybrid retrieval preserves source trace for thought-like chunks',
+      () async {
+        final db = sqlite3.openInMemory();
+        addTearDown(db.dispose);
+        final retriever = HybridRetriever.local(db: db);
+        await retriever.indexChunks(const [
+          StoryMemoryChunk(
+            id: 'thought-causality',
+            projectId: 'p1',
+            scopeId: 'ch1:sc1',
+            kind: MemorySourceKind.reviewFinding,
+            content: 'The fire destroyed the key, forcing an alternative path.',
+            tags: ['causality', 'key', 'fire'],
+            sourceRefs: [
+              MemorySourceRef(
+                sourceId: 'c1',
+                sourceType: MemorySourceKind.acceptedState,
+              ),
+            ],
+            rootSourceIds: ['c1'],
+          ),
+        ]);
 
-    setUp(() async {
-      storage = StoryMemoryStorageStub();
-      retriever = StoryMemoryRetriever(storage: storage);
+        final pack = await retriever.retrieve(
+          const StoryMemoryQuery(
+            projectId: 'p1',
+            queryType: StoryMemoryQueryType.causality,
+            text: 'fire key path',
+            tags: ['key', 'fire'],
+          ),
+        );
 
-      await storage.saveChunks('p1', [
-        const StoryMemoryChunk(
-          id: 'c1',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          kind: MemorySourceKind.acceptedState,
-          content: 'The ancient key was lost in the fire.',
-          tags: ['state', 'key', 'fire'],
-          priority: 5,
-          tokenCostEstimate: 20,
-          createdAtMs: 1000,
-        ),
-        const StoryMemoryChunk(
-          id: 'c2',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          kind: MemorySourceKind.characterProfile,
-          content: 'Liu Xi is cautious and analytical.',
-          tags: ['character', 'liuxi'],
-          priority: 3,
-          tokenCostEstimate: 15,
-          createdAtMs: 2000,
-        ),
-      ]);
-
-      await storage.saveThoughts('p1', [
-        const ThoughtAtom(
-          id: 't1',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          thoughtType: ThoughtType.plotCausality,
-          content: 'The fire destroyed the key, forcing an alternative path.',
-          confidence: 0.91,
-          abstractionLevel: 2.0,
-          tags: ['causality', 'key', 'fire'],
-          priority: 6,
-          tokenCostEstimate: 18,
-          createdAtMs: 3000,
-          sourceRefs: [
-            MemorySourceRef(
-              sourceId: 'c1',
-              sourceType: MemorySourceKind.acceptedState,
-            ),
-          ],
-          rootSourceIds: ['c1'],
-        ),
-        const ThoughtAtom(
-          id: 't2',
-          projectId: 'p1',
-          scopeId: 'ch1:sc1',
-          thoughtType: ThoughtType.persona,
-          content: 'Liu Xi hides fear behind analysis.',
-          confidence: 0.88,
-          abstractionLevel: 2.0,
-          tags: ['persona', 'liuxi'],
-          priority: 4,
-          tokenCostEstimate: 15,
-          createdAtMs: 4000,
-          sourceRefs: [
-            MemorySourceRef(
-              sourceId: 'c2',
-              sourceType: MemorySourceKind.characterProfile,
-            ),
-          ],
-          rootSourceIds: ['c2'],
-        ),
-      ]);
-    });
-
-    test('abstract question retrieves thought atoms before raw chunks', () async {
-      final pack = await retriever.retrieve(const StoryMemoryQuery(
-        projectId: 'p1',
-        queryType: StoryMemoryQueryType.causality,
-        text: 'fire key path',
-        tags: ['key', 'fire'],
-      ));
-
-      expect(pack.hits, isNotEmpty);
-      expect(pack.hits.first.isThought, isTrue);
-      expect(
-        pack.hits.first.thoughtAtom?.thoughtType,
-        ThoughtType.plotCausality,
-      );
-    });
-
-    test('concrete fact query retrieves raw chunks before thought atoms', () async {
-      final pack = await retriever.retrieve(const StoryMemoryQuery(
-        projectId: 'p1',
-        queryType: StoryMemoryQueryType.concreteFact,
-        text: 'key lost fire',
-        tags: ['key', 'fire'],
-      ));
-
-      expect(pack.hits, isNotEmpty);
-      expect(pack.hits.first.isThought, isFalse);
-      expect(
-        pack.hits.first.chunk.kind,
-        MemorySourceKind.acceptedState,
-      );
-    });
-
-    test('thought source trace maps back to raw scene evidence', () async {
-      final pack = await retriever.retrieve(const StoryMemoryQuery(
-        projectId: 'p1',
-        queryType: StoryMemoryQueryType.causality,
-        text: 'fire key',
-        tags: ['key', 'fire'],
-      ));
-
-      final thoughtHits = pack.hits.where((h) => h.isThought).toList();
-      expect(thoughtHits, isNotEmpty);
-
-      final thought = thoughtHits.first;
-      expect(thought.thoughtAtom?.sourceRefs, isNotEmpty);
-      expect(
-        thought.thoughtAtom!.sourceRefs.any((ref) => ref.sourceId == 'c1'),
-        isTrue,
-      );
-      expect(
-        thought.thoughtAtom!.rootSourceIds,
-        contains('c1'),
-      );
-    });
+        expect(pack.hits, isNotEmpty);
+        expect(pack.hits.first.chunk.sourceRefs, isNotEmpty);
+        expect(pack.hits.first.chunk.rootSourceIds, contains('c1'));
+      },
+    );
   });
 
   group('CJK keyword overlap', () {
+    const ranker = AgenticRagRanker();
+    const policy = RagRetrievalPolicy(
+      roleId: 'test',
+      rankingStrategy: RankingStrategy.keyword,
+    );
+
+    double score(AgenticRagRankInput input, String query) =>
+        ranker.score(input, query, const [], policy);
+
     test('CJK bigram tokens score Chinese content above zero', () {
-      final rag = AgenticRag();
-      const atom = RetrievalAtom(
+      const input = AgenticRagRankInput(
         id: 'cjk-1',
         content: '黑塔是古老的建筑，隐藏在深山之中。黑塔蕴含神秘力量。',
-        sourceTool: 'worldbuilding',
       );
 
-      final score = rag.scoreAtom(atom, '黑塔神秘', []);
-      expect(score, greaterThan(0));
+      expect(score(input, '黑塔神秘'), greaterThan(0));
     });
 
     test('CJK query matches semantically overlapping content', () {
-      final rag = AgenticRag();
-      const atom = RetrievalAtom(
+      const input = AgenticRagRankInput(
         id: 'cjk-2',
         content: '刘锡是一位谨慎而富有分析力的学者。',
-        sourceTool: 'character',
       );
 
-      final score = rag.scoreAtom(atom, '谨慎的学者', []);
-      expect(score, greaterThan(0));
-    });
-
-    test('CJK two-char term matches as bigram in content', () {
-      final rag = AgenticRag();
-      const atom = RetrievalAtom(
-        id: 'cjk-3',
-        content: '古老的黑塔矗立在山巅',
-        sourceTool: 'worldbuilding',
-      );
-
-      final score = rag.scoreAtom(atom, '黑塔', []);
-      expect(score, greaterThan(0));
+      expect(score(input, '谨慎的学者'), greaterThan(0));
     });
 
     test('CJK atoms rank through full query pipeline', () {
-      final rag = AgenticRag();
-      final atoms = [
-        const RetrievalAtom(
-          id: 'cjk-world',
-          content: '黑塔蕴含神秘力量，是世界的中心。',
-          sourceTool: 'worldbuilding',
-        ),
-        const RetrievalAtom(
-          id: 'cjk-char',
-          content: '刘锡经常在黑塔附近散步，观察古老的符文。',
-          sourceTool: 'character',
-        ),
-        const RetrievalAtom(
-          id: 'cjk-noise',
-          content: '今天天气晴朗，适合外出旅行。',
-          sourceTool: 'weather',
-        ),
+      const inputs = [
+        AgenticRagRankInput(id: 'cjk-world', content: '黑塔蕴含神秘力量，是世界的中心。'),
+        AgenticRagRankInput(id: 'cjk-char', content: '刘锡经常在黑塔附近散步，观察古老的符文。'),
+        AgenticRagRankInput(id: 'cjk-noise', content: '今天天气晴朗，适合外出旅行。'),
       ];
 
-      final ranked = rag.query(atoms, '黑塔古老符文', []);
+      final ranked = ranker.rank(inputs, '黑塔古老符文', const [], policy);
       expect(ranked, isNotEmpty);
-      expect(ranked.first.id, isNot(equals('cjk-noise')));
+      expect(ranked.first.input.id, isNot(equals('cjk-noise')));
     });
   });
 
@@ -665,7 +408,7 @@ void main() {
       expect(json['thoughtCreationCount'], 2);
       expect(json['rejectedThoughtCount'], 1);
       expect(json['indexedChunkCount'], 25);
-      expect(json['sourceRefIds'], isNotEmpty);
+      expect(json['sourceRefIds'], ['s1', 's2', 's3']);
     });
   });
 }

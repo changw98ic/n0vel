@@ -5,12 +5,13 @@ import 'step_scene_planning_io.dart';
 import 'scene_review_models.dart'
     show SceneReviewResult, SceneReviewDecision;
 import 'scene_runtime_models.dart' show SceneBrief;
+import '../domain/contracts/typed_artifact.dart';
 
 // ---------------------------------------------------------------------------
 // Step 7: Review
 // ---------------------------------------------------------------------------
 
-class ReviewInput {
+class ReviewInput extends TypedArtifact {
   const ReviewInput({
     required this.brief,
     required this.plan,
@@ -28,9 +29,22 @@ class ReviewInput {
   final ContextEnrichmentOutput context;
   final int attempt;
   final int softFailureCount;
+
+  @override
+  ArtifactType get type => ArtifactType.reviewResult;
+
+  @override
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'attempt': attempt,
+    'softFailureCount': softFailureCount,
+  };
+
+  @override
+  int get tokenEstimate => 0;
 }
 
-class ReviewOutput {
+class ReviewOutput extends TypedArtifact {
   const ReviewOutput({
     required this.review,
     required this.wasLengthRetry,
@@ -40,4 +54,14 @@ class ReviewOutput {
   final SceneReviewResult review;
   final bool wasLengthRetry;
   final SceneReviewDecision action;
+
+  @override
+  ArtifactType get type => ArtifactType.reviewResult;
+
+  @override
+  Map<String, Object?> toJson() =>
+      {'type': type.name, 'wasLengthRetry': wasLengthRetry};
+
+  @override
+  int get tokenEstimate => 0;
 }

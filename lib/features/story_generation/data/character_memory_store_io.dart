@@ -5,6 +5,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'character_memory_conflict_policy.dart';
 import 'character_memory_delta_models.dart';
 import 'character_memory_store.dart';
+import '../domain/contracts/memory_policy.dart';
 
 class CharacterMemoryStoreIO implements CharacterMemoryStore {
   CharacterMemoryStoreIO({
@@ -36,9 +37,12 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
         source_round INTEGER NOT NULL,
         source_turn_id TEXT NOT NULL,
         confidence REAL NOT NULL,
-        data TEXT NOT NULL
+        data TEXT NOT NULL,
+        tier TEXT NOT NULL DEFAULT 'character',
+        producer TEXT NOT NULL DEFAULT ''
       )
     ''');
+    _migrateAddTierAndProducer();
     db.execute('''
       CREATE INDEX IF NOT EXISTS idx_character_memories_project_character
       ON character_memories (project_id, character_id)
@@ -47,7 +51,30 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
       CREATE INDEX IF NOT EXISTS idx_character_memories_project
       ON character_memories (project_id)
     ''');
+    db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_character_memories_project_tier
+      ON character_memories (project_id, tier)
+    ''');
     _migrated = true;
+  }
+
+  void _migrateAddTierAndProducer() {
+    final columns = <String>{
+      for (final row in db.select(
+        "SELECT name FROM pragma_table_info('character_memories')",
+      ))
+        row['name'] as String,
+    };
+    if (!columns.contains('tier')) {
+      db.execute(
+        "ALTER TABLE character_memories ADD COLUMN tier TEXT NOT NULL DEFAULT 'character'",
+      );
+    }
+    if (!columns.contains('producer')) {
+      db.execute(
+        "ALTER TABLE character_memories ADD COLUMN producer TEXT NOT NULL DEFAULT ''",
+      );
+    }
   }
 
   @override
@@ -55,6 +82,8 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
     required String projectId,
     required String chapterId,
     required String sceneId,
+    required MemoryTier tier,
+    required String producer,
     required List<CharacterMemoryDelta> deltas,
   }) async {
     await ensureTables();
@@ -78,8 +107,8 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
         '''
         INSERT OR REPLACE INTO character_memories (
           id, project_id, chapter_id, scene_id, character_id, kind, content,
-          source_round, source_turn_id, confidence, data
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          source_round, source_turn_id, confidence, data, tier, producer
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''',
         [
           _memoryRowId(
@@ -98,6 +127,8 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
           delta.sourceTurnId,
           delta.confidence,
           jsonEncode(delta.toJson()),
+          tier.name,
+          producer,
         ],
       );
       existingMemories.add(delta);
@@ -108,6 +139,7 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
   Future<List<CharacterMemoryDelta>> loadCharacterMemories({
     required String projectId,
     required String characterId,
+    required MemoryTier tier,
   }) async {
     await ensureTables();
     final rows = db.select(
@@ -115,9 +147,10 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
       SELECT data
       FROM character_memories
       WHERE project_id = ? AND (character_id = ? OR character_id = '')
+        AND tier = ?
       ORDER BY id
       ''',
-      [projectId, characterId],
+      [projectId, characterId, tier.name],
     );
     final deltas = [for (final row in rows) _decode(row['data'] as String)];
     return [
@@ -129,16 +162,17 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
   @override
   Future<List<CharacterMemoryDelta>> loadPublicMemories({
     required String projectId,
+    required MemoryTier tier,
   }) async {
     await ensureTables();
     final rows = db.select(
       '''
       SELECT data
       FROM character_memories
-      WHERE project_id = ? AND character_id = ''
+      WHERE project_id = ? AND character_id = '' AND tier = ?
       ORDER BY id
       ''',
-      [projectId],
+      [projectId, tier.name],
     );
     final deltas = [for (final row in rows) _decode(row['data'] as String)];
     return [
@@ -160,7 +194,7 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
     final rows = db.select(
       '''
       SELECT id, chapter_id, scene_id, character_id, kind, content,
-             source_round, source_turn_id, confidence, data
+             source_round, source_turn_id, confidence, data, tier, producer
       FROM character_memories
       WHERE project_id = ?
       ORDER BY id
@@ -182,6 +216,8 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
             'sourceTurnId': row['source_turn_id'] as String,
             'confidence': (row['confidence'] as num).toDouble(),
             'data': row['data'] as String,
+            'tier': row['tier'] as String,
+            'producer': row['producer'] as String,
           },
       ],
     };
@@ -214,12 +250,20 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
           sceneId: sceneId,
           deltaId: deltaId,
         );
+        final tierValue = _string(row['tier']);
+        final tier = tierValue.isEmpty
+            ? MemoryTier.character
+            : MemoryTier.values.firstWhere(
+                (t) => t.name == tierValue,
+                orElse: () => MemoryTier.character,
+              );
+        final producerValue = _string(row['producer']);
         db.execute(
           '''
           INSERT OR REPLACE INTO character_memories (
             id, project_id, chapter_id, scene_id, character_id, kind, content,
-            source_round, source_turn_id, confidence, data
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source_round, source_turn_id, confidence, data, tier, producer
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ''',
           [
             id,
@@ -233,6 +277,8 @@ class CharacterMemoryStoreIO implements CharacterMemoryStore {
             _string(row['sourceTurnId']),
             _double(row['confidence']) ?? 1,
             _jsonObjectString(row['data']),
+            tier.name,
+            producerValue,
           ],
         );
       }

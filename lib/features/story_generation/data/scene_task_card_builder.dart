@@ -4,7 +4,7 @@ import '../domain/character_cognition_models.dart' show CharacterBelief, Relatio
 import 'scene_runtime_models.dart' show SceneBrief, SceneDirectorOutput;
 
 /// Builds a [pipeline.SceneTaskCard] from a scene brief, resolved cast, and
-/// director output. Extracted from ChapterGenerationOrchestrator to isolate
+/// director output. Extracted from PipelineStageRunnerImpl to isolate
 /// the data transformation logic.
 class SceneTaskCardBuilder {
   const SceneTaskCardBuilder();

@@ -6,12 +6,17 @@ import 'knowledge_visibility_filter.dart';
 import 'scene_context_models.dart';
 import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_runtime_models.dart';
+import 'soul_contract_validator.dart';
 
 /// Proactive character consistency verification for pre- and post-generation.
 class CharacterConsistencyVerifier {
-  CharacterConsistencyVerifier({required this.settingsStore});
+  CharacterConsistencyVerifier({
+    required this.settingsStore,
+    SoulContractValidator? soulValidator,
+  }) : _soulValidator = soulValidator;
 
   final AppSettingsStore settingsStore;
+  final SoulContractValidator? _soulValidator;
 
   /// Pre-generation check: validates character context against their profiles.
   ///
@@ -67,6 +72,14 @@ class CharacterConsistencyVerifier {
       }
     }
 
+    issues.addAll(
+      _soulIssuesForText(
+        text: '${brief.sceneTitle}\n${brief.sceneSummary}',
+        cast: cast,
+        phase: 'pre-generation scene brief',
+      ),
+    );
+
     return ConsistencyReport(issues: issues);
   }
 
@@ -83,17 +96,22 @@ class CharacterConsistencyVerifier {
   }) async {
     if (cast.isEmpty) return const ConsistencyReport(issues: []);
 
-    final characterProfiles = _buildCharacterProfiles(cast);
+    final profileSummaries = _buildProfileSummaries(cast);
     final generatedContent = _collectGeneratedContent(
       director,
       roleOutputs,
       prose,
     );
+    final soulIssues = _soulIssuesForText(
+      text: generatedContent,
+      cast: cast,
+      phase: 'post-generation content',
+    );
 
     final systemPrompt = _buildPostCheckSystemPrompt();
     final userPrompt = _buildPostCheckUserPrompt(
       sceneTitle: brief.sceneTitle,
-      characterProfiles: characterProfiles,
+      characterProfiles: profileSummaries,
       generatedContent: generatedContent,
     );
 
@@ -108,16 +126,45 @@ class CharacterConsistencyVerifier {
       );
 
       if (result.text == null || result.text!.trim().isEmpty) {
-        return const ConsistencyReport(issues: []);
+        return ConsistencyReport(issues: soulIssues);
       }
 
-      return _parseCheckResponse(result.text!);
+      final llmReport = _parseCheckResponse(result.text!);
+      return ConsistencyReport(issues: [...llmReport.issues, ...soulIssues]);
     } on Object {
-      return const ConsistencyReport(issues: []);
+      return ConsistencyReport(issues: soulIssues);
     }
   }
 
-  String _buildCharacterProfiles(List<ResolvedSceneCastMember> cast) {
+  List<ConsistencyIssue> _soulIssuesForText({
+    required String text,
+    required List<ResolvedSceneCastMember> cast,
+    required String phase,
+  }) {
+    final validator = _soulValidator;
+    if (validator == null || text.trim().isEmpty) return const [];
+
+    final violations = validator.validate(text, context: {'phase': phase});
+    if (violations.isEmpty) return const [];
+
+    final characterIds = cast.isEmpty
+        ? const ['scene']
+        : [for (final member in cast) member.characterId];
+    return [
+      for (final characterId in characterIds)
+        for (final violation in violations)
+          ConsistencyIssue(
+            aspect: ConsistencyAspect.actionCapability,
+            severity: ConsistencySeverity.blocking,
+            characterId: characterId,
+            description:
+                'Soul contract violation during $phase: ${violation.description}',
+            suggestion: 'Revise the action so it respects ${violation.rule}.',
+          ),
+    ];
+  }
+
+  String _buildProfileSummaries(List<ResolvedSceneCastMember> cast) {
     final parts = <String>[];
     for (final member in cast) {
       parts.add('- ${member.name}(${member.characterId}): role=${member.role}');

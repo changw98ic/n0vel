@@ -33,7 +33,7 @@ import 'package:novel_writer/app/state/story_outline_storage_io.dart';
 import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/features/import_export/data/project_transfer_service.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
-import 'package:novel_writer/features/story_generation/data/chapter_generation_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
@@ -360,8 +360,8 @@ Future<_RealValidationResult> _runRealOneChapterValidation() async {
       ),
     );
 
-    ChapterGenerationOrchestrator createSceneOrchestrator() =>
-        ChapterGenerationOrchestrator(
+    PipelineStageRunnerImpl createSceneOrchestrator() =>
+        PipelineStageRunnerImpl(
           settingsStore: settingsStore,
           pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 2),
           reviewCoordinator: SceneReviewCoordinator(
@@ -1566,7 +1566,7 @@ String _chapterSimulationRelativePath(_ValidationChapter chapter) {
 }
 
 Future<_SceneExecutionResult> _runSceneWithEscalation({
-  required ChapterGenerationOrchestrator orchestrator,
+  required PipelineStageRunnerImpl orchestrator,
   required _LiveStatusReporter statusReporter,
   required _ValidationChapter chapter,
   required _ValidationScene scene,
@@ -1575,7 +1575,6 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
 }) async {
   final restartNotes = <String>[];
   var transportRetries = 0;
-  var speculationReleased = false;
   for (var restart = 0; restart < 3; restart += 1) {
     await statusReporter.update(
       phase: 'scene-start',
@@ -1616,18 +1615,6 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
             'phase5SimulationInput': chapterSimulationInput,
           },
         ),
-        onStatus: (message) {
-          if (!speculationReleased && _isSceneSpeculationStage(message)) {
-            speculationReleased = true;
-            onSpeculationReady?.call();
-          }
-          if (_isRoleplayTraceStage(message)) {
-            unawaited(statusReporter.appendRoleplayTrace(message));
-          }
-          unawaited(
-            statusReporter.update(phase: 'scene-pass', detail: message),
-          );
-        },
       );
       if (output.review.decision == SceneReviewDecision.pass) {
         await statusReporter.update(
@@ -1685,24 +1672,8 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
   );
 }
 
-bool _isSceneSpeculationStage(String message) {
-  return message.contains('editorial attempt') ||
-      message.contains('scene combined review') ||
-      message.contains('scene judge review') ||
-      message.contains('scene consistency review') ||
-      message.contains('scene reader-flow review') ||
-      message.contains('scene lexicon review') ||
-      message.contains('local review');
-}
-
-bool _isRoleplayTraceStage(String message) {
-  return message.contains('roleplay-log') ||
-      message.contains('roleplay round') ||
-      message.contains(' · role ');
-}
-
 Future<List<_SceneExecutionResult>> _runChapterScenesWithEscalation({
-  required ChapterGenerationOrchestrator Function() orchestratorFactory,
+  required PipelineStageRunnerImpl Function() orchestratorFactory,
   required _LiveStatusReporter statusReporter,
   required _ValidationChapter chapter,
   required String chapterSimulationInput,

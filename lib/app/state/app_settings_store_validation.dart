@@ -1,6 +1,8 @@
 import '../llm/app_llm_client.dart';
 import 'settings/settings_models.dart';
 
+const int _maxLlmTimeoutMs = 10 * 60 * 1000;
+
 AppSettingsFeedback? validateInputs({
   required String baseUrl,
   required String model,
@@ -38,6 +40,10 @@ AppSettingsFeedback? validateInputs({
       message: '请填写有效的空闲超时时间（ms）。',
       tone: AppSettingsFeedbackTone.error,
     );
+  }
+  final timeoutLimitFeedback = _validateTimeoutUpperBound(timeout);
+  if (timeoutLimitFeedback != null) {
+    return timeoutLimitFeedback;
   }
   if (maxConcurrentRequests <= 0) {
     return const AppSettingsFeedback(
@@ -90,6 +96,24 @@ AppSettingsFeedback? validateInputs({
   }
 
   return null;
+}
+
+AppSettingsFeedback? _validateTimeoutUpperBound(AppLlmTimeoutConfig timeout) {
+  AppSettingsFeedback? tooLarge(String label, int value) {
+    if (value <= _maxLlmTimeoutMs) return null;
+    return AppSettingsFeedback(
+      title: '$label过长',
+      message: '$label当前为$value ms，超过 10 分钟上限。过长超时会让 API 失败表现为空等，请调低后再保存。',
+      tone: AppSettingsFeedbackTone.error,
+    );
+  }
+
+  return tooLarge('连接超时', timeout.connectTimeoutMs) ??
+      tooLarge('发送超时', timeout.sendTimeoutMs) ??
+      tooLarge('接收超时', timeout.receiveTimeoutMs) ??
+      (timeout.idleTimeoutMs == null
+          ? null
+          : tooLarge('空闲超时', timeout.idleTimeoutMs!));
 }
 
 AppSettingsConnectionTestOutcome validationOutcomeFor({
