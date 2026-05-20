@@ -2,6 +2,8 @@
 
 Novel Writer 是一个本地优先的长篇小说写作工作台。它把项目、角色、世界观、场景、参考资料和 AI 写作助手放在同一个地方，帮助作者从资料整理、正文起草到改写、审阅、版本保存和通读检查形成一条完整流程。
 
+![Novel Writer preview](docs/assets/novel-writer-preview.png)
+
 当前项目还是开发预览版，暂时没有安装包。普通用户如果想试用，需要先安装 Flutter，然后从源码启动应用。
 
 ## 适合做什么
@@ -29,7 +31,7 @@ flutter pub get
 flutter run -d macos
 ```
 
-如果你使用 Windows、Linux 或浏览器预览，把命令里的 `macos` 换成 `windows`、`linux` 或 `chrome`。
+如果你使用 Windows 或 Linux，把命令里的 `macos` 换成 `windows` 或 `linux`。当前 Web/Chrome 预览仍受本地 `sqlite3`/`dart:ffi` 依赖限制，建议先用桌面端试用。
 
 ## 第一次使用
 
@@ -112,4 +114,6 @@ flutter test
 
 架构说明在 `docs/architecture.md`，产品需求在 `docs/prd.md`。
 
-所有持久化内容更新都要在 GitHub issue 中留下记录。当前规则记录在 [issue #2](https://github.com/changw98ic/n0vel/issues/2)，这次 README 更新记录在 [issue #3](https://github.com/changw98ic/n0vel/issues/3)，当前架构分析报告在 [issue #4](https://github.com/changw98ic/n0vel/issues/4)。
+README 预览图位于 `docs/assets/novel-writer-preview.png`，GitHub social preview 候选图位于 `docs/assets/social-preview.png`。
+
+所有持久化内容更新都要在 GitHub issue 中留下记录。当前规则记录在 [issue #2](https://github.com/changw98ic/n0vel/issues/2)，这次 README 更新记录在 [issue #3](https://github.com/changw98ic/n0vel/issues/3)，当前架构分析报告在 [issue #4](https://github.com/changw98ic/n0vel/issues/4)，推广准备记录在 [issue #5](https://github.com/changw98ic/n0vel/issues/5)。
