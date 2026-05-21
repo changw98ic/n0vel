@@ -90,7 +90,7 @@ flutter run -d macos
 | Versions | 草稿快照和版本回看 |
 | Reading | 低干扰通读 |
 | Import / Export | 项目迁移和备份 |
-| Settings | 模型服务、密钥、主题、超时和路由设置 |
+| Settings | 模型服务、密钥、主题、超时和路由设置（配置示例见 [docs/providers.md](./docs/providers.md)） |
 
 ## 常见问题
 
