@@ -6,12 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
-import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import 'project_list_components.dart';
+import 'project_wizard_page.dart';
 
 enum ProjectListUiState {
   ready,
@@ -473,17 +473,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   }
 
   Future<void> _createProject() async {
-    final name = await showAppTextInputDialog(
+    await showDialog<void>(
       context: context,
-      title: '新建作品',
-      description: '为你的新作品起个名字。',
-      hintText: '输入作品名称',
-      fieldKey: ProjectListPage.projectNameFieldKey,
-      confirmText: '创建',
+      barrierColor: const Color(0x301F2A1D),
+      builder: (_) => const ProjectWizardPage(),
     );
-    if (name == null || name.isEmpty || !mounted) return;
     setState(() {
-      ref.read(appWorkspaceStoreProvider).createProject(projectName: name);
       _searchController.clear();
     });
   }

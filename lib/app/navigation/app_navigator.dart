@@ -5,6 +5,7 @@ import '../state/app_simulation_store.dart';
 abstract final class AppRoutes {
   static const String shelf = 'shelf';
   static const String projectHome = 'project_home';
+  static const String projectWizard = 'project_wizard';
   static const String workbench = 'workbench';
   static const String settings = 'settings';
   static const String characters = 'characters';
