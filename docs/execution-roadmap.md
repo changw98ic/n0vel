@@ -3,7 +3,7 @@
 > 版本: 1.0
 > 创建日期: 2026-05-24
 > 负责人: Claude ACP (implementation), Codex (review)
-> 跟踪 issue: TBD（待 gh CLI 认证后创建）
+> 跟踪 issue: #23
 
 ## 执行协议
 
