@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'app_llm_execution_policy.dart';
+
 class AppLlmRequestPool {
   int _maxConcurrent;
   int _active = 0;
@@ -9,7 +11,17 @@ class AppLlmRequestPool {
   Timer? _cooldownTimer;
   DateTime? _cooldownUntil;
 
-  AppLlmRequestPool({int maxConcurrent = 3}) : _maxConcurrent = maxConcurrent;
+  AppLlmRequestPool({
+    int maxConcurrent = 3,
+    AppLlmRequestExecutionPolicy? executionPolicy,
+  })  : _executionPolicy = executionPolicy ??
+            AppLlmRequestExecutionPolicy(maxConcurrent: maxConcurrent),
+        _maxConcurrent = executionPolicy?.maxConcurrent ?? maxConcurrent;
+
+  final AppLlmRequestExecutionPolicy _executionPolicy;
+
+  /// 暴露 execution policy 供外部可观测。
+  AppLlmRequestExecutionPolicy get executionPolicy => _executionPolicy;
 
   int get maxConcurrent => _maxConcurrent;
 

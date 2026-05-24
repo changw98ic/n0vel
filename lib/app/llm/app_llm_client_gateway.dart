@@ -4,27 +4,36 @@ import 'dart:math';
 import 'app_llm_circuit_breaker.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
+import 'app_llm_execution_policy.dart';
 
 class AppLlmClientGateway implements AppLlmClient {
   AppLlmClientGateway({
     required AppLlmClient delegate,
     this.maxRetries = 3,
     this.baseDelayMs = 1000,
+    AppLlmRetryPolicy? retryPolicy,
     AppLlmCircuitBreaker? circuitBreaker,
-  }) : _delegate = delegate,
-       _circuitBreaker = circuitBreaker ?? AppLlmCircuitBreaker();
+  })  : _delegate = delegate,
+        _circuitBreaker = circuitBreaker ?? AppLlmCircuitBreaker(),
+        _retryPolicy = retryPolicy ??
+            AppLlmRetryPolicy(
+              maxRetries: maxRetries,
+              baseDelayMs: baseDelayMs,
+            );
 
   final AppLlmClient _delegate;
   final int maxRetries;
   final int baseDelayMs;
   final AppLlmCircuitBreaker _circuitBreaker;
+  final AppLlmRetryPolicy _retryPolicy;
 
   /// 暴露 circuit breaker 供外部可观测。
   AppLlmCircuitBreaker get circuitBreaker => _circuitBreaker;
 
-  static final _rng = Random();
+  /// 暴露 retry policy 供外部可观测。
+  AppLlmRetryPolicy get retryPolicy => _retryPolicy;
 
-  static const _maxReconnectBackoffAttempt = 7;
+  static final _rng = Random();
 
   AppLlmConnectionState _connectionState = AppLlmConnectionState.connected;
   final _connectionStateController =
@@ -68,7 +77,7 @@ class AppLlmClientGateway implements AppLlmClient {
           return result;
         }
         attempt++;
-        if (attempt >= maxRetries) {
+        if (attempt >= _retryPolicy.maxRetries) {
           if (_isConnectionLost(result.failureKind)) {
             _startReconnectLoop();
           }
@@ -121,8 +130,9 @@ class AppLlmClientGateway implements AppLlmClient {
     if (_connectionState == AppLlmConnectionState.connected) return;
     if (_lastBaseUrl == null) return;
 
-    final delay = _backoffMs(
-      min(_reconnectAttempt, _maxReconnectBackoffAttempt),
+    final delay = _retryPolicy.backoffMs(
+      min(_reconnectAttempt, _retryPolicy.maxReconnectAttempts),
+      rng: _rng,
     );
     _reconnectTimer = Timer(Duration(milliseconds: delay), _reconnectTick);
   }
@@ -150,7 +160,10 @@ class AppLlmClientGateway implements AppLlmClient {
       return;
     }
 
-    _reconnectAttempt = min(_reconnectAttempt + 1, _maxReconnectBackoffAttempt);
+    _reconnectAttempt = min(
+      _reconnectAttempt + 1,
+      _retryPolicy.maxReconnectAttempts,
+    );
     _scheduleReconnect();
   }
 
@@ -176,26 +189,11 @@ class AppLlmClientGateway implements AppLlmClient {
   }
 
   bool _isRetryable(AppLlmFailureKind? kind) {
-    switch (kind) {
-      case AppLlmFailureKind.timeout:
-      case AppLlmFailureKind.rateLimited:
-      case AppLlmFailureKind.server:
-      case AppLlmFailureKind.network:
-        return true;
-      case AppLlmFailureKind.unauthorized:
-      case AppLlmFailureKind.modelNotFound:
-      case AppLlmFailureKind.invalidResponse:
-      case AppLlmFailureKind.unsupportedPlatform:
-      case AppLlmFailureKind.insecureScheme:
-      case null:
-        return false;
-    }
+    return _retryPolicy.isRetryable(kind);
   }
 
   int _backoffMs(int attempt) {
-    final exponential = baseDelayMs * (1 << attempt);
-    final jitter = (exponential * 0.2).round();
-    return exponential + _rng.nextInt(jitter + 1);
+    return _retryPolicy.backoffMs(attempt, rng: _rng);
   }
 
   void _setConnectionState(AppLlmConnectionState state) {

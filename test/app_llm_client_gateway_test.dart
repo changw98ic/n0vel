@@ -268,6 +268,40 @@ void main() {
       final client = createResilientAppLlmClient();
       expect(client, isA<AppLlmClientGateway>());
     });
+
+    test('custom retryPolicy.maxRetries overrides legacy maxRetries', () async {
+      final delegate = _CallCountingClient(
+        results: [
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.timeout,
+            detail: 'fail 1',
+          ),
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.timeout,
+            detail: 'fail 2',
+          ),
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.timeout,
+            detail: 'fail 3',
+          ),
+        ],
+      );
+      final gateway = AppLlmClientGateway(
+        delegate: delegate,
+        maxRetries: 3, // Legacy argument
+        baseDelayMs: 1,
+        retryPolicy: const AppLlmRetryPolicy.noJitter(
+          maxRetries: 1, // Policy argument should override
+        ),
+      );
+
+      final result = await gateway.chat(_testRequest);
+
+      // Should only attempt once (no retries) because retryPolicy.maxRetries=1
+      expect(result.succeeded, isFalse);
+      expect(delegate.calls, 1);
+      gateway.dispose();
+    });
   });
 
   group('AppLlmClientGateway connection state', () {

@@ -3,6 +3,7 @@ export 'app_llm_client_contract.dart';
 export 'app_llm_client_gateway.dart';
 export 'app_llm_client_types.dart';
 export 'app_llm_call_trace.dart';
+export 'app_llm_execution_policy.dart';
 export 'app_llm_failover_chain.dart';
 export 'app_llm_logging_middleware.dart';
 export 'app_llm_output_schema.dart';
