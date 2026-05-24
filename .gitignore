@@ -65,3 +65,11 @@ artifacts/sample_chapters/*
 !artifacts/sample_chapters/qidian_main/**
 .codex_tmp_pen_exports/
 manual-test-assets/
+.env
+.env.*
+node_modules/
+dist/
+build/
+coverage/
+cpb-task/state/
+cpb-task/worktrees/
