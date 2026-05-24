@@ -1,0 +1,63 @@
+{
+  "caseId": "recoverable-failure",
+  "description": "Recoverable stage failure at roleplay stage with retry",
+  "input": {
+    "projectId": "proj-test-novel",
+    "sceneId": "scene-002",
+    "sceneIndex": 1,
+    "totalScenesInChapter": 5,
+    "sceneTitle": "The Conflict",
+    "sceneSummary": "Protagonist faces an obstacle and must make a choice."
+  },
+  "presetId": "default-nine-stage",
+  "expectedOutput": {
+    "success": false,
+    "stageCount": 3,
+    "failureMode": "stage-failure-before-retry",
+    "stageOrder": [
+      "contextEnrichment",
+      "scenePlanning",
+      "roleplay"
+    ],
+    "eventSequence": [
+      {
+        "stageId": "contextEnrichment",
+        "eventType": "started",
+        "artifactType": "contextAssembly"
+      },
+      {
+        "stageId": "contextEnrichment",
+        "eventType": "completed",
+        "artifactType": "contextAssembly"
+      },
+      {
+        "stageId": "scenePlanning",
+        "eventType": "started",
+        "artifactType": "directorPlan"
+      },
+      {
+        "stageId": "scenePlanning",
+        "eventType": "completed",
+        "artifactType": "directorPlan"
+      },
+      {
+        "stageId": "roleplay",
+        "eventType": "started",
+        "artifactType": "roleplaySession"
+      },
+      {
+        "stageId": "roleplay",
+        "eventType": "failed",
+        "artifactType": "roleplaySession",
+        "failureCode": "recoverable"
+      }
+    ],
+    "failureCode": "recoverable",
+    "failedStageId": "roleplay",
+    "finalArtifactType": null,
+    "metadata": {
+      "eventCount": 6,
+      "stageCount": 3
+    }
+  }
+}

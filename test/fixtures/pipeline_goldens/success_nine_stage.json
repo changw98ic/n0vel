@@ -1,0 +1,128 @@
+{
+  "caseId": "success-nine-stage",
+  "description": "Successful default-nine-stage pipeline run",
+  "input": {
+    "projectId": "proj-test-novel",
+    "sceneId": "scene-001",
+    "sceneIndex": 0,
+    "totalScenesInChapter": 5,
+    "sceneTitle": "The Opening",
+    "sceneSummary": "Protagonist arrives at the destination and meets key characters."
+  },
+  "presetId": "default-nine-stage",
+  "expectedOutput": {
+    "success": true,
+    "stageCount": 9,
+    "stageOrder": [
+      "contextEnrichment",
+      "scenePlanning",
+      "roleplay",
+      "stageNarration",
+      "beatResolution",
+      "editorial",
+      "review",
+      "polish",
+      "finalization"
+    ],
+    "eventSequence": [
+      {
+        "stageId": "contextEnrichment",
+        "eventType": "started",
+        "artifactType": "contextAssembly"
+      },
+      {
+        "stageId": "contextEnrichment",
+        "eventType": "completed",
+        "artifactType": "contextAssembly"
+      },
+      {
+        "stageId": "scenePlanning",
+        "eventType": "started",
+        "artifactType": "directorPlan"
+      },
+      {
+        "stageId": "scenePlanning",
+        "eventType": "completed",
+        "artifactType": "directorPlan"
+      },
+      {
+        "stageId": "roleplay",
+        "eventType": "started",
+        "artifactType": "roleplaySession"
+      },
+      {
+        "stageId": "roleplay",
+        "eventType": "completed",
+        "artifactType": "roleplaySession"
+      },
+      {
+        "stageId": "stageNarration",
+        "eventType": "started",
+        "artifactType": "stageNarration"
+      },
+      {
+        "stageId": "stageNarration",
+        "eventType": "completed",
+        "artifactType": "stageNarration"
+      },
+      {
+        "stageId": "beatResolution",
+        "eventType": "started",
+        "artifactType": "beatResolution"
+      },
+      {
+        "stageId": "beatResolution",
+        "eventType": "completed",
+        "artifactType": "beatResolution"
+      },
+      {
+        "stageId": "editorial",
+        "eventType": "started",
+        "artifactType": "proseDraft"
+      },
+      {
+        "stageId": "editorial",
+        "eventType": "completed",
+        "artifactType": "proseDraft"
+      },
+      {
+        "stageId": "review",
+        "eventType": "started",
+        "artifactType": "reviewResult"
+      },
+      {
+        "stageId": "review",
+        "eventType": "completed",
+        "artifactType": "reviewResult"
+      },
+      {
+        "stageId": "polish",
+        "eventType": "started",
+        "artifactType": "polishedProse"
+      },
+      {
+        "stageId": "polish",
+        "eventType": "completed",
+        "artifactType": "polishedProse"
+      },
+      {
+        "stageId": "finalization",
+        "eventType": "started",
+        "artifactType": "sceneOutput"
+      },
+      {
+        "stageId": "finalization",
+        "eventType": "completed",
+        "artifactType": "sceneOutput"
+      }
+    ],
+    "failureCode": null,
+    "failedStageId": null,
+    "finalArtifactType": "sceneOutput",
+    "metadata": {
+      "eventCount": 18,
+      "stageCount": 9,
+      "finalArtifactType": "sceneOutput"
+    }
+  }
+}
