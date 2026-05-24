@@ -38,6 +38,7 @@ import '../domain/contracts/rag_retrieval_policy.dart';
 import '../domain/contracts/stage_runner.dart';
 import '../domain/contracts/typed_artifact.dart';
 import 'step_io.dart';
+import 'pipeline_definition.dart';
 import 'steps/context_enrichment_step.dart';
 import 'steps/scene_planning_step.dart';
 import 'steps/roleplay_step.dart';
@@ -231,6 +232,13 @@ class PipelineStageRunnerImpl
 
   @override
   MemoryWritebackGate get writebackGate => _writebackGate;
+
+  /// The built-in default pipeline preset.
+  ///
+  /// Exposes the declarative nine-stage pipeline definition for runtime
+  /// introspection and future UI/API usage. This is additive — the runner's
+  /// stage execution order remains unchanged.
+  static PipelinePreset get defaultPreset => BuiltInPresets.defaultNineStage;
 
   @override
   Future<PipelineRunResult> run(
