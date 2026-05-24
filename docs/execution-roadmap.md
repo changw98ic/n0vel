@@ -2,16 +2,23 @@
 
 > 版本: 1.0
 > 创建日期: 2026-05-24
-> 负责人: 实现者 (implementation), 审阅者 (review)
-> 跟踪 issue: #23
-
-> **范围说明**: 本文档是 n0vel 长期执行的工程技术计划，随 PR #29（promotion milestone）一同提交，作为推广路线图的支撑性运营上下文，而非面向终端用户的营销文档。后续如维护者认为执行计划应独立管理，可拆分到单独 PR。本文档定位始终是：给长篇小说作者用的本地优先 AI 创作工作台的内部工程规划。
+> 负责人: Claude ACP (implementation), Codex (review)
+> 跟踪 issue: TBD（待 gh CLI 认证后创建）
 
 ## 执行协议
 
 ### 角色分工
-- **实现者（Implementer）**：负责代码实现、测试、commit
-- **审阅者（Reviewer）**：负责审阅、验证、CI 状态检查、回退建议，**不直接实现代码**
+- **Claude ACP**（Agent CodePath）：负责代码实现、测试、commit
+- **Codex**：仅负责审阅、验证、CI 状态检查、回退建议，**不直接实现代码**
+
+### 里程碑执行流程
+1. Claude ACP 按任务 ID 顺序执行里程碑内的任务
+2. 每个任务完成后，本地 commit（WIP 可，但必须清晰）
+3. 里程碑内所有任务完成后，统一 push 到远端分支
+4. Claude ACP 检查 GitHub Actions CI 状态
+5. CI 失败 -> Claude ACP 修复 -> 重新 push -> 再次检查
+6. CI 通过 -> 交付给 Codex 审阅
+7. Codex 审阅通过 -> 合并到主分支；审阅不通过 -> 提出反馈 -> Claude ACP 修复
 
 ### 提交信息格式（Lore Commit Protocol）
 
@@ -25,17 +32,26 @@ Confidence: <high|medium|low>
 Scope-risk: <risk-assessment>
 Tested: <what-was-tested>
 Not-tested: <what-not-tested>
-Co-Authored-By: [contributor name]
+Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
+类型示例：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`、`规划`
+
+### GitHub Issue 要求
+- 每个 durable content 更新（文档、架构、PRD、执行计划）必须有关联 issue
+- Issue 标题格式：`[M<编号>] <任务简述>`
+- Issue 内容必须包含：目标、范围、验收标准、风险
+
 ### CI 检查要求
-- 每次 push 后必须检查 CI 状态
+- 每次 push 后必须检查 `flutter-analyze-test.yml` 和 `verify-macos.yml` 状态
 - CI 失败必须修复后才能继续下一个里程碑
 
 ### 回滚策略
-- 每个里程碑完成后打 tag
+- 每个里程碑完成后打 tag：`vM<编号>-里程碑名称`
 - 如需回滚：`git revert <milestone-commit-range>`
 - 如已合并：创建 revert PR 或手动 revert
+
+---
 
 ## Milestone 概览
 
@@ -51,10 +67,12 @@ Co-Authored-By: [contributor name]
 | M7 | Git/Local API | M3, M4 | 6 天 | 高 |
 | M8 | Ecosystem and Collaboration | M4, M6 | 8 天 | 高 |
 
+---
+
 ## M0: Roadmap/Backlog Operationalization
 
 ### 目标
-建立长期执行计划框架，使后续贡献者可按 task ID 接力执行。
+建立长期执行计划框架，使后续 Claude ACP jobs 可按 task ID 接力执行。
 
 ### 验收标准
 - [ ] `docs/execution-roadmap.md` 存在且包含 M0-M8 所有任务
@@ -63,7 +81,7 @@ Co-Authored-By: [contributor name]
 - [ ] 提交信息符合 Lore Commit Protocol
 - [ ] 已推送到远端分支
 - [ ] 已检查 CI 状态
-- [ ] 已生成 deliverable 并提交审阅
+- [ ] 已生成 deliverable 交付给 Codex
 
 ### 风险
 - **gh CLI 未认证**：无法创建 GitHub issue，需在 deliverable 中说明
@@ -77,7 +95,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M0-01: 创建长期执行计划框架
 - **目标**: 创建 docs/execution-roadmap.md 和 docs/milestone-0-protocol.md
-- **预计耗时**: 4人时
 - **范围**:
   - 创建 `docs/execution-roadmap.md`，包含 M0-M8 完整任务拆分
   - 创建 `docs/milestone-0-protocol.md`，定义执行协议
@@ -90,6 +107,8 @@ Co-Authored-By: [contributor name]
 - **测试/CI 命令**: `git status`, `git log -1`
 - **前置依赖**: 无
 - **GitHub Issue/PR 要求**: 创建 issue "M0: 建立长期执行计划框架"
+
+---
 
 ## M1: Daily Writing Studio
 
@@ -117,7 +136,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M1-01: Workbench 三栏壳层基础
 - **目标**: 实现 Workbench 三栏布局框架
-- **预计耗时**: 6人时
 - **范围**:
   - 修改 `lib/features/workbench/presentation/workbench_shell_page.dart`
   - 新增三栏布局组件，定义区域划分
@@ -133,7 +151,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M1-02: Project Home/Shelf/Studio/Bible/Production IA
 - **目标**: 设计并实现项目级导航入口
-- **预计耗时**: 6人时
 - **范围**:
   - 新增 `ProjectHomePage` 作为项目 Home
   - 集成 Shelf（项目切换）、Studio（工作台入口）、Bible（资料中心）、Production（进度仪表盘）
@@ -149,7 +166,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M1-03: 新建项目向导
 - **目标**: 实现新建项目的引导式向导
-- **预计耗时**: 6人时
 - **范围**:
   - 新增 `ProjectWizardPage`
   - 收集：项目名称、类型、初始角色/世界观
@@ -165,7 +181,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M1-04: AI 候选逐段采纳
 - **目标**: 实现 AI 候选稿的逐段采纳 UI 和逻辑
-- **预计耗时**: 7人时
 - **范围**:
   - 修改 `lib/features/workbench/presentation/workbench_ai_controller.dart`
   - 新增候选稿对比组件，支持逐段采纳
@@ -181,7 +196,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M1-05: Run Center/场景切换守卫
 - **目标**: 建立 Run Center 作为工作流状态中心，实现场景切换守卫
-- **预计耗时**: 7人时
 - **范围**:
   - 新增 `RunCenterPage`
   - 实现场景切换前的保存检查
@@ -224,7 +238,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M2-01: PipelineDefinition/preset 抽取
 - **目标**: 将 pipeline 定义从实现中抽取为独立数据结构
-- **预计耗时**: 6人时
 - **范围**:
   - 新增 `lib/features/story_generation/data/pipeline_definition.dart`
   - 定义 preset 结构
@@ -240,7 +253,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M2-02: LLM retry/request pool 策略
 - **目标**: 实现 LLM 请求的自动重试和连接池
-- **预计耗时**: 6人时
 - **范围**:
   - 修改 `lib/app/llm/app_llm_client.dart`
   - 新增 retry policy 和 request pool
@@ -256,7 +268,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M2-03: Pipeline 重试/恢复/状态面板
 - **目标**: 增强 pipeline 运行时的可观测性和恢复能力
-- **预计耗时**: 7人时
 - **范围**:
   - 修改 `lib/features/story_generation/data/pipeline_stage_runner_impl.dart`
   - 新增状态面板组件
@@ -272,7 +283,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M2-04: Pipeline golden harness
 - **目标**: 建立 pipeline 的 golden 测试工具集
-- **预计耗时**: 5人时
 - **范围**:
   - 新增 `test/golden/pipeline_golden_harness.dart`
   - 定义 golden 输入/输出规范
@@ -313,7 +323,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M3-01: Markdown mirror 导出
 - **目标**: 实现项目数据的 Markdown 格式导出
-- **预计耗时**: 6人时
 - **范围**:
   - 新增 `lib/features/import_export/data/markdown_exporter.dart`
   - 定义 Markdown 文件结构（章节、角色、世界观）
@@ -329,7 +338,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M3-02: Pending overlay 机制
 - **目标**: 实现 SQLite 数据与 Markdown 导出之间的 pending 状态 overlay
-- **预计耗时**: 6人时
 - **范围**:
   - 新增 `lib/app/state/pending_overlay_store.dart`
   - 定义 pending 状态合并逻辑
@@ -345,7 +353,6 @@ Co-Authored-By: [contributor name]
 
 #### TASK-M3-03: 导入方案设计文档
 - **目标**: 设计 Markdown 导入的技术方案
-- **预计耗时**: 3人时
 - **范围**:
   - 新增 `docs/markdown-import-plan.md`
 - **相关模块**: docs
@@ -357,6 +364,8 @@ Co-Authored-By: [contributor name]
 - **测试/CI 命令**: N/A（文档）
 - **前置依赖**: M3-02
 - **GitHub Issue/PR 要求**: Issue 标题 "[M3] 导入方案设计"
+
+---
 
 ## M4: Provider/State Convergence
 
@@ -925,8 +934,29 @@ ServiceRegistry 迁移到 Riverpod provider，store 拆分，建立投影层。
 
 ---
 
+## 附录：任务元数据模板
 
-## 执行检查清单
+每个任务必须包含以下元数据：
+
+```markdown
+#### TASK-XX-YY: <任务标题>
+- **目标**: <一句话描述目标>
+- **范围**:
+  - <涉及的具体文件/模块>
+- **相关模块**: <comma-separated list>
+- **Out-of-Scope**: <明确不做什么>
+- **验收标准**:
+  - [ ] <可验证的条件 1>
+  - [ ] <可验证的条件 2>
+  - ...
+- **测试/CI 命令**: <具体命令>
+- **前置依赖**: <依赖的任务 ID>
+- **GitHub Issue/PR 要求**: <Issue 标题格式>
+```
+
+---
+
+## 附录：执行检查清单
 
 ### 每个任务完成后
 - [ ] 代码修改完成
@@ -938,8 +968,8 @@ ServiceRegistry 迁移到 Riverpod provider，store 拆分，建立投影层。
 - [ ] 所有任务完成
 - [ ] Push 到远端分支
 - [ ] CI 检查通过
-- [ ] 提交审阅
-- [ ] 审阅通过
+- [ ] 交付给 Codex 审阅
+- [ ] Codex 审阅通过
 - [ ] 合并到主分支或创建 PR
 
 ### 遇到阻塞时
@@ -947,3 +977,16 @@ ServiceRegistry 迁移到 Riverpod provider，store 拆分，建立投影层。
 - [ ] 创建 GitHub issue（如可能）
 - [ ] 在 deliverable 中说明
 - [ ] 寻求绕过方案或降级方案
+
+---
+
+## 执行顺序建议
+
+1. **M0** -> 建立基础（本次执行）
+2. **M1 + M2 并行** -> 写作体验和 pipeline 稳定性可以并行推进
+3. **M3** -> 在 M1/M2 稳定后进行存储改造
+4. **M4** -> 在 M1/M2/M3 完成后收敛状态管理
+5. **M5** -> 在 M2 后增强安全性
+6. **M6** -> 在 M1/M3 后增强 Bible/Production
+7. **M7** -> 在 M3/M4 后实现 Git/API
+8. **M8** -> 最后实现生态功能

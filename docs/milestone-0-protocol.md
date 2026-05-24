@@ -6,7 +6,7 @@
 
 ## 目标
 
-建立长期执行计划框架，使后续贡献者可按 task ID 接力执行。
+建立长期执行计划框架，使后续 Claude ACP jobs 可按 task ID 接力执行。
 
 ## 验收标准
 
@@ -16,7 +16,7 @@
 - [ ] 提交信息符合 Lore Commit Protocol
 - [ ] 已推送到远端分支
 - [ ] 已检查 CI 状态
-- [ ] 已生成 deliverable 并提交审阅
+- [ ] 已生成 deliverable 交付给 Codex
 
 ## 风险
 
@@ -44,8 +44,8 @@ Tested: git status 显示清理完成"
 
 ### 角色分工
 
-- **实现者（Implementer）**：负责代码实现、测试、commit
-- **审阅者（Reviewer）**：负责审阅、验证、CI 状态检查、回退建议，**不直接实现代码**
+- **Claude ACP**（Agent CodePath）：负责代码实现、测试、commit
+- **Codex**：仅负责审阅、验证、CI 状态检查、回退建议，**不直接实现代码**
 
 ### 提交信息格式（Lore Commit Protocol）
 
@@ -59,7 +59,7 @@ Confidence: <high|medium|low>
 Scope-risk: <risk-assessment>
 Tested: <what-was-tested>
 Not-tested: <what-not-tested>
-Co-Authored-By: [contributor name]
+Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
 类型示例：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`、`规划`
@@ -69,18 +69,18 @@ M0 提交示例：
 ```
 docs: 建立长期执行计划框架
 
-使后续贡献者可按 task ID 接力执行 M0-M8
+使后续 Claude ACP jobs 可按 task ID 接力执行 M0-M8
 
 - 创建 docs/execution-roadmap.md 包含 M0-M8 任务拆分
 - 创建 docs/milestone-0-protocol.md 定义执行协议
 - 每个任务粒度 <= 1 人天，里程碑明确依赖和验收标准
 
-Related: #23
+Related: TBD
 Confidence: high
 Scope-risk: low（仅文档）
 Tested: 文件存在性验证已通过
 Not-tested: CI 验证待 push 后检查
-Co-Authored-By: [contributor name]
+Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
 ### GitHub Issue 要求
@@ -100,7 +100,7 @@ Co-Authored-By: [contributor name]
 ## [M0] 建立长期执行计划框架
 
 ### 目标
-创建长期执行计划文档，使后续贡献者可按 task ID 接力执行。
+创建长期执行计划文档，使后续 Claude ACP jobs 可按 task ID 接力执行。
 
 ### 范围
 - 创建 `docs/execution-roadmap.md`
@@ -134,7 +134,7 @@ git status
 git log -1
 
 # 推送到远端
-git push origin <branch-name>
+git push origin codex/promotion-content
 
 # 检查 CI（需要 gh CLI）
 gh run list --limit 5
@@ -165,7 +165,7 @@ gh run list --limit 5
 1. 两个文档文件已创建并推送到远端
 2. 提交信息符合 Lore Commit Protocol
 3. CI 检查通过（或记录失败原因）
-4. Deliverable 已生成并提交审阅
+4. Deliverable 已生成并交付给 Codex
 
 ## 下一步
 
