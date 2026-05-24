@@ -35,17 +35,16 @@ class WorkbenchEditorPane extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
 
-    return Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            key: WorkbenchShellPage.editorPaneKey,
-            decoration: frostedEditorDecoration(context),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          key: WorkbenchShellPage.editorPaneKey,
+          decoration: frostedEditorDecoration(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 if (!hasScenes)
                   Expanded(
                     child: Center(
@@ -142,8 +141,7 @@ class WorkbenchEditorPane extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

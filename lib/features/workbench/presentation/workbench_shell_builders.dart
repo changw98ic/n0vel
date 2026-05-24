@@ -1,6 +1,54 @@
 part of 'workbench_shell_page.dart';
 
 // ---------------------------------------------------------------------------
+// Three-pane layout components
+// ---------------------------------------------------------------------------
+
+class _PaneDivider extends StatefulWidget {
+  const _PaneDivider({
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+  });
+
+  final VoidCallback onDragStart;
+  final ValueChanged<double> onDragUpdate;
+  final VoidCallback onDragEnd;
+
+  @override
+  State<_PaneDivider> createState() => _PaneDividerState();
+}
+
+class _PaneDividerState extends State<_PaneDivider> {
+  bool _isHovering = false;
+  bool _isDragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        onPanStart: (_) {
+          setState(() => _isDragging = true);
+          widget.onDragStart();
+        },
+        onPanUpdate: (details) => widget.onDragUpdate(details.delta.dx),
+        onPanEnd: (_) {
+          setState(() => _isDragging = false);
+          widget.onDragEnd();
+        },
+        child: Container(
+          width: _isDragging ? 4.0 : (_isHovering ? 3.0 : 1.0),
+          color: const Color(0x5CD6DDD0),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Draft sync helpers
 // ---------------------------------------------------------------------------
 
@@ -186,6 +234,31 @@ class _RunRecoveryPrompt extends StatelessWidget {
 // Shell body builder (main build delegate)
 // ---------------------------------------------------------------------------
 
+Widget _buildPlaceholderPane(String label) {
+  return Builder(
+    builder: (context) {
+      final palette = desktopPalette(context);
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          border: Border.all(color: const Color(0x5CD6DDD0)),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF77736A),
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
 Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
   final workspace = state.ref.watch(appWorkspaceStoreProvider);
   final draft = state.ref.watch(appDraftStoreProvider).snapshot;
@@ -299,42 +372,70 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             ),
           );
 
-          final chapterListPanel =
-              state._orb.isChapterListOpen && workspace.scenes.isNotEmpty
-              ? _ChapterListPanel(
-                  scenes: workspace.scenes,
-                  currentSceneId:
-                      workspace.currentProjectOrNull?.sceneId ?? '',
-                  onSelectScene: (scene) {
-                    workspace.updateCurrentScene(
-                      sceneId: scene.id,
-                      recentLocation: scene.displayLocation,
-                    );
-                  },
-                  onCreateScene: () => state._showSceneDialog(
-                    context,
-                    title: '新建章节',
-                    initialValue: '',
-                    onConfirm: workspace.createScene,
-                  ),
-                  onCollapse: () => state._orb.toggleChapterList(),
-                )
-              : null;
-
           const panelDivider = VerticalDivider(
             width: 1,
             thickness: 1,
             color: Color(0x5CD6DDD0),
           );
 
+          // Left pane: editor + optional chapter list
+          final leftPane = Column(
+            children: [
+              if (state._orb.isChapterListOpen && workspace.scenes.isNotEmpty)
+                SizedBox(
+                  height: 200.0,
+                  child: _ChapterListPanel(
+                    scenes: workspace.scenes,
+                    currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
+                    onSelectScene: (scene) {
+                      workspace.updateCurrentScene(
+                        sceneId: scene.id,
+                        recentLocation: scene.displayLocation,
+                      );
+                    },
+                    onCreateScene: () => state._showSceneDialog(
+                      context,
+                      title: '新建章节',
+                      initialValue: '',
+                      onConfirm: workspace.createScene,
+                    ),
+                    onCollapse: () => state._orb.toggleChapterList(),
+                  ),
+                ),
+              Expanded(child: editorPane),
+            ],
+          );
+
+          // Center pane: AI candidate area (placeholder)
+          final centerPane = _buildPlaceholderPane('AI 候选区（占位）');
+
+          // Right pane: summary area (placeholder)
+          final rightPane = _buildPlaceholderPane('摘要区（占位）');
+
+          // Calculate center pane width based on available space
+          const dividerWidth = 1.0;
+          final totalAvailableWidth = layoutConstraints.maxWidth;
+          final centerPaneCalculatedWidth = totalAvailableWidth -
+              state._leftPaneWidth -
+              state._rightPaneWidth -
+              (2 * dividerWidth);
+
           final workbenchBody = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (chapterListPanel != null) ...[
-                chapterListPanel,
-                panelDivider,
-              ],
-              editorPane,
+              SizedBox(width: state._leftPaneWidth, child: leftPane),
+              _PaneDivider(
+                onDragStart: state._handleLeftDividerDragStart,
+                onDragUpdate: (deltaX) => state._handleLeftDividerDragUpdate(deltaX, totalAvailableWidth),
+                onDragEnd: state._handleLeftDividerDragEnd,
+              ),
+              SizedBox(width: centerPaneCalculatedWidth.clamp(200.0, double.infinity), child: centerPane),
+              _PaneDivider(
+                onDragStart: state._handleRightDividerDragStart,
+                onDragUpdate: (deltaX) => state._handleRightDividerDragUpdate(deltaX, totalAvailableWidth),
+                onDragEnd: state._handleRightDividerDragEnd,
+              ),
+              SizedBox(width: state._rightPaneWidth, child: rightPane),
               if (toolWindow != null) ...[panelDivider, toolWindow],
             ],
           );

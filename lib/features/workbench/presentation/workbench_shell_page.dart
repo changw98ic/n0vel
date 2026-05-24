@@ -188,6 +188,10 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   String? _activeSceneId;
   WorkbenchEditorReturnAnchor? _pendingReturnAnchor;
 
+  // Three-pane layout widths
+  double _leftPaneWidth = 400.0;
+  double _rightPaneWidth = 300.0;
+
   WorkbenchOrchestrator get _orb => _orchestrator!;
 
   bool get _isEditorDirty {
@@ -247,6 +251,31 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   void _onOrchestratorChanged() {
     if (mounted) setState(() {});
   }
+
+  // Three-pane drag handlers
+  void _handleLeftDividerDragStart() => setState(() {});
+  void _handleLeftDividerDragUpdate(double deltaX, double totalWidth) {
+    setState(() {
+      final newWidth = _leftPaneWidth + deltaX;
+      const minPaneWidth = 200.0;
+      const dividerWidth = 1.0;
+      final maxWidth = totalWidth - _rightPaneWidth - (2 * dividerWidth) - minPaneWidth;
+      _leftPaneWidth = newWidth.clamp(minPaneWidth, maxWidth);
+    });
+  }
+  void _handleLeftDividerDragEnd() => setState(() {});
+
+  void _handleRightDividerDragStart() => setState(() {});
+  void _handleRightDividerDragUpdate(double deltaX, double totalWidth) {
+    setState(() {
+      final newWidth = _rightPaneWidth - deltaX;
+      const minPaneWidth = 200.0;
+      const dividerWidth = 1.0;
+      final maxWidth = totalWidth - _leftPaneWidth - (2 * dividerWidth) - minPaneWidth;
+      _rightPaneWidth = newWidth.clamp(minPaneWidth, maxWidth);
+    });
+  }
+  void _handleRightDividerDragEnd() => setState(() {});
 
   @override
   void didUpdateWidget(covariant WorkbenchShellPage oldWidget) {
