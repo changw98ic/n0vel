@@ -358,20 +358,573 @@ Co-Authored-By: [contributor name]
 - **前置依赖**: M3-02
 - **GitHub Issue/PR 要求**: Issue 标题 "[M3] 导入方案设计"
 
-## Deferred Milestones (M4–M8)
+## M4: Provider/State Convergence
 
-The following milestones are planned but not yet in active development.
-Full task detail will be restored when each milestone becomes active.
+### 目标
+ServiceRegistry 迁移到 Riverpod provider，store 拆分，建立投影层。
 
-| ID | 名称 | 依赖 | 任务数 | 预估 | 风险 |
-|----|------|------|--------|------|------|
-| M4 | Provider/State Convergence — ServiceRegistry 迁移到 Riverpod，store 拆分，投影层 | M1, M2 | 6 | 6d | 高 |
-| M5 | Safety and LLM Ops — 密钥 keychain 存储，敏感信息脱敏，重试/连接池，模型配置 | M2 | 4 | 4d | 中 |
-| M6 | Bible/Production UX — 角色状态卡，伏笔追踪，质量仪表盘，Run dashboard | M1, M3 | 5 | 5d | 中 |
-| M7 | Git/Local API — 双向 Markdown/Git 同步，本地 server，能力授权 | M3, M4 | 6 | 6d | 高 |
-| M8 | Ecosystem and Collaboration — 插件系统，模板，lore graph，review package，模型路由 | M4, M6 | 8 | 8d | 高 |
+### 验收标准
+- [ ] ServiceRegistry 完全迁移到 Riverpod
+- [ ] Store 拆分为小粒度单元
+- [ ] 投影层分离读写
 
-Full task specifications are archived in git history at commit eb81bbf.
+### 依赖
+- M1, M2 完成（Workbench 和 pipeline 改造后更容易收敛）
+
+### 风险
+- **迁移破坏性**：ServiceRegistry 与 Riverpod 并存期间的一致性
+- **Store 拆分复杂度**：跨 store 事务的正确性
+
+### 回滚策略
+- Feature flag 控制新旧 provider 切换
+- 每个阶段独立 tag
+
+### 任务列表（M4，共 6 个任务）
+
+#### TASK-M4-01: Riverpod 适配一期（ServiceRegistry 迁移准备）
+- **目标**: 分析 ServiceRegistry 依赖，制定迁移计划
+- **范围**:
+  - 新增 `docs/riverpod-migration-plan.md`
+  - 分析 `lib/app/di/` 下所有注册
+- **相关模块**: DI, service registry
+- **Out-of-Scope**: 不开始实际迁移
+- **验收标准**:
+  - [ ] 迁移计划包含：依赖图、迁移顺序、风险
+  - [ ] 每个 service 的迁移策略明确
+- **测试/CI 命令**: N/A（分析文档）
+- **前置依赖**: M1, M2
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] Riverpod 迁移计划"
+
+#### TASK-M4-02: 核心服务 Riverpod 化
+- **目标**: 迁移核心服务到 Riverpod provider
+- **范围**:
+  - 修改 `lib/app/di/core_registrations.dart`
+  - 创建对应的 Riverpod providers
+- **相关模块**: DI, core services
+- **Out-of-Scope**: 暂不迁移 feature services
+- **验收标准**:
+  - [ ] AppEventBus, AppLlmClient 等 core services 使用 Riverpod
+  - [ ] 双写验证通过（新旧系统并行）
+  - [ ] 测试通过
+- **测试/CI 命令**: `flutter test lib/app/di/ lib/app/llm/`
+- **前置依赖**: M4-01
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] 核心服务 Riverpod 化"
+
+#### TASK-M4-03: Feature services Riverpod 化
+- **目标**: 迁移 feature 层服务到 Riverpod
+- **范围**:
+  - 修改 `lib/app/di/feature_registrations.dart`
+  - 创建对应的 Riverpod providers
+- **相关模块**: DI, feature services
+- **Out-of-Scope**: 暂保留 ServiceRegistry 作为兼容层
+- **验收标准**:
+  - [ ] 所有 feature services 使用 Riverpod
+  - [ ] 移除 ServiceRegistry 依赖（保留兼容层）
+  - [ ] 测试通过
+- **测试/CI 命令**: `flutter test lib/app/di/`
+- **前置依赖**: M4-02
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] Feature 服务 Riverpod 化"
+
+#### TASK-M4-04: Store 拆分与投影层设计
+- **目标**: 设计 store 拆分方案和投影层架构
+- **范围**:
+  - 新增 `docs/store-refactor-design.md`
+  - 定义投影层接口
+- **相关模块**: app state
+- **Out-of-Scope**: 不开始实现拆分
+- **验收标准**:
+  - [ ] 设计文档包含：拆分边界、投影层 API、迁移路径
+  - [ ] 设计经过审阅
+- **测试/CI 命令**: N/A（设计文档）
+- **前置依赖**: M4-03
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] Store 拆分设计"
+
+#### TASK-M4-05: StoryGenerationRunStore 拆分
+- **目标**: 拆分 `StoryGenerationRunStore` 为小粒度单元
+- **范围**:
+  - 修改 `lib/app/state/story_generation_run_store.dart`
+  - 创建子 stores（RunMetadataStore, CandidateStore, PhaseStore）
+- **相关模块**: story generation run store
+- **Out-of-Scope**: 暂不拆分其他 stores
+- **验收标准**:
+  - [ ] RunStore 委托给子 stores
+  - [ ] 子 stores 可独立测试
+  - [ ] 现有功能不回归
+- **测试/CI 命令**: `flutter test lib/app/state/story_generation_run_store.dart`
+- **前置依赖**: M4-04
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] RunStore 拆分"
+
+#### TASK-M4-06: 投影层实现与验证
+- **目标**: 实现投影层，验证读写分离
+- **范围**:
+  - 新增 `lib/app/state/projection/`
+  - 实现投影层 providers
+- **相关模块**: app state
+- **Out-of-Scope**: 暂不迁移所有 stores
+- **验收标准**:
+  - [ ] 投影层 provider 提供只读视图
+  - [ ] 写操作通过 command 模式
+  - [ ] 测试覆盖投影层
+- **测试/CI 命令**: `flutter test lib/app/state/projection/`
+- **前置依赖**: M4-05
+- **GitHub Issue/PR 要求**: Issue 标题 "[M4] 投影层实现"
+
+---
+
+## M5: Safety and LLM Ops
+
+### 目标
+密钥安全存储，敏感信息脱敏，请求重试策略增强，连接池优化，模型配置管理。
+
+### 验收标准
+- [ ] 密钥使用系统 keychain 存储
+- [ ] 敏感信息在日志中脱敏
+- [ ] LLM 请求支持指数退避重试
+- [ ] 请求池限制并发和速率
+- [ ] 模型配置可管理
+
+### 依赖
+- M2 完成（pipeline 基础稳定后）
+
+### 风险
+- **密钥存储平台差异**：macOS/Windows/Linux keychain API 不同
+- **脱敏遗漏**：敏感信息泄漏到日志
+
+### 回滚策略
+- Keychain 存储失败可回退到文件存储（加密）
+- 脱敏失败可紧急 hotfix
+
+### 任务列表（M5，共 4 个任务）
+
+#### TASK-M5-01: Secret 存储收口（keychain 集成）
+- **目标**: 使用系统 keychain 存储密钥
+- **范围**:
+  - 修改 `lib/app/state/app_settings_storage_io_support.dart`
+  - 集成平台 keychain API
+- **相关模块**: app settings, security
+- **Out-of-Scope**: 暂不支持第三方密钥管理
+- **验收标准**:
+  - [ ] 密钥存储到系统 keychain
+  - [ ] 三个平台（macOS/Windows/Linux）支持
+  - [ ] 迁移逻辑：旧密钥自动迁移到 keychain
+- **测试/CI 命令**: `flutter test integration_test/security_keychain_test.dart`
+- **前置依赖**: M2
+- **GitHub Issue/PR 要求**: Issue 标题 "[M5] Keychain 密钥存储"
+
+#### TASK-M5-02: 敏感信息脱敏
+- **目标**: 日志和 UI 中的敏感信息自动脱敏
+- **范围**:
+  - 修改 `lib/app/llm/` 日志逻辑
+  - 新增脱敏中间件
+- **相关模块**: LLM client, telemetry
+- **Out-of-Scope**: 暂不脱敏用户生成内容
+- **验收标准**:
+  - [ ] API key 在日志中显示为 `[REDACTED]`
+  - [ ] 敏感 header 脱敏
+  - [ ] 脱敏可配置
+- **测试/CI 命令**: `flutter test lib/app/llm/redaction_test.dart`
+- **前置依赖**: M5-01
+- **GitHub Issue/PR 要求**: Issue 标题 "[M5] 敏感信息脱敏"
+
+#### TASK-M5-03: 重试策略与请求池优化
+- **目标**: 增强重试策略，优化请求池
+- **范围**:
+  - 修改 `lib/app/llm/app_llm_request_pool.dart`
+  - 实现指数退避重试
+- **相关模块**: LLM client, request pool
+- **Out-of-Scope**: 暂不实现断路器
+- **验收标准**:
+  - [ ] 可配置重试策略（次数、退避系数）
+  - [ ] 请求池限制并发数
+  - [ ] 速率限制可配置
+- **测试/CI 命令**: `flutter test lib/app/llm/app_llm_request_pool_test.dart`
+- **前置依赖**: M5-02
+- **GitHub Issue/PR 要求**: Issue 标题 "[M5] 重试与请求池优化"
+
+#### TASK-M5-04: 模型配置管理
+- **目标**: 实现模型配置的 CRUD 和测试连接
+- **范围**:
+  - 新增 `lib/app/state/model_profile_store.dart`
+  - 实现 model profile 管理 UI
+- **相关模块**: settings, LLM client
+- **Out-of-Scope**: 暂不支持动态模型路由（M8）
+- **验收标准**:
+  - [ ] 可添加/编辑/删除模型配置
+  - [ ] 可测试连接
+  - [ ] 配置持久化
+- **测试/CI 命令**: `flutter test lib/app/state/model_profile_store_test.dart`
+- **前置依赖**: M5-03
+- **GitHub Issue/PR 要求**: Issue 标题 "[M5] 模型配置管理"
+
+---
+
+## M6: Bible/Production UX
+
+### 目标
+角色状态卡、伏笔追踪、质量仪表盘、Run dashboard。
+
+### 验收标准
+- [ ] 角色状态卡展示当前状态和变化
+- [ ] 伏笔追踪管理器
+- [ ] Production 仪表盘展示项目进度
+- [ ] Run dashboard 展示运行历史
+
+### 依赖
+- M1（Workbench 改造后）, M3（导出后）
+
+### 风险
+- **角色状态同步**：状态卡与实际运行的一致性
+- **伏笔检测复杂度**：自动化伏笔追踪的准确性
+
+### 回滚策略
+- Bible 功能为独立模块，可单独禁用
+- Production 仪表盘不影响核心写作流程
+
+### 任务列表（M6，共 5 个任务）
+
+#### TASK-M6-01: Bible 角色状态卡
+- **目标**: 实现角色状态卡 UI
+- **范围**:
+  - 新增 `lib/features/characters/presentation/character_state_card.dart`
+  - 集成到 Workbench 侧栏
+- **相关模块**: characters, workbench
+- **Out-of-Scope**: 暂不实现自动状态推导
+- **验收标准**:
+  - [ ] 状态卡展示：角色名、当前状态、最近变化
+  - [ ] 可手动更新状态
+  - [ ] 状态历史可查看
+- **测试/CI 命令**: `flutter test lib/features/characters/presentation/`
+- **前置依赖**: M1, M3
+- **GitHub Issue/PR 要求**: Issue 标题 "[M6] 角色状态卡"
+
+#### TASK-M6-02: 伏笔追踪管理器
+- **目标**: 实现伏笔的创建、追踪、提醒
+- **范围**:
+  - 新增 `lib/features/bible/data/foreshadowing_store.dart`
+  - 新增伏笔管理 UI
+- **相关模块**: bible（新建）
+- **Out-of-Scope**: 暂不实现自动伏笔检测
+- **验收标准**:
+  - [ ] 可创建伏笔（名称、描述、关联章节）
+  - [ ] 可标记伏笔状态（未展开/已展开/已废弃）
+  - [ ] 相关章节提醒
+- **测试/CI 命令**: `flutter test lib/features/bible/`
+- **前置依赖**: M6-01
+- **GitHub Issue/PR 要求**: Issue 标题 "[M6] 伏笔追踪管理器"
+
+#### TASK-M6-03: Production 仪表盘
+- **目标**: 实现项目进度仪表盘
+- **范围**:
+  - 修改 `lib/features/production_board/presentation/production_board_page.dart`
+  - 展示项目统计和进度
+- **相关模块**: production board
+- **Out-of-Scope**: 暂不实现预测功能
+- **验收标准**:
+  - [ ] 展示：总字数、章节数、完成度
+  - [ ] 展示：每日字数趋势
+  - [ ] 可点击章节跳转
+- **测试/CI 命令**: `flutter test lib/features/production_board/`
+- **前置依赖**: M6-02
+- **GitHub Issue/PR 要求**: Issue 标题 "[M6] Production 仪表盘"
+
+#### TASK-M6-04: Quality/run dashboard
+- **目标**: 实现 pipeline 运行质量仪表盘
+- **范围**:
+  - 新增 `lib/features/audit/presentation/run_quality_dashboard.dart`
+  - 展示运行历史和质量指标
+- **相关模块**: audit, story generation
+- **Out-of-Scope**: 暂不实现异常检测
+- **验收标准**:
+  - [ ] 展示运行历史（成功/失败/平均时长）
+  - [ ] 展示模型使用统计
+  - [ ] 可筛选和导出
+- **测试/CI 命令**: `flutter test lib/features/audit/presentation/`
+- **前置依赖**: M6-03
+- **GitHub Issue/PR 要求**: Issue 标题 "[M6] Run 质量 dashboard"
+
+#### TASK-M6-05: Bible 与 Production 集成
+- **目标**: 将 Bible 和 Production 功能集成到主工作流
+- **范围**:
+  - 修改路由配置
+  - 集成到 ProjectHome
+- **相关模块**: routes, project home
+- **Out-of-Scope**: 无
+- **验收标准**:
+  - [ ] 从 Workbench 可快速进入 Bible
+  - [ ] Production 仪表盘可从 ProjectHome 进入
+  - [ ] 导航流畅
+- **测试/CI 命令**: `flutter test integration_test/bible_production_navigation_test.dart`
+- **前置依赖**: M6-04
+- **GitHub Issue/PR 要求**: Issue 标题 "[M6] Bible/Production 集成"
+
+---
+
+## M7: Git/Local API
+
+### 目标
+双向 Markdown/Git 同步，本地 MCP-like server，loopback 能力授权。
+
+### 验收标准
+- [ ] Markdown 修改可同步回 SQLite
+- [ ] Git commit 可触发项目更新
+- [ ] 本地 server 提供项目 API
+- [ ] 能力授权机制
+
+### 依赖
+- M3（Markdown 基础）, M4（State 收敛后）
+
+### 风险
+- **双向同步冲突**：Markdown <-> Git <-> SQLite 三方冲突
+- **Server 安全**：本地 server 的能力边界
+
+### 回滚策略
+- Git 同步为可选功能
+- Server 独立进程，可关闭
+
+### 任务列表（M7，共 6 个任务）
+
+#### TASK-M7-01: Markdown 导入实现
+- **目标**: 实现 Markdown 项目导入
+- **范围**:
+  - 新增 `lib/features/import_export/data/markdown_importer.dart`
+  - 实现 M3-03 设计的导入方案
+- **相关模块**: import_export
+- **Out-of-Scope**: 暂不支持增量导入
+- **验收标准**:
+  - [ ] 可导入 Markdown 文件树到项目
+  - [ ] 冲突解决 UI 可用
+  - [ ] 导入后数据正确
+- **测试/CI 命令**: `flutter test lib/features/import_export/data/markdown_importer_test.dart`
+- **前置依赖**: M3, M4
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] Markdown 导入实现"
+
+#### TASK-M7-02: Git Coordinator
+- **目标**: 实现 Git 与项目状态的协调器
+- **范围**:
+  - 新增 `lib/app/state/git_coordinator.dart`
+  - 监听 Git 变化并触发同步
+- **相关模块**: app state, import_export
+- **Out-of-Scope**: 暂不支持 Git push/pull 集成
+- **验收标准**:
+  - [ ] 可检测 Git 变更
+  - [ ] 可触发 Markdown 导入
+  - [ ] 冲突可解决
+- **测试/CI 命令**: `flutter test lib/app/state/git_coordinator_test.dart`
+- **前置依赖**: M7-01
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] Git Coordinator"
+
+#### TASK-M7-03: 双向同步与冲突解决
+- **目标**: 完善 Markdown <-> SQLite 双向同步
+- **范围**:
+  - 修改 `lib/app/state/pending_overlay_store.dart`
+  - 实现双向同步逻辑
+- **相关模块**: app state, import_export
+- **Out-of-Scope**: 暂不支持自动合并策略
+- **验收标准**:
+  - [ ] SQLite -> Markdown 导出正确
+  - [ ] Markdown -> SQLite 导入正确
+  - [ ] 冲突 UI 可展示和选择
+- **测试/CI 命令**: `flutter test lib/app/state/pending_overlay_store_test.dart`
+- **前置依赖**: M7-02
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] 双向同步"
+
+#### TASK-M7-04: 本地 MCP-like server 设计
+- **目标**: 设计本地 server 的 API 规范
+- **范围**:
+  - 新增 `docs/local-server-api-design.md`
+  - 定义 API 端点和能力
+- **相关模块**: docs
+- **Out-of-Scope**: 不实现 server
+- **验收标准**:
+  - [ ] API 设计包含：项目 CRUD、场景 CRUD、生成触发
+  - [ ] 能力模型定义
+  - [ ] 设计经过审阅
+- **测试/CI 命令**: N/A（设计文档）
+- **前置依赖**: M7-03
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] 本地 server API 设计"
+
+#### TASK-M7-05: Local server 实现
+- **目标**: 实现本地 HTTP server
+- **范围**:
+  - 新增 `lib/app/server/`
+  - 实现 server 主循环
+- **相关模块**: app server（新建）
+- **Out-of-Scope**: 暂不实现所有 API 端点
+- **验收标准**:
+  - [ ] Server 可启动和监听
+  - [ ] 健康检查端点可用
+  - [ ] 项目列表端点可用
+- **测试/CI 命令**: `flutter test lib/app/server/`
+- **前置依赖**: M7-04
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] 本地 server 实现"
+
+#### TASK-M7-06: Capability auth 授权机制
+- **目标**: 实现 server 能力授权
+- **范围**:
+  - 新增 `lib/app/server/capability_auth.dart`
+  - 定义和检查能力权限
+- **相关模块**: app server
+- **Out-of-Scope**: 暂不支持第三方 client 认证
+- **验收标准**:
+  - [ ] 能力模型定义（read, write, generate）
+  - [ ] 授权检查正确
+  - [ ] 日志记录授权决策
+- **测试/CI 命令**: `flutter test lib/app/server/capability_auth_test.dart`
+- **前置依赖**: M7-05
+- **GitHub Issue/PR 要求**: Issue 标题 "[M7] 能力授权机制"
+
+---
+
+## M8: Ecosystem and Collaboration
+
+### 目标
+插件系统、模板市场、多项目 lore graph、review package、质量-成本自动路由。
+
+### 验收标准
+- [ ] 插件可加载和执行
+- [ ] 模板可安装和应用
+- [ ] 多项目关系图可展示
+- [ ] Review package 可导出
+- [ ] 模型路由策略生效
+
+### 依赖
+- M4（State 收敛）, M6（Bible/Production）, M7（Local API）
+
+### 风险
+- **插件沙箱**：插件安全性
+- **模板分发**：模板来源可信度
+- **关系图复杂度**：跨项目推理的正确性
+
+### 回滚策略
+- 插件系统可禁用
+- 模板市场为可选功能
+- 模型路由可回退到手动选择
+
+### 任务列表（M8，共 8 个任务）
+
+#### TASK-M8-01: 插件系统设计
+- **目标**: 设计插件系统架构
+- **范围**:
+  - 新增 `docs/plugin-system-design.md`
+  - 定义插件接口和沙箱
+- **相关模块**: docs
+- **Out-of-Scope**: 不实现插件系统
+- **验收标准**:
+  - [ ] 设计包含：插件 API、沙箱机制、生命周期
+  - [ ] 安全模型定义
+  - [ ] 设计经过审阅
+- **测试/CI 命令**: N/A（设计文档）
+- **前置依赖**: M4, M6, M7
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 插件系统设计"
+
+#### TASK-M8-02: 插件系统核心实现
+- **目标**: 实现插件加载和执行
+- **范围**:
+  - 新增 `lib/app/plugin/`
+  - 实现插件管理器
+- **相关模块**: app plugin（新建）
+- **Out-of-Scope**: 暂不支持远程插件
+- **验收标准**:
+  - [ ] 可加载本地插件
+  - [ ] 插件可注册扩展点
+  - [ ] 沙箱隔离生效
+- **测试/CI 命令**: `flutter test lib/app/plugin/`
+- **前置依赖**: M8-01
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 插件系统核心"
+
+#### TASK-M8-03: 模板市场基础
+- **目标**: 实现模板的安装和应用
+- **范围**:
+  - 新增 `lib/app/template/`
+  - 实现模板加载和应用逻辑
+- **相关模块**: app template（新建）
+- **Out-of-Scope**: 暂不支持远程模板市场
+- **验收标准**:
+  - [ ] 可安装本地模板
+  - [ ] 模板可应用到新项目
+  - [ ] 内置模板可用
+- **测试/CI 命令**: `flutter test lib/app/template/`
+- **前置依赖**: M8-02
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 模板市场基础"
+
+#### TASK-M8-04: 多项目 lore graph
+- **目标**: 实现跨项目的关系图
+- **范围**:
+  - 新增 `lib/app/lore/lore_graph.dart`
+  - 新增关系图 UI
+- **相关模块**: lore（新建）
+- **Out-of-Scope**: 暂不支持自动关系推导
+- **验收标准**:
+  - [ ] 可展示多个项目的关系
+  - [ ] 可手动添加关系
+  - [ ] 图形可视化
+- **测试/CI 命令**: `flutter test lib/app/lore/`
+- **前置依赖**: M8-03
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 多项目 lore graph"
+
+#### TASK-M8-05: Review package 导出
+- **目标**: 实现 review package 的导出格式
+- **范围**:
+  - 新增 `lib/features/audit/data/review_package.dart`
+  - 定义 review package 格式
+- **相关模块**: audit
+- **Out-of-Scope**: 暂不支持 review package 导入
+- **验收标准**:
+  - [ ] 可导出 review package（包含问题、建议、元数据）
+  - [ ] 格式文档化
+  - [ ] 可分享
+- **测试/CI 命令**: `flutter test lib/features/audit/data/review_package_test.dart`
+- **前置依赖**: M8-04
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] Review package 导出"
+
+#### TASK-M8-06: 质量-成本自动路由设计
+- **目标**: 设计模型路由策略
+- **范围**:
+  - 新增 `docs/model-routing-design.md`
+  - 定义路由算法
+- **相关模块**: docs, LLM client
+- **Out-of-Scope**: 不实现路由
+- **验收标准**:
+  - [ ] 设计包含：质量阈值、成本目标、路由规则
+  - [ ] 设计经过审阅
+- **测试/CI 命令**: N/A（设计文档）
+- **前置依赖**: M8-05
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 模型路由设计"
+
+#### TASK-M8-07: 质量-成本路由实现
+- **目标**: 实现模型路由器
+- **范围**:
+  - 新增 `lib/app/llm/model_router.dart`
+  - 实现路由逻辑
+- **相关模块**: LLM client
+- **Out-of-Scope**: 暂不支持动态学习
+- **验收标准**:
+  - [ ] 根据任务类型路由到不同模型
+  - [ ] 质量阈值可配置
+  - [ ] 成本统计准确
+- **测试/CI 命令**: `flutter test lib/app/llm/model_router_test.dart`
+- **前置依赖**: M8-06
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 模型路由实现"
+
+#### TASK-M8-08: 生态集成与验证
+- **目标**: 将所有生态功能集成并验证
+- **范围**:
+  - 集成插件、模板、lore graph、review package
+  - 端到端验证
+- **相关模块**: 多个模块
+- **Out-of-Scope**: 无
+- **验收标准**:
+  - [ ] 插件可在完整流程中使用
+  - [ ] 模板可从新建项目向导应用
+  - [ ] Lore graph 可展示跨项目关系
+  - [ ] Review package 可导出和查看
+  - [ ] 模型路由正确工作
+- **测试/CI 命令**: `flutter test integration_test/ecosystem_e2e_test.dart`
+- **前置依赖**: M8-07
+- **GitHub Issue/PR 要求**: Issue 标题 "[M8] 生态集成验证"
+
+---
+
 
 ## 执行检查清单
 
