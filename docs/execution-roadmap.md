@@ -23,11 +23,15 @@
 ### 提交信息格式（Lore Commit Protocol）
 
 ```
-<类型>：<简短描述>
+<type>: <why-first intent line>
 
-<详细 bullet points，每个 change 一行>
+<optional detailed bullet points>
 
-Relates to #<issue-number>
+Related: <issue-number-or-context>
+Confidence: <high|medium|low>
+Scope-risk: <risk-assessment>
+Tested: <what-was-tested>
+Not-tested: <what-not-tested>
 Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
@@ -44,8 +48,8 @@ Co-Authored-By: Claude ACP <noreply@anthropic.com>
 
 ### 回滚策略
 - 每个里程碑完成后打 tag：`vM<编号>-里程碑名称`
-- 如需回滚：`git reset --hard vM<编号>-里程碑名称`
-- 如已合并：使用 revert commit 或 revert PR
+- 如需回滚：`git revert <milestone-commit-range>`
+- 如已合并：创建 revert PR 或手动 revert
 
 ---
 
@@ -85,7 +89,7 @@ Co-Authored-By: Claude ACP <noreply@anthropic.com>
 
 ### 回滚策略
 - 删除新增的 docs 文件：`rm docs/execution-roadmap.md docs/milestone-0-protocol.md`
-- Reset commit：`git reset --hard HEAD~1`
+- 安全回滚：`git revert HEAD --no-edit` 或删除文件后正常 commit
 
 ### 任务列表（M0 仅一个任务）
 

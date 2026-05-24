@@ -29,8 +29,15 @@
 # 删除新增的文档
 rm docs/execution-roadmap.md docs/milestone-0-protocol.md
 
-# Reset commit
-git reset --hard HEAD~1
+# 安全回滚：创建 revert commit
+git revert HEAD --no-edit
+# 或如需完全删除：删除文件后正常 commit
+git add docs/
+git commit -m "docs: 回滚 M0 计划文档
+
+Related: 原计划框架已废弃
+Scope-risk: 无（仅删除文档）
+Tested: git status 显示清理完成"
 ```
 
 ## 执行协议
@@ -43,33 +50,36 @@ git reset --hard HEAD~1
 ### 提交信息格式（Lore Commit Protocol）
 
 ```
-<类型>：<简短描述>
+<type>: <why-first intent line>
 
-<详细 bullet points，每个 change 一行>
+<optional detailed bullet points>
 
-Relates to #<issue-number>
+Related: <issue-number-or-context>
+Confidence: <high|medium|low>
+Scope-risk: <risk-assessment>
+Tested: <what-was-tested>
+Not-tested: <what-not-tested>
 Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
-类型示例：
-- `feat` - 新功能
-- `fix` - Bug 修复
-- `refactor` - 重构
-- `docs` - 文档
-- `test` - 测试
-- `chore` - 杂项
-- `规划` - 规划文档
+类型示例：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`、`规划`
 
 M0 提交示例：
 
 ```
-规划：建立长期执行计划框架
+docs: 建立长期执行计划框架
+
+使后续 Claude ACP jobs 可按 task ID 接力执行 M0-M8
 
 - 创建 docs/execution-roadmap.md 包含 M0-M8 任务拆分
 - 创建 docs/milestone-0-protocol.md 定义执行协议
 - 每个任务粒度 <= 1 人天，里程碑明确依赖和验收标准
 
-Relates to #TBD
+Related: TBD
+Confidence: high
+Scope-risk: low（仅文档）
+Tested: 文件存在性验证已通过
+Not-tested: CI 验证待 push 后检查
 Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
