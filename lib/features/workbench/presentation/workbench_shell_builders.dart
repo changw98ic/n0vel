@@ -281,6 +281,86 @@ Widget _buildEmptyPane({
   );
 }
 
+/// AI tool panel invitation for the center pane.
+/// Shows a helpful affordance to open the AI tool panel for content generation.
+Widget _buildAiToolInvitationPane({
+  required BuildContext context,
+  required VoidCallback onOpenAiTool,
+}) {
+  final palette = desktopPalette(context);
+  final theme = Theme.of(context);
+
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: palette.surface,
+      border: Border.all(
+        color: const Color(0x5CD6DDD0),
+        width: 1,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.auto_awesome_outlined,
+              size: 18,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'AI 写作助手',
+              style: theme.textTheme.labelSmall,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.edit_note_outlined,
+                  size: 48,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '开始 AI 辅助创作',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '续写、润色、对话等多种模式',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.tonal(
+                  onPressed: onOpenAiTool,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('打开 AI 面板'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
   final workspace = state.ref.watch(appWorkspaceStoreProvider);
@@ -429,10 +509,10 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             ],
           );
 
-          // Center pane: AI candidate area (empty state for future implementation)
-          final centerPane = _buildEmptyPane(
+          // Center pane: AI tool invitation
+          final centerPane = _buildAiToolInvitationPane(
             context: context,
-            icon: Icons.auto_awesome_outlined,
+            onOpenAiTool: () => state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
           );
 
           // Right pane: summary area (empty state for future implementation)

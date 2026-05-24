@@ -150,6 +150,59 @@ void main() {
       });
     }
   });
+
+  group('WorkbenchShellPage center pane AI tool invitation', () {
+    late ServiceRegistry registry;
+    late AppWorkspaceStore workspaceStore;
+
+    tearDown(() {
+      registry.disposeAll();
+    });
+
+    testWidgets('shows AI tool invitation in center pane with working action', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '测试项目');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // The center pane should show "AI 写作助手" header
+      expect(find.text('AI 写作助手'), findsOneWidget, reason: 'Center pane should show "AI 写作助手" header');
+
+      // The center pane should show the "打开 AI 面板" button
+      // This button opens the AI tool panel when tapped
+      final openAiButton = find.text('打开 AI 面板');
+      expect(openAiButton, findsOneWidget, reason: 'Center pane should show "打开 AI 面板" button');
+      expect(find.text('续写、润色、对话等多种模式'), findsOneWidget);
+
+      // Tap the button to open the AI tool panel
+      await tester.tap(openAiButton);
+      await tester.pump();
+
+      // After tapping, the AI tool panel should be visible
+      // The AI panel shows "助手" and "写作助手" headers
+      expect(find.text('助手'), findsOneWidget);
+      expect(find.text('写作助手'), findsOneWidget);
+    });
+  });
 }
 
 void _registerWorkbenchStores(ServiceRegistry registry) {
@@ -197,6 +250,15 @@ void _registerWorkbenchStores(ServiceRegistry registry) {
     storage: InMemoryReviewTaskStorage(),
     workspaceStore: workspaceStore,
   );
+  final runStore = StoryGenerationRunStore(
+    settingsStore: settingsStore,
+    workspaceStore: workspaceStore,
+    generationStore: generationStore,
+    sceneContextStore: sceneContextStore,
+    outlineStore: outlineStore,
+    authorFeedbackStore: authorFeedbackStore,
+    storage: InMemoryStoryGenerationRunStorage(),
+  );
   registry
     ..registerSingleton<AppEventBus>(eventBus)
     ..registerSingleton<AppEventLog>(eventLog)
@@ -210,7 +272,8 @@ void _registerWorkbenchStores(ServiceRegistry registry) {
     ..registerSingleton<StoryGenerationStore>(generationStore)
     ..registerSingleton<StoryOutlineStore>(outlineStore)
     ..registerSingleton<AuthorFeedbackStore>(authorFeedbackStore)
-    ..registerSingleton<ReviewTaskStore>(reviewTaskStore);
+    ..registerSingleton<ReviewTaskStore>(reviewTaskStore)
+    ..registerSingleton<StoryGenerationRunStore>(runStore);
 }
 
 StoryGenerationRunStore _registerStoryRunStore(

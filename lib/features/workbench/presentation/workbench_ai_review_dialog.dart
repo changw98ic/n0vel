@@ -6,6 +6,7 @@ import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_version_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'workbench_ai_controller.dart';
+import 'workbench_ai_paragraph_adoption.dart';
 import 'workbench_ai_revision_helpers.dart';
 
 class WorkbenchAiReviewDialog extends StatefulWidget {
@@ -34,30 +35,34 @@ class WorkbenchAiReviewDialog extends StatefulWidget {
 }
 
 class _WorkbenchAiReviewDialogState extends State<WorkbenchAiReviewDialog> {
-  late final List<bool> _included;
+  late final List<AiAdoptableUnit> _units;
   bool _isSaving = false;
   String? _saveErrorMessage;
 
   @override
   void initState() {
     super.initState();
-    _included = List<bool>.filled(widget.blocks.length, true);
+    _units = AiParagraphAdoptionHelpers.buildAdoptableUnits(
+      blocks: widget.blocks,
+      continueMode: widget.continueMode,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final keptCount = _included.where((v) => v).length;
-    final hasIncluded = keptCount > 0;
+    final acceptedCount = AiParagraphAdoptionHelpers.countAcceptedCandidates(_units);
+    final candidateCount = _units.where((u) => u.candidateText.isNotEmpty && u.candidateText != u.originalText).length;
     final uniquePrompts = {
       for (final block in widget.blocks) block.authorPrompt,
     };
-    final acceptedText = WorkbenchAiRevisionHelpers.acceptedTextForBlocks(
-      widget.original,
-      widget.blocks,
-      _included,
+    final acceptedText = AiParagraphAdoptionHelpers.acceptedTextForUnits(
+      original: widget.original,
+      units: _units,
       continueMode: widget.continueMode,
     );
+    // hasAcceptedChanges is true when at least one candidate with actual changes is accepted
+    final hasAcceptedChanges = acceptedCount > 0;
 
     return DesktopModalDialog(
       title: widget.reviewTitle,
@@ -85,49 +90,14 @@ class _WorkbenchAiReviewDialogState extends State<WorkbenchAiReviewDialog> {
             const SizedBox(height: 4),
             Text('模拟摘要：${widget.metadata.simulationSummary}'),
             const SizedBox(height: 12),
-            Text('已保留 $keptCount / ${widget.blocks.length} 个修改块'),
+            Text('已采纳 $acceptedCount / $candidateCount 个建议段落'),
             const SizedBox(height: 16),
-            const Text('原始正文'),
-            const SizedBox(height: 8),
-            Text(widget.original),
-            const SizedBox(height: 16),
-            for (var index = 0; index < widget.blocks.length; index += 1) ...[
-              Text(widget.blocks[index].blockLabel),
-              const SizedBox(height: 8),
-              const Text('上一段'),
-              const SizedBox(height: 4),
-              Text(widget.blocks[index].previousText),
-              const SizedBox(height: 8),
-              const Text('当前被修改段'),
-              const SizedBox(height: 4),
-              Text(widget.blocks[index].originalText),
-              const SizedBox(height: 8),
-              const Text('下一段'),
-              const SizedBox(height: 4),
-              Text(widget.blocks[index].nextText),
-              const SizedBox(height: 8),
-              const Text('作者该段修改意见'),
-              const SizedBox(height: 4),
-              Text(widget.blocks[index].authorPrompt),
-              const SizedBox(height: 8),
-              Text(widget.blocks[index].suggestionText),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _included[index] = !_included[index];
-                  });
-                },
-                child: Text(
-                  _included[index]
-                      ? '排除修改块 ${index + 1}'
-                      : '恢复修改块 ${index + 1}',
-                ),
-              ),
+            for (var index = 0; index < _units.length; index += 1) ...[
+              _buildUnitCard(context, index, theme),
               const SizedBox(height: 12),
             ],
-            if (!hasIncluded) const Text('至少保留 1 个修改块'),
-            if (hasIncluded && acceptedText != widget.original) ...[
+            if (!hasAcceptedChanges) const Text('至少采纳 1 个建议段落'),
+            if (hasAcceptedChanges) ...[
               const SizedBox(height: 4),
               const Text('接受后的正文预览'),
               const SizedBox(height: 8),
@@ -151,7 +121,7 @@ class _WorkbenchAiReviewDialogState extends State<WorkbenchAiReviewDialog> {
           child: const Text('拒绝变更'),
         ),
         FilledButton(
-          onPressed: hasIncluded && !_isSaving
+          onPressed: hasAcceptedChanges && !_isSaving
               ? () async {
                   setState(() {
                     _isSaving = true;
@@ -169,6 +139,115 @@ class _WorkbenchAiReviewDialogState extends State<WorkbenchAiReviewDialog> {
           child: Text(_isSaving ? '正在保存…' : '接受变更'),
         ),
       ],
+    );
+  }
+
+  Widget _buildUnitCard(BuildContext context, int index, ThemeData theme) {
+    final unit = _units[index];
+    final hasOriginal = unit.originalText.isNotEmpty;
+    final hasCandidate = unit.candidateText.isNotEmpty && unit.candidateText != unit.originalText;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0x5CD6DDD0)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (unit.blockLabel != null) ...[
+            Text(unit.blockLabel!, style: theme.textTheme.labelSmall),
+            const SizedBox(height: 8),
+          ],
+          if (hasOriginal && unit.originalText != unit.candidateText) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('原文', style: theme.textTheme.labelSmall),
+                      const SizedBox(height: 4),
+                      Text(unit.originalText),
+                    ],
+                  ),
+                ),
+                if (hasCandidate) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('建议', style: theme.textTheme.labelSmall),
+                        const SizedBox(height: 4),
+                        Text(unit.candidateText),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ] else if (hasCandidate) ...[
+            Text('建议', style: theme.textTheme.labelSmall),
+            const SizedBox(height: 4),
+            Text(unit.candidateText),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (hasOriginal && hasCandidate) ...[
+                OutlinedButton(
+                  onPressed: unit.isAccepted
+                      ? null
+                      : () {
+                          setState(() {
+                            _units[index] = unit.copyWith(isAccepted: true);
+                          });
+                        },
+                  child: const Text('采纳建议'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: !unit.isAccepted
+                      ? null
+                      : () {
+                          setState(() {
+                            _units[index] = unit.copyWith(isAccepted: false);
+                          });
+                        },
+                  child: const Text('保留原文'),
+                ),
+              ] else if (hasCandidate) ...[
+                OutlinedButton(
+                  onPressed: unit.isAccepted
+                      ? null
+                      : () {
+                          setState(() {
+                            _units[index] = unit.copyWith(isAccepted: true);
+                          });
+                        },
+                  child: const Text('采纳'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: !unit.isAccepted
+                      ? null
+                      : () {
+                          setState(() {
+                            _units[index] = unit.copyWith(isAccepted: false);
+                          });
+                        },
+                  child: const Text('忽略'),
+                ),
+              ] else ...[
+                Text('无变更', style: theme.textTheme.bodySmall),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
