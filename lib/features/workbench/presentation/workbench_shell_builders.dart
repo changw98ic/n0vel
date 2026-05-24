@@ -453,8 +453,9 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
           final totalFixedWidth = state._leftPaneWidth + state._rightPaneWidth + (2 * _WorkbenchShellPageState._dividerWidth);
           final centerPaneCalculatedWidth = effectiveWidth - totalFixedWidth;
 
-          // For constrained widths, use Flexible to let panes shrink gracefully
-          final useFlexibleLayout = effectiveWidth < _WorkbenchShellPageState._calculateTotalMinWidth();
+          // For constrained widths, use Flexible to let panes shrink gracefully.
+          // Use flexible layout when current left/right widths leave center pane below minimum.
+          final useFlexibleLayout = effectiveWidth <= 0 || centerPaneCalculatedWidth < _WorkbenchShellPageState._minPaneWidth;
 
           final workbenchBody = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,

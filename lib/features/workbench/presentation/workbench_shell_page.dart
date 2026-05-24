@@ -197,10 +197,6 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   double _leftPaneWidth = _defaultLeftPaneWidth;
   double _rightPaneWidth = _defaultRightPaneWidth;
 
-  // Calculate total minimum width needed for three-pane layout
-  static double _calculateTotalMinWidth() =>
-      (_minPaneWidth * 3) + (_dividerWidth * 2);
-
   WorkbenchOrchestrator get _orb => _orchestrator!;
 
   bool get _isEditorDirty {
@@ -265,11 +261,12 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   void _handleLeftDividerDragStart() => setState(() {});
 
   void _handleLeftDividerDragUpdate(double deltaX, double totalWidth) {
-    if (totalWidth < _calculateTotalMinWidth()) return;
+    if (totalWidth <= 0) return;
+    final maxCenterWidth = totalWidth - _rightPaneWidth - (2 * _dividerWidth);
+    final maxWidth = maxCenterWidth - _minPaneWidth;
+    if (maxWidth < _minPaneWidth) return;
     setState(() {
       final newWidth = _leftPaneWidth + deltaX;
-      final maxCenterWidth = totalWidth - _rightPaneWidth - (2 * _dividerWidth);
-      final maxWidth = maxCenterWidth - _minPaneWidth;
       _leftPaneWidth = newWidth.clamp(_minPaneWidth, maxWidth);
     });
   }
@@ -279,11 +276,12 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   void _handleRightDividerDragStart() => setState(() {});
 
   void _handleRightDividerDragUpdate(double deltaX, double totalWidth) {
-    if (totalWidth < _calculateTotalMinWidth()) return;
+    if (totalWidth <= 0) return;
+    final maxCenterWidth = totalWidth - _leftPaneWidth - (2 * _dividerWidth);
+    final maxWidth = maxCenterWidth - _minPaneWidth;
+    if (maxWidth < _minPaneWidth) return;
     setState(() {
       final newWidth = _rightPaneWidth - deltaX;
-      final maxCenterWidth = totalWidth - _leftPaneWidth - (2 * _dividerWidth);
-      final maxWidth = maxCenterWidth - _minPaneWidth;
       _rightPaneWidth = newWidth.clamp(_minPaneWidth, maxWidth);
     });
   }
