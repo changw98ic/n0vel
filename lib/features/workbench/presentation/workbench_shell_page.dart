@@ -189,8 +189,17 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   WorkbenchEditorReturnAnchor? _pendingReturnAnchor;
 
   // Three-pane layout widths
-  double _leftPaneWidth = 400.0;
-  double _rightPaneWidth = 300.0;
+  static const double _minPaneWidth = 200.0;
+  static const double _defaultLeftPaneWidth = 400.0;
+  static const double _defaultRightPaneWidth = 300.0;
+  static const double _dividerWidth = 1.0;
+
+  double _leftPaneWidth = _defaultLeftPaneWidth;
+  double _rightPaneWidth = _defaultRightPaneWidth;
+
+  // Calculate total minimum width needed for three-pane layout
+  static double _calculateTotalMinWidth() =>
+      (_minPaneWidth * 3) + (_dividerWidth * 2);
 
   WorkbenchOrchestrator get _orb => _orchestrator!;
 
@@ -254,27 +263,29 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
 
   // Three-pane drag handlers
   void _handleLeftDividerDragStart() => setState(() {});
+
   void _handleLeftDividerDragUpdate(double deltaX, double totalWidth) {
     setState(() {
       final newWidth = _leftPaneWidth + deltaX;
-      const minPaneWidth = 200.0;
-      const dividerWidth = 1.0;
-      final maxWidth = totalWidth - _rightPaneWidth - (2 * dividerWidth) - minPaneWidth;
-      _leftPaneWidth = newWidth.clamp(minPaneWidth, maxWidth);
+      final maxCenterWidth = totalWidth - _rightPaneWidth - (2 * _dividerWidth);
+      final maxWidth = maxCenterWidth - _minPaneWidth;
+      _leftPaneWidth = newWidth.clamp(_minPaneWidth, maxWidth);
     });
   }
+
   void _handleLeftDividerDragEnd() => setState(() {});
 
   void _handleRightDividerDragStart() => setState(() {});
+
   void _handleRightDividerDragUpdate(double deltaX, double totalWidth) {
     setState(() {
       final newWidth = _rightPaneWidth - deltaX;
-      const minPaneWidth = 200.0;
-      const dividerWidth = 1.0;
-      final maxWidth = totalWidth - _leftPaneWidth - (2 * dividerWidth) - minPaneWidth;
-      _rightPaneWidth = newWidth.clamp(minPaneWidth, maxWidth);
+      final maxCenterWidth = totalWidth - _leftPaneWidth - (2 * _dividerWidth);
+      final maxWidth = maxCenterWidth - _minPaneWidth;
+      _rightPaneWidth = newWidth.clamp(_minPaneWidth, maxWidth);
     });
   }
+
   void _handleRightDividerDragEnd() => setState(() {});
 
   @override

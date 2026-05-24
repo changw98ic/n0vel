@@ -234,27 +234,50 @@ class _RunRecoveryPrompt extends StatelessWidget {
 // Shell body builder (main build delegate)
 // ---------------------------------------------------------------------------
 
-Widget _buildPlaceholderPane(String label) {
-  return Builder(
-    builder: (context) {
-      final palette = desktopPalette(context);
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          border: Border.all(color: const Color(0x5CD6DDD0)),
+/// Empty state for panes that are not yet implemented.
+/// Shows a subtle, polished empty state instead of placeholder text.
+Widget _buildEmptyPane({
+  required BuildContext context,
+  IconData? icon,
+  String? message,
+}) {
+  final palette = desktopPalette(context);
+  final theme = Theme.of(context);
+
+  return Container(
+    decoration: BoxDecoration(
+      color: palette.surface,
+      border: Border.all(
+        color: const Color(0x5CD6DDD0),
+        width: 1,
+      ),
+    ),
+    child: Center(
+      child: Opacity(
+        opacity: 0.4,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null)
+              Icon(
+                icon,
+                size: 32,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+            if (message != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF77736A),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      );
-    },
+      ),
+    ),
   );
 }
 
@@ -406,36 +429,58 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             ],
           );
 
-          // Center pane: AI candidate area (placeholder)
-          final centerPane = _buildPlaceholderPane('AI 候选区（占位）');
+          // Center pane: AI candidate area (empty state for future implementation)
+          final centerPane = _buildEmptyPane(
+            context: context,
+            icon: Icons.auto_awesome_outlined,
+          );
 
-          // Right pane: summary area (placeholder)
-          final rightPane = _buildPlaceholderPane('摘要区（占位）');
+          // Right pane: summary area (empty state for future implementation)
+          final rightPane = _buildEmptyPane(
+            context: context,
+            icon: Icons.summarize_outlined,
+          );
 
-          // Calculate center pane width based on available space
-          const dividerWidth = 1.0;
+          // Calculate pane widths with overflow protection
           final totalAvailableWidth = layoutConstraints.maxWidth;
-          final centerPaneCalculatedWidth = totalAvailableWidth -
-              state._leftPaneWidth -
-              state._rightPaneWidth -
-              (2 * dividerWidth);
+          final hasToolWindow = toolWindow != null;
+          final toolWindowWidth = hasToolWindow
+              ? DesktopLayoutTokens.workbenchToolWindowWidth + 1.0 // divider
+              : 0.0;
+          final effectiveWidth = totalAvailableWidth - toolWindowWidth;
+
+          // Ensure we have minimum width for all panes
+          final totalFixedWidth = state._leftPaneWidth + state._rightPaneWidth + (2 * _WorkbenchShellPageState._dividerWidth);
+          final centerPaneCalculatedWidth = effectiveWidth - totalFixedWidth;
+
+          // For constrained widths, use Flexible to let panes shrink gracefully
+          final useFlexibleLayout = effectiveWidth < _WorkbenchShellPageState._calculateTotalMinWidth();
 
           final workbenchBody = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(width: state._leftPaneWidth, child: leftPane),
+              if (useFlexibleLayout)
+                Expanded(flex: 4, child: leftPane)
+              else
+                SizedBox(width: state._leftPaneWidth, child: leftPane),
               _PaneDivider(
                 onDragStart: state._handleLeftDividerDragStart,
-                onDragUpdate: (deltaX) => state._handleLeftDividerDragUpdate(deltaX, totalAvailableWidth),
+                onDragUpdate: (deltaX) => state._handleLeftDividerDragUpdate(deltaX, effectiveWidth),
                 onDragEnd: state._handleLeftDividerDragEnd,
               ),
-              SizedBox(width: centerPaneCalculatedWidth.clamp(200.0, double.infinity), child: centerPane),
+              if (useFlexibleLayout)
+                Expanded(flex: 3, child: centerPane)
+              else
+                SizedBox(width: centerPaneCalculatedWidth.clamp(_WorkbenchShellPageState._minPaneWidth, double.infinity), child: centerPane),
               _PaneDivider(
                 onDragStart: state._handleRightDividerDragStart,
-                onDragUpdate: (deltaX) => state._handleRightDividerDragUpdate(deltaX, totalAvailableWidth),
+                onDragUpdate: (deltaX) => state._handleRightDividerDragUpdate(deltaX, effectiveWidth),
                 onDragEnd: state._handleRightDividerDragEnd,
               ),
-              SizedBox(width: state._rightPaneWidth, child: rightPane),
+              if (useFlexibleLayout)
+                Expanded(flex: 3, child: rightPane)
+              else
+                SizedBox(width: state._rightPaneWidth, child: rightPane),
               if (toolWindow != null) ...[panelDivider, toolWindow],
             ],
           );
