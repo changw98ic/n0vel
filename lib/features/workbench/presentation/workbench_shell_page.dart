@@ -265,6 +265,7 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   void _handleLeftDividerDragStart() => setState(() {});
 
   void _handleLeftDividerDragUpdate(double deltaX, double totalWidth) {
+    if (totalWidth < _calculateTotalMinWidth()) return;
     setState(() {
       final newWidth = _leftPaneWidth + deltaX;
       final maxCenterWidth = totalWidth - _rightPaneWidth - (2 * _dividerWidth);
@@ -278,6 +279,7 @@ class _WorkbenchShellPageState extends ConsumerState<WorkbenchShellPage> {
   void _handleRightDividerDragStart() => setState(() {});
 
   void _handleRightDividerDragUpdate(double deltaX, double totalWidth) {
+    if (totalWidth < _calculateTotalMinWidth()) return;
     setState(() {
       final newWidth = _rightPaneWidth - deltaX;
       final maxCenterWidth = totalWidth - _leftPaneWidth - (2 * _dividerWidth);
