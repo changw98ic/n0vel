@@ -325,9 +325,9 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
         PopupMenuItem(
           onTap: () {
             ref.read(appWorkspaceStoreProvider).openProject(project.id);
-            AppNavigator.push(context, AppRoutes.workSettingsHub);
+            AppNavigator.push(context, AppRoutes.projectHome);
           },
-          child: const Text('作品设定'),
+          child: const Text('作品主页'),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
@@ -469,7 +469,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
 
   void _openWorkbench(BuildContext context, ProjectRecord project) {
     ref.read(appWorkspaceStoreProvider).openProject(project.id);
-    AppNavigator.push(context, AppRoutes.workSettingsHub);
+    AppNavigator.push(context, AppRoutes.projectHome);
   }
 
   Future<void> _createProject() async {

@@ -1,3 +1,4 @@
+import '../../features/projects/presentation/project_home_page.dart';
 import '../../features/projects/presentation/project_list_page.dart';
 import '../../features/settings/presentation/settings_shell_page.dart';
 import '../../features/workbench/presentation/workbench_shell_page.dart';
@@ -7,6 +8,10 @@ void registerCoreRoutes() {
   AppNavigator.register(
     AppRoutes.shelf,
     (context, _) => const ProjectListPage(),
+  );
+  AppNavigator.register(
+    AppRoutes.projectHome,
+    (context, _) => const ProjectHomePage(),
   );
   AppNavigator.register(
     AppRoutes.workbench,
