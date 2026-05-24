@@ -15,6 +15,6 @@ enum WorkbenchUiState {
   simulationFailedSummary,
 }
 
-enum WorkbenchToolPanel { resources, ai, settings }
+enum WorkbenchToolPanel { resources, ai, settings, runCenter }
 
 enum AiToolMode { rewrite, continueWriting }

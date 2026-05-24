@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
@@ -145,10 +146,15 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                                         scene.displayLocation,
                                       ),
                                       selected: scene.id == currentScene.id,
-                                      onPressed: () {
-                                        store.updateCurrentScene(
-                                          sceneId: scene.id,
-                                          recentLocation: scene.displayLocation,
+                                      onPressed: () async {
+                                        await _confirmSceneSwitchWithGuard(
+                                          context,
+                                          ref,
+                                          scene,
+                                          () => store.updateCurrentScene(
+                                            sceneId: scene.id,
+                                            recentLocation: scene.displayLocation,
+                                          ),
                                         );
                                       },
                                     ),
@@ -358,5 +364,85 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
           scenes: grouped[chapterLabel]!,
         ),
     ];
+  }
+}
+
+Future<void> _confirmSceneSwitchWithGuard(
+  BuildContext context,
+  WidgetRef ref,
+  SceneRecord targetScene,
+  VoidCallback onConfirm,
+) async {
+  final workspace = ref.read(appWorkspaceStoreProvider);
+  final storyRunStore = ref.read(storyGenerationRunStoreProvider);
+  final runSnapshot = storyRunStore.snapshot;
+
+  // If target scene is already current, no prompt/no-op
+  if (targetScene.id == workspace.currentScene.id) {
+    onConfirm();
+    return;
+  }
+
+  final isRunActive = runSnapshot.status == StoryGenerationRunStatus.running;
+
+  // If no active run, allow switch without prompt
+  // Note: Scene management page doesn't have access to editor dirty state,
+  // so it only guards against active runs. The workbench guard handles both.
+  if (!isRunActive) {
+    onConfirm();
+    return;
+  }
+
+  final shouldSwitch = await showDialog<bool>(
+    context: context,
+    barrierLabel: '关闭',
+    builder: (dialogContext) {
+      return DesktopModalDialog(
+        title: '切换章节',
+        description: '当前章节有 AI 试写正在运行，切换章节将取消此次运行。',
+        body: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: desktopPalette(dialogContext).glassCard,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '当前：${runSnapshot.headline}',
+                style: Theme.of(dialogContext).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                runSnapshot.summary,
+                style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                  color: desktopPalette(dialogContext).secondaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('留在当前章节'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: appDangerColor,
+            ),
+            child: const Text('取消运行并切换'),
+          ),
+        ],
+      );
+    },
+  );
+  if (shouldSwitch == true) {
+    await storyRunStore.cancelCurrentRun();
+    onConfirm();
   }
 }

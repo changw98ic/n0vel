@@ -15,7 +15,9 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.focusNode,
     required this.scrollController,
     required this.isToolPanelOpen,
+    required this.isRunCenterOpen,
     required this.onToggleToolPanel,
+    required this.onOpenRunCenter,
     required this.onCreateFirstChapter,
     super.key,
   });
@@ -27,7 +29,9 @@ class WorkbenchEditorPane extends StatelessWidget {
   final FocusNode focusNode;
   final ScrollController scrollController;
   final bool isToolPanelOpen;
+  final bool isRunCenterOpen;
   final VoidCallback onToggleToolPanel;
+  final VoidCallback onOpenRunCenter;
   final VoidCallback onCreateFirstChapter;
 
   @override
@@ -83,7 +87,9 @@ class WorkbenchEditorPane extends StatelessWidget {
                   _EditorToolbar(
                     sceneTitle: sceneTitle,
                     isToolPanelOpen: isToolPanelOpen,
+                    isRunCenterOpen: isRunCenterOpen,
                     onToggleToolPanel: onToggleToolPanel,
+                    onOpenRunCenter: onOpenRunCenter,
                   ),
                   Expanded(
                     child: Column(
@@ -149,12 +155,16 @@ class _EditorToolbar extends StatelessWidget {
   const _EditorToolbar({
     required this.sceneTitle,
     required this.isToolPanelOpen,
+    required this.isRunCenterOpen,
     required this.onToggleToolPanel,
+    required this.onOpenRunCenter,
   });
 
   final String sceneTitle;
   final bool isToolPanelOpen;
+  final bool isRunCenterOpen;
   final VoidCallback onToggleToolPanel;
+  final VoidCallback onOpenRunCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +220,14 @@ class _EditorToolbar extends StatelessWidget {
             icon: Icons.highlight,
             tooltip: '高亮',
             onTap: () {},
+          ),
+          const SizedBox(width: 14),
+          EditorToolbarIconButton(
+            key: WorkbenchShellPage.runCenterToolButtonKey,
+            icon: Icons.play_circle_outline,
+            tooltip: '运行中心',
+            onTap: onOpenRunCenter,
+            isActive: isRunCenterOpen,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(

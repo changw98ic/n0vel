@@ -203,6 +203,269 @@ void main() {
       expect(find.text('写作助手'), findsOneWidget);
     });
   });
+
+  group('WorkbenchShellPage Run Center', () {
+    late ServiceRegistry registry;
+    late AppWorkspaceStore workspaceStore;
+
+    tearDown(() {
+      registry.disposeAll();
+    });
+
+    testWidgets('opens from visible toolbar button and shows idle state',
+        (tester) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '测试项目');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Run Center button should be visible in toolbar
+      final runCenterButton = find.byKey(
+        WorkbenchShellPage.runCenterToolButtonKey,
+      );
+      expect(runCenterButton, findsOneWidget);
+
+      // Tap to open Run Center
+      await tester.tap(runCenterButton);
+      await tester.pump();
+
+      // Run Center panel should be visible with idle state
+      expect(
+        find.byKey(const ValueKey<String>('workbench-run-center-panel')),
+        findsOneWidget,
+      );
+      expect(find.text('未运行'), findsOneWidget);
+      expect(find.text('尚未运行'), findsOneWidget);
+    });
+
+    testWidgets('shows failed state with retry button', (tester) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      final runStorage = InMemoryStoryGenerationRunStorage();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '测试项目');
+      final sceneId = workspaceStore.currentScene.id;
+      await runStorage.save(
+        StoryGenerationRunSnapshot(
+          status: StoryGenerationRunStatus.failed,
+          sceneId: sceneId,
+          sceneLabel: '第 1 章 / 场景 01',
+          headline: '生成失败',
+          summary: '网络连接超时',
+          stageSummary: '准备候选稿',
+          errorDetail: '连接API超时',
+        ).toJson(),
+        sceneScopeId: workspaceStore.currentSceneScopeId,
+      );
+      final runStore = _registerStoryRunStore(registry, runStorage: runStorage);
+      await runStore.ready;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Open Run Center
+      await tester.tap(find.byKey(WorkbenchShellPage.runCenterToolButtonKey));
+      await tester.pump();
+
+      // Failed state should be visible with retry button
+      expect(find.text('失败'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('workbench-run-center-retry-button')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('WorkbenchShellPage scene switch guards', () {
+    late ServiceRegistry registry;
+    late AppWorkspaceStore workspaceStore;
+
+    tearDown(() {
+      registry.disposeAll();
+    });
+
+    testWidgets('running run scene switch shows confirmation and switches only after confirm',
+        (tester) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      final runStorage = InMemoryStoryGenerationRunStorage();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '测试项目');
+      workspaceStore.createScene('第一章');
+      final firstSceneId = workspaceStore.currentScene.id;
+      workspaceStore.createScene('第二章');
+      final secondSceneId = workspaceStore.currentScene.id;
+      workspaceStore.updateCurrentScene(
+        sceneId: firstSceneId,
+        recentLocation: workspaceStore.scenes
+            .firstWhere((scene) => scene.id == firstSceneId)
+            .displayLocation,
+      );
+
+      // Seed a running run for the first scene (avoid runCurrentScene in widget tests)
+      await runStorage.save(
+        StoryGenerationRunSnapshot(
+          status: StoryGenerationRunStatus.running,
+          sceneId: firstSceneId,
+          sceneLabel: '第 1 章 / 场景 01',
+          headline: 'AI 正在写作',
+          summary: '生成进行中',
+          stageSummary: '正在准备候选稿',
+        ).toJson(),
+        sceneScopeId: workspaceStore.currentSceneScopeId,
+      );
+      final runStore = _registerStoryRunStore(registry, runStorage: runStorage);
+      await runStore.ready;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Verify run is active
+      expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+
+      // Tap second scene
+      await tester.tap(
+        find.byKey(
+          ValueKey('workbench-chapter-list-scene-$secondSceneId'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog should appear
+      expect(find.text('切换章节'), findsOneWidget);
+      expect(find.text('留在当前章节'), findsOneWidget);
+      expect(find.text('取消运行并切换'), findsOneWidget);
+
+      // Tap cancel to stay on first scene
+      await tester.tap(find.text('留在当前章节'));
+      await tester.pumpAndSettle();
+
+      // Should still be on first scene and run still active
+      expect(workspaceStore.currentScene.id, firstSceneId);
+      expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+
+      // Now tap second scene again and confirm switch
+      // Note: Full cancellation requires internal state from runCurrentScene(),
+      // which hangs in widget tests. We verify the dialog flow and scene switch.
+      await tester.tap(
+        find.byKey(
+          ValueKey('workbench-chapter-list-scene-$secondSceneId'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('取消运行并切换'));
+      await tester.pumpAndSettle();
+
+      // Should now be on second scene (dialog accepted)
+      expect(workspaceStore.currentScene.id, secondSceneId);
+      // Note: run cancellation status not tested here due to widget test limitations
+    });
+
+    testWidgets('same-scene click does not show confirmation', (tester) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      final runStorage = InMemoryStoryGenerationRunStorage();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '测试项目');
+      workspaceStore.createScene('第一章');
+      final firstSceneId = workspaceStore.currentScene.id;
+
+      // Seed a running run (avoid runCurrentScene in widget tests)
+      await runStorage.save(
+        StoryGenerationRunSnapshot(
+          status: StoryGenerationRunStatus.running,
+          sceneId: firstSceneId,
+          sceneLabel: '第 1 章 / 场景 01',
+          headline: 'AI 正在写作',
+          summary: '生成进行中',
+          stageSummary: '正在准备候选稿',
+        ).toJson(),
+        sceneScopeId: workspaceStore.currentSceneScopeId,
+      );
+      final runStore = _registerStoryRunStore(registry, runStorage: runStorage);
+      await runStore.ready;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Verify run is active
+      expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+
+      // Tap the same scene
+      await tester.tap(
+        find.byKey(
+          ValueKey('workbench-chapter-list-scene-$firstSceneId'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No confirmation dialog should appear
+      expect(find.text('切换章节'), findsNothing);
+      expect(find.text('留在当前章节'), findsNothing);
+
+      // Should still be on same scene
+      expect(workspaceStore.currentScene.id, firstSceneId);
+    });
+  });
 }
 
 void _registerWorkbenchStores(ServiceRegistry registry) {

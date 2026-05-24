@@ -79,6 +79,101 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
     }
   }
 
+  Future<void> _confirmSceneSwitch(
+    SceneRecord targetScene,
+    VoidCallback onConfirm,
+  ) async {
+    final workspace = ref.read(appWorkspaceStoreProvider);
+    final storyRunStore = ref.read(storyGenerationRunStoreProvider);
+    final runSnapshot = storyRunStore.snapshot;
+
+    // If target scene is already current, no prompt/no-op
+    if (targetScene.id == workspace.currentScene.id) {
+      onConfirm();
+      return;
+    }
+
+    final isRunActive = runSnapshot.status == StoryGenerationRunStatus.running;
+    final isEditorDirty = _isEditorDirty;
+
+    // If no active run and editor is clean, allow switch without prompt
+    if (!isRunActive && !isEditorDirty) {
+      onConfirm();
+      return;
+    }
+
+    // Build dialog description based on what's at risk
+    final descriptionParts = <String>[];
+    if (isEditorDirty) {
+      descriptionParts.add('当前正文有未保存的修改，切换章节将丢失这些修改。');
+    }
+    if (isRunActive) {
+      descriptionParts.add('当前章节有 AI 试写正在运行，切换章节将取消此次运行。');
+    }
+    final description = descriptionParts.join(isEditorDirty && isRunActive ? '\n' : '');
+
+    final shouldSwitch = await showDialog<bool>(
+      context: context,
+      barrierLabel: '关闭',
+      builder: (dialogContext) {
+        return DesktopModalDialog(
+          title: '切换章节',
+          description: description,
+          body: isRunActive
+              ? Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: desktopPalette(dialogContext).glassCard,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '当前：${runSnapshot.headline}',
+                        style: Theme.of(dialogContext).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        runSnapshot.summary,
+                        style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                          color: desktopPalette(dialogContext).secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('留在当前章节'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: appDangerColor,
+              ),
+              child: isEditorDirty && isRunActive
+                  ? const Text('放弃修改并取消运行，切换')
+                  : isEditorDirty
+                      ? const Text('放弃修改并切换')
+                      : const Text('取消运行并切换'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldSwitch == true) {
+      if (isRunActive) {
+        await storyRunStore.cancelCurrentRun();
+      }
+      onConfirm();
+    }
+  }
+
   Future<void> _openSettingsAndRestoreAnchor({
     bool closeToolPanel = false,
   }) async {

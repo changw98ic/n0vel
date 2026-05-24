@@ -466,7 +466,9 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             focusNode: state._draftFocusNode,
             scrollController: state._editorScrollController,
             isToolPanelOpen: state._orb.activeToolPanel != null,
+            isRunCenterOpen: state._orb.activeToolPanel == WorkbenchToolPanel.runCenter,
             onToggleToolPanel: () => state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
+            onOpenRunCenter: () => state._orb.toggleToolPanel(WorkbenchToolPanel.runCenter),
             onCreateFirstChapter: () => state._showSceneDialog(
               context,
               title: '新建章节',
@@ -490,10 +492,13 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
                   child: _ChapterListPanel(
                     scenes: workspace.scenes,
                     currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
-                    onSelectScene: (scene) {
-                      workspace.updateCurrentScene(
-                        sceneId: scene.id,
-                        recentLocation: scene.displayLocation,
+                    onSelectScene: (scene) async {
+                      await state._confirmSceneSwitch(
+                        scene,
+                        () => workspace.updateCurrentScene(
+                          sceneId: scene.id,
+                          recentLocation: scene.displayLocation,
+                        ),
                       );
                     },
                     onCreateScene: () => state._showSceneDialog(
@@ -679,10 +684,13 @@ Widget? _buildToolWindow(
           onSyncContext: () {
             state._orb.syncContext();
           },
-          onSelectScene: (scene) {
-            workspace.updateCurrentScene(
-              sceneId: scene.id,
-              recentLocation: scene.displayLocation,
+          onSelectScene: (scene) async {
+            await state._confirmSceneSwitch(
+              scene,
+              () => workspace.updateCurrentScene(
+                sceneId: scene.id,
+                recentLocation: scene.displayLocation,
+              ),
             );
           },
           onCreateScene: () => state._showSceneDialog(
@@ -736,6 +744,19 @@ Widget? _buildToolWindow(
           onAddCurrentSelection: state._addCurrentSelectionFromEditor,
           onEditSelectionPrompt: state._editSelectionPrompt,
           onRemoveSelection: state._removeSelection,
+          // Run Center v1 parameters
+          runSnapshot: storyRunSnapshot,
+          isRunActive:
+              storyRunSnapshot.status == StoryGenerationRunStatus.running,
+          canCancelRun:
+              storyRunSnapshot.status == StoryGenerationRunStatus.running,
+          canRetryRun: state._orb.canRetryRun(storyRunSnapshot),
+          onRetryRun: () => state._orb.retryRecoveredRun(),
+          onDiscardRun: () => state._orb.discardRecoveredRun(),
+          onCancelRun: () async {
+            final storyRunStore = state.ref.read(storyGenerationRunStoreProvider);
+            await storyRunStore.cancelCurrentRun();
+          },
           statusBanner: statusBanner,
           creationGuide: _CreationGuideCard(
             currentStageIndex: guideStageIndex,

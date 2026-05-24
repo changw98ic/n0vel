@@ -453,9 +453,24 @@ class WorkbenchOrchestrator extends AppStoreListenable {
     'resume',
   };
 
+  static const _retryableStatusNames = {
+    'running',
+    'draft',
+    'candidate',
+    'feedback',
+    'check',
+    'resume',
+    'failed',
+  };
+
   bool shouldPromptForRunRecovery(StoryGenerationRunSnapshot snapshot) {
     return snapshot.hasRun &&
         _restorableStatusNames.contains(snapshot.status.name);
+  }
+
+  bool canRetryRun(StoryGenerationRunSnapshot snapshot) {
+    return snapshot.hasRun &&
+        _retryableStatusNames.contains(snapshot.status.name);
   }
 
   Future<void> retryRecoveredRun() async {

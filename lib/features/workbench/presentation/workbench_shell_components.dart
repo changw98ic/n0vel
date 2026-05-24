@@ -169,7 +169,7 @@ class _ChapterListPanel extends StatelessWidget {
 
   final List<SceneRecord> scenes;
   final String currentSceneId;
-  final ValueChanged<SceneRecord> onSelectScene;
+  final Future<void> Function(SceneRecord) onSelectScene;
   final VoidCallback onCreateScene;
   final VoidCallback onCollapse;
 
@@ -217,7 +217,11 @@ class _ChapterListPanel extends StatelessWidget {
                     final scene = scenes[index];
                     final isActive = scene.id == currentSceneId;
                     return GestureDetector(
-                      onTap: () => onSelectScene(scene),
+                      key: ValueKey('workbench-chapter-list-scene-${scene.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        await onSelectScene(scene);
+                      },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
