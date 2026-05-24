@@ -75,7 +75,7 @@ docs: 建立长期执行计划框架
 - 创建 docs/milestone-0-protocol.md 定义执行协议
 - 每个任务粒度 <= 1 人天，里程碑明确依赖和验收标准
 
-Related: TBD
+Related: #23
 Confidence: high
 Scope-risk: low（仅文档）
 Tested: 文件存在性验证已通过
