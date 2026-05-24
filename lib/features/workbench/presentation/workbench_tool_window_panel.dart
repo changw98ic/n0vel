@@ -186,19 +186,15 @@ class ToolWindowPanel extends StatelessWidget {
                       child: const Text('打开完整设置'),
                     ),
                     TextButton(
-                      key: WorkbenchShellPage
-                          .settingsRetrySecureStoreButtonKey,
+                      key: WorkbenchShellPage.settingsRetrySecureStoreButtonKey,
                       onPressed: () => onRetrySecureStore(),
                       child: const Text('重试配置'),
                     ),
                     if (diagnosticText != null)
                       TextButton(
-                        key: WorkbenchShellPage
-                            .settingsCopyDiagnosticButtonKey,
-                        onPressed: () => copyDiagnosticToClipboard(
-                          context,
-                          diagnosticText,
-                        ),
+                        key: WorkbenchShellPage.settingsCopyDiagnosticButtonKey,
+                        onPressed: () =>
+                            copyDiagnosticToClipboard(context, diagnosticText),
                         child: const Text('复制诊断'),
                       ),
                   ],
@@ -251,7 +247,9 @@ class ToolWindowPanel extends StatelessWidget {
                     const SizedBox(height: 6),
                     for (final scene in scenes)
                       TextButton(
-                        key: ValueKey('workbench-chapter-list-scene-${scene.id}'),
+                        key: ValueKey(
+                          'workbench-chapter-list-scene-${scene.id}',
+                        ),
                         onPressed: () async {
                           await onSelectScene(scene);
                         },
@@ -262,7 +260,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.characterSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.people_outline, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.people_outline,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('出场人物', style: theme.textTheme.titleSmall),
                       ],
@@ -288,7 +290,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.worldSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.public_outlined, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.public_outlined,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('世界观', style: theme.textTheme.titleSmall),
                       ],
@@ -314,7 +320,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.sceneSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.summarize_outlined, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.summarize_outlined,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('章节目标', style: theme.textTheme.titleSmall),
                       ],
@@ -367,8 +377,12 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
   final snapshot = panel.runSnapshot;
 
   const runCenterPanelKey = ValueKey<String>('workbench-run-center-panel');
-  const runCenterCancelButtonKey = ValueKey<String>('workbench-run-center-cancel-button');
-  const runCenterRetryButtonKey = ValueKey<String>('workbench-run-center-retry-button');
+  const runCenterCancelButtonKey = ValueKey<String>(
+    'workbench-run-center-cancel-button',
+  );
+  const runCenterRetryButtonKey = ValueKey<String>(
+    'workbench-run-center-retry-button',
+  );
 
   final statusColor = switch (snapshot.status) {
     StoryGenerationRunStatus.idle => palette.secondaryText,
@@ -433,7 +447,9 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
                 const SizedBox(width: 8),
                 Text(
                   statusLabel,
-                  style: theme.textTheme.titleSmall?.copyWith(color: statusColor),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: statusColor,
+                  ),
                 ),
                 if (snapshot.hasRun && phaseLabel.isNotEmpty) ...[
                   const SizedBox(width: 8),
@@ -448,10 +464,7 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
             ),
             if (snapshot.hasRun) ...[
               const SizedBox(height: 12),
-              Text(
-                snapshot.headline,
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(snapshot.headline, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 4),
               Text(
                 snapshot.summary,
@@ -468,6 +481,15 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
                   ),
                 ),
               ],
+              if (snapshot.stageTimeline.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildStageTimeline(
+                  snapshot.stageTimeline,
+                  theme,
+                  palette,
+                  snapshot.status,
+                ),
+              ],
               if (snapshot.errorDetail.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
@@ -475,7 +497,9 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
                   decoration: BoxDecoration(
                     color: appDangerColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: appDangerColor.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: appDangerColor.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     snapshot.errorDetail,
@@ -503,13 +527,12 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
       else if (panel.canRetryRun)
         FilledButton(
           key: runCenterRetryButtonKey,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(36),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(36)),
           onPressed: panel.onRetryRun,
           child: const Text('重新运行'),
         )
-      else if (snapshot.hasRun && snapshot.status != StoryGenerationRunStatus.idle)
+      else if (snapshot.hasRun &&
+          snapshot.status != StoryGenerationRunStatus.idle)
         OutlinedButton(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(36),
@@ -535,10 +558,7 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                '当前章节还没有 AI 试写记录。',
-                style: theme.textTheme.bodySmall,
-              ),
+              Text('当前章节还没有 AI 试写记录。', style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -546,3 +566,102 @@ Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {
   );
 }
 
+/// Builds a compact stage timeline visualization for the Run Center.
+///
+/// Each stage shows as a labeled row with an icon indicating its status:
+/// - pending: circle_outlined (grey)
+/// - running: sync (spin animation, green)
+/// - completed: check_circle (green)
+/// - failed: error (red, with failure summary)
+///
+/// The failed-stage label has a stable key for widget tests.
+Widget _buildStageTimeline(
+  List<StoryGenerationRunStageSnapshot> timeline,
+  ThemeData theme,
+  DesktopPalette palette,
+  StoryGenerationRunStatus runStatus,
+) {
+  return Column(
+    key: const ValueKey<String>('workbench-stage-timeline'),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        '生成阶段',
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: palette.secondaryText,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: palette.elevated,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: palette.border.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final stage in timeline)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: _buildStageTimelineRow(stage, theme, palette, runStatus),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _buildStageTimelineRow(
+  StoryGenerationRunStageSnapshot stage,
+  ThemeData theme,
+  DesktopPalette palette,
+  StoryGenerationRunStatus runStatus,
+) {
+  final isFailed = stage.status == StoryGenerationRunStageStatus.failed;
+
+  final rowKey = ValueKey<String>('stage-timeline-row-${stage.stageId.name}');
+  final failedLabelKey = isFailed
+      ? ValueKey<String>('stage-failed-label-${stage.stageId.name}')
+      : null;
+
+  final statusColor = switch (stage.status) {
+    StoryGenerationRunStageStatus.pending => palette.secondaryText,
+    StoryGenerationRunStageStatus.running => appSuccessColor,
+    StoryGenerationRunStageStatus.completed => appSuccessColor,
+    StoryGenerationRunStageStatus.failed => appDangerColor,
+  };
+
+  final statusIcon = switch (stage.status) {
+    StoryGenerationRunStageStatus.pending => Icons.circle_outlined,
+    StoryGenerationRunStageStatus.running => Icons.sync,
+    StoryGenerationRunStageStatus.completed => Icons.check_circle,
+    StoryGenerationRunStageStatus.failed => Icons.error,
+  };
+
+  return Row(
+    key: rowKey,
+    children: [
+      Icon(statusIcon, size: 14, color: statusColor),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          stage.label,
+          style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
+        ),
+      ),
+      if (isFailed && stage.summary != null)
+        Flexible(
+          child: Text(
+            stage.summary!,
+            key: failedLabelKey,
+            style: theme.textTheme.bodySmall?.copyWith(color: appDangerColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+    ],
+  );
+}

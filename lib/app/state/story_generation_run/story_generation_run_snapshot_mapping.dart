@@ -58,6 +58,10 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
               '已完成当前人物视角',
         ),
     ];
+
+    // Preserve the existing stageTimeline and mark all stages as completed.
+    final completedTimeline = _allStagesCompleted(_snapshot.stageTimeline);
+
     return StoryGenerationRunSnapshot(
       status: StoryGenerationRunStatus.completed,
       phase: StoryGenerationRunPhase.feedback,
@@ -119,7 +123,36 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
           kind: StoryGenerationRunMessageKind.review,
         ),
       ],
+      stageTimeline: completedTimeline,
     );
+  }
+
+  /// Marks all stages in the timeline as completed.
+  ///
+  /// Used when a pipeline run completes successfully to preserve the stage
+  /// timeline with terminal success states.
+  List<StoryGenerationRunStageSnapshot> _allStagesCompleted(
+    List<StoryGenerationRunStageSnapshot> timeline,
+  ) {
+    return [
+      for (final stage in timeline)
+        stage.copyWith(status: StoryGenerationRunStageStatus.completed),
+    ];
+  }
+
+  /// Marks the first stage in the timeline as running.
+  ///
+  /// Used when a pipeline run starts to indicate the active stage.
+  List<StoryGenerationRunStageSnapshot> _markFirstStageRunning(
+    List<StoryGenerationRunStageSnapshot> timeline,
+  ) {
+    if (timeline.isEmpty) {
+      return timeline;
+    }
+    return [
+      timeline.first.copyWith(status: StoryGenerationRunStageStatus.running),
+      ...timeline.skip(1),
+    ];
   }
 
   List<StoryGenerationRunMessage> _authorFeedbackMessages() {

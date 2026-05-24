@@ -210,6 +210,79 @@ void main() {
     );
 
     test(
+      'preserves stage timeline across run lifecycle: running with first stage active, completed with all stages completed',
+      () async {
+        final storage = InMemoryStoryGenerationRunStorage();
+        final orchestrator = _ControlledOrchestrator(
+          settingsStore: settingsStore,
+        );
+        final runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: storage,
+          orchestratorFactory: (_) => orchestrator,
+        );
+        addTearDown(runStore.dispose);
+        await runStore.waitUntilReady();
+
+        // Start the run and wait for the orchestrator to start
+        final runFuture = runStore.runCurrentScene();
+        await orchestrator.started.future;
+
+        // Assert: running snapshot has the stage timeline with first stage marked running
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+        expect(runStore.snapshot.stageTimeline, isNotEmpty);
+        expect(
+          runStore.snapshot.stageTimeline.first.status,
+          StoryGenerationRunStageStatus.running,
+          reason:
+              'First stage should be marked as running while orchestrator is active',
+        );
+        expect(
+          runStore.snapshot.stageTimeline
+              .skip(1)
+              .any((s) => s.status == StoryGenerationRunStageStatus.running),
+          isFalse,
+          reason: 'Only the first stage should be marked as running initially',
+        );
+
+        // Release the orchestrator and await completion
+        orchestrator.release.complete();
+        await runFuture;
+
+        // Assert: completed snapshot still has the timeline and all stages are completed
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.completed);
+        expect(
+          runStore.snapshot.stageTimeline,
+          isNotEmpty,
+          reason: 'Completed snapshot should preserve the stage timeline',
+        );
+        for (final stage in runStore.snapshot.stageTimeline) {
+          expect(
+            stage.status,
+            StoryGenerationRunStageStatus.completed,
+            reason:
+                'All stages should be marked as completed after successful run',
+          );
+        }
+
+        // Assert: persisted run storage also includes non-empty stageTimeline
+        final stored = await storage.load(
+          sceneScopeId: workspaceStore.currentSceneScopeId,
+        );
+        expect(stored, isNotNull);
+        final storedTimeline = stored!['stageTimeline'] as List<Object?>?;
+        expect(storedTimeline, isNotNull);
+        expect(
+          storedTimeline,
+          isNotEmpty,
+          reason: 'Persisted storage should include non-empty stageTimeline',
+        );
+      },
+    );
+
+    test(
       'records force-failure as blocked and preserves existing counters',
       () async {
         final currentScene = workspaceStore.currentScene;

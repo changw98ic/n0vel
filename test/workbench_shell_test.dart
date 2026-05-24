@@ -30,6 +30,7 @@ import 'package:novel_writer/features/author_feedback/data/author_feedback_stora
 import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_definition.dart';
 import 'package:novel_writer/features/workbench/presentation/workbench_shell_page.dart';
 
 void main() {
@@ -185,12 +186,20 @@ void main() {
       await tester.pumpAndSettle();
 
       // The center pane should show "AI 写作助手" header
-      expect(find.text('AI 写作助手'), findsOneWidget, reason: 'Center pane should show "AI 写作助手" header');
+      expect(
+        find.text('AI 写作助手'),
+        findsOneWidget,
+        reason: 'Center pane should show "AI 写作助手" header',
+      );
 
       // The center pane should show the "打开 AI 面板" button
       // This button opens the AI tool panel when tapped
       final openAiButton = find.text('打开 AI 面板');
-      expect(openAiButton, findsOneWidget, reason: 'Center pane should show "打开 AI 面板" button');
+      expect(
+        openAiButton,
+        findsOneWidget,
+        reason: 'Center pane should show "打开 AI 面板" button',
+      );
       expect(find.text('续写、润色、对话等多种模式'), findsOneWidget);
 
       // Tap the button to open the AI tool panel
@@ -212,8 +221,9 @@ void main() {
       registry.disposeAll();
     });
 
-    testWidgets('opens from visible toolbar button and shows idle state',
-        (tester) async {
+    testWidgets('opens from visible toolbar button and shows idle state', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -305,6 +315,171 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'shows stage timeline for completed run with all stages completed',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 820);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        registry = ServiceRegistry();
+        final runStorage = InMemoryStoryGenerationRunStorage();
+        _registerWorkbenchStores(registry);
+        workspaceStore = registry.resolve<AppWorkspaceStore>();
+        workspaceStore.createProject(projectName: '测试项目');
+        final sceneId = workspaceStore.currentScene.id;
+
+        // Seed a completed run with stage timeline
+        final completedTimeline = [
+          for (final spec in BuiltInPresets.defaultNineStage.enabledStages)
+            StoryGenerationRunStageSnapshot(
+              stageId: spec.id,
+              label: spec.label,
+              status: StoryGenerationRunStageStatus.completed,
+            ),
+        ];
+        await runStorage.save(
+          StoryGenerationRunSnapshot(
+            status: StoryGenerationRunStatus.completed,
+            sceneId: sceneId,
+            sceneLabel: '第 1 章 / 场景 01',
+            headline: 'AI 试写完成',
+            summary: '候选稿已生成',
+            stageSummary: '候选稿已生成，等待作者采纳',
+            stageTimeline: completedTimeline,
+          ).toJson(),
+          sceneScopeId: workspaceStore.currentSceneScopeId,
+        );
+        final runStore = _registerStoryRunStore(
+          registry,
+          runStorage: runStorage,
+        );
+        await runStore.ready;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              home: const WorkbenchShellPage(),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        // Open Run Center
+        await tester.tap(find.byKey(WorkbenchShellPage.runCenterToolButtonKey));
+        await tester.pump();
+
+        // Stage timeline should be visible
+        expect(
+          find.byKey(const ValueKey<String>('workbench-stage-timeline')),
+          findsOneWidget,
+          reason: 'Stage timeline container should be visible',
+        );
+
+        // At least one stage row should be visible
+        expect(
+          find.byKey(
+            const ValueKey<String>('stage-timeline-row-contextEnrichment'),
+          ),
+          findsOneWidget,
+          reason: 'First stage row should be visible',
+        );
+      },
+    );
+
+    testWidgets(
+      'shows failed stage timeline with truncated long error summary',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 820);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        registry = ServiceRegistry();
+        final runStorage = InMemoryStoryGenerationRunStorage();
+        _registerWorkbenchStores(registry);
+        workspaceStore = registry.resolve<AppWorkspaceStore>();
+        workspaceStore.createProject(projectName: '测试项目');
+        final sceneId = workspaceStore.currentScene.id;
+
+        // Create a long error summary that would overflow without ellipsis
+        final longErrorSummary =
+            '这是一个非常长的错误消息，它可能会导致UI溢出问题，如果不进行适当的截断处理的话。' * 5;
+
+        // Seed a failed run with stage timeline including failed stage
+        final failedTimeline = [
+          const StoryGenerationRunStageSnapshot(
+            stageId: PipelineStageId.contextEnrichment,
+            label: '上下文增强',
+            status: StoryGenerationRunStageStatus.completed,
+          ),
+          StoryGenerationRunStageSnapshot(
+            stageId: PipelineStageId.scenePlanning,
+            label: '场景规划',
+            status: StoryGenerationRunStageStatus.failed,
+            failureCode: 'orchestrator',
+            summary: longErrorSummary,
+          ),
+        ];
+        await runStorage.save(
+          StoryGenerationRunSnapshot(
+            status: StoryGenerationRunStatus.failed,
+            sceneId: sceneId,
+            sceneLabel: '第 1 章 / 场景 01',
+            headline: 'AI 试写失败',
+            summary: '试写未完成',
+            stageSummary: '失败',
+            errorDetail: 'pipeline-error',
+            stageTimeline: failedTimeline,
+          ).toJson(),
+          sceneScopeId: workspaceStore.currentSceneScopeId,
+        );
+        final runStore = _registerStoryRunStore(
+          registry,
+          runStorage: runStorage,
+        );
+        await runStore.ready;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              home: const WorkbenchShellPage(),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        // Open Run Center
+        await tester.tap(find.byKey(WorkbenchShellPage.runCenterToolButtonKey));
+        await tester.pump();
+
+        // Stage timeline should be visible
+        expect(
+          find.byKey(const ValueKey<String>('workbench-stage-timeline')),
+          findsOneWidget,
+        );
+
+        // Failed stage label with summary should be rendered without overflow
+        expect(
+          find.byKey(
+            const ValueKey<String>('stage-failed-label-scenePlanning'),
+          ),
+          findsOneWidget,
+          reason: 'Failed stage label should be visible',
+        );
+
+        // Pump without throwing overflow exceptions
+        await tester.pump();
+      },
+    );
   });
 
   group('WorkbenchShellPage scene switch guards', () {
@@ -315,96 +490,97 @@ void main() {
       registry.disposeAll();
     });
 
-    testWidgets('running run scene switch shows confirmation and switches only after confirm',
-        (tester) async {
-      tester.view.physicalSize = const Size(1280, 820);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'running run scene switch shows confirmation and switches only after confirm',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 820);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      registry = ServiceRegistry();
-      final runStorage = InMemoryStoryGenerationRunStorage();
-      _registerWorkbenchStores(registry);
-      workspaceStore = registry.resolve<AppWorkspaceStore>();
-      workspaceStore.createProject(projectName: '测试项目');
-      workspaceStore.createScene('第一章');
-      final firstSceneId = workspaceStore.currentScene.id;
-      workspaceStore.createScene('第二章');
-      final secondSceneId = workspaceStore.currentScene.id;
-      workspaceStore.updateCurrentScene(
-        sceneId: firstSceneId,
-        recentLocation: workspaceStore.scenes
-            .firstWhere((scene) => scene.id == firstSceneId)
-            .displayLocation,
-      );
-
-      // Seed a running run for the first scene (avoid runCurrentScene in widget tests)
-      await runStorage.save(
-        StoryGenerationRunSnapshot(
-          status: StoryGenerationRunStatus.running,
+        registry = ServiceRegistry();
+        final runStorage = InMemoryStoryGenerationRunStorage();
+        _registerWorkbenchStores(registry);
+        workspaceStore = registry.resolve<AppWorkspaceStore>();
+        workspaceStore.createProject(projectName: '测试项目');
+        workspaceStore.createScene('第一章');
+        final firstSceneId = workspaceStore.currentScene.id;
+        workspaceStore.createScene('第二章');
+        final secondSceneId = workspaceStore.currentScene.id;
+        workspaceStore.updateCurrentScene(
           sceneId: firstSceneId,
-          sceneLabel: '第 1 章 / 场景 01',
-          headline: 'AI 正在写作',
-          summary: '生成进行中',
-          stageSummary: '正在准备候选稿',
-        ).toJson(),
-        sceneScopeId: workspaceStore.currentSceneScopeId,
-      );
-      final runStore = _registerStoryRunStore(registry, runStorage: runStorage);
-      await runStore.ready;
+          recentLocation: workspaceStore.scenes
+              .firstWhere((scene) => scene.id == firstSceneId)
+              .displayLocation,
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            home: const WorkbenchShellPage(),
+        // Seed a running run for the first scene (avoid runCurrentScene in widget tests)
+        await runStorage.save(
+          StoryGenerationRunSnapshot(
+            status: StoryGenerationRunStatus.running,
+            sceneId: firstSceneId,
+            sceneLabel: '第 1 章 / 场景 01',
+            headline: 'AI 正在写作',
+            summary: '生成进行中',
+            stageSummary: '正在准备候选稿',
+          ).toJson(),
+          sceneScopeId: workspaceStore.currentSceneScopeId,
+        );
+        final runStore = _registerStoryRunStore(
+          registry,
+          runStorage: runStorage,
+        );
+        await runStore.ready;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              home: const WorkbenchShellPage(),
+            ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
+        );
+        await tester.pump();
+        await tester.pumpAndSettle();
 
-      // Verify run is active
-      expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+        // Verify run is active
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
 
-      // Tap second scene
-      await tester.tap(
-        find.byKey(
-          ValueKey('workbench-chapter-list-scene-$secondSceneId'),
-        ),
-      );
-      await tester.pumpAndSettle();
+        // Tap second scene
+        await tester.tap(
+          find.byKey(ValueKey('workbench-chapter-list-scene-$secondSceneId')),
+        );
+        await tester.pumpAndSettle();
 
-      // Confirmation dialog should appear
-      expect(find.text('切换章节'), findsOneWidget);
-      expect(find.text('留在当前章节'), findsOneWidget);
-      expect(find.text('取消运行并切换'), findsOneWidget);
+        // Confirmation dialog should appear
+        expect(find.text('切换章节'), findsOneWidget);
+        expect(find.text('留在当前章节'), findsOneWidget);
+        expect(find.text('取消运行并切换'), findsOneWidget);
 
-      // Tap cancel to stay on first scene
-      await tester.tap(find.text('留在当前章节'));
-      await tester.pumpAndSettle();
+        // Tap cancel to stay on first scene
+        await tester.tap(find.text('留在当前章节'));
+        await tester.pumpAndSettle();
 
-      // Should still be on first scene and run still active
-      expect(workspaceStore.currentScene.id, firstSceneId);
-      expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
+        // Should still be on first scene and run still active
+        expect(workspaceStore.currentScene.id, firstSceneId);
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.running);
 
-      // Now tap second scene again and confirm switch
-      // Note: Full cancellation requires internal state from runCurrentScene(),
-      // which hangs in widget tests. We verify the dialog flow and scene switch.
-      await tester.tap(
-        find.byKey(
-          ValueKey('workbench-chapter-list-scene-$secondSceneId'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('取消运行并切换'));
-      await tester.pumpAndSettle();
+        // Now tap second scene again and confirm switch
+        // Note: Full cancellation requires internal state from runCurrentScene(),
+        // which hangs in widget tests. We verify the dialog flow and scene switch.
+        await tester.tap(
+          find.byKey(ValueKey('workbench-chapter-list-scene-$secondSceneId')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('取消运行并切换'));
+        await tester.pumpAndSettle();
 
-      // Should now be on second scene (dialog accepted)
-      expect(workspaceStore.currentScene.id, secondSceneId);
-      // Note: run cancellation status not tested here due to widget test limitations
-    });
+        // Should now be on second scene (dialog accepted)
+        expect(workspaceStore.currentScene.id, secondSceneId);
+        // Note: run cancellation status not tested here due to widget test limitations
+      },
+    );
 
     testWidgets('same-scene click does not show confirmation', (tester) async {
       tester.view.physicalSize = const Size(1280, 820);
@@ -452,9 +628,7 @@ void main() {
 
       // Tap the same scene
       await tester.tap(
-        find.byKey(
-          ValueKey('workbench-chapter-list-scene-$firstSceneId'),
-        ),
+        find.byKey(ValueKey('workbench-chapter-list-scene-$firstSceneId')),
       );
       await tester.pumpAndSettle();
 

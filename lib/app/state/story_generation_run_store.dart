@@ -8,6 +8,8 @@ import '../../features/review_tasks/data/review_task_mapper.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
 // Intentional: run store bridges app state to feature pipeline.
 import '../../features/story_generation/data/pipeline_stage_runner_impl.dart';
+import '../../features/story_generation/data/pipeline_definition.dart'
+    show BuiltInPresets, PipelinePreset, PipelineStageId;
 import '../../features/story_generation/data/generation_pipeline_config.dart';
 import '../../features/story_generation/data/scene_context_assembler.dart';
 import '../../features/story_generation/data/story_generation_models.dart';
@@ -56,8 +58,9 @@ class StoryGenerationRunStore extends AppStoreListenable {
            ((settingsStore) {
              return PipelineStageRunnerImpl(
                settingsStore: settingsStore,
-               pipelineConfig:
-                   GenerationPipelineConfig.fromWorkspace(workspaceStore),
+               pipelineConfig: GenerationPipelineConfig.fromWorkspace(
+                 workspaceStore,
+               ),
                roleplaySessionStore: roleplaySessionStore,
                characterMemoryStore: characterMemoryStore,
              );
@@ -70,8 +73,8 @@ class StoryGenerationRunStore extends AppStoreListenable {
     _sceneChangedSubscription = _eventBus?.listen<SceneChangedEvent>(
       (e) => _handleSceneScopeChanged(e.sceneScopeId),
     );
-    _projectScopeChangedSubscription =
-        _eventBus?.listen<ProjectScopeChangedEvent>(
+    _projectScopeChangedSubscription = _eventBus
+        ?.listen<ProjectScopeChangedEvent>(
           (e) => _handleSceneScopeChanged(e.sceneScopeId),
         );
     _readyFuture = _restoreCurrentScene();
@@ -100,7 +103,8 @@ class StoryGenerationRunStore extends AppStoreListenable {
   String? _activeRunSceneScopeId;
   StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
   StreamSubscription<SceneChangedEvent>? _sceneChangedSubscription;
-  StreamSubscription<ProjectScopeChangedEvent>? _projectScopeChangedSubscription;
+  StreamSubscription<ProjectScopeChangedEvent>?
+  _projectScopeChangedSubscription;
 
   StoryGenerationRunSnapshot get snapshot => _snapshot;
   String get activeSceneScopeId => _activeSceneScopeId;
@@ -237,6 +241,10 @@ class StoryGenerationRunStore extends AppStoreListenable {
       metadata: _runtimeMetadata(revisionRequests: revisionRequests),
     );
     final baseParticipants = _participantsForBrief(brief);
+    final baseTimeline = StoryGenerationRunStageSnapshot.fromPreset(
+      BuiltInPresets.defaultNineStage,
+    );
+    final runningTimeline = _markFirstStageRunning(baseTimeline);
     await _setSnapshot(
       StoryGenerationRunSnapshot(
         status: StoryGenerationRunStatus.running,
@@ -255,6 +263,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
           ),
           ..._revisionRequestMessages(revisionRequests),
         ],
+        stageTimeline: runningTimeline,
       ),
     );
     _recordSceneState(
@@ -270,6 +279,12 @@ class StoryGenerationRunStore extends AppStoreListenable {
         brief: brief,
         status: StorySceneGenerationStatus.blocked,
         reviewStatus: StoryReviewStatus.failed,
+      );
+      final failedTimeline = _markStageFailed(
+        _snapshot.stageTimeline,
+        PipelineStageId.scenePlanning,
+        'orchestrator',
+        '强制失败',
       );
       await _setSnapshot(
         _snapshot.copyWith(
@@ -287,6 +302,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
               kind: StoryGenerationRunMessageKind.error,
             ),
           ],
+          stageTimeline: failedTimeline,
         ),
       );
       _finishRun(runToken);
@@ -338,6 +354,12 @@ class StoryGenerationRunStore extends AppStoreListenable {
         status: StorySceneGenerationStatus.blocked,
         reviewStatus: StoryReviewStatus.failed,
       );
+      final failedTimeline = _markStageFailed(
+        _snapshot.stageTimeline,
+        PipelineStageId.scenePlanning,
+        'orchestrator',
+        error.toString(),
+      );
       await _setSnapshot(
         StoryGenerationRunSnapshot(
           status: StoryGenerationRunStatus.failed,
@@ -357,6 +379,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
               kind: StoryGenerationRunMessageKind.error,
             ),
           ],
+          stageTimeline: failedTimeline,
         ),
       );
       _finishRun(runToken);
@@ -487,6 +510,52 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   void _notifySnapshotListeners() {
     notifyListeners();
+  }
+
+  /// Marks the specified stage as failed and all subsequent stages as pending.
+  ///
+  /// Used when a pipeline run fails to capture the failed stage information
+  /// for display in the Run Center.
+  List<StoryGenerationRunStageSnapshot> _markStageFailed(
+    List<StoryGenerationRunStageSnapshot> timeline,
+    PipelineStageId failedStageId,
+    String failureCode,
+    String summary,
+  ) {
+    final result = <StoryGenerationRunStageSnapshot>[];
+    var foundFailed = false;
+    for (final stage in timeline) {
+      if (stage.stageId == failedStageId) {
+        result.add(
+          stage.copyWith(
+            status: StoryGenerationRunStageStatus.failed,
+            failureCode: failureCode,
+            summary: summary,
+          ),
+        );
+        foundFailed = true;
+      } else if (foundFailed) {
+        // Stages after the failed stage remain pending
+        result.add(stage);
+      } else {
+        // Stages before the failed stage are marked completed
+        result.add(
+          stage.copyWith(status: StoryGenerationRunStageStatus.completed),
+        );
+      }
+    }
+    // If the failed stage wasn't found (e.g., custom pipeline), mark first stage as failed
+    if (!foundFailed && timeline.isNotEmpty) {
+      return [
+        timeline.first.copyWith(
+          status: StoryGenerationRunStageStatus.failed,
+          failureCode: failureCode,
+          summary: summary,
+        ),
+        ...timeline.skip(1),
+      ];
+    }
+    return result;
   }
 }
 

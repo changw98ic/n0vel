@@ -2,6 +2,122 @@ part of '../story_generation_run_store.dart';
 
 enum StoryGenerationRunStatus { idle, running, completed, failed, cancelled }
 
+/// Runtime status of a pipeline stage in a story generation run.
+enum StoryGenerationRunStageStatus {
+  /// Stage has not yet started.
+  pending,
+
+  /// Stage is currently executing.
+  running,
+
+  /// Stage completed successfully.
+  completed,
+
+  /// Stage failed with an error or rejection.
+  failed,
+}
+
+/// Snapshot of a single pipeline stage's execution state.
+///
+/// Provides structured stage-level observability for the Run Center
+/// without modifying the core generation algorithm.
+class StoryGenerationRunStageSnapshot {
+  const StoryGenerationRunStageSnapshot({
+    required this.stageId,
+    required this.label,
+    required this.status,
+    this.attempt = 1,
+    this.failureCode,
+    this.summary,
+  });
+
+  /// Stable stage identifier from [PipelineStageId].
+  final PipelineStageId stageId;
+
+  /// Human-readable stage label for UI display.
+  final String label;
+
+  /// Current runtime status of this stage.
+  final StoryGenerationRunStageStatus status;
+
+  /// Execution attempt number (starts at 1).
+  final int attempt;
+
+  /// Optional failure classification for failed stages.
+  final String? failureCode;
+
+  /// Optional human-readable summary of stage outcome or failure.
+  final String? summary;
+
+  /// Create a copy with modified fields.
+  StoryGenerationRunStageSnapshot copyWith({
+    PipelineStageId? stageId,
+    String? label,
+    StoryGenerationRunStageStatus? status,
+    int? attempt,
+    String? failureCode,
+    String? summary,
+  }) {
+    return StoryGenerationRunStageSnapshot(
+      stageId: stageId ?? this.stageId,
+      label: label ?? this.label,
+      status: status ?? this.status,
+      attempt: attempt ?? this.attempt,
+      failureCode: failureCode ?? this.failureCode,
+      summary: summary ?? this.summary,
+    );
+  }
+
+  /// Convert to JSON for persistence.
+  Map<String, Object?> toJson() {
+    return {
+      'stageId': stageId.name,
+      'label': label,
+      'status': status.name,
+      'attempt': attempt,
+      'failureCode': failureCode,
+      'summary': summary,
+    };
+  }
+
+  /// Rehydrate from JSON with backward compatibility for missing fields.
+  static StoryGenerationRunStageSnapshot fromJson(Map<String, Object?> json) {
+    final stageIdName = json['stageId']?.toString() ?? '';
+    final stageId = PipelineStageId.values.firstWhere(
+      (candidate) => candidate.name == stageIdName,
+      orElse: () => PipelineStageId.contextEnrichment,
+    );
+    final statusName = json['status']?.toString() ?? '';
+    final status = StoryGenerationRunStageStatus.values.firstWhere(
+      (candidate) => candidate.name == statusName,
+      orElse: () => StoryGenerationRunStageStatus.pending,
+    );
+    return StoryGenerationRunStageSnapshot(
+      stageId: stageId,
+      label: json['label']?.toString() ?? '',
+      status: status,
+      attempt: json['attempt'] is int ? json['attempt'] as int : 1,
+      failureCode: json['failureCode']?.toString(),
+      summary: json['summary']?.toString(),
+    );
+  }
+
+  /// Create initial stage snapshots from a pipeline preset.
+  ///
+  /// All stages start in [pending] status.
+  static List<StoryGenerationRunStageSnapshot> fromPreset(
+    PipelinePreset preset,
+  ) {
+    return preset.enabledStages.map((spec) {
+      return StoryGenerationRunStageSnapshot(
+        stageId: spec.id,
+        label: spec.label,
+        status: StoryGenerationRunStageStatus.pending,
+      );
+    }).toList();
+  }
+}
+
 enum StoryGenerationRunPhase {
   draft,
   candidate,
@@ -195,6 +311,7 @@ class StoryGenerationRunSnapshot {
     this.errorDetail = '',
     this.participants = const [],
     this.messages = const [],
+    this.stageTimeline = const [],
   });
 
   final StoryGenerationRunStatus status;
@@ -208,6 +325,7 @@ class StoryGenerationRunSnapshot {
   final String errorDetail;
   final List<StoryGenerationRunParticipant> participants;
   final List<StoryGenerationRunMessage> messages;
+  final List<StoryGenerationRunStageSnapshot> stageTimeline;
 
   bool get hasRun => status != StoryGenerationRunStatus.idle;
 
@@ -226,6 +344,7 @@ class StoryGenerationRunSnapshot {
         for (final participant in participants) participant.toJson(),
       ],
       'messages': [for (final message in messages) message.toJson()],
+      'stageTimeline': [for (final stage in stageTimeline) stage.toJson()],
     };
   }
 
@@ -240,6 +359,7 @@ class StoryGenerationRunSnapshot {
       (candidate) => candidate.name == phaseName,
       orElse: () => _phaseForLegacyStatus(status),
     );
+    final timelineList = json['stageTimeline'] as List<Object?>? ?? const [];
     return StoryGenerationRunSnapshot(
       status: status,
       phase: phase,
@@ -260,6 +380,11 @@ class StoryGenerationRunSnapshot {
           if (raw is Map)
             StoryGenerationRunMessage.fromJson(_asStringObjectMap(raw)),
       ],
+      stageTimeline: [
+        for (final raw in timelineList)
+          if (raw is Map)
+            StoryGenerationRunStageSnapshot.fromJson(_asStringObjectMap(raw)),
+      ],
     );
   }
 
@@ -275,6 +400,7 @@ class StoryGenerationRunSnapshot {
     String? errorDetail,
     List<StoryGenerationRunParticipant>? participants,
     List<StoryGenerationRunMessage>? messages,
+    List<StoryGenerationRunStageSnapshot>? stageTimeline,
   }) {
     return StoryGenerationRunSnapshot(
       status: status ?? this.status,
@@ -288,6 +414,7 @@ class StoryGenerationRunSnapshot {
       errorDetail: errorDetail ?? this.errorDetail,
       participants: participants ?? this.participants,
       messages: messages ?? this.messages,
+      stageTimeline: stageTimeline ?? this.stageTimeline,
     );
   }
 }
