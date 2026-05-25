@@ -48,6 +48,9 @@ enum LocalServerRouteScope {
 
   /// Delete world nodes (M7-06)
   worldDelete,
+
+  /// Trigger scene/story generation
+  generate,
 }
 
 /// Route descriptor with HTTP method, path pattern, and required scope.

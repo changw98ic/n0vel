@@ -3,7 +3,7 @@
 // ============================================================================
 //
 // Local HTTP server for n0vel. M7-05 implements basic lifecycle and two
-// endpoints (/health, /projects). M7-06 adds auth and write operations.
+// endpoints (/health, /projects). M7-06 adds capability auth.
 //
 // See M7-05: Server Foundation
 // See docs/local-server-api-design.md
@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:novel_writer/domain/workspace_models.dart' show ProjectRecord;
 
+import 'capability_auth.dart';
 import 'local_server_config.dart';
 import 'local_server_project_catalog.dart';
 import 'local_server_route_scope.dart';
@@ -58,10 +59,13 @@ class LocalServer {
   LocalServer({
     required this.config,
     required LocalServerProjectCatalog catalog,
-  }) : _catalog = catalog;
+    CapabilityAuth? auth,
+  }) : _catalog = catalog,
+       _auth = auth ?? CapabilityAuth.denyAll();
 
   final LocalServerConfig config;
   final LocalServerProjectCatalog _catalog;
+  final CapabilityAuth _auth;
 
   HttpServer? _server;
   final _stateController = StreamController<LocalServerState>.broadcast();
@@ -138,6 +142,20 @@ class LocalServer {
       }
 
       if (method == 'GET' && path == '/projects') {
+        final authResult = _auth.authorize(
+          authorizationHeader: request.headers.value(
+            HttpHeaders.authorizationHeader,
+          ),
+          route: LocalServerRoutes.projects,
+        );
+        if (!authResult.allowed) {
+          await response.error(
+            authResult.statusCode,
+            authResult.errorCode,
+            authResult.message,
+          );
+          return;
+        }
         await _handleProjects(response);
         return;
       }

@@ -3,10 +3,40 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:novel_writer/app/server/capability_auth.dart';
 import 'package:novel_writer/app/server/local_server.dart';
 import 'package:novel_writer/app/server/local_server_config.dart';
 import 'package:novel_writer/app/server/local_server_project_catalog.dart';
 import 'package:novel_writer/domain/workspace_models.dart' show ProjectRecord;
+
+final _authNow = DateTime.utc(2026, 5, 25, 12);
+
+CapabilityAuth _authWithPermissions(
+  Set<CapabilityPermission> permissions, {
+  String token = 'token-read',
+}) {
+  return CapabilityAuth(
+    grantStore: InMemoryCapabilityGrantStore([
+      CapabilityGrant(
+        token: token,
+        subject: 'local-test',
+        projectId: 'project-001',
+        permissions: permissions,
+        issuedAt: _authNow.subtract(const Duration(minutes: 1)),
+        expiresAt: _authNow.add(const Duration(hours: 1)),
+      ),
+    ]),
+    now: () => _authNow,
+  );
+}
+
+CapabilityAuth _readAuth() {
+  return _authWithPermissions(const {CapabilityPermission.read});
+}
+
+void _setBearerToken(HttpClientRequest request, [String token = 'token-read']) {
+  request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+}
 
 void main() {
   group('LocalServer', () {
@@ -85,7 +115,11 @@ void main() {
 
       const catalog = StaticLocalServerProjectCatalog(projects);
       const config = LocalServerConfig(port: 0);
-      final server = LocalServer(config: config, catalog: catalog);
+      final server = LocalServer(
+        config: config,
+        catalog: catalog,
+        auth: _readAuth(),
+      );
 
       addTearDown(server.dispose);
 
@@ -95,6 +129,7 @@ void main() {
       final request = await client.getUrl(
         Uri.parse('http://127.0.0.1:${server.boundPort}/projects'),
       );
+      _setBearerToken(request);
       final response = await request.close();
 
       expect(response.statusCode, 200);
@@ -119,10 +154,79 @@ void main() {
       await server.stop();
     });
 
+    test('GET /projects rejects missing capability token', () async {
+      const catalog = StaticLocalServerProjectCatalog();
+      const config = LocalServerConfig(port: 0);
+      final server = LocalServer(
+        config: config,
+        catalog: catalog,
+        auth: _readAuth(),
+      );
+
+      addTearDown(server.dispose);
+
+      await server.start();
+
+      final client = HttpClient();
+      final request = await client.getUrl(
+        Uri.parse('http://127.0.0.1:${server.boundPort}/projects'),
+      );
+      final response = await request.close();
+
+      expect(response.statusCode, 401);
+
+      final body = await response.transform(utf8.decoder).join();
+      final data = jsonDecode(body) as Map<String, Object?>;
+      final error = data['error'] as Map<String, Object?>;
+
+      expect(error['code'], 'capability_missing');
+
+      client.close();
+      await server.stop();
+    });
+
+    test('GET /projects rejects insufficient capability permission', () async {
+      const catalog = StaticLocalServerProjectCatalog();
+      const config = LocalServerConfig(port: 0);
+      final server = LocalServer(
+        config: config,
+        catalog: catalog,
+        auth: _authWithPermissions(const {
+          CapabilityPermission.generate,
+        }, token: 'token-generate'),
+      );
+
+      addTearDown(server.dispose);
+
+      await server.start();
+
+      final client = HttpClient();
+      final request = await client.getUrl(
+        Uri.parse('http://127.0.0.1:${server.boundPort}/projects'),
+      );
+      _setBearerToken(request, 'token-generate');
+      final response = await request.close();
+
+      expect(response.statusCode, 403);
+
+      final body = await response.transform(utf8.decoder).join();
+      final data = jsonDecode(body) as Map<String, Object?>;
+      final error = data['error'] as Map<String, Object?>;
+
+      expect(error['code'], 'capability_insufficient');
+
+      client.close();
+      await server.stop();
+    });
+
     test('unknown route returns 404 JSON', () async {
       const catalog = StaticLocalServerProjectCatalog();
       const config = LocalServerConfig(port: 0);
-      final server = LocalServer(config: config, catalog: catalog);
+      final server = LocalServer(
+        config: config,
+        catalog: catalog,
+        auth: _readAuth(),
+      );
 
       addTearDown(server.dispose);
 
@@ -211,7 +315,11 @@ void main() {
     test('empty catalog returns empty projects list', () async {
       const catalog = StaticLocalServerProjectCatalog();
       const config = LocalServerConfig(port: 0);
-      final server = LocalServer(config: config, catalog: catalog);
+      final server = LocalServer(
+        config: config,
+        catalog: catalog,
+        auth: _readAuth(),
+      );
 
       addTearDown(server.dispose);
 
@@ -221,6 +329,7 @@ void main() {
       final request = await client.getUrl(
         Uri.parse('http://127.0.0.1:${server.boundPort}/projects'),
       );
+      _setBearerToken(request);
       final response = await request.close();
 
       final body = await response.transform(utf8.decoder).join();
