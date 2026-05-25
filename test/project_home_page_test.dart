@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/di/service_registry.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
@@ -16,6 +17,9 @@ import 'package:novel_writer/features/projects/presentation/project_home_page.da
 void main() {
   late ServiceRegistry registry;
   late AppWorkspaceStore workspaceStore;
+
+  List<Override> registryOverrides() =>
+      appProviderOverridesForRegistry(registry);
 
   tearDown(() {
     registry.disposeAll();
@@ -63,9 +67,7 @@ void main() {
       );
     });
 
-    testWidgets('renders project title when project is open', (
-      tester,
-    ) async {
+    testWidgets('renders project title when project is open', (tester) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -75,7 +77,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -105,7 +107,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -128,7 +130,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -164,7 +166,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             navigatorKey: navigatorKey,
@@ -190,17 +192,14 @@ void main() {
       workspaceStore.createProject(projectName: '创作台导航测试');
 
       bool workbenchNavigated = false;
-      AppNavigator.register(
-        AppRoutes.workbench,
-        (context, _) {
-          workbenchNavigated = true;
-          return const SizedBox.shrink();
-        },
-      );
+      AppNavigator.register(AppRoutes.workbench, (context, _) {
+        workbenchNavigated = true;
+        return const SizedBox.shrink();
+      });
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -224,17 +223,14 @@ void main() {
       workspaceStore.createProject(projectName: '设定集导航测试');
 
       bool bibleNavigated = false;
-      AppNavigator.register(
-        AppRoutes.workSettingsHub,
-        (context, _) {
-          bibleNavigated = true;
-          return const SizedBox.shrink();
-        },
-      );
+      AppNavigator.register(AppRoutes.workSettingsHub, (context, _) {
+        bibleNavigated = true;
+        return const SizedBox.shrink();
+      });
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -260,17 +256,14 @@ void main() {
       workspaceStore.createProject(projectName: '进度导航测试');
 
       bool productionNavigated = false;
-      AppNavigator.register(
-        AppRoutes.productionBoard,
-        (context, _) {
-          productionNavigated = true;
-          return const SizedBox.shrink();
-        },
-      );
+      AppNavigator.register(AppRoutes.productionBoard, (context, _) {
+        productionNavigated = true;
+        return const SizedBox.shrink();
+      });
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
@@ -291,16 +284,14 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      workspaceStore.createProject(
-        projectName: '场景显示测试',
-      );
+      workspaceStore.createProject(projectName: '场景显示测试');
       // The default scene created with a project should have chapterLabel '第 1 章 / 场景 01'
       final scene = workspaceStore.currentSceneOrNull;
       expect(scene?.chapterLabel, contains('章'));
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const ProjectHomePage(),
