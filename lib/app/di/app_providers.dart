@@ -18,9 +18,12 @@ import '../llm/app_llm_request_pool.dart';
 import '../state/app_ai_history_store.dart';
 import '../state/app_ai_history_storage.dart';
 import '../state/app_authoring_storage_io_support.dart';
+import '../state/app_draft_storage.dart';
 import '../state/app_draft_store.dart';
+import '../state/app_scene_context_storage.dart';
 import '../state/app_scene_context_store.dart';
 import '../state/app_settings_store.dart';
+import '../state/app_simulation_storage.dart';
 import '../state/app_simulation_store.dart';
 import '../state/app_version_store.dart';
 import '../state/app_version_storage.dart';
@@ -110,6 +113,21 @@ final writingStatsStorageProvider = Provider<WritingStatsStorage>((ref) {
   return createDefaultWritingStatsStorage();
 });
 
+/// Native Riverpod provider for [AppDraftStorage].
+final appDraftStorageProvider = Provider<AppDraftStorage>((ref) {
+  return createDefaultAppDraftStorage();
+});
+
+/// Native Riverpod provider for [AppSceneContextStorage].
+final appSceneContextStorageProvider = Provider<AppSceneContextStorage>((ref) {
+  return createDefaultAppSceneContextStorage();
+});
+
+/// Native Riverpod provider for [AppSimulationStorage].
+final appSimulationStorageProvider = Provider<AppSimulationStorage>((ref) {
+  return createDefaultAppSimulationStorage();
+});
+
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration
@@ -148,14 +166,6 @@ class AppWorkspaceStoreNotifier
 class AppSettingsStoreNotifier
     extends RegistryStoreNotifier<AppSettingsStore> {}
 
-class AppDraftStoreNotifier extends RegistryStoreNotifier<AppDraftStore> {}
-
-class AppSceneContextStoreNotifier
-    extends RegistryStoreNotifier<AppSceneContextStore> {}
-
-class AppSimulationStoreNotifier
-    extends RegistryStoreNotifier<AppSimulationStore> {}
-
 class StoryOutlineStoreNotifier
     extends RegistryStoreNotifier<StoryOutlineStore> {}
 
@@ -174,10 +184,18 @@ final appSettingsStoreProvider =
       AppSettingsStoreNotifier.new,
     );
 
-final appDraftStoreProvider =
-    NotifierProvider<AppDraftStoreNotifier, AppDraftStore>(
-      AppDraftStoreNotifier.new,
-    );
+final appDraftStoreProvider = Provider<AppDraftStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(appDraftStorageProvider);
+  final store = AppDraftStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 final appVersionStoreProvider = Provider<AppVersionStore>((ref) {
   final workspaceStore = ref.watch(appWorkspaceStoreProvider);
@@ -205,15 +223,31 @@ final appAiHistoryStoreProvider = Provider<AppAiHistoryStore>((ref) {
   return store;
 });
 
-final appSceneContextStoreProvider =
-    NotifierProvider<AppSceneContextStoreNotifier, AppSceneContextStore>(
-      AppSceneContextStoreNotifier.new,
-    );
+final appSceneContextStoreProvider = Provider<AppSceneContextStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(appSceneContextStorageProvider);
+  final store = AppSceneContextStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
-final appSimulationStoreProvider =
-    NotifierProvider<AppSimulationStoreNotifier, AppSimulationStore>(
-      AppSimulationStoreNotifier.new,
-    );
+final appSimulationStoreProvider = Provider<AppSimulationStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventLog = ref.watch(appEventLogProvider);
+  final storage = ref.watch(appSimulationStorageProvider);
+  final store = AppSimulationStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventLog: eventLog,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 final storyOutlineStoreProvider =
     NotifierProvider<StoryOutlineStoreNotifier, StoryOutlineStore>(
@@ -369,6 +403,17 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     appAiHistoryStoreProvider.overrideWith(
       (ref) => registry.resolve<AppAiHistoryStore>(),
+    ),
+    // M4-06 workspace/session stores: use registry-owned instances during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    appDraftStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppDraftStore>(),
+    ),
+    appSceneContextStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppSceneContextStore>(),
+    ),
+    appSimulationStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppSimulationStore>(),
     ),
   ];
 }

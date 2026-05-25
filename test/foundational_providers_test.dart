@@ -21,6 +21,12 @@ import 'package:novel_writer/app/state/app_ai_history_storage.dart';
 import 'package:novel_writer/app/state/app_ai_history_store.dart';
 import 'package:novel_writer/app/state/app_version_storage.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
+import 'package:novel_writer/app/state/app_draft_storage.dart';
+import 'package:novel_writer/app/state/app_draft_store.dart';
+import 'package:novel_writer/app/state/app_scene_context_storage.dart';
+import 'package:novel_writer/app/state/app_scene_context_store.dart';
+import 'package:novel_writer/app/state/app_simulation_storage.dart';
+import 'package:novel_writer/app/state/app_simulation_store.dart';
 import 'package:novel_writer/features/writing_stats/data/writing_stats_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store_io.dart';
@@ -486,7 +492,8 @@ void main() {
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
-      expect(overrides.length, equals(14));
+      // - 3 M4-06 workspace/session stores
+      expect(overrides.length, equals(17));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -693,7 +700,8 @@ void main() {
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
-      expect(overrides.length, equals(14));
+      // - 3 M4-06 workspace/session stores
+      expect(overrides.length, equals(17));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -947,7 +955,8 @@ void main() {
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
-      expect(overrides.length, equals(14));
+      // - 3 M4-06 workspace/session stores
+      expect(overrides.length, equals(17));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1002,6 +1011,272 @@ void main() {
       expect(appVersionStore, isA<AppVersionStore>());
       expect(writingStatsStore, isA<WritingStatsStore>());
       expect(appAiHistoryStore, isA<AppAiHistoryStore>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native workspace/session store provider tests (M4-06)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('appDraftStoreProvider (native M4-06)', () {
+    test('creates AppDraftStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(appDraftStoreProvider);
+      expect(store, isA<AppDraftStore>());
+    });
+
+    test('disposes AppDraftStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(appDraftStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(appDraftStoreProvider);
+      final store2 = container.read(appDraftStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appSceneContextStoreProvider (native M4-06)', () {
+    test('creates AppSceneContextStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(appSceneContextStoreProvider);
+      expect(store, isA<AppSceneContextStore>());
+    });
+
+    test('disposes AppSceneContextStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(appSceneContextStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(appSceneContextStoreProvider);
+      final store2 = container.read(appSceneContextStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appSimulationStoreProvider (native M4-06)', () {
+    test('creates AppSimulationStore with workspace and event log', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(appSimulationStoreProvider);
+      expect(store, isA<AppSimulationStore>());
+    });
+
+    test('disposes AppSimulationStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(appSimulationStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(appSimulationStoreProvider);
+      final store2 = container.read(appSimulationStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-06 coexistence', () {
+    test('includes M4-06 workspace/session store overrides', () {
+      final registry = createTestRegistry();
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final eventBus = AppEventBus();
+      final eventLog = AppEventLog();
+      final appDraftStore = AppDraftStore(
+        storage: InMemoryAppDraftStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final appSceneContextStore = AppSceneContextStore(
+        storage: InMemoryAppSceneContextStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final appSimulationStore = AppSimulationStore(
+        storage: InMemoryAppSimulationStorage(),
+        workspaceStore: workspaceStore,
+        eventLog: eventLog,
+      );
+      registry.registerSingleton<AppDraftStore>(appDraftStore);
+      registry.registerSingleton<AppSceneContextStore>(appSceneContextStore);
+      registry.registerSingleton<AppSimulationStore>(appSimulationStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now include:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      // - 3 M4-06 workspace/session stores
+      expect(overrides.length, equals(17));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+        workspaceStore.dispose();
+        eventBus.dispose();
+      });
+
+      // Verify that providers return the same instances as registry
+      final appDraftFromProvider = container.read(appDraftStoreProvider);
+      final appDraftFromRegistry = registry.resolve<AppDraftStore>();
+      expect(identical(appDraftFromProvider, appDraftFromRegistry), isTrue);
+
+      final appSceneContextFromProvider = container.read(
+        appSceneContextStoreProvider,
+      );
+      final appSceneContextFromRegistry = registry
+          .resolve<AppSceneContextStore>();
+      expect(
+        identical(appSceneContextFromProvider, appSceneContextFromRegistry),
+        isTrue,
+      );
+
+      final appSimulationFromProvider = container.read(
+        appSimulationStoreProvider,
+      );
+      final appSimulationFromRegistry = registry.resolve<AppSimulationStore>();
+      expect(
+        identical(appSimulationFromProvider, appSimulationFromRegistry),
+        isTrue,
+      );
+    });
+
+    test('native M4-06 providers work without registry in test mode', () {
+      // Tests can override appWorkspaceStoreProvider without touching serviceRegistryProvider
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m406NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      // Native providers should create their own instances
+      final appDraftStore = container.read(appDraftStoreProvider);
+      final appSceneContextStore = container.read(appSceneContextStoreProvider);
+      final appSimulationStore = container.read(appSimulationStoreProvider);
+
+      expect(appDraftStore, isA<AppDraftStore>());
+      expect(appSceneContextStore, isA<AppSceneContextStore>());
+      expect(appSimulationStore, isA<AppSimulationStore>());
     });
   });
 }
@@ -1156,3 +1431,25 @@ List<Override> _m405NativeOverrides(AppWorkspaceStore workspaceStore) => [
     (ref) => _InMemoryWritingStatsStorage(),
   ),
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test helpers for M4-06 storage isolation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Helper to create storage-isolated overrides for M4-06 native provider tests.
+List<Override> _m406NativeOverrides(AppWorkspaceStore workspaceStore) => [
+  appWorkspaceStoreProvider.overrideWith(
+    () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+  ),
+  appDraftStorageProvider.overrideWith((ref) => InMemoryAppDraftStorage()),
+  appSceneContextStorageProvider.overrideWith(
+    (ref) => InMemoryAppSceneContextStorage(),
+  ),
+  appSimulationStorageProvider.overrideWith(
+    (ref) => InMemoryAppSimulationStorage(),
+  ),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock implementations for testing registry-backed providers
+// ─────────────────────────────────────────────────────────────────────────────
