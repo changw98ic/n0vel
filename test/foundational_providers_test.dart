@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
@@ -7,7 +8,13 @@ import 'package:novel_writer/app/events/app_event_bus.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/llm/app_llm_request_pool.dart';
+import 'package:novel_writer/app/state/app_workspace_storage.dart';
+import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/fulltext_search_service.dart';
+import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
+import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
+import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 import 'package:novel_writer/features/search/presentation/fulltext_search_page.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store_io.dart';
@@ -36,6 +43,16 @@ ServiceRegistry createTestRegistry() {
     (r) => FulltextSearchService(db: r.resolve<sqlite3.Database>()),
   );
   return registry;
+}
+
+/// Test notifier for workspace provider in tests.
+class _TestAppWorkspaceStoreNotifier extends AppWorkspaceStoreNotifier {
+  _TestAppWorkspaceStoreNotifier(this._store);
+
+  final AppWorkspaceStore _store;
+
+  @override
+  AppWorkspaceStore build() => _store;
 }
 
 void main() {
@@ -457,8 +474,11 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now include roleplay and character memory store overrides
-      expect(overrides.length, equals(9));
+      // Count includes:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      expect(overrides.length, equals(11));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -497,6 +517,222 @@ void main() {
 
       expect(roleplayStore, isA<RoleplaySessionStoreIO>());
       expect(characterStore, isA<CharacterMemoryStoreIO>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native feature store provider tests (M4-04)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('authorFeedbackStoreProvider (native M4-04)', () {
+    test('creates AuthorFeedbackStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(authorFeedbackStoreProvider);
+      expect(store, isA<AuthorFeedbackStore>());
+    });
+
+    test('disposes AuthorFeedbackStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+
+      final store = container.read(authorFeedbackStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(authorFeedbackStoreProvider);
+      final store2 = container.read(authorFeedbackStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('reviewTaskStoreProvider (native M4-04)', () {
+    test('creates ReviewTaskStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(reviewTaskStoreProvider);
+      expect(store, isA<ReviewTaskStore>());
+    });
+
+    test('disposes ReviewTaskStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+
+      final store = container.read(reviewTaskStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(reviewTaskStoreProvider);
+      final store2 = container.read(reviewTaskStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-04 coexistence', () {
+    test('includes M4-04 feature store overrides', () {
+      final registry = createTestRegistry();
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final eventBus = AppEventBus();
+      final authorFeedbackStore = AuthorFeedbackStore(
+        storage: InMemoryAuthorFeedbackStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final reviewTaskStore = ReviewTaskStore(
+        storage: InMemoryReviewTaskStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      registry.registerSingleton<AuthorFeedbackStore>(authorFeedbackStore);
+      registry.registerSingleton<ReviewTaskStore>(reviewTaskStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now include:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      expect(overrides.length, equals(11));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+        workspaceStore.dispose();
+        eventBus.dispose();
+      });
+
+      // Verify that providers return the same instances as registry
+      final authorFeedbackFromProvider = container.read(
+        authorFeedbackStoreProvider,
+      );
+      final authorFeedbackFromRegistry = registry
+          .resolve<AuthorFeedbackStore>();
+      expect(
+        identical(authorFeedbackFromProvider, authorFeedbackFromRegistry),
+        isTrue,
+      );
+
+      final reviewTaskFromProvider = container.read(reviewTaskStoreProvider);
+      final reviewTaskFromRegistry = registry.resolve<ReviewTaskStore>();
+      expect(identical(reviewTaskFromProvider, reviewTaskFromRegistry), isTrue);
+    });
+
+    test('native M4-04 providers work without registry in test mode', () {
+      // Tests can override appWorkspaceStoreProvider without touching serviceRegistryProvider
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          appWorkspaceStoreProvider.overrideWith(
+            () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      // Native providers should create their own instances
+      final authorFeedbackStore = container.read(authorFeedbackStoreProvider);
+      final reviewTaskStore = container.read(reviewTaskStoreProvider);
+
+      expect(authorFeedbackStore, isA<AuthorFeedbackStore>());
+      expect(reviewTaskStore, isA<ReviewTaskStore>());
     });
   });
 }

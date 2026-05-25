@@ -199,24 +199,42 @@ final storyArcStoreProvider =
     );
 
 // -- Feature store providers --
+// M4-04: AuthorFeedbackStore and ReviewTaskStore migrated to native Riverpod
 
-class AuthorFeedbackStoreNotifier
-    extends RegistryStoreNotifier<AuthorFeedbackStore> {}
+/// Native Riverpod provider for [AuthorFeedbackStore].
+///
+/// Replaces registry-based resolution. The store owns its lifecycle and
+/// must be disposed when the provider container is disposed.
+final authorFeedbackStoreProvider = Provider<AuthorFeedbackStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final store = AuthorFeedbackStore(
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
-class ReviewTaskStoreNotifier extends RegistryStoreNotifier<ReviewTaskStore> {}
+/// Native Riverpod provider for [ReviewTaskStore].
+///
+/// Replaces registry-based resolution. The store owns its lifecycle and
+/// must be disposed when the provider container is disposed.
+final reviewTaskStoreProvider = Provider<ReviewTaskStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final store = ReviewTaskStore(
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
+
+// StoryGenerationRunStore remains registry-backed (out of scope for M4-04)
 
 class StoryGenerationRunStoreNotifier
     extends RegistryStoreNotifier<StoryGenerationRunStore> {}
-
-final authorFeedbackStoreProvider =
-    NotifierProvider<AuthorFeedbackStoreNotifier, AuthorFeedbackStore>(
-      AuthorFeedbackStoreNotifier.new,
-    );
-
-final reviewTaskStoreProvider =
-    NotifierProvider<ReviewTaskStoreNotifier, ReviewTaskStore>(
-      ReviewTaskStoreNotifier.new,
-    );
 
 final storyGenerationRunStoreProvider =
     NotifierProvider<StoryGenerationRunStoreNotifier, StoryGenerationRunStore>(
@@ -293,6 +311,16 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     characterMemoryStoreProvider.overrideWith(
       (ref) => registry.resolve<CharacterMemoryStore>(),
+    ),
+    // M4-04 feature stores: use registry-owned instances during normal app bootstrap
+    // This is required because StoryGenerationRunStore remains registry-backed
+    // and resolves these stores from ServiceRegistry.
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    authorFeedbackStoreProvider.overrideWith(
+      (ref) => registry.resolve<AuthorFeedbackStore>(),
+    ),
+    reviewTaskStoreProvider.overrideWith(
+      (ref) => registry.resolve<ReviewTaskStore>(),
     ),
   ];
 }
