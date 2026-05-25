@@ -928,7 +928,7 @@ ServiceRegistry 迁移到 Riverpod provider，store 拆分，建立投影层。
   - [ ] Lore graph 可展示跨项目关系
   - [ ] Review package 可导出和查看
   - [ ] 模型路由正确工作
-- **测试/CI 命令**: `flutter test integration_test/ecosystem_e2e_test.dart`
+- **测试/CI 命令**: `flutter test test/ecosystem_e2e_test.dart -r compact`
 - **前置依赖**: M8-07
 - **GitHub Issue/PR 要求**: Issue 标题 "[M8] 生态集成验证"
 
