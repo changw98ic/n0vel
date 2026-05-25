@@ -192,22 +192,43 @@ final appWorkspaceStoreProvider =
       AppWorkspaceStoreNotifier.new,
     );
 
-final appSettingsStoreProvider = Provider<AppSettingsStore>((ref) {
-  final storage = ref.watch(appSettingsStorageProvider);
-  final llmClient = ref.watch(appLlmClientProvider);
-  final requestPool = ref.watch(appLlmRequestPoolProvider);
-  final eventLog = ref.watch(appEventLogProvider);
-  final eventBus = ref.watch(appEventBusProvider);
-  final store = AppSettingsStore(
-    storage: storage,
-    llmClient: llmClient,
-    requestPool: requestPool,
-    eventLog: eventLog,
-    eventBus: eventBus,
-  );
-  ref.onDispose(store.dispose);
-  return store;
-});
+/// Native Riverpod [NotifierProvider] for [AppSettingsStore].
+///
+/// Bridges [AppSettingsStore.notifyListeners()] to Riverpod rebuilds.
+/// The store is constructed from native Riverpod dependencies.
+class AppSettingsStoreNotifier extends Notifier<AppSettingsStore> {
+  @override
+  AppSettingsStore build() {
+    final storage = ref.watch(appSettingsStorageProvider);
+    final llmClient = ref.watch(appLlmClientProvider);
+    final requestPool = ref.watch(appLlmRequestPoolProvider);
+    final eventLog = ref.watch(appEventLogProvider);
+    final eventBus = ref.watch(appEventBusProvider);
+    final store = AppSettingsStore(
+      storage: storage,
+      llmClient: llmClient,
+      requestPool: requestPool,
+      eventLog: eventLog,
+      eventBus: eventBus,
+    );
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() {
+      store.removeListener(listener);
+      store.dispose();
+    });
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(AppSettingsStore previous, AppSettingsStore next) =>
+      true;
+}
+
+final appSettingsStoreProvider =
+    NotifierProvider<AppSettingsStoreNotifier, AppSettingsStore>(
+      AppSettingsStoreNotifier.new,
+    );
 
 final appDraftStoreProvider = Provider<AppDraftStore>((ref) {
   final workspaceStore = ref.watch(appWorkspaceStoreProvider);
@@ -478,7 +499,27 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     // M4-08 settings store: use registry-owned instance during normal app bootstrap
     // Do not double-dispose: registry remains the disposer for shared instances.
     appSettingsStoreProvider.overrideWith(
-      (ref) => registry.resolve<AppSettingsStore>(),
+      () => _RegistryAppSettingsStoreNotifier(registry),
     ),
   ];
+}
+
+/// Registry-backed notifier for [AppSettingsStore] used during app bootstrap.
+class _RegistryAppSettingsStoreNotifier extends AppSettingsStoreNotifier {
+  _RegistryAppSettingsStoreNotifier(this._registry);
+
+  final ServiceRegistry _registry;
+
+  @override
+  AppSettingsStore build() {
+    final store = _registry.resolve<AppSettingsStore>();
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() => store.removeListener(listener));
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(AppSettingsStore previous, AppSettingsStore next) =>
+      true;
 }
