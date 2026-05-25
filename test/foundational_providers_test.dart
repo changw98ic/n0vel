@@ -2228,7 +2228,7 @@ void main() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock implementations for testing registry-backed providers
+// Mock implementations for testing registry coexistence providers
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MockRoleplaySessionStore implements RoleplaySessionStore {
@@ -2415,5 +2415,5 @@ List<Override> _m407NativeOverrides(AppWorkspaceStore workspaceStore) => [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock implementations for testing registry-backed providers
+// Mock implementations for testing registry coexistence providers
 // ─────────────────────────────────────────────────────────────────────────────

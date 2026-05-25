@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -43,9 +42,9 @@ import 'service_registry.dart';
 
 /// Root provider that holds the [ServiceRegistry] reference.
 ///
-/// During M4-02/M4-03 coexistence, this remains for legacy stores that
-/// have not yet been migrated to native Riverpod providers.
-/// Will be removed once all stores are native Riverpod providers.
+/// Store providers now default to native Riverpod construction. This provider
+/// remains only for app bootstrap coexistence while the registry still owns
+/// startup singletons and disposal in the production bootstrap path.
 final serviceRegistryProvider = Provider<ServiceRegistry>((ref) {
   throw StateError('serviceRegistryProvider not overridden in ProviderScope');
 });
@@ -167,36 +166,9 @@ final storyGenerationRunStorageProvider = Provider<StoryGenerationRunStorage>((
 });
 
 // -- Core store providers --
-// These providers expose ServiceRegistry-owned stores through Riverpod
-// Notifiers. The stores are still the existing controllers for this migration
-// step, but rebuilds are now driven by NotifierProvider instead of ad-hoc
-// Provider invalidation or framework-owned disposal semantics.
-
-/// Bridge notifier that exposes a [ServiceRegistry]-owned [Listenable] store
-/// through Riverpod's [NotifierProvider].
-///
-/// `updateShouldNotify` always returns `true` because stores use a mutable
-/// object pattern — the same instance is re-assigned as state on every
-/// `notifyListeners()` call. Reference equality (`previous == next`) would
-/// always be `true`, so we rely on the store's own `_version` counter for
-/// future selective notification optimizations.
-///
-/// The real optimization path is Riverpod `select()` at the widget level,
-/// which will become the default once stores migrate to native Riverpod
-/// `Notifier`s instead of bridging legacy `Listenable` stores.
-abstract class RegistryStoreNotifier<T extends Listenable> extends Notifier<T> {
-  @override
-  T build() {
-    final store = ref.watch(serviceRegistryProvider).resolve<T>();
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() => store.removeListener(listener));
-    return store;
-  }
-
-  @override
-  bool updateShouldNotify(T previous, T next) => true;
-}
+// Store providers now construct their default instances from native Riverpod
+// dependencies. `appProviderOverridesForRegistry` below is the compatibility
+// path that preserves registry-owned instances during production bootstrap.
 
 /// Native Riverpod [NotifierProvider] for [AppWorkspaceStore].
 ///
@@ -505,11 +477,11 @@ final characterMemoryStoreProvider = Provider<CharacterMemoryStore>((ref) {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// App bootstrap helper for M4-02/M4-03 coexistence
+// App bootstrap helper for ServiceRegistry/Riverpod coexistence
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Returns ProviderScope overrides that make native foundational providers
-/// share the same singleton instances as [ServiceRegistry].
+/// Returns ProviderScope overrides that make native providers share the same
+/// singleton instances as [ServiceRegistry].
 ///
 /// This prevents duplicate singletons during app coexistence, where both the
 /// registry and native providers exist. The registry remains the disposer for
@@ -542,9 +514,8 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     characterMemoryStoreProvider.overrideWith(
       (ref) => registry.resolve<CharacterMemoryStore>(),
     ),
-    // M4-04 feature stores: use registry-owned instances during normal app bootstrap
-    // This is required because StoryGenerationRunStore remains registry-backed
-    // and resolves these stores from ServiceRegistry.
+    // M4-04 feature stores: use registry-owned instances during normal app bootstrap.
+    // This keeps the bootstrap store graph single-sourced through the registry.
     // Do not double-dispose: registry remains the disposer for shared instances.
     authorFeedbackStoreProvider.overrideWith(
       (ref) => registry.resolve<AuthorFeedbackStore>(),
