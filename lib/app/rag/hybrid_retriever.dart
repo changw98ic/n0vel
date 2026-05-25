@@ -2,13 +2,12 @@ import 'dart:math';
 
 import 'package:sqlite3/sqlite3.dart';
 
-import '../../features/story_generation/domain/contracts/memory_policy.dart';
-import '../../features/story_generation/domain/contracts/rag_retrieval_policy.dart';
-import '../../features/story_generation/domain/memory_models.dart';
-import '../../features/story_generation/domain/story_pipeline_interfaces.dart'
-    show StoryMemoryRetrievalService;
 import 'local_rag_storage.dart';
+import 'memory_models.dart';
+import 'memory_policy.dart';
+import 'rag_retrieval_policy.dart';
 import 'sqlite_vss_store.dart';
+import 'story_memory_retrieval_service.dart';
 import 'vector_store.dart';
 
 /// A single search result from the hybrid RAG index.

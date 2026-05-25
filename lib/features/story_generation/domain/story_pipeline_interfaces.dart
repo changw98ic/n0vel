@@ -3,6 +3,8 @@ import 'memory_models.dart';
 import '../data/scene_pipeline_models.dart' show SceneTaskCard;
 import '../data/scene_roleplay_session_models.dart';
 
+export '../../../app/rag/story_memory_retrieval_service.dart';
+
 /// Resolves scene cast members from a brief.
 abstract interface class SceneCastResolverService {
   List<ResolvedSceneCastMember> resolve(SceneBrief brief);
@@ -66,11 +68,6 @@ abstract interface class SceneContextAssemblerService {
     required SceneBrief brief,
     required ProjectMaterialSnapshot materials,
   });
-}
-
-/// Retrieves memory packs for scene context enrichment.
-abstract interface class StoryMemoryRetrievalService {
-  Future<StoryRetrievalPack> retrieve(StoryMemoryQuery query);
 }
 
 /// Extracts and persists thought atoms after scene acceptance.

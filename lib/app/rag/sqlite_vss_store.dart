@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart';
 
-import '../../features/story_generation/domain/contracts/memory_policy.dart';
-import '../../features/story_generation/domain/memory_models.dart';
+import 'memory_models.dart';
+import 'memory_policy.dart';
 import 'vector_store.dart';
 
 /// SQLite-backed vector store using JSON-persisted embeddings and Dart-side

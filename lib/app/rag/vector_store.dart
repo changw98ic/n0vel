@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../features/story_generation/domain/contracts/memory_policy.dart';
-import '../../features/story_generation/domain/memory_models.dart';
+import 'memory_models.dart';
+import 'memory_policy.dart';
 
 /// A single hit from a vector similarity search.
 class VectorSearchHit {

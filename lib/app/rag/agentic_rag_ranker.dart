@@ -1,4 +1,4 @@
-import '../../features/story_generation/domain/contracts/rag_retrieval_policy.dart';
+import 'rag_retrieval_policy.dart';
 
 // ---------------------------------------------------------------------------
 // CJK-compatible tokenizer (self-contained so this module has no
