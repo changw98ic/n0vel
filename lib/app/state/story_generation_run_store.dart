@@ -30,6 +30,7 @@ part 'story_generation_run/story_generation_run_scene_state.dart';
 part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
 part 'story_generation_run/story_generation_run_snapshot_repository.dart';
+part 'story_generation_run/story_generation_run_event_subscriptions.dart';
 part 'story_generation_run/story_generation_run_session_controller.dart';
 
 class StoryGenerationRunStore extends AppStoreListenable {
@@ -53,7 +54,6 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _generationStore = generationStore,
        _authorFeedbackStore = authorFeedbackStore,
        _reviewTaskStore = reviewTaskStore,
-       _eventBus = eventBus,
        _snapshotRepository = StoryGenerationRunSnapshotRepository(
          storage ?? createDefaultStoryGenerationRunStorage(),
        ),
@@ -71,16 +71,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
            }) {
     _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
-    _projectDeletedSubscription = _eventBus?.listen<ProjectDeletedEvent>(
-      _handleProjectDeleted,
+    _eventSubscriptions = StoryGenerationRunEventSubscriptions(
+      eventBus: eventBus,
+      onProjectDeleted: _handleProjectDeleted,
+      onSceneScopeChanged: _handleSceneScopeChanged,
     );
-    _sceneChangedSubscription = _eventBus?.listen<SceneChangedEvent>(
-      (e) => _handleSceneScopeChanged(e.sceneScopeId),
-    );
-    _projectScopeChangedSubscription = _eventBus
-        ?.listen<ProjectScopeChangedEvent>(
-          (e) => _handleSceneScopeChanged(e.sceneScopeId),
-        );
     _readyFuture = _restoreCurrentScene();
     unawaited(_readyFuture);
   }
@@ -90,10 +85,10 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final StoryGenerationStore _generationStore;
   final AuthorFeedbackStore? _authorFeedbackStore;
   final ReviewTaskStore? _reviewTaskStore;
-  final AppEventBus? _eventBus;
   final StoryGenerationRunSnapshotRepository _snapshotRepository;
   final StoryGenerationRunSessionController _runSession =
       StoryGenerationRunSessionController();
+  late final StoryGenerationRunEventSubscriptions _eventSubscriptions;
   final PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
   final Map<String, List<String>> _directorFeedbackBySceneScope =
@@ -102,10 +97,6 @@ class StoryGenerationRunStore extends AppStoreListenable {
   late StoryGenerationRunSnapshot _snapshot;
   Future<void> _readyFuture = Future<void>.value();
   int _mutationVersion = 0;
-  StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
-  StreamSubscription<SceneChangedEvent>? _sceneChangedSubscription;
-  StreamSubscription<ProjectScopeChangedEvent>?
-  _projectScopeChangedSubscription;
 
   StoryGenerationRunSnapshot get snapshot => _snapshot;
   String get activeSceneScopeId => _activeSceneScopeId;
@@ -481,12 +472,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   @override
   void dispose() {
-    unawaited(_projectDeletedSubscription?.cancel());
-    _projectDeletedSubscription = null;
-    unawaited(_sceneChangedSubscription?.cancel());
-    _sceneChangedSubscription = null;
-    unawaited(_projectScopeChangedSubscription?.cancel());
-    _projectScopeChangedSubscription = null;
+    _eventSubscriptions.dispose();
     super.dispose();
   }
 

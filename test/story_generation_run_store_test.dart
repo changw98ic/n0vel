@@ -24,6 +24,68 @@ import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 import 'package:novel_writer/features/review_tasks/domain/review_task_models.dart';
 
 void main() {
+  group('StoryGenerationRunEventSubscriptions', () {
+    test(
+      'routes run store events and stops forwarding after dispose',
+      () async {
+        final eventBus = AppEventBus();
+        addTearDown(eventBus.dispose);
+        final deletedProjects = <String>[];
+        final sceneScopes = <String>[];
+
+        final subscriptions = StoryGenerationRunEventSubscriptions(
+          eventBus: eventBus,
+          onProjectDeleted: (event) => deletedProjects.add(event.projectId),
+          onSceneScopeChanged: sceneScopes.add,
+        );
+
+        eventBus
+          ..publish(const ProjectDeletedEvent(projectId: 'project-a'))
+          ..publish(
+            const SceneChangedEvent(
+              projectId: 'project-a',
+              sceneId: 'scene-1',
+              sceneScopeId: 'project-a::scene-1',
+            ),
+          )
+          ..publish(
+            const ProjectScopeChangedEvent(
+              projectId: 'project-b',
+              sceneScopeId: 'project-b::scene-2',
+            ),
+          );
+
+        expect(deletedProjects, ['project-a']);
+        expect(sceneScopes, ['project-a::scene-1', 'project-b::scene-2']);
+
+        subscriptions.dispose();
+
+        eventBus
+          ..publish(const ProjectDeletedEvent(projectId: 'project-c'))
+          ..publish(
+            const SceneChangedEvent(
+              projectId: 'project-c',
+              sceneId: 'scene-3',
+              sceneScopeId: 'project-c::scene-3',
+            ),
+          );
+
+        expect(deletedProjects, ['project-a']);
+        expect(sceneScopes, ['project-a::scene-1', 'project-b::scene-2']);
+      },
+    );
+
+    test('allows stores without an event bus', () async {
+      final subscriptions = StoryGenerationRunEventSubscriptions(
+        eventBus: null,
+        onProjectDeleted: (_) => fail('project deleted should not fire'),
+        onSceneScopeChanged: (_) => fail('scene scope should not change'),
+      );
+
+      subscriptions.dispose();
+    });
+  });
+
   group('StoryGenerationRunSnapshot lifecycle phase', () {
     test(
       'persists and restores the PRD workflow phase separately from status',
