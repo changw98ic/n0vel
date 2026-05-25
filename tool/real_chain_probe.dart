@@ -6,8 +6,9 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/state/local_settings_file.dart';
-import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_dependencies.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
@@ -146,11 +147,17 @@ Future<void> main() async {
   PipelineStageRunnerImpl createOrchestrator() => PipelineStageRunnerImpl(
     settingsStore: settingsStore,
     pipelineConfig: const GenerationPipelineConfig(maxProseRetries: 1),
-    reviewCoordinator: SceneReviewCoordinator(
-      settingsStore: settingsStore,
-      formatterTraceSink: formatterTraceSink,
+    dependencies: PipelineStageRunnerDependencies(
+      review: PipelineReviewDependencies(
+        reviewCoordinator: SceneReviewCoordinator(
+          settingsStore: settingsStore,
+          formatterTraceSink: formatterTraceSink,
+        ),
+      ),
+      finalization: PipelineFinalizationDependencies(
+        qualityScorer: SceneQualityScorer(settingsStore: settingsStore),
+      ),
     ),
-    qualityScorer: SceneQualityScorer(settingsStore: settingsStore),
   );
 
   final sceneOutputs = <SceneRuntimeOutput>[];

@@ -5,8 +5,9 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
-import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_dependencies.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
@@ -467,7 +468,11 @@ void main() {
 
         final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
-          qualityScorer: _ThrowingQualityScorer(),
+          dependencies: PipelineStageRunnerDependencies(
+            finalization: PipelineFinalizationDependencies(
+              qualityScorer: _ThrowingQualityScorer(),
+            ),
+          ),
         );
 
         final result = await orchestrator.runScene(_brief());

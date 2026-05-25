@@ -5,6 +5,7 @@ import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'chapter_context_bridge.dart';
 import 'chapter_summarizer.dart';
 import 'canon_keeper.dart';
+import 'pipeline_stage_runner_dependencies.dart';
 import 'pipeline_stage_runner_impl.dart';
 import 'character_consistency_verifier.dart';
 import 'dynamic_role_agent_runner.dart';
@@ -143,35 +144,47 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
     return PipelineStageRunnerImpl(
       settingsStore: r.resolve(),
       pipelineConfig: pipelineConfig,
-      castResolver: r.resolve(),
-      directorOrchestrator: r.resolve(),
-      dynamicRoleAgentRunner: r.resolve(),
-      reviewCoordinator: r.resolve(),
-      qualityScorer: r.resolve(),
-      contextAssembler: r.resolve(),
-      memoryStorage: r.resolve(),
-      memoryRetriever: registry.isRegistered<StoryMemoryRetrievalService>()
-          ? r.resolve()
-          : null,
-      thoughtUpdater: r.resolve(),
-      roleplaySessionStore: registry.isRegistered<RoleplaySessionStore>()
-          ? r.resolve()
-          : null,
-      characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
-          ? r.resolve()
-          : null,
-      hybridRetriever: registry.isRegistered<HybridRetriever>()
-          ? r.resolve()
-          : null,
-      contextCache: r.resolve(),
-      chapterContextBridge: r.resolve(),
-      consistencyVerifier: CharacterConsistencyVerifier(
-        settingsStore: r.resolve(),
-        soulValidator: r.resolve(),
+      dependencies: PipelineStageRunnerDependencies(
+        context: PipelineContextDependencies(
+          contextAssembler: r.resolve(),
+          memoryStorage: r.resolve(),
+          memoryRetriever: registry.isRegistered<StoryMemoryRetrievalService>()
+              ? r.resolve()
+              : null,
+          hybridRetriever: registry.isRegistered<HybridRetriever>()
+              ? r.resolve()
+              : null,
+          contextCache: r.resolve(),
+          chapterContextBridge: r.resolve(),
+        ),
+        planning: PipelinePlanningDependencies(
+          castResolver: r.resolve(),
+          directorOrchestrator: r.resolve(),
+        ),
+        roleplay: PipelineRoleplayDependencies(
+          dynamicRoleAgentRunner: r.resolve(),
+          roleplaySessionStore: registry.isRegistered<RoleplaySessionStore>()
+              ? r.resolve()
+              : null,
+          characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
+              ? r.resolve()
+              : null,
+        ),
+        review: PipelineReviewDependencies(
+          reviewCoordinator: r.resolve(),
+          consistencyVerifier: CharacterConsistencyVerifier(
+            settingsStore: r.resolve(),
+            soulValidator: r.resolve(),
+          ),
+          canonKeeper: r.resolve(),
+        ),
+        finalization: PipelineFinalizationDependencies(
+          qualityScorer: r.resolve(),
+          thoughtUpdater: r.resolve(),
+          soulValidator: r.resolve(),
+          writebackGate: r.resolve(),
+        ),
       ),
-      canonKeeper: r.resolve(),
-      soulValidator: r.resolve(),
-      writebackGate: r.resolve(),
     );
   });
 }

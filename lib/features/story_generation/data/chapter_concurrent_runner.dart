@@ -1,4 +1,5 @@
 import '../../../app/state/app_settings_store.dart';
+import 'pipeline_stage_runner_dependencies.dart';
 import 'pipeline_stage_runner_impl.dart';
 import 'character_memory_store.dart';
 import 'generation_pipeline_config.dart';
@@ -24,11 +25,8 @@ class ChapterConcurrentRunner {
   Future<List<SceneRuntimeOutput>> runAll(
     List<SceneBrief> briefs, {
     NarrativeArcState? initialArc,
-    void Function(
-      int completed,
-      int total,
-      SceneRuntimeOutput output,
-    )? onSceneComplete,
+    void Function(int completed, int total, SceneRuntimeOutput output)?
+    onSceneComplete,
   }) async {
     var latestArc = initialArc ?? NarrativeArcState();
     final arcTracker = NarrativeArcTracker();
@@ -51,13 +49,17 @@ class ChapterConcurrentRunner {
         final arcSnapshot = latestArc;
         final briefWithArc = brief.copyWith(narrativeArc: arcSnapshot);
 
-        for (var attempt = 1;; attempt++) {
+        for (var attempt = 1; ; attempt++) {
           try {
             final orchestrator = PipelineStageRunnerImpl(
               settingsStore: settingsStore,
               pipelineConfig: pipelineConfig,
-              roleplaySessionStore: roleplaySessionStore,
-              characterMemoryStore: characterMemoryStore,
+              dependencies: PipelineStageRunnerDependencies(
+                roleplay: PipelineRoleplayDependencies(
+                  roleplaySessionStore: roleplaySessionStore,
+                  characterMemoryStore: characterMemoryStore,
+                ),
+              ),
             );
 
             final result = await orchestrator.runScene(

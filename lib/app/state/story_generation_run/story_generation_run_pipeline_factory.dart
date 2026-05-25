@@ -1,5 +1,6 @@
 import '../../../features/story_generation/data/character_memory_store.dart';
 import '../../../features/story_generation/data/generation_pipeline_config.dart';
+import '../../../features/story_generation/data/pipeline_stage_runner_dependencies.dart';
 import '../../../features/story_generation/data/pipeline_stage_runner_impl.dart';
 import '../../../features/story_generation/data/roleplay_session_store.dart';
 import '../../../features/story_generation/domain/story_pipeline_interfaces.dart';
@@ -23,8 +24,12 @@ class StoryGenerationRunPipelineFactory {
     return PipelineStageRunnerImpl(
       settingsStore: settingsStore,
       pipelineConfig: GenerationPipelineConfig.fromWorkspace(_workspaceStore),
-      roleplaySessionStore: _roleplaySessionStore,
-      characterMemoryStore: _characterMemoryStore,
+      dependencies: PipelineStageRunnerDependencies(
+        roleplay: PipelineRoleplayDependencies(
+          roleplaySessionStore: _roleplaySessionStore,
+          characterMemoryStore: _characterMemoryStore,
+        ),
+      ),
     );
   }
 }
