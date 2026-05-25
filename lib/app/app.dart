@@ -97,8 +97,9 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     if (_dbCorrupted) {
       return _buildCorruptionRecovery(context);
     }
+    final overrides = appProviderOverridesForRegistry(_registry);
     return ProviderScope(
-      overrides: [serviceRegistryProvider.overrideWithValue(_registry)],
+      overrides: overrides,
       child: Consumer(
         builder: (context, ref, child) {
           final settingsStore = ref.watch(appSettingsStoreProvider);
@@ -288,7 +289,10 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ],
                   const SizedBox(height: 20),
                   if (_loading)
@@ -301,23 +305,27 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   else ...[
                     Text('可用备份：', style: theme.textTheme.titleSmall),
                     const SizedBox(height: 8),
-                    ..._backups.take(5).map(
-                      (b) => ListTile(
-                        dense: true,
-                        title: Text(_formatBackupTime(b.createdAtMs)),
-                        subtitle: Text(_formatSize(b.sizeBytes)),
-                        trailing: _restoring
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : FilledButton(
-                                onPressed: () => _restore(b),
-                                child: const Text('恢复'),
-                              ),
-                      ),
-                    ),
+                    ..._backups
+                        .take(5)
+                        .map(
+                          (b) => ListTile(
+                            dense: true,
+                            title: Text(_formatBackupTime(b.createdAtMs)),
+                            subtitle: Text(_formatSize(b.sizeBytes)),
+                            trailing: _restoring
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : FilledButton(
+                                    onPressed: () => _restore(b),
+                                    child: const Text('恢复'),
+                                  ),
+                          ),
+                        ),
                   ],
                 ],
               ),

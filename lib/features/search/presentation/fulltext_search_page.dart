@@ -5,7 +5,8 @@ import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/fulltext_search_service.dart';
 import '../../../app/state/fulltext_search_storage.dart';
-import '../../../app/widgets/desktop_shell.dart';
+import '../../../app/widgets/desktop_shell.dart'
+    show DesktopHeaderBar, DesktopShellFrame;
 
 /// 全文搜索 Riverpod 状态。
 class FulltextSearchState {
@@ -85,12 +86,10 @@ class FulltextSearchNotifier extends Notifier<FulltextSearchState> {
   }
 
   FulltextSearchService get _service {
-    final registry = ref.read(serviceRegistryProvider);
-    return registry.resolve<FulltextSearchService>();
+    return ref.read(fulltextSearchServiceProvider);
   }
 
-  String get _projectId =>
-      ref.read(appWorkspaceStoreProvider).currentProjectId;
+  String get _projectId => ref.read(appWorkspaceStoreProvider).currentProjectId;
 
   /// 执行搜索。
   Future<void> search() async {
@@ -115,10 +114,7 @@ class FulltextSearchNotifier extends Notifier<FulltextSearchState> {
       );
       state = state.copyWith(results: result, isLoading: false);
     } on Object catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: '搜索失败: $e',
-      );
+      state = state.copyWith(isLoading: false, error: '搜索失败: $e');
     }
   }
 
@@ -208,8 +204,7 @@ class FulltextSearchPage extends ConsumerStatefulWidget {
   static const resultListViewKey = ValueKey<String>('fulltext-result-list');
 
   @override
-  ConsumerState<FulltextSearchPage> createState() =>
-      _FulltextSearchPageState();
+  ConsumerState<FulltextSearchPage> createState() => _FulltextSearchPageState();
 }
 
 class _FulltextSearchPageState extends ConsumerState<FulltextSearchPage> {
@@ -253,7 +248,9 @@ class _FulltextSearchPageState extends ConsumerState<FulltextSearchPage> {
               ref.read(fulltextSearchProvider.notifier).updateQuery(q);
             },
             onCharacterChanged: (c) {
-              ref.read(fulltextSearchProvider.notifier).updateCharacterFilter(c);
+              ref
+                  .read(fulltextSearchProvider.notifier)
+                  .updateCharacterFilter(c);
             },
             onChapterRangeChanged: (start, end) {
               ref
@@ -267,23 +264,19 @@ class _FulltextSearchPageState extends ConsumerState<FulltextSearchPage> {
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null
-                    ? _ErrorDisplay(message: state.error!)
-                    : state.results == null
-                        ? _EmptyHint(hasQuery: state.query.isNotEmpty)
-                        : state.results!.rows.isEmpty
-                            ? const Center(child: Text('未找到匹配结果'))
-                            : _ResultList(
-                                state: state,
-                                onPageChanged: (page) {
-                                  ref
-                                      .read(fulltextSearchProvider.notifier)
-                                      .goToPage(page);
-                                  ref
-                                      .read(fulltextSearchProvider.notifier)
-                                      .search();
-                                },
-                                onSceneTap: _navigateToScene,
-                              ),
+                ? _ErrorDisplay(message: state.error!)
+                : state.results == null
+                ? _EmptyHint(hasQuery: state.query.isNotEmpty)
+                : state.results!.rows.isEmpty
+                ? const Center(child: Text('未找到匹配结果'))
+                : _ResultList(
+                    state: state,
+                    onPageChanged: (page) {
+                      ref.read(fulltextSearchProvider.notifier).goToPage(page);
+                      ref.read(fulltextSearchProvider.notifier).search();
+                    },
+                    onSceneTap: _navigateToScene,
+                  ),
           ),
         ],
       ),
@@ -418,15 +411,9 @@ class _CharacterFilterChip extends StatelessWidget {
           isDense: true,
           underline: const SizedBox.shrink(),
           items: [
-            const DropdownMenuItem<String?>(
-              value: null,
-              child: Text('全部角色'),
-            ),
+            const DropdownMenuItem<String?>(value: null, child: Text('全部角色')),
             for (final name in characters)
-              DropdownMenuItem<String?>(
-                value: name,
-                child: Text(name),
-              ),
+              DropdownMenuItem<String?>(value: name, child: Text(name)),
           ],
           onChanged: onChanged,
         ),
@@ -495,9 +482,7 @@ class _ChapterRangeSelector extends StatelessWidget {
     final startController = TextEditingController(
       text: start?.toString() ?? '',
     );
-    final endController = TextEditingController(
-      text: end?.toString() ?? '',
-    );
+    final endController = TextEditingController(text: end?.toString() ?? '');
 
     showDialog<void>(
       context: context,
@@ -552,10 +537,7 @@ class _ChapterRangeSelector extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _SortOrderDropdown extends StatelessWidget {
-  const _SortOrderDropdown({
-    required this.value,
-    required this.onChanged,
-  });
+  const _SortOrderDropdown({required this.value, required this.onChanged});
 
   final FulltextSortOrder value;
   final ValueChanged<FulltextSortOrder> onChanged;
@@ -630,10 +612,7 @@ class _ResultList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (ctx, index) {
               final row = results.rows[index];
-              return _ResultCard(
-                row: row,
-                onTap: () => onSceneTap(row),
-              );
+              return _ResultCard(row: row, onTap: () => onSceneTap(row));
             },
           ),
         ),
@@ -655,10 +634,7 @@ class _ResultList extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({
-    required this.row,
-    required this.onTap,
-  });
+  const _ResultCard({required this.row, required this.onTap});
 
   final FulltextResultRow row;
   final VoidCallback onTap;
@@ -793,13 +769,15 @@ class _HighlightedSnippet extends StatelessWidget {
         spans.add(TextSpan(text: text.substring(lastEnd, match.start)));
       }
       // 高亮文本
-      spans.add(TextSpan(
-        text: match.group(1),
-        style: TextStyle(
-          backgroundColor: highlightColor,
-          fontWeight: FontWeight.w600,
+      spans.add(
+        TextSpan(
+          text: match.group(1),
+          style: TextStyle(
+            backgroundColor: highlightColor,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ));
+      );
       lastEnd = match.end;
     }
     // 剩余文本
@@ -838,10 +816,7 @@ class _PaginationBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 0.5,
-          ),
+          top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
         ),
       ),
       child: Row(
@@ -872,39 +847,41 @@ class _PaginationBar extends StatelessWidget {
     final end = (page + 2).clamp(0, totalPages - 1);
 
     if (start > 0) {
-      buttons.add(_PageButton(
-        pageNum: 0,
-        isCurrent: false,
-        onTap: onPageChanged,
-      ));
+      buttons.add(
+        _PageButton(pageNum: 0, isCurrent: false, onTap: onPageChanged),
+      );
       if (start > 1) {
-        buttons.add(const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text('...', style: TextStyle(fontSize: 12)),
-        ));
+        buttons.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(fontSize: 12)),
+          ),
+        );
       }
     }
 
     for (var i = start; i <= end; i++) {
-      buttons.add(_PageButton(
-        pageNum: i,
-        isCurrent: i == page,
-        onTap: onPageChanged,
-      ));
+      buttons.add(
+        _PageButton(pageNum: i, isCurrent: i == page, onTap: onPageChanged),
+      );
     }
 
     if (end < totalPages - 1) {
       if (end < totalPages - 2) {
-        buttons.add(const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text('...', style: TextStyle(fontSize: 12)),
-        ));
+        buttons.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(fontSize: 12)),
+          ),
+        );
       }
-      buttons.add(_PageButton(
-        pageNum: totalPages - 1,
-        isCurrent: false,
-        onTap: onPageChanged,
-      ));
+      buttons.add(
+        _PageButton(
+          pageNum: totalPages - 1,
+          isCurrent: false,
+          onTap: onPageChanged,
+        ),
+      );
     }
 
     return buttons;
@@ -1006,11 +983,7 @@ class _ErrorDisplay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: theme.colorScheme.error,
-          ),
+          Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
           Text(
             message,

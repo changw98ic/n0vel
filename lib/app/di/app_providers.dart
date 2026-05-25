@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
@@ -11,12 +13,14 @@ import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../state/app_ai_history_store.dart';
+import '../state/app_authoring_storage_io_support.dart';
 import '../state/app_draft_store.dart';
 import '../state/app_scene_context_store.dart';
 import '../state/app_settings_store.dart';
 import '../state/app_simulation_store.dart';
 import '../state/app_version_store.dart';
 import '../state/app_workspace_store.dart';
+import '../state/fulltext_search_service.dart';
 import '../state/story_generation_run_store.dart';
 import '../state/story_generation_store.dart';
 import '../state/story_outline_store.dart';
@@ -24,35 +28,63 @@ import '../state/story_arc_store.dart';
 import 'service_registry.dart';
 
 /// Root provider that holds the [ServiceRegistry] reference.
+///
+/// During M4-02/M4-03 coexistence, this remains for legacy stores that
+/// have not yet been migrated to native Riverpod providers.
 /// Will be removed once all stores are native Riverpod providers.
 final serviceRegistryProvider = Provider<ServiceRegistry>((ref) {
   throw StateError('serviceRegistryProvider not overridden in ProviderScope');
 });
 
-// -- Infrastructure providers --
+// ─────────────────────────────────────────────────────────────────────────────
+// Foundational infrastructure providers (M4-02 native providers)
+// ─────────────────────────────────────────────────────────────────────────────
 
+/// Native Riverpod provider for [AppEventBus].
+///
+/// Replaces registry-based resolution. Disposal is handled by Riverpod.
 final appEventBusProvider = Provider<AppEventBus>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<AppEventBus>();
+  final bus = AppEventBus();
+  ref.onDispose(bus.dispose);
+  return bus;
 });
 
+/// Native Riverpod provider for [AppEventLog].
+///
+/// Replaces registry-based resolution. No disposal needed.
 final appEventLogProvider = Provider<AppEventLog>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<AppEventLog>();
+  return AppEventLog();
 });
 
+/// Native Riverpod provider for [AppLlmClient].
+///
+/// Replaces registry-based resolution. No disposal needed.
 final appLlmClientProvider = Provider<AppLlmClient>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<AppLlmClient>();
+  return createCachedAppLlmClient();
 });
 
+/// Native Riverpod provider for [AppLlmRequestPool].
+///
+/// Replaces registry-based resolution. No disposal needed.
 final appLlmRequestPoolProvider = Provider<AppLlmRequestPool>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<AppLlmRequestPool>();
+  return AppLlmRequestPool(maxConcurrent: 3);
 });
 
-final roleplaySessionStoreProvider = Provider<RoleplaySessionStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<RoleplaySessionStore>();
+/// Native Riverpod provider for the authoring database.
+///
+/// Disposal is handled by Riverpod via [ref.onDispose].
+final databaseProvider = Provider<sqlite3.Database>((ref) {
+  final db = openAuthoringDatabase(resolveAuthoringDbPath());
+  ref.onDispose(db.dispose);
+  return db;
 });
 
-final characterMemoryStoreProvider = Provider<CharacterMemoryStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<CharacterMemoryStore>();
+/// Native Riverpod provider for [FulltextSearchService].
+///
+/// Depends on [databaseProvider]. Lifecycle is tied to database disposal.
+final fulltextSearchServiceProvider = Provider<FulltextSearchService>((ref) {
+  final db = ref.watch(databaseProvider);
+  return FulltextSearchService(db: db);
 });
 
 // -- Core store providers --
@@ -198,3 +230,58 @@ final writingStatsStoreProvider =
     NotifierProvider<WritingStatsStoreNotifier, WritingStatsStore>(
       WritingStatsStoreNotifier.new,
     );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DB-backed stores (deferred to M4-03)
+// These remain registry-backed adapters until native migration.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Registry-backed adapter for [RoleplaySessionStore].
+///
+/// This store remains owned by [ServiceRegistry] and will be migrated to a
+/// native Riverpod provider in M4-03. Do not use native DB backing here.
+final roleplaySessionStoreProvider = Provider<RoleplaySessionStore>((ref) {
+  return ref.watch(serviceRegistryProvider).resolve<RoleplaySessionStore>();
+});
+
+/// Registry-backed adapter for [CharacterMemoryStore].
+///
+/// This store remains owned by [ServiceRegistry] and will be migrated to a
+/// native Riverpod provider in M4-03. Do not use native DB backing here.
+final characterMemoryStoreProvider = Provider<CharacterMemoryStore>((ref) {
+  return ref.watch(serviceRegistryProvider).resolve<CharacterMemoryStore>();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App bootstrap helper for M4-02/M4-03 coexistence
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns ProviderScope overrides that make native foundational providers
+/// share the same singleton instances as [ServiceRegistry].
+///
+/// This prevents duplicate singletons during app coexistence, where both the
+/// registry and native providers exist. The registry remains the disposer for
+/// shared instances; Riverpod overrides do not double-dispose them.
+///
+/// Use lazy `overrideWith` instead of eager `overrideWithValue` so that
+/// foundational instances are created only when first accessed through Riverpod,
+/// preserving the original startup timing.
+List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
+  return [
+    serviceRegistryProvider.overrideWithValue(registry),
+    appEventBusProvider.overrideWith((ref) => registry.resolve<AppEventBus>()),
+    appEventLogProvider.overrideWith((ref) => registry.resolve<AppEventLog>()),
+    appLlmClientProvider.overrideWith(
+      (ref) => registry.resolve<AppLlmClient>(),
+    ),
+    appLlmRequestPoolProvider.overrideWith(
+      (ref) => registry.resolve<AppLlmRequestPool>(),
+    ),
+    databaseProvider.overrideWith(
+      (ref) => registry.resolve<sqlite3.Database>(),
+    ),
+    fulltextSearchServiceProvider.overrideWith(
+      (ref) => registry.resolve<FulltextSearchService>(),
+    ),
+  ];
+}

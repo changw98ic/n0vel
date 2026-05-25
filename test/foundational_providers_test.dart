@@ -1,0 +1,461 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/app/di/app_providers.dart';
+import 'package:novel_writer/app/di/service_registry.dart';
+import 'package:novel_writer/app/events/app_domain_events.dart';
+import 'package:novel_writer/app/events/app_event_bus.dart';
+import 'package:novel_writer/app/logging/app_event_log.dart';
+import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/app_llm_request_pool.dart';
+import 'package:novel_writer/app/state/fulltext_search_service.dart';
+import 'package:novel_writer/features/search/presentation/fulltext_search_page.dart';
+import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
+import 'package:novel_writer/features/story_generation/data/character_memory_delta_models.dart';
+import 'package:novel_writer/features/story_generation/data/roleplay_session_store.dart';
+import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
+
+/// Helper to create an in-memory database for testing.
+sqlite3.Database createInMemoryDatabase() => sqlite3.sqlite3.openInMemory();
+
+/// Helper to create a test registry with in-memory database.
+ServiceRegistry createTestRegistry() {
+  final registry = ServiceRegistry();
+  final db = createInMemoryDatabase();
+  registry.registerSingleton<sqlite3.Database>(db);
+  registry.registerFactory<AppEventBus>((_) => AppEventBus());
+  registry.registerFactory<AppEventLog>((_) => AppEventLog());
+  registry.registerFactory<AppLlmClient>((_) => createCachedAppLlmClient());
+  registry.registerFactory<AppLlmRequestPool>(
+    (_) => AppLlmRequestPool(maxConcurrent: 3),
+  );
+  registry.registerFactory<FulltextSearchService>(
+    (r) => FulltextSearchService(db: r.resolve<sqlite3.Database>()),
+  );
+  return registry;
+}
+
+void main() {
+  group('appEventBusProvider', () {
+    test('creates AppEventBus instance', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final bus = container.read(appEventBusProvider);
+      expect(bus, isA<AppEventBus>());
+    });
+
+    test('disposes AppEventBus on container dispose', () {
+      final container = ProviderContainer();
+      final bus = container.read(appEventBusProvider);
+
+      // Should not throw
+      bus.publish(
+        const ProjectScopeChangedEvent(
+          projectId: 'test',
+          sceneScopeId: 'test::scene',
+        ),
+      );
+
+      container.dispose();
+
+      // Should throw after disposal
+      expect(
+        () => bus.publish(
+          const ProjectScopeChangedEvent(
+            projectId: 'test',
+            sceneScopeId: 'test::scene',
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('disposed'),
+          ),
+        ),
+      );
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final bus1 = container.read(appEventBusProvider);
+      final bus2 = container.read(appEventBusProvider);
+
+      expect(identical(bus1, bus2), isTrue);
+    });
+  });
+
+  group('databaseProvider (with in-memory override)', () {
+    test('uses in-memory database when overridden', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final db = container.read(databaseProvider);
+      expect(db, isA<sqlite3.Database>());
+      // In-memory database should be usable
+      expect(() => db.select('SELECT 1'), returnsNormally);
+    });
+
+    test('disposes Database on container dispose', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      final db = container.read(databaseProvider);
+
+      // Database should be usable before disposal
+      expect(() => db.select('SELECT 1'), returnsNormally);
+
+      container.dispose();
+
+      // Database operations should fail after disposal
+      expect(() => db.select('SELECT 1'), throwsA(isA<StateError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final db1 = container.read(databaseProvider);
+      final db2 = container.read(databaseProvider);
+
+      expect(identical(db1, db2), isTrue);
+    });
+  });
+
+  group('fulltextSearchServiceProvider', () {
+    test('creates FulltextSearchService instance', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final service = container.read(fulltextSearchServiceProvider);
+      expect(service, isA<FulltextSearchService>());
+    });
+
+    test('depends on databaseProvider', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final db = container.read(databaseProvider);
+      final service = container.read(fulltextSearchServiceProvider);
+
+      // Service should use the same database
+      expect(service, isA<FulltextSearchService>());
+
+      // Both should be tied to the same lifecycle
+      expect(() => db.select('SELECT 1'), returnsNormally);
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final service1 = container.read(fulltextSearchServiceProvider);
+      final service2 = container.read(fulltextSearchServiceProvider);
+
+      expect(identical(service1, service2), isTrue);
+    });
+  });
+
+  group('appEventLogProvider', () {
+    test('creates AppEventLog instance', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final log = container.read(appEventLogProvider);
+      expect(log, isNotNull);
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final log1 = container.read(appEventLogProvider);
+      final log2 = container.read(appEventLogProvider);
+
+      expect(identical(log1, log2), isTrue);
+    });
+  });
+
+  group('appLlmRequestPoolProvider', () {
+    test('creates AppLlmRequestPool instance', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final pool = container.read(appLlmRequestPoolProvider);
+      expect(pool, isNotNull);
+      expect(pool.maxConcurrent, equals(3));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final pool1 = container.read(appLlmRequestPoolProvider);
+      final pool2 = container.read(appLlmRequestPoolProvider);
+
+      expect(identical(pool1, pool2), isTrue);
+    });
+  });
+
+  group('fulltext search page no registry access', () {
+    test('fulltextSearchNotifier uses provider, not registry', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Read the provider - this should not require serviceRegistryProvider
+      final notifier = container.read(fulltextSearchProvider.notifier);
+
+      expect(notifier, isNotNull);
+    });
+  });
+
+  group('appProviderOverridesForRegistry', () {
+    test('returns same foundational instances as registry', () {
+      final registry = createTestRegistry();
+
+      final overrides = appProviderOverridesForRegistry(registry);
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+      });
+
+      // Verify that providers return the same instances as registry
+      final eventBusFromProvider = container.read(appEventBusProvider);
+      final eventBusFromRegistry = registry.resolve<AppEventBus>();
+      expect(identical(eventBusFromProvider, eventBusFromRegistry), isTrue);
+
+      final eventLogFromProvider = container.read(appEventLogProvider);
+      final eventLogFromRegistry = registry.resolve<AppEventLog>();
+      expect(identical(eventLogFromProvider, eventLogFromRegistry), isTrue);
+
+      final llmClientFromProvider = container.read(appLlmClientProvider);
+      final llmClientFromRegistry = registry.resolve<AppLlmClient>();
+      expect(identical(llmClientFromProvider, llmClientFromRegistry), isTrue);
+
+      final poolFromProvider = container.read(appLlmRequestPoolProvider);
+      final poolFromRegistry = registry.resolve<AppLlmRequestPool>();
+      expect(identical(poolFromProvider, poolFromRegistry), isTrue);
+
+      final dbFromProvider = container.read(databaseProvider);
+      final dbFromRegistry = registry.resolve<sqlite3.Database>();
+      expect(identical(dbFromProvider, dbFromRegistry), isTrue);
+
+      final ftsFromProvider = container.read(fulltextSearchServiceProvider);
+      final ftsFromRegistry = registry.resolve<FulltextSearchService>();
+      expect(identical(ftsFromProvider, ftsFromRegistry), isTrue);
+    });
+
+    test('includes serviceRegistryProvider override', () {
+      final registry = createTestRegistry();
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Verify that we get the expected number of overrides
+      expect(overrides.length, equals(7));
+
+      // Verify the registry override works correctly
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+      });
+
+      final registryFromProvider = container.read(serviceRegistryProvider);
+      expect(identical(registryFromProvider, registry), isTrue);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Registry-backed adapter provider tests (M4-03 deferred stores)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('roleplaySessionStoreProvider', () {
+    test('resolves from serviceRegistryProvider', () {
+      final registry = createTestRegistry();
+      final mockStore = _MockRoleplaySessionStore();
+      registry.registerSingleton<RoleplaySessionStore>(mockStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+      });
+
+      final store = container.read(roleplaySessionStoreProvider);
+      expect(identical(store, mockStore), isTrue);
+    });
+
+    test('throws error when serviceRegistryProvider not overridden', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Riverpod wraps the StateError in a ProviderException
+      expect(
+        () => container.read(roleplaySessionStoreProvider),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'toString',
+            anyOf(contains('not overridden'), contains('error state')),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('characterMemoryStoreProvider', () {
+    test('resolves from serviceRegistryProvider', () {
+      final registry = createTestRegistry();
+      final mockStore = _MockCharacterMemoryStore();
+      registry.registerSingleton<CharacterMemoryStore>(mockStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+      });
+
+      final store = container.read(characterMemoryStoreProvider);
+      expect(identical(store, mockStore), isTrue);
+    });
+
+    test('throws error when serviceRegistryProvider not overridden', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Riverpod wraps the StateError in a ProviderException
+      expect(
+        () => container.read(characterMemoryStoreProvider),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'toString',
+            anyOf(contains('not overridden'), contains('error state')),
+          ),
+        ),
+      );
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock implementations for testing registry-backed providers
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MockRoleplaySessionStore implements RoleplaySessionStore {
+  @override
+  Future<void> clearProject(String projectId) async {}
+
+  @override
+  Future<SceneRoleplaySession?> loadSession({
+    required String projectId,
+    required String chapterId,
+    required String sceneId,
+  }) async => null;
+
+  @override
+  Future<List<SceneRoleplaySession>> loadChapterSessions({
+    required String projectId,
+    required String chapterId,
+  }) async => [];
+
+  @override
+  Future<List<SceneRoleplaySession>> loadProjectSessions({
+    required String projectId,
+  }) async => [];
+
+  @override
+  Future<void> saveSession({
+    required String projectId,
+    required SceneRoleplaySession session,
+  }) async {}
+}
+
+class _MockCharacterMemoryStore implements CharacterMemoryStore {
+  @override
+  Future<void> clearProject(String projectId) async {}
+
+  @override
+  Future<List<CharacterMemoryDelta>> loadCharacterMemories({
+    required String projectId,
+    required String characterId,
+    required MemoryTier tier,
+  }) async => [];
+
+  @override
+  Future<List<CharacterMemoryDelta>> loadPublicMemories({
+    required String projectId,
+    required MemoryTier tier,
+  }) async => [];
+
+  @override
+  Future<void> saveAcceptedDeltas({
+    required String projectId,
+    required String chapterId,
+    required String sceneId,
+    required MemoryTier tier,
+    required String producer,
+    required List<CharacterMemoryDelta> deltas,
+  }) async {}
+}
