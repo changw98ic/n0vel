@@ -655,6 +655,343 @@ void main() {
       expect(requestJson['max_completion_tokens'], 8192);
       expect(requestJson.containsKey('max_tokens'), isFalse);
     });
+
+    group('LlmGateway.chatStream', () {
+      test(
+        'yields multiple incremental chunks, not single full text',
+        () async {
+          final server = await _startServer((request) async {
+            await utf8.decoder.bind(request).join();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.set(
+              'Content-Type',
+              'text/event-stream; charset=utf-8',
+            );
+            request.response.add(
+              utf8.encode(
+                'data: {"choices":[{"delta":{"content":"Hel"},"index":0}]}\n\n',
+              ),
+            );
+            await Future.delayed(const Duration(milliseconds: 20));
+            request.response.add(
+              utf8.encode(
+                'data: {"choices":[{"delta":{"content":"lo "},"index":0}]}\n\n',
+              ),
+            );
+            await Future.delayed(const Duration(milliseconds: 20));
+            request.response.add(
+              utf8.encode(
+                'data: {"choices":[{"delta":{"content":"Wor"},"index":0}]}\n\n',
+              ),
+            );
+            await Future.delayed(const Duration(milliseconds: 20));
+            request.response.add(
+              utf8.encode(
+                'data: {"choices":[{"delta":{"content":"ld"},"index":0}]}\n\n',
+              ),
+            );
+            request.response.add(utf8.encode('data: [DONE]\n\n'));
+            await request.response.close();
+          });
+          addTearDown(() => server.close(force: true));
+
+          final gateway = LlmGateway();
+          final chunks = <String>[];
+          await for (final chunk in gateway.chatStream(
+            AppLlmChatRequest(
+              baseUrl: _baseUrl(server),
+              apiKey: 'sk-test',
+              model: 'gpt-5.4',
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
+              messages: const [
+                AppLlmChatMessage(role: 'user', content: 'stream test'),
+              ],
+            ),
+          )) {
+            chunks.add(chunk);
+          }
+
+          expect(
+            chunks.length,
+            greaterThan(1),
+            reason: 'Should yield multiple chunks, not single full text',
+          );
+          expect(chunks.join(''), 'Hello World');
+        },
+      );
+
+      test(
+        'maps 401 to AppLlmStreamException with unauthorized kind',
+        () async {
+          final server = await _startServer((request) async {
+            await utf8.decoder.bind(request).join();
+            request.response
+              ..statusCode = HttpStatus.unauthorized
+              ..headers.contentType = ContentType.json
+              ..write(
+                jsonEncode({
+                  'error': {'message': 'Invalid API key'},
+                }),
+              );
+            await request.response.close();
+          });
+          addTearDown(() => server.close(force: true));
+
+          final gateway = LlmGateway();
+          expect(
+            () => gateway
+                .chatStream(
+                  AppLlmChatRequest(
+                    baseUrl: _baseUrl(server),
+                    apiKey: 'sk-bad',
+                    model: 'gpt-5.4',
+                    timeout: const AppLlmTimeoutConfig.uniform(2000),
+                    messages: const [
+                      AppLlmChatMessage(role: 'user', content: 'auth fail'),
+                    ],
+                  ),
+                )
+                .toList(),
+            throwsA(
+              isA<AppLlmStreamException>()
+                  .having(
+                    (e) => e.failureKind,
+                    'failureKind',
+                    AppLlmFailureKind.unauthorized,
+                  )
+                  .having((e) => e.statusCode, 'statusCode', 401)
+                  .having((e) => e.detail, 'detail', 'Invalid API key'),
+            ),
+          );
+        },
+      );
+
+      test(
+        'maps 404 to AppLlmStreamException with modelNotFound kind',
+        () async {
+          final server = await _startServer((request) async {
+            await utf8.decoder.bind(request).join();
+            request.response
+              ..statusCode = HttpStatus.notFound
+              ..headers.contentType = ContentType.json
+              ..write(jsonEncode({'message': 'Model not found'}));
+            await request.response.close();
+          });
+          addTearDown(() => server.close(force: true));
+
+          final gateway = LlmGateway();
+          expect(
+            () => gateway
+                .chatStream(
+                  AppLlmChatRequest(
+                    baseUrl: _baseUrl(server),
+                    apiKey: 'sk-ok',
+                    model: 'missing-model',
+                    timeout: const AppLlmTimeoutConfig.uniform(2000),
+                    messages: const [
+                      AppLlmChatMessage(role: 'user', content: 'model missing'),
+                    ],
+                  ),
+                )
+                .toList(),
+            throwsA(
+              isA<AppLlmStreamException>()
+                  .having(
+                    (e) => e.failureKind,
+                    'failureKind',
+                    AppLlmFailureKind.modelNotFound,
+                  )
+                  .having((e) => e.statusCode, 'statusCode', 404)
+                  .having((e) => e.detail, 'detail', 'Model not found'),
+            ),
+          );
+        },
+      );
+
+      test('maps 429 to AppLlmStreamException with rateLimited kind', () async {
+        final server = await _startServer((request) async {
+          await utf8.decoder.bind(request).join();
+          request.response
+            ..statusCode = 429
+            ..headers.contentType = ContentType.json
+            ..write(
+              jsonEncode({
+                'error': {'message': 'Rate limit exceeded'},
+              }),
+            );
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final gateway = LlmGateway();
+        expect(
+          () => gateway
+              .chatStream(
+                AppLlmChatRequest(
+                  baseUrl: _baseUrl(server),
+                  apiKey: 'sk-ok',
+                  model: 'gpt-5.4',
+                  timeout: const AppLlmTimeoutConfig.uniform(2000),
+                  messages: const [
+                    AppLlmChatMessage(role: 'user', content: 'rate limit'),
+                  ],
+                ),
+              )
+              .toList(),
+          throwsA(
+            isA<AppLlmStreamException>()
+                .having(
+                  (e) => e.failureKind,
+                  'failureKind',
+                  AppLlmFailureKind.rateLimited,
+                )
+                .having((e) => e.statusCode, 'statusCode', 429)
+                .having((e) => e.detail, 'detail', 'Rate limit exceeded'),
+          ),
+        );
+      });
+
+      test(
+        'maps other non-2xx to AppLlmStreamException with server kind',
+        () async {
+          final server = await _startServer((request) async {
+            await utf8.decoder.bind(request).join();
+            request.response
+              ..statusCode = HttpStatus.internalServerError
+              ..write('upstream failure');
+            await request.response.close();
+          });
+          addTearDown(() => server.close(force: true));
+
+          final gateway = LlmGateway();
+          expect(
+            () => gateway
+                .chatStream(
+                  AppLlmChatRequest(
+                    baseUrl: _baseUrl(server),
+                    apiKey: 'sk-ok',
+                    model: 'gpt-5.4',
+                    timeout: const AppLlmTimeoutConfig.uniform(2000),
+                    messages: const [
+                      AppLlmChatMessage(role: 'user', content: 'server error'),
+                    ],
+                  ),
+                )
+                .toList(),
+            throwsA(
+              isA<AppLlmStreamException>()
+                  .having(
+                    (e) => e.failureKind,
+                    'failureKind',
+                    AppLlmFailureKind.server,
+                  )
+                  .having((e) => e.statusCode, 'statusCode', 500)
+                  .having((e) => e.detail, 'detail', 'upstream failure'),
+            ),
+          );
+        },
+      );
+
+      test('delegates Anthropic delta parsing to provider adapter', () async {
+        final server = await _startServer((request) async {
+          await utf8.decoder.bind(request).join();
+          request.response.statusCode = HttpStatus.ok;
+          request.response.headers.set(
+            'Content-Type',
+            'text/event-stream; charset=utf-8',
+          );
+          request.response.write(
+            'data: {"type":"content_block_delta","delta":{"text":"Anthropic "}}\n\n',
+          );
+          request.response.write(
+            'data: {"type":"content_block_delta","delta":{"text":"response"}}\n\n',
+          );
+          request.response.write('data: {"type":"message_stop"}\n\n');
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final gateway = LlmGateway();
+        final chunks = await gateway
+            .chatStream(
+              AppLlmChatRequest(
+                baseUrl: _baseUrl(server),
+                apiKey: 'sk-ant',
+                model: 'claude-3-5-sonnet',
+                provider: AppLlmProvider.anthropic,
+                timeout: const AppLlmTimeoutConfig.uniform(2000),
+                messages: const [
+                  AppLlmChatMessage(role: 'user', content: 'test'),
+                ],
+              ),
+            )
+            .toList();
+
+        expect(chunks, ['Anthropic ', 'response']);
+      });
+
+      test('throws for invalid endpoint URL', () async {
+        final gateway = LlmGateway();
+        expect(
+          () => gateway
+              .chatStream(
+                const AppLlmChatRequest(
+                  baseUrl: '   ',
+                  apiKey: 'sk-test',
+                  model: 'gpt-5.4',
+                  timeout: AppLlmTimeoutConfig.uniform(1000),
+                  messages: [
+                    AppLlmChatMessage(role: 'user', content: 'bad url'),
+                  ],
+                ),
+              )
+              .toList(),
+          throwsA(
+            isA<AppLlmStreamException>().having(
+              (e) => e.failureKind,
+              'failureKind',
+              AppLlmFailureKind.network,
+            ),
+          ),
+        );
+      });
+
+      test('sends stream=true in request body', () async {
+        late final Map<String, Object?> requestPayload;
+        final server = await _startServer((request) async {
+          requestPayload =
+              jsonDecode(await utf8.decoder.bind(request).join())
+                  as Map<String, Object?>;
+          request.response.statusCode = HttpStatus.ok;
+          request.response.headers.set(
+            'Content-Type',
+            'text/event-stream; charset=utf-8',
+          );
+          request.response.write(
+            'data: {"choices":[{"delta":{"content":"ok"},"index":0}]}\n\n',
+          );
+          request.response.write('data: [DONE]\n\n');
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        await LlmGateway()
+            .chatStream(
+              AppLlmChatRequest(
+                baseUrl: _baseUrl(server),
+                apiKey: 'sk-test',
+                model: 'gpt-5.4',
+                timeout: const AppLlmTimeoutConfig.uniform(2000),
+                messages: const [
+                  AppLlmChatMessage(role: 'user', content: 'check stream flag'),
+                ],
+              ),
+            )
+            .toList();
+
+        expect(requestPayload['stream'], isTrue);
+      });
+    });
   });
 }
 

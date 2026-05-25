@@ -110,6 +110,44 @@ void main() {
       ]);
     });
 
+    test('preserves trailing whitespace in anthropic stream deltas', () async {
+      final server = await _startStreamServer((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response.statusCode = HttpStatus.ok;
+        request.response.headers.contentType = ContentType(
+          'text',
+          'event-stream',
+          charset: 'utf-8',
+        );
+        request.response.write(
+          'data: {"type":"content_block_delta","delta":{"text":"Hello "}}\n\n',
+        );
+        request.response.write(
+          'data: {"type":"content_block_delta","delta":{"text":"World "}}\n\n',
+        );
+        request.response.write('data: {"type":"message_stop"}\n\n');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final deltas = await createDefaultAppLlmClient()
+          .chatStream(
+            AppLlmChatRequest(
+              baseUrl: 'http://${server.address.host}:${server.port}',
+              apiKey: 'sk-anthropic',
+              model: 'claude-3-5-sonnet',
+              provider: AppLlmProvider.anthropic,
+              timeout: const AppLlmTimeoutConfig.uniform(2000),
+              messages: const [
+                AppLlmChatMessage(role: 'user', content: 'whitespace test'),
+              ],
+            ),
+          )
+          .toList();
+
+      expect(deltas, ['Hello ', 'World ']);
+    });
+
     test('skips empty delta content and role-only deltas', () async {
       final server = await _startStreamServer((request) async {
         await utf8.decoder.bind(request).join();

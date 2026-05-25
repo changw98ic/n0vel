@@ -379,7 +379,7 @@ class _IoAppLlmClient implements AppLlmClient {
           } on FormatException {
             // Skip malformed SSE payload.
           }
-          final adapterText = adapter.decodeOutputText('data: $payload\n\n');
+          final adapterText = adapter.decodeStreamDelta(payload);
           if (adapterText != null && adapterText.isNotEmpty) {
             return <String>[adapterText];
           }

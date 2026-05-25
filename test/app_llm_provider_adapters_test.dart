@@ -257,6 +257,28 @@ void main() {
           'data: {"type":"content_block_delta","delta":{"text":""}}\n\n';
       expect(adapter.decodeOutputText(sse), isNull);
     });
+
+    test('decodeStreamDelta preserves trailing whitespace', () {
+      const payload =
+          '{"type":"content_block_delta","delta":{"text":"hello "}}';
+      expect(adapter.decodeStreamDelta(payload), 'hello ');
+    });
+
+    test('decodeStreamDelta preserves leading whitespace', () {
+      const payload =
+          '{"type":"content_block_delta","delta":{"text":" world"}}';
+      expect(adapter.decodeStreamDelta(payload), ' world');
+    });
+
+    test('decodeStreamDelta returns null for non-content_block_delta', () {
+      const payload = '{"type":"message_start"}';
+      expect(adapter.decodeStreamDelta(payload), isNull);
+    });
+
+    test('decodeStreamDelta returns null for empty text', () {
+      const payload = '{"type":"content_block_delta","delta":{"text":""}}';
+      expect(adapter.decodeStreamDelta(payload), isNull);
+    });
   });
 
   group('MimoAdapter', () {

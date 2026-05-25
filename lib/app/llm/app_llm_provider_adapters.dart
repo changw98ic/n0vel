@@ -16,6 +16,10 @@ abstract class AppLlmProviderAdapter {
   });
 
   String? decodeOutputText(String body);
+
+  String? decodeStreamDelta(String payload) {
+    return decodeOutputText('data: $payload\n\n');
+  }
 }
 
 class OpenAiCompatibleAdapter implements AppLlmProviderAdapter {
@@ -57,6 +61,11 @@ class OpenAiCompatibleAdapter implements AppLlmProviderAdapter {
     } on FormatException {
       return null;
     }
+  }
+
+  @override
+  String? decodeStreamDelta(String payload) {
+    return decodeOutputText('data: $payload\n\n');
   }
 }
 
@@ -177,6 +186,31 @@ class AnthropicAdapter implements AppLlmProviderAdapter {
     }
     final normalized = buffer.toString().trim();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  @override
+  String? decodeStreamDelta(String payload) {
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) {
+        return null;
+      }
+      final type = decoded['type'];
+      if (type != 'content_block_delta') {
+        return null;
+      }
+      final delta = decoded['delta'];
+      if (delta is! Map) {
+        return null;
+      }
+      final text = delta['text'];
+      if (text is String && text.isNotEmpty) {
+        return text;
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
   }
 }
 

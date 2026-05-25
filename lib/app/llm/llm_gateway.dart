@@ -134,19 +134,114 @@ class LlmGateway implements AppLlmClient {
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) async* {
-    final result = await chat(request);
-    if (result.succeeded) {
-      final text = result.text;
-      if (text != null && text.isNotEmpty) {
-        yield text;
-      }
-      return;
+    final adapter = AppLlmProviderAdapters.of(request.provider);
+    final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
+    if (endpoint == null) {
+      throw const AppLlmStreamException(
+        failureKind: AppLlmFailureKind.network,
+        detail: '接口地址无法解析为有效地址。',
+      );
     }
-    throw AppLlmStreamException(
-      failureKind: result.failureKind ?? AppLlmFailureKind.server,
-      statusCode: result.statusCode,
-      detail: result.detail,
-    );
+
+    final dio = AppHttpClient.shared;
+    try {
+      final response = await dio.postUri<ResponseBody>(
+        endpoint,
+        data: adapter.buildBody(
+          model: request.model,
+          messages: request.messages,
+          stream: true,
+          maxTokens: request.effectiveMaxTokens,
+        ),
+        options: Options(
+          connectTimeout: Duration(milliseconds: request.timeoutMs),
+          receiveTimeout: Duration(milliseconds: request.timeoutMs),
+          sendTimeout: Duration(milliseconds: request.timeoutMs),
+          responseType: ResponseType.stream,
+          headers: adapter.buildHeaders(request.apiKey),
+        ),
+      );
+
+      final statusCode = response.statusCode ?? 0;
+
+      if (statusCode == HttpStatus.unauthorized ||
+          statusCode == HttpStatus.forbidden) {
+        final body = await _readResponseBodyToString(
+          response.data,
+          timeoutMs: request.timeoutMs,
+        );
+        throw AppLlmStreamException(
+          failureKind: AppLlmFailureKind.unauthorized,
+          statusCode: statusCode,
+          detail: _normalizeDetail(body),
+        );
+      }
+
+      if (statusCode == HttpStatus.notFound) {
+        final body = await _readResponseBodyToString(
+          response.data,
+          timeoutMs: request.timeoutMs,
+        );
+        throw AppLlmStreamException(
+          failureKind: AppLlmFailureKind.modelNotFound,
+          statusCode: statusCode,
+          detail: _normalizeDetail(body),
+        );
+      }
+
+      if (statusCode == HttpStatus.tooManyRequests) {
+        final body = await _readResponseBodyToString(
+          response.data,
+          timeoutMs: request.timeoutMs,
+        );
+        throw AppLlmStreamException(
+          failureKind: AppLlmFailureKind.rateLimited,
+          statusCode: statusCode,
+          detail: _normalizeDetail(body),
+        );
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        final body = await _readResponseBodyToString(
+          response.data,
+          timeoutMs: request.timeoutMs,
+        );
+        throw AppLlmStreamException(
+          failureKind: AppLlmFailureKind.server,
+          statusCode: statusCode,
+          detail: _normalizeDetail(body),
+        );
+      }
+
+      final body = response.data;
+      if (body == null) {
+        throw const AppLlmStreamException(
+          failureKind: AppLlmFailureKind.invalidResponse,
+          detail: '服务器返回空响应体。',
+        );
+      }
+
+      yield* _parseSseDeltas(body.stream, request.timeoutMs, adapter);
+    } on AppLlmStreamException {
+      rethrow;
+    } on DioException catch (error) {
+      final mapped = _mapDioException(error);
+      throw AppLlmStreamException(
+        failureKind: mapped.failureKind,
+        statusCode: mapped.statusCode,
+        detail: mapped.detail,
+      );
+    } on TimeoutException {
+      throw const AppLlmStreamException(
+        failureKind: AppLlmFailureKind.timeout,
+        detail: '请求在超时时间内未完成。',
+      );
+    } catch (error) {
+      throw AppLlmStreamException(
+        failureKind: AppLlmFailureKind.server,
+        detail: error.toString(),
+      );
+    }
   }
 
   Future<_StreamedResult> _readStreamedBody(
@@ -323,6 +418,72 @@ class LlmGateway implements AppLlmClient {
       statusCode: statusCode,
       detail: detail,
     );
+  }
+
+  Future<String> _readResponseBodyToString(
+    ResponseBody? body, {
+    required int timeoutMs,
+  }) async {
+    if (body == null) {
+      return '';
+    }
+
+    final bytes = await body.stream
+        .expand((chunk) => chunk)
+        .toList()
+        .timeout(Duration(milliseconds: timeoutMs));
+    return utf8.decode(bytes, allowMalformed: true);
+  }
+
+  Stream<String> _parseSseDeltas(
+    Stream stream,
+    int timeoutMs,
+    AppLlmProviderAdapter adapter,
+  ) {
+    return stream
+        .cast<List<int>>()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .timeout(Duration(milliseconds: timeoutMs))
+        .handleError((Object error, StackTrace stackTrace) {
+          throw const AppLlmStreamException(
+            failureKind: AppLlmFailureKind.timeout,
+            detail: '请求在超时时间内未完成。',
+          );
+        }, test: (error) => error is TimeoutException)
+        .expand((line) {
+          final trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) return <String>[];
+          final payload = trimmed.substring(5).trim();
+          if (payload.isEmpty || payload == '[DONE]') return <String>[];
+
+          try {
+            final decoded = jsonDecode(payload);
+            if (decoded is Map) {
+              final choices = decoded['choices'];
+              if (choices is List && choices.isNotEmpty) {
+                final firstChoice = choices.first;
+                if (firstChoice is Map) {
+                  final delta = firstChoice['delta'];
+                  if (delta is Map) {
+                    final content = normalizeLlmContent(delta['content']);
+                    if (content != null && content.isNotEmpty) {
+                      return <String>[content];
+                    }
+                  }
+                }
+              }
+            }
+          } on FormatException {
+            // Fall through to adapter-specific parsing.
+          }
+
+          final fallbackText = adapter.decodeStreamDelta(payload);
+          if (fallbackText != null && fallbackText.isNotEmpty) {
+            return <String>[fallbackText];
+          }
+          return <String>[];
+        });
   }
 }
 
