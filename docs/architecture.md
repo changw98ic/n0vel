@@ -135,10 +135,10 @@ flowchart LR
 
 ### 3.2 Riverpod 与服务桥接
 
-1. 根 `ProviderScope` 在应用启动时覆盖 `serviceRegistryProvider`，把现有 `ServiceRegistry` 暴露给 Riverpod。
-2. `appEventBusProvider`、`appEventLogProvider`、`appLlmClientProvider`、`appLlmRequestPoolProvider`、`roleplaySessionStoreProvider`、`characterMemoryStoreProvider` 等基础 provider 仍从 `ServiceRegistry` 解析实例。
-3. 核心 store 通过 `NotifierProvider` 适配现有 `Listenable` store；`RegistryStoreNotifier` 监听 store 变更并驱动 Consumer UI 重建。
-4. 已迁移到 Riverpod 的服务注册、事件总线和模拟 store 不再保留旧 Scope 入口；迁移期间仍存在的其他 `InheritedWidget` store scope 只代表尚未完成的局部兼容层。
+1. 根 `ProviderScope` 在默认生产启动路径中仍通过 `appProviderOverridesForRegistry()` 共享 `ServiceRegistry` 已拥有的单例，避免迁移期产生重复实例。
+2. `appEventBusProvider`、`appEventLogProvider`、`appLlmClientProvider`、`appLlmRequestPoolProvider`、`databaseProvider`、DB-backed stores、核心 stores、feature stores 与 `StoryGenerationRunStore` 均已具备原生 Riverpod 默认构造路径。
+3. `AppSettingsStore`、`AppWorkspaceStore` 与 `StoryGenerationRunStore` 使用专属 `NotifierProvider` 桥接现有 `Listenable` 通知；旧的通用 `RegistryStoreNotifier` 已移除。
+4. 测试可通过 provider-first bootstrap smoke path 在不覆盖 `serviceRegistryProvider` 的情况下解析主要 store；生产切换仍需 crash recovery 与持久化初始化覆盖后再执行。
 
 ### 3.3 AI 生成数据流
 

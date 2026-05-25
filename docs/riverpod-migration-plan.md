@@ -1,7 +1,7 @@
 # Riverpod Migration Plan
 
 > **Plan ID**: M4-01
-> **Status**: Analysis Complete (review fixes applied)
+> **Status**: M4-12 provider migration status refreshed; projection split pending
 > **Related Issues**: #40, #23
 > **Created**: 2026-05-25
 > **Reviewed**: 2026-05-25
@@ -23,8 +23,8 @@
 
 ### Out of Scope (Future M4 Sub-tasks)
 - Store/projection split
-- Registry bridge removal
-- Native Notifier migrations
+- Production bootstrap cutover away from registry-owned singletons
+- Registry registration deletion
 
 ## 2. Current Architecture Summary
 
@@ -71,14 +71,19 @@ registerAppServices()
 
 ### 2.3 Riverpod Bridge Responsibilities
 
-`app_providers.dart` bridges registry-owned services to Riverpod:
+`app_providers.dart` now has two responsibilities:
 
-1. **`serviceRegistryProvider`**: Root provider holding registry reference
-2. **Infrastructure providers**: Simple `Provider` delegates to `registry.resolve<T>()`
-3. **Core/Feature store providers**: `RegistryStoreNotifier<T>` wraps `Listenable` stores:
-   - Listens to store changes via `addListener()`
-   - Reassigns `state = store` on each notification
-   - Always notifies (`updateShouldNotify` returns `true`)
+1. Native Riverpod provider defaults construct infrastructure, DB-backed
+   services, core stores, feature stores, and `StoryGenerationRunStore`.
+2. `appProviderOverridesForRegistry()` preserves production bootstrap
+   coexistence by sharing registry-owned singleton instances during the
+   default app startup path.
+
+`serviceRegistryProvider` remains only for bootstrap coexistence and tests that
+explicitly exercise registry behavior. The old generic `RegistryStoreNotifier`
+bridge has been removed. `AppSettingsStore`, `AppWorkspaceStore`, and
+`StoryGenerationRunStore` use dedicated `NotifierProvider` classes to bridge
+their existing `Listenable` notifications.
 
 ## 3. Dependency Graph
 
@@ -229,9 +234,10 @@ This bootstrap pattern is NOT a feature-level `resolve<T>()` call, but it repres
 
 **Note**: DB-backed services registered in `infrastructure_registrations.dart` (`RoleplaySessionStore`, `CharacterMemoryStore`, `FulltextSearchService`) remain in M4-03 unless M4-02 scope is explicitly expanded.
 
-### Phase 2: Core Services (M4-03)
-1. Migrate core stores to `AsyncNotifierProvider` / `NotifierProvider`
-2. Replace `RegistryStoreNotifier` bridges
+### Phase 2: Core Services (M4-03 through M4-10)
+1. Migrate core stores to native provider defaults
+2. Replace the old generic registry-backed store bridge with dedicated
+   provider/notifier classes where notification forwarding is still needed
 3. Validate disposal and notification behavior
 
 ### Phase 3: Feature Services (M4-03)
@@ -312,15 +318,17 @@ class AppWorkspaceNotifier extends Notifier<AppWorkspaceState> {
 }
 ```
 
-### 7.4 Complex Services (Adapter Pattern)
+### 7.4 Complex Services (Dedicated Notifier Bridges)
 
-**Temporary**: Keep behind adapter during migration
+**Current M4-12 state**: high-complexity stores have native provider defaults,
+but the production bootstrap compatibility path still overrides them with
+registry-owned instances.
 
 ```dart
-// For AppSettingsStore, StoryGenerationRunStore (high complexity)
-final appSettingsStoreProvider = Provider<AppSettingsStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<AppSettingsStore>();
-});
+// Simplified example: production bootstrap override path.
+appSettingsStoreProvider.overrideWith(
+  () => _RegistryAppSettingsStoreNotifier(registry),
+);
 ```
 
 ### 7.5 Family Providers
@@ -336,30 +344,36 @@ final projectScopedStoreProvider = Provider.family<ProjectScopedStore, String>((
 
 ## 8. Coexistence Strategy
 
-### 8.1 Dual Registry Phase
+### 8.1 Bootstrap Coexistence Phase
 
-During M4-02/M4-03, both old and new providers coexist:
+After M4-12, native provider defaults exist for the app-bootstrap graph, but
+the default production startup path still uses registry-owned singletons:
 
-1. **New services**: Native Riverpod providers
-2. **Old services**: Continue using `RegistryStoreNotifier` bridge
-3. **No duplicate singletons**: Registry still owns old services; new providers reference registry
+1. **Native defaults**: Riverpod can construct stores without
+   `serviceRegistryProvider`.
+2. **Production compatibility**: `appProviderOverridesForRegistry()` shares
+   registry-owned instances during normal app bootstrap.
+3. **No duplicate singletons**: bootstrap overrides prevent two independent
+   instances of the same store in production.
 
 ### 8.2 Adapter Pattern
 
-For services not yet migrated:
+For startup compatibility:
 
 ```dart
-// Temporary adapter in app_providers.dart
-final legacyServiceProvider = Provider<T>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<T>();
-});
+// Temporary override in app_providers.dart
+appWorkspaceStoreProvider.overrideWith(
+  () => _RegistryAppWorkspaceStoreNotifier(registry),
+);
 ```
 
 ### 8.3 Notification Safety
 
-- **New providers**: Use Riverpod's state notification
-- **Old stores**: Continue using `notifyListeners()` via `RegistryStoreNotifier`
-- **No cross-wiring**: Old stores don't watch new providers during migration
+- **Simple providers**: own and dispose their store instances via `ref.onDispose`
+- **Dedicated notifier providers**: forward existing `notifyListeners()` from
+  `AppSettingsStore`, `AppWorkspaceStore`, and `StoryGenerationRunStore`
+- **Bootstrap overrides**: remove listeners on dispose but leave final disposal
+  to the registry during production coexistence
 
 ### 8.4 Disposal Order
 
@@ -494,18 +508,23 @@ final serviceRegistryProvider = Provider<ServiceRegistry>((ref) {
 
 ### M4-03 Acceptance
 
-- [ ] All core stores migrated to `AsyncNotifierProvider` or `NotifierProvider`
-- [ ] All feature stores migrated
-- [ ] `RegistryStoreNotifier` bridge removed or isolated
+- [x] All core stores have native Riverpod provider defaults
+- [x] All feature stores have native Riverpod provider defaults
+- [x] `RegistryStoreNotifier` bridge removed
 - [ ] All disposable providers register `ref.onDispose`; non-disposable DB-backed services rely on database provider disposal
 - [ ] Screen regression tests pass for affected pages
 - [ ] Notification/rebuild tests pass for all migrated stores
 - [ ] CI passes on target branch
 
-### Future M4 Acceptance
+### M4-12 Status
 
+- [x] Default provider paths exist for all app-bootstrap infrastructure,
+  DB-backed services, core stores, feature stores, and
+  `StoryGenerationRunStore`
+- [x] `RegistryStoreNotifier` deleted
+- [x] Provider-first debug bootstrap smoke path added
+- [ ] Production startup no longer owns singletons through `ServiceRegistry`
 - [ ] `ServiceRegistry` and registration files deleted
-- [ ] `RegistryStoreNotifier` deleted
 - [ ] Store/projection split complete
 - [ ] No registry bridge remains
 
@@ -515,25 +534,25 @@ final serviceRegistryProvider = Provider<ServiceRegistry>((ref) {
 
 | Service | Status | PR | Notes |
 |---------|--------|-----|-------|
-| `AppEventBus` | Not started | - | M4-02 |
-| `AppEventLog` | Not started | - | M4-02 |
-| `AppLlmClient` | Not started | - | M4-02 |
-| `AppLlmRequestPool` | Not started | - | M4-02 |
-| `sqlite3.Database` | Not started | - | M4-02 |
-| `RoleplaySessionStore` | Not started | - | M4-03 |
-| `CharacterMemoryStore` | Not started | - | M4-03 |
-| `FulltextSearchService` | Not started | - | M4-03 |
-| `AppWorkspaceStore` | Not started | - | M4-03 |
-| `AppAiHistoryStore` | Not started | - | M4-03 |
-| `AppSceneContextStore` | Not started | - | M4-03 |
-| `AppSimulationStore` | Not started | - | M4-03 |
-| `AppDraftStore` | Not started | - | M4-03 |
-| `AppVersionStore` | Not started | - | M4-03 |
-| `StoryOutlineStore` | Not started | - | M4-03 |
-| `StoryGenerationStore` | Not started | - | M4-03 |
-| `StoryArcStore` | Not started | - | M4-03 |
-| `AppSettingsStore` | Not started | - | M4-03 |
-| `WritingStatsStore` | Not started | - | M4-03 |
-| `StoryGenerationRunStore` | Not started | - | M4-03 |
-| `AuthorFeedbackStore` | Not started | - | M4-03 |
-| `ReviewTaskStore` | Not started | - | M4-03 |
+| `AppEventBus` | Native provider default complete | #41 | M4-02 |
+| `AppEventLog` | Native provider default complete | #41 | M4-02 |
+| `AppLlmClient` | Native provider default complete | #41 | M4-02 |
+| `AppLlmRequestPool` | Native provider default complete | #41 | M4-02 |
+| `sqlite3.Database` | Native provider default complete | #41 | M4-02 |
+| `RoleplaySessionStore` | Native provider default complete | #42 | M4-03 |
+| `CharacterMemoryStore` | Native provider default complete | #42 | M4-03 |
+| `FulltextSearchService` | Native provider default complete | #41 | M4-02 |
+| `AppWorkspaceStore` | Native provider default complete; projection split pending | #48 | M4-09 |
+| `AppAiHistoryStore` | Native provider default complete | #44 | M4-05 |
+| `AppSceneContextStore` | Native provider default complete | #45 | M4-06 |
+| `AppSimulationStore` | Native provider default complete | #45 | M4-06 |
+| `AppDraftStore` | Native provider default complete | #45 | M4-06 |
+| `AppVersionStore` | Native provider default complete | #44 | M4-05 |
+| `StoryOutlineStore` | Native provider default complete | #46 | M4-07 |
+| `StoryGenerationStore` | Native provider default complete | #46 | M4-07 |
+| `StoryArcStore` | Native provider default complete | #46 | M4-07 |
+| `AppSettingsStore` | Native provider default complete; dedicated notifier bridge | #47 | M4-08 |
+| `WritingStatsStore` | Native provider default complete | #44 | M4-05 |
+| `StoryGenerationRunStore` | Native provider default complete; split pending | #49 | M4-10 |
+| `AuthorFeedbackStore` | Native provider default complete | #43 | M4-04 |
+| `ReviewTaskStore` | Native provider default complete | #43 | M4-04 |
