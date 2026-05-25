@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
-import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/state/projection/run_commands.dart';
+import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'scene_management_dialogs.dart';
@@ -153,7 +154,8 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                                           scene,
                                           () => store.updateCurrentScene(
                                             sceneId: scene.id,
-                                            recentLocation: scene.displayLocation,
+                                            recentLocation:
+                                                scene.displayLocation,
                                           ),
                                         );
                                       },
@@ -375,6 +377,7 @@ Future<void> _confirmSceneSwitchWithGuard(
 ) async {
   final workspace = ref.read(appWorkspaceStoreProvider);
   final storyRunStore = ref.read(storyGenerationRunStoreProvider);
+  final runCommands = ref.read(runCommandsProvider);
   final runSnapshot = storyRunStore.snapshot;
 
   // If target scene is already current, no prompt/no-op
@@ -432,9 +435,7 @@ Future<void> _confirmSceneSwitchWithGuard(
           const SizedBox(width: 8),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: appDangerColor,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: appDangerColor),
             child: const Text('取消运行并切换'),
           ),
         ],
@@ -442,7 +443,7 @@ Future<void> _confirmSceneSwitchWithGuard(
     },
   );
   if (shouldSwitch == true) {
-    await storyRunStore.cancelCurrentRun();
+    await runCommands.cancelCurrentRun();
     onConfirm();
   }
 }

@@ -80,9 +80,6 @@ class StoryGenerationRunCommands implements RunCommands {
 
   @override
   Future<void> discardRecoveredRun() async {
-    // Preserve the existing Workbench discard logic from
-    // WorkbenchOrchestrator.discardRecoveredRun():
-    // 1. Export all run snapshots
     final exported = await _target.exportProjectJson();
     final rawRunsByScope = exported['sceneRunsByScope'];
     final sceneRunsByScope = <String, Object?>{};

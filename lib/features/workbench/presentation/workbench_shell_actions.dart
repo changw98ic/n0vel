@@ -85,6 +85,7 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
   ) async {
     final workspace = ref.read(appWorkspaceStoreProvider);
     final storyRunStore = ref.read(storyGenerationRunStoreProvider);
+    final runCommands = ref.read(runCommandsProvider);
     final runSnapshot = storyRunStore.snapshot;
 
     // If target scene is already current, no prompt/no-op
@@ -171,7 +172,7 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
     );
     if (shouldSwitch == true) {
       if (isRunActive) {
-        await storyRunStore.cancelCurrentRun();
+        await runCommands.cancelCurrentRun();
       }
       onConfirm();
     }

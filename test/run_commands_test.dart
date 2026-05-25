@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
@@ -8,6 +10,26 @@ import 'package:novel_writer/features/story_generation/data/pipeline_definition.
 import 'test_support/test_registry.dart' show createTestProviderOverrides;
 
 void main() {
+  test('feature UI routes run mutations through RunCommands', () {
+    final forbiddenDirectCalls = RegExp(
+      r'storyRunStore\.(runCurrentScene|cancelCurrentRun|'
+      r'exportProjectJson|importProjectJson)\(',
+    );
+    final offenders = <String>[];
+
+    for (final entity in Directory('lib/features').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) {
+        continue;
+      }
+      final contents = entity.readAsStringSync();
+      if (forbiddenDirectCalls.hasMatch(contents)) {
+        offenders.add(entity.path);
+      }
+    }
+
+    expect(offenders, isEmpty);
+  });
+
   group('runCommandsProvider', () {
     test('resolves without serviceRegistryProvider using native providers', () {
       final container = ProviderContainer(
