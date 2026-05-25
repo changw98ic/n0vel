@@ -11,6 +11,7 @@ import 'scene_cast_resolver.dart';
 import 'scene_context_assembler.dart';
 import 'scene_director_orchestrator.dart';
 import 'scene_editorial_generator.dart';
+import 'pipeline_run_loop_policy.dart';
 import 'director_memory.dart';
 import 'narrative_arc_models.dart';
 import 'narrative_arc_tracker.dart';
@@ -200,6 +201,10 @@ class PipelineStageRunnerImpl
   final ReviewStep _reviewStep;
   final PolishStep _polishStep;
   final FinalizationStep _finalizationStep;
+  late final PipelineRunLoopPolicy _runLoopPolicy = PipelineRunLoopPolicy(
+    maxProseRetries: maxProseRetries,
+    maxSceneReplanRetries: maxSceneReplanRetries,
+  );
 
   DirectorMemory _directorMemory = DirectorMemory();
   NarrativeArcState _narrativeArc = NarrativeArcState();
@@ -434,15 +439,18 @@ class PipelineStageRunnerImpl
               ),
             );
 
+        final loopDecision = _runLoopPolicy.decideAfterReview(
+          action: reviewOutput.action,
+          wasLengthRetry: reviewOutput.wasLengthRetry,
+          attempt: attempt,
+          softFailureCount: softFailureCount,
+          sceneReplanCount: sceneReplanCount,
+        );
+
         // Replan: break inner, continue outer
-        if (!reviewOutput.wasLengthRetry &&
-            reviewOutput.action == SceneReviewDecision.replanScene &&
-            sceneReplanCount < maxSceneReplanRetries) {
-          sceneReplanCount += 1;
-          _emitStatus(
-            currentBrief,
-            'review issue -> scene replan $sceneReplanCount/$maxSceneReplanRetries',
-          );
+        if (loopDecision.action == PipelineRunLoopAction.replanScene) {
+          sceneReplanCount = loopDecision.nextSceneReplanCount;
+          _emitStatus(currentBrief, loopDecision.statusMessage!);
           currentBrief = _briefWithReplanFeedback(
             brief: currentBrief,
             review: reviewOutput.review,
@@ -452,39 +460,21 @@ class PipelineStageRunnerImpl
         }
 
         // Rewrite prose: continue inner loop
-        if (reviewOutput.action == SceneReviewDecision.rewriteProse) {
-          softFailureCount += 1;
-          if (softFailureCount <= maxProseRetries) {
-            _emitStatus(
-              currentBrief,
-              reviewOutput.wasLengthRetry
-                  ? 'prose length issue -> editorial retry'
-                  : 'review issue -> editorial retry',
-            );
-            attempt += 1;
-            reviewFeedback = reviewOutput.review.editorialFeedback;
-            previousProse = editorialOutput.prose.text;
-            continue;
-          }
+        softFailureCount = loopDecision.nextSoftFailureCount;
+        if (loopDecision.action == PipelineRunLoopAction.retryEditorial) {
+          _emitStatus(currentBrief, loopDecision.statusMessage!);
+          attempt = loopDecision.nextAttempt;
+          reviewFeedback = reviewOutput.review.editorialFeedback;
+          previousProse = editorialOutput.prose.text;
+          continue;
         }
 
         // Step 8: Polish (only on pass or exhausted retries)
         var proseForOutput = editorialOutput.prose;
-        if (!reviewOutput.wasLengthRetry &&
-            reviewOutput.action == SceneReviewDecision.rewriteProse &&
-            softFailureCount + 1 > maxProseRetries) {
-          final polishOutput = await _polishStep.execute(
-            PolishInput(
-              brief: currentBrief,
-              editorial: editorialOutput,
-              beats: beatsOutput,
-              review: reviewOutput,
-            ),
-            _eventLog,
-          );
-          proseForOutput = polishOutput.prose;
-        } else if (reviewOutput.action == SceneReviewDecision.pass) {
+        if (loopDecision.shouldNotifySpeculationReady) {
           markSpeculationReady();
+        }
+        if (loopDecision.shouldPolishBeforeFinalization) {
           final polishOutput = await _polishStep.execute(
             PolishInput(
               brief: currentBrief,
