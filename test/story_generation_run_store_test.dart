@@ -174,6 +174,59 @@ void main() {
     });
   });
 
+  group('StoryGenerationRunSceneSwitchPolicy', () {
+    test(
+      'requests cancellation before switching away from a visible active run',
+      () {
+        const policy = StoryGenerationRunSceneSwitchPolicy();
+
+        final decision = policy.decide(
+          currentSceneScopeId: 'project::scene-a',
+          nextSceneScopeId: 'project::scene-b',
+          currentStatus: StoryGenerationRunStatus.running,
+          hasActiveRunForCurrentScene: true,
+        );
+
+        expect(decision.action, StoryGenerationRunSceneSwitchAction.cancelRun);
+        expect(decision.shouldSwitchScene, isTrue);
+      },
+    );
+
+    test('ignores repeated scene scope changes', () {
+      const policy = StoryGenerationRunSceneSwitchPolicy();
+
+      final decision = policy.decide(
+        currentSceneScopeId: 'project::scene-a',
+        nextSceneScopeId: 'project::scene-a',
+        currentStatus: StoryGenerationRunStatus.running,
+        hasActiveRunForCurrentScene: true,
+      );
+
+      expect(decision.action, StoryGenerationRunSceneSwitchAction.ignore);
+      expect(decision.shouldSwitchScene, isFalse);
+    });
+
+    test(
+      'switches without cancellation when there is no visible active run',
+      () {
+        const policy = StoryGenerationRunSceneSwitchPolicy();
+
+        final decision = policy.decide(
+          currentSceneScopeId: 'project::scene-a',
+          nextSceneScopeId: 'project::scene-b',
+          currentStatus: StoryGenerationRunStatus.completed,
+          hasActiveRunForCurrentScene: false,
+        );
+
+        expect(
+          decision.action,
+          StoryGenerationRunSceneSwitchAction.switchScene,
+        );
+        expect(decision.shouldSwitchScene, isTrue);
+      },
+    );
+  });
+
   group('StoryGenerationRunSnapshot lifecycle phase', () {
     test(
       'persists and restores the PRD workflow phase separately from status',

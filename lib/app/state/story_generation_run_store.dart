@@ -33,6 +33,7 @@ part 'story_generation_run/story_generation_run_snapshot_repository.dart';
 part 'story_generation_run/story_generation_run_event_subscriptions.dart';
 part 'story_generation_run/story_generation_run_lifecycle_coordinator.dart';
 part 'story_generation_run/story_generation_run_pipeline_factory.dart';
+part 'story_generation_run/story_generation_run_scene_switch_policy.dart';
 part 'story_generation_run/story_generation_run_session_controller.dart';
 
 class StoryGenerationRunStore extends AppStoreListenable {
@@ -51,6 +52,8 @@ class StoryGenerationRunStore extends AppStoreListenable {
     SceneContextAssembler? sceneContextAssembler,
     StoryGenerationRunLifecycleCoordinator? lifecycleCoordinator,
     StoryGenerationRunPipelineFactory? pipelineFactory,
+    StoryGenerationRunSceneSwitchPolicy sceneSwitchPolicy =
+        const StoryGenerationRunSceneSwitchPolicy(),
     PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)?
     orchestratorFactory,
   }) : _settingsStore = settingsStore,
@@ -66,6 +69,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
            StoryGenerationRunLifecycleCoordinator(
              initialSceneScopeId: workspaceStore.currentSceneScopeId,
            ),
+       _sceneSwitchPolicy = sceneSwitchPolicy,
        _orchestratorFactory =
            orchestratorFactory ??
            (pipelineFactory ??
@@ -91,6 +95,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final ReviewTaskStore? _reviewTaskStore;
   final StoryGenerationRunSnapshotRepository _snapshotRepository;
   final StoryGenerationRunLifecycleCoordinator _lifecycle;
+  final StoryGenerationRunSceneSwitchPolicy _sceneSwitchPolicy;
   final StoryGenerationRunSessionController _runSession =
       StoryGenerationRunSessionController();
   late final StoryGenerationRunEventSubscriptions _eventSubscriptions;
@@ -415,14 +420,21 @@ class StoryGenerationRunStore extends AppStoreListenable {
   }
 
   void _handleSceneScopeChanged(String nextSceneScopeId) {
-    if (nextSceneScopeId == activeSceneScopeId) {
+    final decision = _sceneSwitchPolicy.decide(
+      currentSceneScopeId: activeSceneScopeId,
+      nextSceneScopeId: nextSceneScopeId,
+      currentStatus: _snapshot.status,
+      hasActiveRunForCurrentScene: _runSession.isActiveRunForScene(
+        activeSceneScopeId,
+      ),
+    );
+    if (!decision.shouldSwitchScene) {
       return;
     }
-    if (_snapshot.status == StoryGenerationRunStatus.running &&
-        _runSession.isActiveRunForScene(activeSceneScopeId)) {
+    if (decision.action == StoryGenerationRunSceneSwitchAction.cancelRun) {
       unawaited(cancelCurrentRun());
     }
-    _lifecycle.moveToSceneScope(nextSceneScopeId);
+    _lifecycle.moveToSceneScope(decision.nextSceneScopeId);
     _snapshot = _idleSnapshotForCurrentScene();
     _scheduleRestoreCurrentScene();
     notifyListeners();
