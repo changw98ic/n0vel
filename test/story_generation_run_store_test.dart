@@ -7,6 +7,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
+import 'package:novel_writer/app/state/story_generation_run/story_generation_run_pipeline_factory.dart';
 import 'package:novel_writer/app/state/story_generation_run_storage.dart';
 import 'package:novel_writer/app/state/story_generation_run_store.dart';
 import 'package:novel_writer/app/state/story_generation_storage.dart';
@@ -19,6 +20,7 @@ import 'package:novel_writer/features/story_generation/data/pipeline_stage_runne
 import 'package:novel_writer/features/story_generation/data/story_memory_storage.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 import 'package:novel_writer/features/review_tasks/domain/review_task_models.dart';
@@ -119,11 +121,51 @@ void main() {
         workspaceStore: workspaceStore,
       ).create(settingsStore);
 
-      expect(runner.enableWritingReference, isTrue);
-      expect(runner.styleReferenceConfig.enabled, isTrue);
-      expect(runner.styleReferenceConfig.profileName, '测试风格');
-      expect(runner.maxProseRetries, 1);
+      expect(runner, isA<PipelineStageRunnerImpl>());
+      final concreteRunner = runner as PipelineStageRunnerImpl;
+      expect(concreteRunner.enableWritingReference, isTrue);
+      expect(concreteRunner.styleReferenceConfig.enabled, isTrue);
+      expect(concreteRunner.styleReferenceConfig.profileName, '测试风格');
+      expect(concreteRunner.maxProseRetries, 1);
     });
+  });
+
+  group('StoryGenerationRunStore runner contract', () {
+    test(
+      'accepts a ChapterGenerationService without requiring PipelineStageRunnerImpl',
+      () async {
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+        );
+        final workspaceStore = AppWorkspaceStore(
+          storage: InMemoryAppWorkspaceStorage(),
+        );
+        final generationStore = StoryGenerationStore(
+          storage: InMemoryStoryGenerationStorage(),
+          workspaceStore: workspaceStore,
+        );
+        final service = _ContractOnlyChapterGenerationService();
+        final runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: InMemoryStoryGenerationRunStorage(),
+          orchestratorFactory: (_) => service,
+        );
+        addTearDown(runStore.dispose);
+        addTearDown(generationStore.dispose);
+        addTearDown(workspaceStore.dispose);
+        addTearDown(settingsStore.dispose);
+
+        await generationStore.waitUntilReady();
+
+        await runStore.runCurrentScene();
+
+        expect(service.receivedBrief?.sceneId, workspaceStore.currentScene.id);
+        expect(service.hasCancellationProbe, isTrue);
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.completed);
+      },
+    );
   });
 
   group('StoryGenerationRunLifecycleCoordinator', () {
@@ -908,6 +950,53 @@ class _FailingStoryGenerationRunStorage
     required String sceneScopeId,
   }) async {
     throw StateError('snapshot persistence failed');
+  }
+}
+
+class _ContractOnlyChapterGenerationService
+    implements ChapterGenerationService {
+  SceneBrief? receivedBrief;
+  bool Function()? _isRunCancelled;
+
+  bool get hasCancellationProbe => _isRunCancelled != null;
+
+  @override
+  RetrievalTrace? get lastRetrievalTrace => null;
+
+  @override
+  set isRunCancelled(bool Function()? value) {
+    _isRunCancelled = value;
+  }
+
+  @override
+  Future<SceneRuntimeOutput> runScene(
+    SceneBrief brief, {
+    ProjectMaterialSnapshot? materials,
+    void Function()? onSpeculationReady,
+  }) async {
+    receivedBrief = brief;
+    return SceneRuntimeOutput(
+      brief: brief,
+      resolvedCast: const [],
+      director: const SceneDirectorOutput(text: 'director output'),
+      roleOutputs: const [],
+      prose: const SceneProseDraft(text: 'prose', attempt: 1),
+      review: const SceneReviewResult(
+        judge: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: 'pass',
+          rawText: '',
+        ),
+        consistency: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: 'consistent',
+          rawText: '',
+        ),
+        decision: SceneReviewDecision.pass,
+      ),
+      proseAttempts: 1,
+      softFailureCount: 0,
+    );
   }
 }
 

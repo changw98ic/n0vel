@@ -90,6 +90,8 @@ abstract interface class ThoughtMemoryService {
 
 /// Top-level orchestrator for running a complete scene generation pipeline.
 abstract interface class ChapterGenerationService {
+  set isRunCancelled(bool Function()? value);
+
   Future<SceneRuntimeOutput> runScene(
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,

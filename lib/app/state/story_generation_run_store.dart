@@ -6,13 +6,11 @@ import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/author_feedback/domain/author_feedback_models.dart';
 import '../../features/review_tasks/data/review_task_mapper.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
-// Intentional: run store bridges app state to feature pipeline.
-import '../../features/story_generation/data/pipeline_stage_runner_impl.dart';
 import '../../features/story_generation/data/pipeline_definition.dart'
     show BuiltInPresets, PipelinePreset, PipelineStageId;
-import '../../features/story_generation/data/generation_pipeline_config.dart';
 import '../../features/story_generation/data/scene_context_assembler.dart';
 import '../../features/story_generation/data/story_generation_models.dart';
+import '../../features/story_generation/domain/story_pipeline_interfaces.dart';
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
@@ -20,6 +18,7 @@ import 'app_scene_context_store.dart';
 import 'app_settings_store.dart';
 import 'app_storage_clone.dart';
 import 'app_workspace_store.dart';
+import 'story_generation_run/story_generation_run_pipeline_factory.dart';
 import 'story_generation_run_storage.dart';
 import 'story_generation_store.dart';
 import 'story_outline_store.dart';
@@ -32,7 +31,6 @@ part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
 part 'story_generation_run/story_generation_run_snapshot_repository.dart';
 part 'story_generation_run/story_generation_run_event_subscriptions.dart';
 part 'story_generation_run/story_generation_run_lifecycle_coordinator.dart';
-part 'story_generation_run/story_generation_run_pipeline_factory.dart';
 part 'story_generation_run/story_generation_run_scene_switch_policy.dart';
 part 'story_generation_run/story_generation_run_session_controller.dart';
 
@@ -54,7 +52,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     StoryGenerationRunPipelineFactory? pipelineFactory,
     StoryGenerationRunSceneSwitchPolicy sceneSwitchPolicy =
         const StoryGenerationRunSceneSwitchPolicy(),
-    PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)?
+    ChapterGenerationService Function(AppSettingsStore settingsStore)?
     orchestratorFactory,
   }) : _settingsStore = settingsStore,
        _workspaceStore = workspaceStore,
@@ -99,7 +97,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final StoryGenerationRunSessionController _runSession =
       StoryGenerationRunSessionController();
   late final StoryGenerationRunEventSubscriptions _eventSubscriptions;
-  final PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)
+  final ChapterGenerationService Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
   final Map<String, List<String>> _directorFeedbackBySceneScope =
       <String, List<String>>{};
