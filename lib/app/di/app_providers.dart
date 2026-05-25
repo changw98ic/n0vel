@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show Listenable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -49,6 +50,23 @@ import 'service_registry.dart';
 final serviceRegistryProvider = Provider<ServiceRegistry>((ref) {
   throw StateError('serviceRegistryProvider not overridden in ProviderScope');
 });
+
+void _bridgeMutableStoreNotifications(
+  Ref ref,
+  Listenable store, {
+  void Function()? dispose,
+}) {
+  void listener() => ref.notifyListeners();
+  store.addListener(listener);
+  ref.onDispose(() {
+    store.removeListener(listener);
+    dispose?.call();
+  });
+}
+
+bool _notifyWhenStoreInstanceChanges<T>(T previous, T next) {
+  return !identical(previous, next);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Foundational infrastructure providers (M4-02 native providers)
@@ -190,18 +208,13 @@ class AppWorkspaceStoreNotifier extends Notifier<AppWorkspaceStore> {
         (projectId) => characterMemoryStore.clearProject(projectId),
       ],
     );
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() {
-      store.removeListener(listener);
-      store.dispose();
-    });
+    _bridgeMutableStoreNotifications(ref, store, dispose: store.dispose);
     return store;
   }
 
   @override
   bool updateShouldNotify(AppWorkspaceStore previous, AppWorkspaceStore next) =>
-      true;
+      _notifyWhenStoreInstanceChanges(previous, next);
 }
 
 final appWorkspaceStoreProvider =
@@ -228,18 +241,13 @@ class AppSettingsStoreNotifier extends Notifier<AppSettingsStore> {
       eventLog: eventLog,
       eventBus: eventBus,
     );
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() {
-      store.removeListener(listener);
-      store.dispose();
-    });
+    _bridgeMutableStoreNotifications(ref, store, dispose: store.dispose);
     return store;
   }
 
   @override
   bool updateShouldNotify(AppSettingsStore previous, AppSettingsStore next) =>
-      true;
+      _notifyWhenStoreInstanceChanges(previous, next);
 }
 
 final appSettingsStoreProvider =
@@ -430,12 +438,7 @@ class StoryGenerationRunStoreNotifier
       eventBus: eventBus,
       storage: storage,
     );
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() {
-      store.removeListener(listener);
-      store.dispose();
-    });
+    _bridgeMutableStoreNotifications(ref, store, dispose: store.dispose);
     return store;
   }
 
@@ -443,7 +446,7 @@ class StoryGenerationRunStoreNotifier
   bool updateShouldNotify(
     StoryGenerationRunStore previous,
     StoryGenerationRunStore next,
-  ) => true;
+  ) => _notifyWhenStoreInstanceChanges(previous, next);
 }
 
 final storyGenerationRunStoreProvider =
@@ -596,15 +599,13 @@ class _RegistryAppSettingsStoreNotifier extends AppSettingsStoreNotifier {
   @override
   AppSettingsStore build() {
     final store = _registry.resolve<AppSettingsStore>();
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() => store.removeListener(listener));
+    _bridgeMutableStoreNotifications(ref, store);
     return store;
   }
 
   @override
   bool updateShouldNotify(AppSettingsStore previous, AppSettingsStore next) =>
-      true;
+      _notifyWhenStoreInstanceChanges(previous, next);
 }
 
 /// Registry-backed notifier for [AppWorkspaceStore] used during app bootstrap.
@@ -616,15 +617,13 @@ class _RegistryAppWorkspaceStoreNotifier extends AppWorkspaceStoreNotifier {
   @override
   AppWorkspaceStore build() {
     final store = _registry.resolve<AppWorkspaceStore>();
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() => store.removeListener(listener));
+    _bridgeMutableStoreNotifications(ref, store);
     return store;
   }
 
   @override
   bool updateShouldNotify(AppWorkspaceStore previous, AppWorkspaceStore next) =>
-      true;
+      _notifyWhenStoreInstanceChanges(previous, next);
 }
 
 /// Registry-backed notifier for [StoryGenerationRunStore] used during app bootstrap.
@@ -637,9 +636,7 @@ class _RegistryStoryGenerationRunStoreNotifier
   @override
   StoryGenerationRunStore build() {
     final store = _registry.resolve<StoryGenerationRunStore>();
-    void listener() => state = store;
-    store.addListener(listener);
-    ref.onDispose(() => store.removeListener(listener));
+    _bridgeMutableStoreNotifications(ref, store);
     return store;
   }
 
@@ -647,5 +644,5 @@ class _RegistryStoryGenerationRunStoreNotifier
   bool updateShouldNotify(
     StoryGenerationRunStore previous,
     StoryGenerationRunStore next,
-  ) => true;
+  ) => _notifyWhenStoreInstanceChanges(previous, next);
 }
