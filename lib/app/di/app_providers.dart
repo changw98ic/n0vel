@@ -6,7 +6,9 @@ import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
+import '../../features/story_generation/data/character_memory_store_io.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
+import '../../features/story_generation/data/roleplay_session_store_io.dart';
 import '../../features/writing_stats/data/writing_stats_store.dart';
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
@@ -232,24 +234,26 @@ final writingStatsStoreProvider =
     );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DB-backed stores (deferred to M4-03)
-// These remain registry-backed adapters until native migration.
+// DB-backed stores (M4-03 native providers)
+// Native Riverpod providers backed by [databaseProvider].
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Registry-backed adapter for [RoleplaySessionStore].
+/// Native Riverpod provider for [RoleplaySessionStore].
 ///
-/// This store remains owned by [ServiceRegistry] and will be migrated to a
-/// native Riverpod provider in M4-03. Do not use native DB backing here.
+/// Backed by [databaseProvider]. The store interface has no `dispose()` method;
+/// lifecycle is tied to the database provider.
 final roleplaySessionStoreProvider = Provider<RoleplaySessionStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<RoleplaySessionStore>();
+  final db = ref.watch(databaseProvider);
+  return RoleplaySessionStoreIO(db: db);
 });
 
-/// Registry-backed adapter for [CharacterMemoryStore].
+/// Native Riverpod provider for [CharacterMemoryStore].
 ///
-/// This store remains owned by [ServiceRegistry] and will be migrated to a
-/// native Riverpod provider in M4-03. Do not use native DB backing here.
+/// Backed by [databaseProvider]. The store interface has no `dispose()` method;
+/// lifecycle is tied to the database provider.
 final characterMemoryStoreProvider = Provider<CharacterMemoryStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<CharacterMemoryStore>();
+  final db = ref.watch(databaseProvider);
+  return CharacterMemoryStoreIO(db: db);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -282,6 +286,13 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     fulltextSearchServiceProvider.overrideWith(
       (ref) => registry.resolve<FulltextSearchService>(),
+    ),
+    // DB-backed stores: use registry-owned instances during normal app bootstrap
+    roleplaySessionStoreProvider.overrideWith(
+      (ref) => registry.resolve<RoleplaySessionStore>(),
+    ),
+    characterMemoryStoreProvider.overrideWith(
+      (ref) => registry.resolve<CharacterMemoryStore>(),
     ),
   ];
 }

@@ -10,8 +10,10 @@ import 'package:novel_writer/app/llm/app_llm_request_pool.dart';
 import 'package:novel_writer/app/state/fulltext_search_service.dart';
 import 'package:novel_writer/features/search/presentation/fulltext_search_page.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
+import 'package:novel_writer/features/story_generation/data/character_memory_store_io.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_delta_models.dart';
 import 'package:novel_writer/features/story_generation/data/roleplay_session_store.dart';
+import 'package:novel_writer/features/story_generation/data/roleplay_session_store_io.dart';
 import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -310,7 +312,8 @@ void main() {
       final overrides = appProviderOverridesForRegistry(registry);
 
       // Verify that we get the expected number of overrides
-      expect(overrides.length, equals(7));
+      // 7 foundational + 2 DB-backed stores = 9
+      expect(overrides.length, greaterThanOrEqualTo(7));
 
       // Verify the registry override works correctly
       final container = ProviderContainer(overrides: overrides);
@@ -325,76 +328,175 @@ void main() {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Registry-backed adapter provider tests (M4-03 deferred stores)
+  // Native DB-backed store provider tests (M4-03)
   // ─────────────────────────────────────────────────────────────────────────────
 
-  group('roleplaySessionStoreProvider', () {
-    test('resolves from serviceRegistryProvider', () {
-      final registry = createTestRegistry();
-      final mockStore = _MockRoleplaySessionStore();
-      registry.registerSingleton<RoleplaySessionStore>(mockStore);
-
-      final overrides = appProviderOverridesForRegistry(registry);
-      final container = ProviderContainer(overrides: overrides);
-      addTearDown(() {
-        container.dispose();
-        registry.disposeAll();
-      });
-
-      final store = container.read(roleplaySessionStoreProvider);
-      expect(identical(store, mockStore), isTrue);
-    });
-
-    test('throws error when serviceRegistryProvider not overridden', () {
-      final container = ProviderContainer();
+  group('roleplaySessionStoreProvider (native)', () {
+    test('creates RoleplaySessionStoreIO backed by in-memory database', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
       addTearDown(container.dispose);
 
-      // Riverpod wraps the StateError in a ProviderException
-      expect(
-        () => container.read(roleplaySessionStoreProvider),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'toString',
-            anyOf(contains('not overridden'), contains('error state')),
-          ),
-        ),
+      final store = container.read(roleplaySessionStoreProvider);
+      expect(store, isA<RoleplaySessionStoreIO>());
+    });
+
+    test('shares databaseProvider lifecycle', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
       );
+      addTearDown(container.dispose);
+
+      final db = container.read(databaseProvider);
+      final store = container.read(roleplaySessionStoreProvider);
+
+      expect(store, isA<RoleplaySessionStoreIO>());
+      // Both are tied to the same database lifecycle
+      expect(() => db.select('SELECT 1'), returnsNormally);
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store1 = container.read(roleplaySessionStoreProvider);
+      final store2 = container.read(roleplaySessionStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
     });
   });
 
-  group('characterMemoryStoreProvider', () {
-    test('resolves from serviceRegistryProvider', () {
+  group('characterMemoryStoreProvider (native)', () {
+    test('creates CharacterMemoryStoreIO backed by in-memory database', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(characterMemoryStoreProvider);
+      expect(store, isA<CharacterMemoryStoreIO>());
+    });
+
+    test('shares databaseProvider lifecycle', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final db = container.read(databaseProvider);
+      final store = container.read(characterMemoryStoreProvider);
+
+      expect(store, isA<CharacterMemoryStoreIO>());
+      // Both are tied to the same database lifecycle
+      expect(() => db.select('SELECT 1'), returnsNormally);
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store1 = container.read(characterMemoryStoreProvider);
+      final store2 = container.read(characterMemoryStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Coexistence tests for DB-backed stores
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('appProviderOverridesForRegistry coexistence', () {
+    test('includes DB-backed store overrides', () {
       final registry = createTestRegistry();
-      final mockStore = _MockCharacterMemoryStore();
-      registry.registerSingleton<CharacterMemoryStore>(mockStore);
+      final mockRoleplayStore = _MockRoleplaySessionStore();
+      final mockCharacterStore = _MockCharacterMemoryStore();
+      registry.registerSingleton<RoleplaySessionStore>(mockRoleplayStore);
+      registry.registerSingleton<CharacterMemoryStore>(mockCharacterStore);
 
       final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now include roleplay and character memory store overrides
+      expect(overrides.length, equals(9));
+
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
         container.dispose();
         registry.disposeAll();
       });
 
-      final store = container.read(characterMemoryStoreProvider);
-      expect(identical(store, mockStore), isTrue);
+      // Verify that providers return the same instances as registry
+      final roleplayFromProvider = container.read(roleplaySessionStoreProvider);
+      final roleplayFromRegistry = registry.resolve<RoleplaySessionStore>();
+      expect(identical(roleplayFromProvider, roleplayFromRegistry), isTrue);
+
+      final characterFromProvider = container.read(
+        characterMemoryStoreProvider,
+      );
+      final characterFromRegistry = registry.resolve<CharacterMemoryStore>();
+      expect(identical(characterFromProvider, characterFromRegistry), isTrue);
     });
 
-    test('throws error when serviceRegistryProvider not overridden', () {
-      final container = ProviderContainer();
+    test('native providers work without registry in test mode', () {
+      // Tests can override databaseProvider without touching serviceRegistryProvider
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+        ],
+      );
       addTearDown(container.dispose);
 
-      // Riverpod wraps the StateError in a ProviderException
-      expect(
-        () => container.read(characterMemoryStoreProvider),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'toString',
-            anyOf(contains('not overridden'), contains('error state')),
-          ),
-        ),
-      );
+      // Native providers should create their own instances
+      final roleplayStore = container.read(roleplaySessionStoreProvider);
+      final characterStore = container.read(characterMemoryStoreProvider);
+
+      expect(roleplayStore, isA<RoleplaySessionStoreIO>());
+      expect(characterStore, isA<CharacterMemoryStoreIO>());
     });
   });
 }
