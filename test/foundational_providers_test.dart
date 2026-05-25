@@ -33,6 +33,8 @@ import 'package:novel_writer/app/state/app_scene_context_storage.dart';
 import 'package:novel_writer/app/state/app_scene_context_store.dart';
 import 'package:novel_writer/app/state/app_simulation_storage.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
+import 'package:novel_writer/app/state/app_settings_storage.dart';
+import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/writing_stats/data/writing_stats_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store_io.dart';
@@ -500,7 +502,7 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(20));
+      expect(overrides.length, equals(21));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -709,7 +711,7 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(20));
+      expect(overrides.length, equals(21));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -965,7 +967,7 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(20));
+      expect(overrides.length, equals(21));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1231,7 +1233,7 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(20));
+      expect(overrides.length, equals(21));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1497,7 +1499,7 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(20));
+      expect(overrides.length, equals(21));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1553,6 +1555,129 @@ void main() {
       expect(storyOutlineStore, isA<StoryOutlineStore>());
       expect(storyGenerationStore, isA<StoryGenerationStore>());
       expect(storyArcStore, isA<StoryArcStore>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native settings store provider tests (M4-08)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('appSettingsStoreProvider (native M4-08)', () {
+    test('creates AppSettingsStore with foundational providers', () {
+      final container = ProviderContainer(
+        overrides: [
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(appSettingsStoreProvider);
+      expect(store, isA<AppSettingsStore>());
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store1 = container.read(appSettingsStoreProvider);
+      final store2 = container.read(appSettingsStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+
+    test('disposes AppSettingsStore on container dispose', () {
+      final container = ProviderContainer(
+        overrides: [
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+        ],
+      );
+
+      final store = container.read(appSettingsStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('uses InMemoryAppSettingsStorage in tests', () {
+      final container = ProviderContainer(
+        overrides: [
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final storage = container.read(appSettingsStorageProvider);
+      expect(storage, isA<InMemoryAppSettingsStorage>());
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-08 coexistence', () {
+    test('includes M4-08 settings store override', () {
+      final registry = createTestRegistry();
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: registry.resolve<AppLlmClient>(),
+        requestPool: registry.resolve<AppLlmRequestPool>(),
+        eventLog: registry.resolve<AppEventLog>(),
+        eventBus: registry.resolve<AppEventBus>(),
+      );
+      registry.registerSingleton<AppSettingsStore>(settingsStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now be 21:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      // - 3 M4-06 workspace/session stores
+      // - 3 M4-07 story core stores
+      // - 1 M4-08 settings store
+      expect(overrides.length, equals(21));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+      });
+
+      // Verify that provider returns the same instance as registry
+      final settingsFromProvider = container.read(appSettingsStoreProvider);
+      final settingsFromRegistry = registry.resolve<AppSettingsStore>();
+      expect(identical(settingsFromProvider, settingsFromRegistry), isTrue);
+    });
+
+    test('native M4-08 provider works without registry in test mode', () {
+      // Tests can use native provider without touching serviceRegistryProvider
+      final container = ProviderContainer(
+        overrides: [
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Native provider should create its own instance
+      final settingsStore = container.read(appSettingsStoreProvider);
+      expect(settingsStore, isA<AppSettingsStore>());
     });
   });
 }

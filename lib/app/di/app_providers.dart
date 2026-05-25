@@ -22,6 +22,7 @@ import '../state/app_draft_storage.dart';
 import '../state/app_draft_store.dart';
 import '../state/app_scene_context_storage.dart';
 import '../state/app_scene_context_store.dart';
+import '../state/app_settings_storage.dart';
 import '../state/app_settings_store.dart';
 import '../state/app_simulation_storage.dart';
 import '../state/app_simulation_store.dart';
@@ -146,6 +147,11 @@ final storyArcStorageProvider = Provider<StoryArcStorage>((ref) {
   return createDefaultStoryArcStorage();
 });
 
+/// Native Riverpod provider for [AppSettingsStorage].
+final appSettingsStorageProvider = Provider<AppSettingsStorage>((ref) {
+  return createDefaultAppSettingsStorage();
+});
+
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration
@@ -181,18 +187,27 @@ abstract class RegistryStoreNotifier<T extends Listenable> extends Notifier<T> {
 class AppWorkspaceStoreNotifier
     extends RegistryStoreNotifier<AppWorkspaceStore> {}
 
-class AppSettingsStoreNotifier
-    extends RegistryStoreNotifier<AppSettingsStore> {}
-
 final appWorkspaceStoreProvider =
     NotifierProvider<AppWorkspaceStoreNotifier, AppWorkspaceStore>(
       AppWorkspaceStoreNotifier.new,
     );
 
-final appSettingsStoreProvider =
-    NotifierProvider<AppSettingsStoreNotifier, AppSettingsStore>(
-      AppSettingsStoreNotifier.new,
-    );
+final appSettingsStoreProvider = Provider<AppSettingsStore>((ref) {
+  final storage = ref.watch(appSettingsStorageProvider);
+  final llmClient = ref.watch(appLlmClientProvider);
+  final requestPool = ref.watch(appLlmRequestPoolProvider);
+  final eventLog = ref.watch(appEventLogProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final store = AppSettingsStore(
+    storage: storage,
+    llmClient: llmClient,
+    requestPool: requestPool,
+    eventLog: eventLog,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 final appDraftStoreProvider = Provider<AppDraftStore>((ref) {
   final workspaceStore = ref.watch(appWorkspaceStoreProvider);
@@ -459,6 +474,11 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     storyArcStoreProvider.overrideWith(
       (ref) => registry.resolve<StoryArcStore>(),
+    ),
+    // M4-08 settings store: use registry-owned instance during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    appSettingsStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppSettingsStore>(),
     ),
   ];
 }
