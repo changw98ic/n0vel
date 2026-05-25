@@ -28,6 +28,7 @@ import '../state/app_simulation_storage.dart';
 import '../state/app_simulation_store.dart';
 import '../state/app_version_store.dart';
 import '../state/app_version_storage.dart';
+import '../state/app_workspace_storage.dart';
 import '../state/app_workspace_store.dart';
 import '../state/fulltext_search_service.dart';
 import '../state/story_generation_run_store.dart';
@@ -152,6 +153,11 @@ final appSettingsStorageProvider = Provider<AppSettingsStorage>((ref) {
   return createDefaultAppSettingsStorage();
 });
 
+/// Native Riverpod provider for [AppWorkspaceStorage].
+final appWorkspaceStorageProvider = Provider<AppWorkspaceStorage>((ref) {
+  return createDefaultAppWorkspaceStorage();
+});
+
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration
@@ -184,8 +190,38 @@ abstract class RegistryStoreNotifier<T extends Listenable> extends Notifier<T> {
   bool updateShouldNotify(T previous, T next) => true;
 }
 
-class AppWorkspaceStoreNotifier
-    extends RegistryStoreNotifier<AppWorkspaceStore> {}
+/// Native Riverpod [NotifierProvider] for [AppWorkspaceStore].
+///
+/// Bridges [AppWorkspaceStore.notifyListeners()] to Riverpod rebuilds.
+/// The store is constructed from native Riverpod dependencies.
+class AppWorkspaceStoreNotifier extends Notifier<AppWorkspaceStore> {
+  @override
+  AppWorkspaceStore build() {
+    final storage = ref.watch(appWorkspaceStorageProvider);
+    final eventBus = ref.watch(appEventBusProvider);
+    final roleplaySessionStore = ref.watch(roleplaySessionStoreProvider);
+    final characterMemoryStore = ref.watch(characterMemoryStoreProvider);
+    final store = AppWorkspaceStore(
+      storage: storage,
+      eventBus: eventBus,
+      projectDeletionCleaners: [
+        (projectId) => roleplaySessionStore.clearProject(projectId),
+        (projectId) => characterMemoryStore.clearProject(projectId),
+      ],
+    );
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() {
+      store.removeListener(listener);
+      store.dispose();
+    });
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(AppWorkspaceStore previous, AppWorkspaceStore next) =>
+      true;
+}
 
 final appWorkspaceStoreProvider =
     NotifierProvider<AppWorkspaceStoreNotifier, AppWorkspaceStore>(
@@ -501,6 +537,11 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     appSettingsStoreProvider.overrideWith(
       () => _RegistryAppSettingsStoreNotifier(registry),
     ),
+    // M4-09 workspace store: use registry-owned instance during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    appWorkspaceStoreProvider.overrideWith(
+      () => _RegistryAppWorkspaceStoreNotifier(registry),
+    ),
   ];
 }
 
@@ -521,5 +562,25 @@ class _RegistryAppSettingsStoreNotifier extends AppSettingsStoreNotifier {
 
   @override
   bool updateShouldNotify(AppSettingsStore previous, AppSettingsStore next) =>
+      true;
+}
+
+/// Registry-backed notifier for [AppWorkspaceStore] used during app bootstrap.
+class _RegistryAppWorkspaceStoreNotifier extends AppWorkspaceStoreNotifier {
+  _RegistryAppWorkspaceStoreNotifier(this._registry);
+
+  final ServiceRegistry _registry;
+
+  @override
+  AppWorkspaceStore build() {
+    final store = _registry.resolve<AppWorkspaceStore>();
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() => store.removeListener(listener));
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(AppWorkspaceStore previous, AppWorkspaceStore next) =>
       true;
 }

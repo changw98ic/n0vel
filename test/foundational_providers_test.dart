@@ -502,7 +502,8 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(21));
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -711,7 +712,8 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(21));
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -967,7 +969,8 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(21));
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1233,7 +1236,8 @@ void main() {
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(21));
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1492,14 +1496,16 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now be 20:
+      // Count should now be 22:
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
-      expect(overrides.length, equals(21));
+      // - 1 M4-08 settings store (override generated even if not registered)
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1642,7 +1648,7 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now be 21:
+      // Count should now be 22:
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
@@ -1650,7 +1656,8 @@ void main() {
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
       // - 1 M4-08 settings store
-      expect(overrides.length, equals(21));
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1679,6 +1686,194 @@ void main() {
       final settingsStore = container.read(appSettingsStoreProvider);
       expect(settingsStore, isA<AppSettingsStore>());
     });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native workspace store provider tests (M4-09)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('appWorkspaceStoreProvider (native M4-09)', () {
+    test('creates AppWorkspaceStore with InMemoryAppWorkspaceStorage', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(appWorkspaceStoreProvider);
+      expect(store, isA<AppWorkspaceStore>());
+    });
+
+    test('uses InMemoryAppWorkspaceStorage in tests', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final storage = container.read(appWorkspaceStorageProvider);
+      expect(storage, isA<InMemoryAppWorkspaceStorage>());
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store1 = container.read(appWorkspaceStoreProvider);
+      final store2 = container.read(appWorkspaceStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+
+    test('disposes AppWorkspaceStore on container dispose', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+
+      final store = container.read(appWorkspaceStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('workspace mutations notify Riverpod listeners', () async {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(appWorkspaceStoreProvider);
+      var notificationCount = 0;
+      container.listen<AppWorkspaceStore>(
+        appWorkspaceStoreProvider,
+        (_, _) => notificationCount++,
+      );
+
+      // No initial notification without fireImmediately: true
+      expect(notificationCount, equals(0));
+
+      // Mutate workspace
+      store.createProject(projectName: 'M4-09 notify');
+
+      // Wait for async operation
+      await container.pump();
+
+      // Should have received notification after mutation
+      expect(notificationCount, equals(1));
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-09 coexistence', () {
+    test('includes M4-09 workspace store override', () {
+      final registry = createTestRegistry();
+      final eventBus = AppEventBus();
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+        eventBus: eventBus,
+      );
+      registry.registerSingleton<AppWorkspaceStore>(workspaceStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now be 22:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      // - 3 M4-06 workspace/session stores
+      // - 3 M4-07 story core stores
+      // - 1 M4-08 settings store
+      // - 1 M4-09 workspace store
+      expect(overrides.length, equals(22));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+        workspaceStore.dispose();
+        eventBus.dispose();
+      });
+
+      // Verify that provider returns the same instance as registry
+      final workspaceFromProvider = container.read(appWorkspaceStoreProvider);
+      final workspaceFromRegistry = registry.resolve<AppWorkspaceStore>();
+      expect(identical(workspaceFromProvider, workspaceFromRegistry), isTrue);
+    });
+
+    test('native M4-09 provider works without registry in test mode', () {
+      // Tests can use native provider without touching serviceRegistryProvider
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Native provider should create its own instance
+      final workspaceStore = container.read(appWorkspaceStoreProvider);
+      expect(workspaceStore, isA<AppWorkspaceStore>());
+    });
+
+    // Note: StoryGenerationRunStoreNotifier remains registry-backed (out of scope for M4-09).
+    // This is verified by source-level evidence in app_providers.dart:
+    // `StoryGenerationRunStoreNotifier extends RegistryStoreNotifier` (line 408-409).
   });
 }
 
