@@ -30,6 +30,7 @@ import '../state/app_version_storage.dart';
 import '../state/app_workspace_storage.dart';
 import '../state/app_workspace_store.dart';
 import '../state/fulltext_search_service.dart';
+import '../state/model_profile_store.dart';
 import '../state/story_generation_run_storage.dart';
 import '../state/story_generation_run_store.dart';
 import '../state/story_generation_store.dart';
@@ -245,6 +246,18 @@ final appSettingsStoreProvider =
     NotifierProvider<AppSettingsStoreNotifier, AppSettingsStore>(
       AppSettingsStoreNotifier.new,
     );
+
+/// Focused model-profile management facade over [AppSettingsStore].
+///
+/// This keeps model/provider profile CRUD and profile connection testing
+/// available through a narrow boundary while settings remains the source of
+/// truth for persistence and secret handling.
+final modelProfileStoreProvider = Provider<ModelProfileStore>((ref) {
+  final settingsStore = ref.watch(appSettingsStoreProvider);
+  final store = ModelProfileStore(settingsStore: settingsStore);
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 final appDraftStoreProvider = Provider<AppDraftStore>((ref) {
   final workspaceStore = ref.watch(appWorkspaceStoreProvider);
