@@ -31,6 +31,7 @@ part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
 part 'story_generation_run/story_generation_run_snapshot_repository.dart';
 part 'story_generation_run/story_generation_run_event_subscriptions.dart';
+part 'story_generation_run/story_generation_run_lifecycle_coordinator.dart';
 part 'story_generation_run/story_generation_run_pipeline_factory.dart';
 part 'story_generation_run/story_generation_run_session_controller.dart';
 
@@ -48,6 +49,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     AppEventBus? eventBus,
     StoryGenerationRunStorage? storage,
     SceneContextAssembler? sceneContextAssembler,
+    StoryGenerationRunLifecycleCoordinator? lifecycleCoordinator,
     StoryGenerationRunPipelineFactory? pipelineFactory,
     PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)?
     orchestratorFactory,
@@ -59,6 +61,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _snapshotRepository = StoryGenerationRunSnapshotRepository(
          storage ?? createDefaultStoryGenerationRunStorage(),
        ),
+       _lifecycle =
+           lifecycleCoordinator ??
+           StoryGenerationRunLifecycleCoordinator(
+             initialSceneScopeId: workspaceStore.currentSceneScopeId,
+           ),
        _orchestratorFactory =
            orchestratorFactory ??
            (pipelineFactory ??
@@ -68,15 +75,13 @@ class StoryGenerationRunStore extends AppStoreListenable {
                      characterMemoryStore: characterMemoryStore,
                    ))
                .create {
-    _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
     _eventSubscriptions = StoryGenerationRunEventSubscriptions(
       eventBus: eventBus,
       onProjectDeleted: _handleProjectDeleted,
       onSceneScopeChanged: _handleSceneScopeChanged,
     );
-    _readyFuture = _restoreCurrentScene();
-    unawaited(_readyFuture);
+    _scheduleRestoreCurrentScene();
   }
 
   final AppSettingsStore _settingsStore;
@@ -85,6 +90,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final AuthorFeedbackStore? _authorFeedbackStore;
   final ReviewTaskStore? _reviewTaskStore;
   final StoryGenerationRunSnapshotRepository _snapshotRepository;
+  final StoryGenerationRunLifecycleCoordinator _lifecycle;
   final StoryGenerationRunSessionController _runSession =
       StoryGenerationRunSessionController();
   late final StoryGenerationRunEventSubscriptions _eventSubscriptions;
@@ -92,14 +98,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
   _orchestratorFactory;
   final Map<String, List<String>> _directorFeedbackBySceneScope =
       <String, List<String>>{};
-  late String _activeSceneScopeId;
   late StoryGenerationRunSnapshot _snapshot;
-  Future<void> _readyFuture = Future<void>.value();
-  int _mutationVersion = 0;
 
   StoryGenerationRunSnapshot get snapshot => _snapshot;
-  String get activeSceneScopeId => _activeSceneScopeId;
-  Future<void> get ready => _readyFuture;
+  String get activeSceneScopeId => _lifecycle.activeSceneScopeId;
+  Future<void> get ready => _lifecycle.ready;
 
   Future<StoryGenerationRunPhaseTransitionResult> transitionCurrentPhase(
     StoryGenerationRunPhase nextPhase,
@@ -168,26 +171,17 @@ class StoryGenerationRunStore extends AppStoreListenable {
       ];
     }
 
-    _mutationVersion += 1;
     _snapshot = _idleSnapshotForCurrentScene();
-    _readyFuture = _restoreCurrentScene();
-    unawaited(_readyFuture);
+    _lifecycle.markMutated();
+    _scheduleRestoreCurrentScene();
     notifyListeners();
   }
 
-  Future<void> waitUntilReady() async {
-    while (true) {
-      final currentReadyFuture = _readyFuture;
-      await currentReadyFuture;
-      if (identical(currentReadyFuture, _readyFuture)) {
-        return;
-      }
-    }
-  }
+  Future<void> waitUntilReady() => _lifecycle.waitUntilReady();
 
   void _handleProjectDeleted(ProjectDeletedEvent event) {
     final sceneScopePrefix = '${event.projectId}::';
-    _mutationVersion += 1;
+    _lifecycle.markMutated();
     _snapshotRepository.clearCachedProject(event.projectId);
     _directorFeedbackBySceneScope.removeWhere(
       (key, _) => key == event.projectId || key.startsWith(sceneScopePrefix),
@@ -200,7 +194,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     await _generationStore.waitUntilReady();
     await _authorFeedbackStore?.waitUntilReady();
     final runToken = _beginRun();
-    final runSceneScopeId = _activeSceneScopeId;
+    final runSceneScopeId = activeSceneScopeId;
     final currentScene = _workspaceStore.currentScene;
     final revisionRequests = _activeRevisionRequestsForCurrentScene(
       chapterId: currentScene.chapterLabel,
@@ -367,7 +361,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   Future<bool> cancelCurrentRun() async {
     if (_snapshot.status != StoryGenerationRunStatus.running ||
-        !_runSession.isActiveRunForScene(_activeSceneScopeId)) {
+        !_runSession.isActiveRunForScene(activeSceneScopeId)) {
       return false;
     }
     _recordSceneStateForCurrentRun(
@@ -403,9 +397,9 @@ class StoryGenerationRunStore extends AppStoreListenable {
       return;
     }
     final feedbacks = List<String>.from(
-      _directorFeedbackBySceneScope[_activeSceneScopeId] ?? const <String>[],
+      _directorFeedbackBySceneScope[activeSceneScopeId] ?? const <String>[],
     )..add(trimmed);
-    _directorFeedbackBySceneScope[_activeSceneScopeId] = feedbacks;
+    _directorFeedbackBySceneScope[activeSceneScopeId] = feedbacks;
     await _setSnapshot(
       _snapshot.copyWith(
         messages: [
@@ -421,30 +415,28 @@ class StoryGenerationRunStore extends AppStoreListenable {
   }
 
   void _handleSceneScopeChanged(String nextSceneScopeId) {
-    if (nextSceneScopeId == _activeSceneScopeId) {
+    if (nextSceneScopeId == activeSceneScopeId) {
       return;
     }
     if (_snapshot.status == StoryGenerationRunStatus.running &&
-        _runSession.isActiveRunForScene(_activeSceneScopeId)) {
+        _runSession.isActiveRunForScene(activeSceneScopeId)) {
       unawaited(cancelCurrentRun());
     }
-    _mutationVersion += 1;
-    _activeSceneScopeId = nextSceneScopeId;
+    _lifecycle.moveToSceneScope(nextSceneScopeId);
     _snapshot = _idleSnapshotForCurrentScene();
-    _readyFuture = _restoreCurrentScene();
-    unawaited(_readyFuture);
+    _scheduleRestoreCurrentScene();
     notifyListeners();
   }
 
   int _beginRun() {
-    return _runSession.begin(_activeSceneScopeId);
+    return _runSession.begin(activeSceneScopeId);
   }
 
   bool _isCurrentRun(int runToken, String sceneScopeId) {
     return _runSession.isCurrent(
       runToken: runToken,
       runSceneScopeId: sceneScopeId,
-      visibleSceneScopeId: _activeSceneScopeId,
+      visibleSceneScopeId: activeSceneScopeId,
     );
   }
 
@@ -477,6 +469,10 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   void _notifySnapshotListeners() {
     notifyListeners();
+  }
+
+  void _scheduleRestoreCurrentScene() {
+    unawaited(_lifecycle.trackReady(_restoreCurrentScene()));
   }
 
   /// Marks the specified stage as failed and all subsequent stages as pending.

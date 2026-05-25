@@ -1,9 +1,6 @@
 part of '../story_generation_run_store.dart';
 
 /// Owns active run token and scene-scope bookkeeping for a run session.
-///
-/// [StoryGenerationRunStore] still owns the visible scene scope because it
-/// coordinates snapshot restoration and UI projection around that selection.
 class StoryGenerationRunSessionController {
   int _runToken = 0;
   int? _activeRunToken;

@@ -158,7 +158,7 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
   List<StoryGenerationRunMessage> _authorFeedbackMessages() {
     return [
       for (final feedback
-          in _directorFeedbackBySceneScope[_activeSceneScopeId] ??
+          in _directorFeedbackBySceneScope[activeSceneScopeId] ??
               const <String>[])
         StoryGenerationRunMessage(
           title: '作者反馈',

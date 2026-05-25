@@ -126,6 +126,54 @@ void main() {
     });
   });
 
+  group('StoryGenerationRunLifecycleCoordinator', () {
+    test(
+      'invalidates stale scene work when the active scene scope changes',
+      () {
+        final coordinator = StoryGenerationRunLifecycleCoordinator(
+          initialSceneScopeId: 'project::scene-a',
+        );
+
+        final mutationVersion = coordinator.markMutated();
+        final sceneScopeId = coordinator.activeSceneScopeId;
+
+        expect(coordinator.isCurrent(mutationVersion, sceneScopeId), isTrue);
+        expect(coordinator.moveToSceneScope('project::scene-b'), isTrue);
+        expect(coordinator.activeSceneScopeId, 'project::scene-b');
+        expect(coordinator.isCurrent(mutationVersion, sceneScopeId), isFalse);
+      },
+    );
+
+    test('waitUntilReady waits for the latest tracked ready future', () async {
+      final coordinator = StoryGenerationRunLifecycleCoordinator(
+        initialSceneScopeId: 'project::scene-a',
+      );
+      final firstReady = Completer<void>();
+      final secondReady = Completer<void>();
+      var waitCompleted = false;
+
+      coordinator.trackReady(firstReady.future);
+      final waitFuture = coordinator.waitUntilReady().then((_) {
+        waitCompleted = true;
+      });
+
+      await Future<void>.delayed(Duration.zero);
+      expect(waitCompleted, isFalse);
+
+      coordinator.moveToSceneScope('project::scene-b');
+      coordinator.trackReady(secondReady.future);
+      firstReady.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(waitCompleted, isFalse);
+
+      secondReady.complete();
+      await waitFuture;
+
+      expect(waitCompleted, isTrue);
+    });
+  });
+
   group('StoryGenerationRunSnapshot lifecycle phase', () {
     test(
       'persists and restores the PRD workflow phase separately from status',

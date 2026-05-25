@@ -2,10 +2,11 @@ part of '../story_generation_run_store.dart';
 
 extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
   Future<void> _restoreCurrentScene() async {
-    final restoreVersion = _mutationVersion;
-    final sceneScopeId = _activeSceneScopeId;
+    final restoreVersion = _lifecycle.mutationVersion;
+    final sceneScopeId = activeSceneScopeId;
     final restored = await _snapshotRepository.restore(sceneScopeId);
-    if (restoreVersion != _mutationVersion || restored == null) {
+    if (!_lifecycle.isCurrent(restoreVersion, sceneScopeId) ||
+        restored == null) {
       return;
     }
     _snapshot = restored;
@@ -26,13 +27,11 @@ extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
   }
 
   Future<void> _setSnapshot(StoryGenerationRunSnapshot next) async {
-    _mutationVersion += 1;
-    final mutationVersion = _mutationVersion;
-    final sceneScopeId = _activeSceneScopeId;
+    final mutationVersion = _lifecycle.markMutated();
+    final sceneScopeId = activeSceneScopeId;
     await _snapshotRepository.persist(next, sceneScopeId);
     _syncFeedbackCache(sceneScopeId, next);
-    if (mutationVersion == _mutationVersion &&
-        sceneScopeId == _activeSceneScopeId) {
+    if (_lifecycle.isCurrent(mutationVersion, sceneScopeId)) {
       _snapshot = next;
       _notifySnapshotListeners();
     }
