@@ -30,6 +30,7 @@ import 'package:novel_writer/features/author_feedback/data/author_feedback_stora
 import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
+import 'package:novel_writer/features/writing_stats/data/writing_stats_store.dart';
 import 'package:novel_writer/features/writing_stats/data/writing_stats_storage.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
@@ -97,6 +98,13 @@ ServiceRegistry createTestRegistry({AppLlmClient? llmClient}) {
   registry.registerFactory<AppVersionStore>(
     (r) => AppVersionStore(
       storage: InMemoryAppVersionStorage(),
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+  registry.registerFactory<WritingStatsStore>(
+    (r) => WritingStatsStore(
+      storage: _InMemoryWritingStatsStorage(),
       workspaceStore: r.resolve<AppWorkspaceStore>(),
       eventBus: r.resolve<AppEventBus>(),
     ),

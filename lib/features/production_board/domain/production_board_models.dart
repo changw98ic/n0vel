@@ -2,6 +2,7 @@ import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/state/story_generation_store.dart';
 import '../../../app/state/story_outline_store.dart';
 import '../../../domain/workspace_models.dart';
+import '../../writing_stats/domain/writing_stats_models.dart';
 
 enum ProductionBoardLane {
   notStarted,
@@ -20,6 +21,8 @@ class ProductionBoardSnapshot {
     required this.completedScenes,
     required this.inFlightScenes,
     required this.needsWorkScenes,
+    required this.totalWordCount,
+    required this.dailyWordTrend,
     required this.lanes,
     required this.chapters,
     required this.recentRun,
@@ -32,6 +35,8 @@ class ProductionBoardSnapshot {
   final int completedScenes;
   final int inFlightScenes;
   final int needsWorkScenes;
+  final int totalWordCount;
+  final List<ProductionDailyWordStat> dailyWordTrend;
   final Map<ProductionBoardLane, List<ProductionBoardSceneCard>> lanes;
   final List<ProductionBoardChapterCard> chapters;
   final ProductionBoardRunCard recentRun;
@@ -53,6 +58,8 @@ class ProductionBoardChapterCard {
     required this.statusLabel,
     required this.completedScenes,
     required this.totalScenes,
+    required this.firstSceneId,
+    required this.firstSceneLocation,
   });
 
   final String id;
@@ -60,6 +67,17 @@ class ProductionBoardChapterCard {
   final String statusLabel;
   final int completedScenes;
   final int totalScenes;
+  final String firstSceneId;
+  final String firstSceneLocation;
+
+  bool get canOpen => firstSceneId.trim().isNotEmpty;
+}
+
+class ProductionDailyWordStat {
+  const ProductionDailyWordStat({required this.date, required this.deltaChars});
+
+  final String date;
+  final int deltaChars;
 }
 
 class ProductionBoardSceneCard {
@@ -105,6 +123,8 @@ class ProductionBoardSnapshotBuilder {
     required StoryOutlineSnapshot outline,
     required StoryGenerationSnapshot generation,
     required StoryGenerationRunSnapshot run,
+    WritingStatsSnapshot writingStats = WritingStatsSnapshot.empty,
+    String draftText = '',
   }) {
     final sceneSources = _sceneSources(outline, workspaceScenes);
     final generatedScenes = <String, StorySceneGenerationState>{
@@ -137,23 +157,11 @@ class ProductionBoardSnapshotBuilder {
     final chapterSources = _chapterSources(outline, workspaceScenes);
     final chapters = [
       for (final source in chapterSources)
-        ProductionBoardChapterCard(
-          id: source.chapterId,
-          title: source.chapterTitle,
-          statusLabel: _chapterStatusLabel(
-            generatedChapters[source.chapterId]?.status,
-          ),
-          completedScenes: sceneSources
-              .where((scene) => scene.chapterId == source.chapterId)
-              .where(
-                (scene) =>
-                    generatedScenes[scene.sceneId]?.status ==
-                    StorySceneGenerationStatus.passed,
-              )
-              .length,
-          totalScenes: sceneSources
-              .where((scene) => scene.chapterId == source.chapterId)
-              .length,
+        _chapterCardForSource(
+          source,
+          sceneSources,
+          generatedScenes,
+          generatedChapters[source.chapterId],
         ),
     ];
 
@@ -171,6 +179,8 @@ class ProductionBoardSnapshotBuilder {
       completedScenes: completedScenes,
       inFlightScenes: inFlightScenes,
       needsWorkScenes: needsWorkScenes,
+      totalWordCount: _totalWordCount(writingStats, draftText),
+      dailyWordTrend: _dailyWordTrend(writingStats.dailyStats),
       lanes: lanes,
       chapters: chapters,
       recentRun: ProductionBoardRunCard(
@@ -196,6 +206,7 @@ class ProductionBoardSnapshotBuilder {
               sceneId: scene.id,
               sceneTitle: scene.title,
               sceneSummary: scene.summary,
+              sceneLocation: '${chapter.title} · ${scene.title}',
             ),
       ];
     }
@@ -206,7 +217,61 @@ class ProductionBoardSnapshotBuilder {
           sceneId: scene.id,
           sceneTitle: scene.title,
           sceneSummary: scene.summary,
+          sceneLocation: scene.displayLocation,
         ),
+    ];
+  }
+
+  ProductionBoardChapterCard _chapterCardForSource(
+    _ChapterSource source,
+    List<_SceneSource> sceneSources,
+    Map<String, StorySceneGenerationState> generatedScenes,
+    StoryChapterGenerationState? generatedChapter,
+  ) {
+    final chapterScenes = [
+      for (final scene in sceneSources)
+        if (scene.chapterId == source.chapterId) scene,
+    ];
+    final firstScene = chapterScenes.isEmpty ? null : chapterScenes.first;
+    return ProductionBoardChapterCard(
+      id: source.chapterId,
+      title: source.chapterTitle,
+      statusLabel: _chapterStatusLabel(generatedChapter?.status),
+      completedScenes: chapterScenes
+          .where(
+            (scene) =>
+                generatedScenes[scene.sceneId]?.status ==
+                StorySceneGenerationStatus.passed,
+          )
+          .length,
+      totalScenes: chapterScenes.length,
+      firstSceneId: firstScene?.sceneId ?? '',
+      firstSceneLocation: firstScene?.sceneLocation ?? '',
+    );
+  }
+
+  int _totalWordCount(WritingStatsSnapshot writingStats, String draftText) {
+    final persistedTotal = writingStats.projectStat.totalCharCount;
+    if (persistedTotal > 0) {
+      return persistedTotal;
+    }
+    return countNonWhitespace(draftText);
+  }
+
+  List<ProductionDailyWordStat> _dailyWordTrend(
+    List<WritingDailyStat> dailyStats,
+  ) {
+    final byDate = <String, int>{};
+    for (final stat in dailyStats) {
+      byDate[stat.date] = (byDate[stat.date] ?? 0) + stat.deltaChars;
+    }
+    final dates = byDate.keys.toList()..sort();
+    final visibleDates = dates.length <= 7
+        ? dates
+        : dates.sublist(dates.length - 7);
+    return [
+      for (final date in visibleDates)
+        ProductionDailyWordStat(date: date, deltaChars: byDate[date] ?? 0),
     ];
   }
 
@@ -286,12 +351,14 @@ class _SceneSource {
     required this.sceneId,
     required this.sceneTitle,
     required this.sceneSummary,
+    required this.sceneLocation,
   });
 
   final String chapterId;
   final String sceneId;
   final String sceneTitle;
   final String sceneSummary;
+  final String sceneLocation;
 }
 
 class _ChapterSource {

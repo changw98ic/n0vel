@@ -65,6 +65,8 @@ class ProductionBoardMain extends StatelessWidget {
         percent: (snapshot.completionRatio * 100).round(),
       ),
       const SizedBox(height: AppDesignTokens.space16),
+      ProductionDailyTrendPanel(snapshot: snapshot),
+      const SizedBox(height: AppDesignTokens.space16),
       ProductionActionStrip(
         onOpenWorkbench: onOpenWorkbench,
         onOpenExport: onOpenExport,
@@ -126,7 +128,11 @@ class ProductionProgressPanel extends StatelessWidget {
             runSpacing: 8,
             children: [
               ProductionMetricChip(
-                label: '章节',
+                label: '总字数',
+                value: _formatProductionNumber(snapshot.totalWordCount),
+              ),
+              ProductionMetricChip(
+                label: '章节数',
                 value: '${snapshot.totalChapters}',
               ),
               ProductionMetricChip(
@@ -182,6 +188,110 @@ class ProductionMetricChip extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: Text('$label $value', style: theme.textTheme.bodySmall),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Daily trend panel
+// ---------------------------------------------------------------------------
+
+class ProductionDailyTrendPanel extends StatelessWidget {
+  const ProductionDailyTrendPanel({super.key, required this.snapshot});
+
+  final ProductionBoardSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final trend = snapshot.dailyWordTrend;
+    final maxDelta = trend.fold<int>(
+      0,
+      (max, item) => item.deltaChars > max ? item.deltaChars : max,
+    );
+    return Container(
+      key: ProductionBoardPage.dailyTrendKey,
+      padding: const EdgeInsets.all(AppDesignTokens.space12),
+      decoration: BoxDecoration(
+        color: palette.subtle,
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('每日字数趋势', style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppDesignTokens.space8),
+          if (trend.isEmpty)
+            Text(
+              '暂无写作趋势',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (final item in trend) ...[
+                  ProductionDailyTrendRow(item: item, maxDelta: maxDelta),
+                  if (item != trend.last)
+                    const SizedBox(height: AppDesignTokens.space8),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProductionDailyTrendRow extends StatelessWidget {
+  const ProductionDailyTrendRow({
+    super.key,
+    required this.item,
+    required this.maxDelta,
+  });
+
+  final ProductionDailyWordStat item;
+  final int maxDelta;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = desktopPalette(context);
+    final ratio = maxDelta <= 0 ? 0.0 : item.deltaChars / maxDelta;
+    final valueLabel = item.deltaChars >= 0
+        ? '+${_formatProductionNumber(item.deltaChars)}'
+        : '-${_formatProductionNumber(item.deltaChars.abs())}';
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(item.date, style: theme.textTheme.bodySmall),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
+            child: LinearProgressIndicator(
+              value: ratio.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: palette.elevated,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDesignTokens.space8),
+        SizedBox(
+          width: 56,
+          child: Text(
+            valueLabel,
+            textAlign: TextAlign.end,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -515,10 +625,12 @@ class ProductionBoardSide extends StatelessWidget {
     super.key,
     required this.snapshot,
     required this.compact,
+    required this.onOpenChapter,
   });
 
   final ProductionBoardSnapshot snapshot;
   final bool compact;
+  final ValueChanged<ProductionBoardChapterCard> onOpenChapter;
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +644,10 @@ class ProductionBoardSide extends StatelessWidget {
           const SizedBox(height: AppDesignTokens.space16),
           SizedBox(
             height: 320,
-            child: ProductionChapterList(chapters: snapshot.chapters),
+            child: ProductionChapterList(
+              chapters: snapshot.chapters,
+              onOpenChapter: onOpenChapter,
+            ),
           ),
         ],
       );
@@ -542,7 +657,12 @@ class ProductionBoardSide extends StatelessWidget {
       children: [
         Expanded(child: ProductionRecentRunCard(run: snapshot.recentRun)),
         const SizedBox(height: AppDesignTokens.space16),
-        Expanded(child: ProductionChapterList(chapters: snapshot.chapters)),
+        Expanded(
+          child: ProductionChapterList(
+            chapters: snapshot.chapters,
+            onOpenChapter: onOpenChapter,
+          ),
+        ),
       ],
     );
   }
@@ -595,14 +715,20 @@ class ProductionRecentRunCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class ProductionChapterList extends StatelessWidget {
-  const ProductionChapterList({super.key, required this.chapters});
+  const ProductionChapterList({
+    super.key,
+    required this.chapters,
+    required this.onOpenChapter,
+  });
 
   final List<ProductionBoardChapterCard> chapters;
+  final ValueChanged<ProductionBoardChapterCard> onOpenChapter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
+      key: ProductionBoardPage.chapterListKey,
       decoration: appPanelDecoration(context),
       padding: const EdgeInsets.all(AppDesignTokens.space16),
       child: chapters.isEmpty
@@ -619,7 +745,10 @@ class ProductionChapterList extends StatelessWidget {
                   return Text('章节进度', style: theme.textTheme.titleMedium);
                 }
                 final chapter = chapters[index - 1];
-                return ProductionChapterTile(chapter: chapter);
+                return ProductionChapterTile(
+                  chapter: chapter,
+                  onOpenChapter: onOpenChapter,
+                );
               },
             ),
     );
@@ -631,32 +760,64 @@ class ProductionChapterList extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class ProductionChapterTile extends StatelessWidget {
-  const ProductionChapterTile({super.key, required this.chapter});
+  const ProductionChapterTile({
+    super.key,
+    required this.chapter,
+    required this.onOpenChapter,
+  });
 
   final ProductionBoardChapterCard chapter;
+  final ValueChanged<ProductionBoardChapterCard> onOpenChapter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
-    return Container(
-      padding: const EdgeInsets.all(AppDesignTokens.space12),
-      decoration: BoxDecoration(
-        color: palette.subtle,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
-        border: Border.all(color: palette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(chapter.title, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            '${chapter.statusLabel} · ${chapter.completedScenes}/${chapter.totalScenes} 章节',
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
+    return InkWell(
+      key: ProductionBoardPage.chapterTileKey(chapter.id),
+      onTap: chapter.canOpen ? () => onOpenChapter(chapter) : null,
+      borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
+      child: Container(
+        padding: const EdgeInsets.all(AppDesignTokens.space12),
+        decoration: BoxDecoration(
+          color: palette.subtle,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusSmall),
+          border: Border.all(color: palette.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(chapter.title, style: theme.textTheme.titleSmall),
+                ),
+                if (chapter.canOpen)
+                  Icon(
+                    Icons.open_in_new_outlined,
+                    size: 14,
+                    color: palette.secondaryText,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${chapter.statusLabel} · ${chapter.completedScenes}/${chapter.totalScenes} 章节',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+String _formatProductionNumber(int value) {
+  if (value >= 10000) {
+    return '${(value / 10000).toStringAsFixed(1)}万';
+  }
+  if (value >= 1000) {
+    return '${(value / 1000).toStringAsFixed(1)}k';
+  }
+  return value.toString();
 }
