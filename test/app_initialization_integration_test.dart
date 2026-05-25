@@ -69,6 +69,8 @@ void _installTestRegistry() {
 }
 
 void _clearOverrides() {
+  NovelWriterApp.debugUseProviderBootstrap = false;
+  NovelWriterApp.debugProviderOverrides = const [];
   NovelWriterApp.debugRegistryOverride = null;
   NovelWriterApp.debugCreateAutoBackupService = createDefaultAutoBackupService;
   NovelWriterApp.debugShowRecoveryDialog = showCrashRecoveryDialog;
@@ -189,6 +191,60 @@ void main() {
       expect(find.text('custom home'), findsOneWidget);
       expect(find.byType(ProjectListPage), findsNothing);
     });
+
+    testWidgets(
+      'provider-first debug bootstrap resolves native providers without registry',
+      (tester) async {
+        NovelWriterApp.debugRegistryOverride?.disposeAll();
+        NovelWriterApp.debugRegistryOverride = null;
+        NovelWriterApp.debugUseProviderBootstrap = true;
+        NovelWriterApp.debugProviderOverrides = createTestProviderOverrides();
+
+        await tester.pumpWidget(
+          NovelWriterApp(
+            home: Builder(
+              builder: (context) {
+                final container = ProviderScope.containerOf(context);
+
+                Object? registryReadError;
+                try {
+                  container.read(serviceRegistryProvider);
+                } catch (error) {
+                  registryReadError = error;
+                }
+                expect(registryReadError, isNotNull);
+                expect(
+                  registryReadError.toString(),
+                  contains('serviceRegistryProvider not overridden'),
+                );
+
+                container.read(appSettingsStoreProvider);
+                container.read(appWorkspaceStoreProvider);
+                container.read(appDraftStoreProvider);
+                container.read(appAiHistoryStoreProvider);
+                container.read(appVersionStoreProvider);
+                container.read(appSceneContextStoreProvider);
+                container.read(appSimulationStoreProvider);
+                container.read(storyOutlineStoreProvider);
+                container.read(storyGenerationStoreProvider);
+                container.read(storyArcStoreProvider);
+                container.read(authorFeedbackStoreProvider);
+                container.read(reviewTaskStoreProvider);
+                container.read(storyGenerationRunStoreProvider);
+
+                return const Text(
+                  'provider-first ok',
+                  textDirection: TextDirection.ltr,
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('provider-first ok'), findsOneWidget);
+      },
+    );
 
     testWidgets('MaterialApp uses settings store themeMode', (tester) async {
       AppSettingsStore? settingsStore;

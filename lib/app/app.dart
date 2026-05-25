@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'di/app_providers.dart';
 import 'di/service_registration.dart';
@@ -34,13 +35,20 @@ class NovelWriterApp extends StatefulWidget {
   /// Set in test setUp / cleared in tearDown to inject in-memory storages.
   static ServiceRegistry? debugRegistryOverride;
 
+  /// Test-only switch for exercising native Riverpod provider bootstrapping
+  /// without ServiceRegistry-owned overrides.
+  static bool debugUseProviderBootstrap = false;
+
+  /// Test-only provider overrides used with [debugUseProviderBootstrap].
+  static List<Override> debugProviderOverrides = const <Override>[];
+
   @override
   State<NovelWriterApp> createState() => _NovelWriterAppState();
 }
 
 class _NovelWriterAppState extends State<NovelWriterApp>
     with WidgetsBindingObserver {
-  late final ServiceRegistry _registry;
+  ServiceRegistry? _registry;
   late final CrashDetector _crashDetector;
   bool _crashDetected = false;
   bool _dbCorrupted = false;
@@ -56,10 +64,16 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     _crashDetector = widget.crashDetector ?? CrashDetector();
     _crashDetected = _crashDetector.wasDirtyShutdown();
 
-    _registry = NovelWriterApp.debugRegistryOverride ?? ServiceRegistry();
-    if (NovelWriterApp.debugRegistryOverride == null) {
+    final debugRegistry = NovelWriterApp.debugRegistryOverride;
+    final useRegistryBootstrap =
+        debugRegistry != null || !NovelWriterApp.debugUseProviderBootstrap;
+    if (useRegistryBootstrap) {
+      final registry = debugRegistry ?? ServiceRegistry();
+      _registry = registry;
+    }
+    if (debugRegistry == null && useRegistryBootstrap) {
       try {
-        registerAppServices(_registry);
+        registerAppServices(_registry!);
       } on DatabaseCorruptedException {
         // DB corruption triggers the same recovery flow as a crash.
         _crashDetected = true;
@@ -72,7 +86,7 @@ class _NovelWriterAppState extends State<NovelWriterApp>
   void dispose() {
     _markCleanShutdownOnce();
     WidgetsBinding.instance.removeObserver(this);
-    _registry.disposeAll();
+    _registry?.disposeAll();
     super.dispose();
   }
 
@@ -97,7 +111,11 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     if (_dbCorrupted) {
       return _buildCorruptionRecovery(context);
     }
-    final overrides = appProviderOverridesForRegistry(_registry);
+    final registry = _registry;
+    final overrides = <Override>[
+      if (registry != null) ...appProviderOverridesForRegistry(registry),
+      ...NovelWriterApp.debugProviderOverrides,
+    ];
     return ProviderScope(
       overrides: overrides,
       child: Consumer(
