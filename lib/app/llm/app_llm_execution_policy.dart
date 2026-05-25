@@ -31,11 +31,11 @@ class AppLlmRetryPolicy {
     int baseDelayMs = 1000,
     int maxReconnectAttempts = 7,
   }) : this(
-          maxRetries: maxRetries,
-          baseDelayMs: baseDelayMs,
-          jitterRatio: 0.0,
-          maxReconnectAttempts: maxReconnectAttempts,
-        );
+         maxRetries: maxRetries,
+         baseDelayMs: baseDelayMs,
+         jitterRatio: 0.0,
+         maxReconnectAttempts: maxReconnectAttempts,
+       );
 
   /// Default policy with production-safe jitter.
   static const defaults = AppLlmRetryPolicy();
@@ -79,16 +79,22 @@ class AppLlmRetryPolicy {
 class AppLlmRequestExecutionPolicy {
   const AppLlmRequestExecutionPolicy({
     this.maxConcurrent = 3,
+    this.minStartIntervalMs = 0,
   });
 
   final int maxConcurrent;
+  final int minStartIntervalMs;
 
   /// Default policy.
   static const defaults = AppLlmRequestExecutionPolicy();
 
-  AppLlmRequestExecutionPolicy copyWith({int? maxConcurrent}) {
+  AppLlmRequestExecutionPolicy copyWith({
+    int? maxConcurrent,
+    int? minStartIntervalMs,
+  }) {
     return AppLlmRequestExecutionPolicy(
       maxConcurrent: maxConcurrent ?? this.maxConcurrent,
+      minStartIntervalMs: minStartIntervalMs ?? this.minStartIntervalMs,
     );
   }
 }

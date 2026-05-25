@@ -60,10 +60,7 @@ void main() {
     });
 
     test('backoffMs with jitter adds random delay', () {
-      const policy = AppLlmRetryPolicy(
-        baseDelayMs: 1000,
-        jitterRatio: 0.2,
-      );
+      const policy = AppLlmRetryPolicy(baseDelayMs: 1000, jitterRatio: 0.2);
 
       // Use deterministic seeded random for reproducibility
       final rng = Random(42);
@@ -118,20 +115,29 @@ void main() {
       const policy = AppLlmRequestExecutionPolicy.defaults;
 
       expect(policy.maxConcurrent, 3);
+      expect(policy.minStartIntervalMs, 0);
     });
 
     test('custom maxConcurrent is respected', () {
-      const policy = AppLlmRequestExecutionPolicy(maxConcurrent: 10);
+      const policy = AppLlmRequestExecutionPolicy(
+        maxConcurrent: 10,
+        minStartIntervalMs: 125,
+      );
 
       expect(policy.maxConcurrent, 10);
+      expect(policy.minStartIntervalMs, 125);
     });
 
     test('copyWith preserves unchanged values', () {
-      const policy = AppLlmRequestExecutionPolicy(maxConcurrent: 5);
+      const policy = AppLlmRequestExecutionPolicy(
+        maxConcurrent: 5,
+        minStartIntervalMs: 50,
+      );
 
       final copy = policy.copyWith(maxConcurrent: 10);
 
       expect(copy.maxConcurrent, 10);
+      expect(copy.minStartIntervalMs, 50);
     });
   });
 }

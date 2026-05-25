@@ -10,15 +10,21 @@ class AppLlmRequestPool {
   Completer<void>? _cooldownCompleter;
   Timer? _cooldownTimer;
   DateTime? _cooldownUntil;
+  Timer? _rateLimitTimer;
+  DateTime? _lastStartAt;
 
   AppLlmRequestPool({
     int maxConcurrent = 3,
     AppLlmRequestExecutionPolicy? executionPolicy,
-  })  : _executionPolicy = executionPolicy ??
-            AppLlmRequestExecutionPolicy(maxConcurrent: maxConcurrent),
-        _maxConcurrent = executionPolicy?.maxConcurrent ?? maxConcurrent;
+  }) : _executionPolicy = _normalizePolicy(
+         executionPolicy ??
+             AppLlmRequestExecutionPolicy(maxConcurrent: maxConcurrent),
+       ),
+       _maxConcurrent = _normalizeConcurrency(
+         executionPolicy?.maxConcurrent ?? maxConcurrent,
+       );
 
-  final AppLlmRequestExecutionPolicy _executionPolicy;
+  AppLlmRequestExecutionPolicy _executionPolicy;
 
   /// 暴露 execution policy 供外部可观测。
   AppLlmRequestExecutionPolicy get executionPolicy => _executionPolicy;
@@ -26,14 +32,24 @@ class AppLlmRequestPool {
   int get maxConcurrent => _maxConcurrent;
 
   set maxConcurrent(int value) {
-    final newLimit = value < 1 ? 1 : value;
+    final newLimit = _normalizeConcurrency(value);
     _maxConcurrent = newLimit;
+    _executionPolicy = _executionPolicy.copyWith(maxConcurrent: newLimit);
     _drainWaiters();
   }
 
   int get active => _active;
   int get waiting => _waiters.length;
   bool get isCoolingDown => _cooldownCompleter != null;
+
+  void applyExecutionPolicy(AppLlmRequestExecutionPolicy executionPolicy) {
+    final normalized = _normalizePolicy(executionPolicy);
+    _executionPolicy = normalized;
+    _maxConcurrent = normalized.maxConcurrent;
+    _rateLimitTimer?.cancel();
+    _rateLimitTimer = null;
+    _drainWaiters();
+  }
 
   void coolDownFor(Duration duration) {
     if (duration <= Duration.zero) {
@@ -57,6 +73,7 @@ class AppLlmRequestPool {
   Future<T> run<T>(Future<T> Function() operation) async {
     if (_canStartImmediately) {
       _active += 1;
+      _markRequestStart();
     } else {
       final waiter = Completer<void>();
       _waiters.add(waiter);
@@ -76,9 +93,11 @@ class AppLlmRequestPool {
 
   bool get _canStartImmediately =>
       _cooldownCompleter == null &&
+      _rateLimitTimer == null &&
       _waiters.isEmpty &&
       _reserved == 0 &&
-      _active < _maxConcurrent;
+      _active < _maxConcurrent &&
+      _canStartByRateLimit;
 
   void _finishCooldown() {
     final completer = _cooldownCompleter;
@@ -101,11 +120,66 @@ class AppLlmRequestPool {
     }
 
     while (_active + _reserved < _maxConcurrent && _waiters.isNotEmpty) {
+      if (!_canStartByRateLimit) {
+        _scheduleRateLimitDrain();
+        return;
+      }
       final waiter = _waiters.removeAt(0);
       _reserved += 1;
+      _markRequestStart();
       waiter.complete();
     }
   }
+
+  bool get _canStartByRateLimit {
+    return _remainingRateLimitDelay <= Duration.zero;
+  }
+
+  Duration get _remainingRateLimitDelay {
+    final intervalMs = _executionPolicy.minStartIntervalMs;
+    if (intervalMs <= 0 || _lastStartAt == null) {
+      return Duration.zero;
+    }
+
+    final nextStart = _lastStartAt!.add(Duration(milliseconds: intervalMs));
+    final remaining = nextStart.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      return Duration.zero;
+    }
+    return remaining;
+  }
+
+  void _scheduleRateLimitDrain() {
+    if (_rateLimitTimer != null || _waiters.isEmpty) {
+      return;
+    }
+
+    _rateLimitTimer = Timer(_remainingRateLimitDelay, () {
+      _rateLimitTimer = null;
+      _drainWaiters();
+    });
+  }
+
+  void _markRequestStart() {
+    if (_executionPolicy.minStartIntervalMs > 0) {
+      _lastStartAt = DateTime.now();
+    }
+  }
+
+  static AppLlmRequestExecutionPolicy _normalizePolicy(
+    AppLlmRequestExecutionPolicy executionPolicy,
+  ) {
+    return executionPolicy.copyWith(
+      maxConcurrent: _normalizeConcurrency(executionPolicy.maxConcurrent),
+      minStartIntervalMs: _normalizeStartInterval(
+        executionPolicy.minStartIntervalMs,
+      ),
+    );
+  }
+
+  static int _normalizeConcurrency(int value) => value < 1 ? 1 : value;
+
+  static int _normalizeStartInterval(int value) => value < 0 ? 0 : value;
 }
 
 final globalLlmRequestPool = AppLlmRequestPool(maxConcurrent: 3);
