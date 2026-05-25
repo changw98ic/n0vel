@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/state/pending_overlay_store.dart';
 import 'package:novel_writer/domain/workspace_models.dart';
 import 'package:novel_writer/features/import_export/data/markdown_exporter.dart';
+import 'package:novel_writer/features/import_export/data/markdown_importer.dart';
 
 void main() {
   late PendingOverlayStore store;
@@ -1117,6 +1118,214 @@ void main() {
       expect(plan.unchangedCount, equals(plan.totalCount));
       expect(plan.pendingCount, 0);
     });
+
+    test('fromExportInputs preserves source and pending snapshots', () {
+      final source = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+        draftText: 'SQLite 草稿',
+      );
+      final pending = _exportInput(
+        project: _defaultProject().copyWith(title: 'Markdown 项目'),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'Markdown 场景')],
+        draftText: 'Markdown 草稿',
+      );
+
+      final input = PendingOverlayInput.fromExportInputs(
+        source: source,
+        pending: pending,
+      );
+
+      expect(input.toSourceExportInput().scenes.single.title, 'SQLite 场景');
+      expect(input.toSourceExportInput().draftText, 'SQLite 草稿');
+      expect(input.toPendingExportInput().project.title, 'Markdown 项目');
+      expect(input.toPendingExportInput().draftText, 'Markdown 草稿');
+    });
+
+    test('resolution converts to MarkdownExportInput for mirror export', () {
+      final source = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+        draftText: 'SQLite 草稿',
+      );
+      final pending = _exportInput(
+        project: _defaultProject().copyWith(title: 'Markdown 项目'),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'Markdown 场景')],
+        draftText: 'Markdown 草稿',
+      );
+      final input = PendingOverlayInput.fromExportInputs(
+        source: source,
+        pending: pending,
+      );
+      var plan = store.buildPlan(input);
+      for (final entry in plan.entries.where((entry) => entry.isPending)) {
+        plan = store.updateDecision(
+          plan,
+          entry.id,
+          OverlayDecision.keepPending,
+        );
+      }
+
+      final exportInput = store
+          .resolve(input, plan.entries)
+          .toMarkdownExportInput();
+
+      expect(exportInput.project.title, 'Markdown 项目');
+      expect(exportInput.scenes.single.title, 'Markdown 场景');
+      expect(exportInput.draftText, 'Markdown 草稿');
+    });
+  });
+
+  group('PendingOverlayStore - bidirectional sync planning', () {
+    test('buildMarkdownExportPlan compares SQLite and Markdown snapshots', () {
+      final source = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+      );
+      final pending = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'Markdown 场景')],
+      );
+
+      final syncPlan = store.buildMarkdownExportPlan(
+        source: source,
+        pending: pending,
+      );
+
+      expect(syncPlan.direction, PendingOverlaySyncDirection.sqliteToMarkdown);
+      expect(syncPlan.hasBlockingIssues, isFalse);
+      expect(syncPlan.needsUserReview, isTrue);
+      final sceneEntry = syncPlan.overlayPlan
+          .entriesByKind(OverlayTargetKind.scene)
+          .single;
+      expect(sceneEntry.status, OverlayStatus.pending);
+      expect(sceneEntry.changedFields, contains('title'));
+    });
+
+    test(
+      'buildMarkdownImportPlan converts importer result to overlay plan',
+      () {
+        final source = _exportInput(
+          project: _defaultProject(),
+          scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+          draftText: 'SQLite 草稿',
+        );
+        final importResult = MarkdownImportResult(
+          project: _defaultProject(),
+          scenes: const [SceneRecord(id: 'scene-1', title: 'Markdown 场景')],
+          draftText: 'Markdown 草稿',
+          plan: const MarkdownImportPlan(
+            issues: [],
+            entries: [
+              ImportEntry(
+                id: 'scene-1',
+                kind: ImportTargetKind.scene,
+                state: ImportState.needsReview,
+                reason: 'fingerprint_mismatch',
+                parsedData: {},
+              ),
+            ],
+          ),
+        );
+
+        final syncPlan = store.buildMarkdownImportPlan(
+          source: source,
+          importResult: importResult,
+        );
+
+        expect(
+          syncPlan.direction,
+          PendingOverlaySyncDirection.markdownToSqlite,
+        );
+        expect(syncPlan.hasBlockingIssues, isFalse);
+        expect(syncPlan.needsUserReview, isTrue);
+        final sceneEntry = syncPlan.overlayPlan
+            .entriesByKind(OverlayTargetKind.scene)
+            .single;
+        final draftEntry = syncPlan.overlayPlan
+            .entriesByKind(OverlayTargetKind.draft)
+            .single;
+        expect(sceneEntry.status, OverlayStatus.pending);
+        expect(sceneEntry.pendingSummary?.title, 'Markdown 场景');
+        expect(sceneEntry.changedFields, contains('fingerprint_mismatch'));
+        expect(draftEntry.status, OverlayStatus.pending);
+      },
+    );
+
+    test('import conflicts surface as selectable overlay conflicts', () {
+      final source = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+      );
+      final importResult = MarkdownImportResult(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'Markdown 场景')],
+        plan: const MarkdownImportPlan(
+          issues: [],
+          entries: [
+            ImportEntry(
+              id: 'scene-1',
+              kind: ImportTargetKind.scene,
+              state: ImportState.conflictKeepBoth,
+              reason: 'duplicate_id',
+              parsedData: {},
+            ),
+          ],
+        ),
+      );
+
+      final syncPlan = store.buildMarkdownImportPlan(
+        source: source,
+        importResult: importResult,
+      );
+      final conflictEntry = syncPlan.overlayPlan
+          .entriesByKind(OverlayTargetKind.scene)
+          .single;
+
+      expect(syncPlan.overlayPlan.conflictCount, 1);
+      expect(conflictEntry.status, OverlayStatus.conflict);
+      expect(conflictEntry.changedFields, contains('duplicate_id'));
+      expect(conflictEntry.sourceSummary?.title, 'SQLite 场景');
+      expect(conflictEntry.pendingSummary?.title, 'Markdown 场景');
+
+      final resolvedPlan = store.updateDecision(
+        syncPlan.overlayPlan,
+        conflictEntry.id,
+        OverlayDecision.keepPending,
+      );
+      final result = store.resolve(syncPlan.input, resolvedPlan.entries);
+
+      expect(result.scenes.single.title, 'Markdown 场景');
+    });
+
+    test('blocking import issues do not plan destructive deletes', () {
+      final source = _exportInput(
+        project: _defaultProject(),
+        scenes: const [SceneRecord(id: 'scene-1', title: 'SQLite 场景')],
+      );
+      const importResult = MarkdownImportResult(
+        plan: MarkdownImportPlan(
+          entries: [],
+          issues: [
+            MarkdownImportIssue(
+              code: 'missing_project_json',
+              message: 'missing',
+              blocking: true,
+            ),
+          ],
+        ),
+      );
+
+      final syncPlan = store.buildMarkdownImportPlan(
+        source: source,
+        importResult: importResult,
+      );
+
+      expect(syncPlan.hasBlockingIssues, isTrue);
+      expect(syncPlan.overlayPlan.pendingCount, 0);
+      expect(syncPlan.overlayPlan.conflictCount, 0);
+      expect(syncPlan.input.pendingScenes.single.id, 'scene-1');
+    });
   });
 }
 
@@ -1129,5 +1338,21 @@ ProjectRecord _defaultProject() {
     summary: '',
     recentLocation: '',
     lastOpenedAtMs: 0,
+  );
+}
+
+MarkdownExportInput _exportInput({
+  required ProjectRecord project,
+  List<SceneRecord> scenes = const [],
+  List<CharacterRecord> characters = const [],
+  List<WorldNodeRecord> worldNodes = const [],
+  String draftText = '',
+}) {
+  return MarkdownExportInput(
+    project: project,
+    scenes: scenes,
+    characters: characters,
+    worldNodes: worldNodes,
+    draftText: draftText,
   );
 }

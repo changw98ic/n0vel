@@ -1,6 +1,11 @@
 import 'dart:convert';
 
 import '../../domain/workspace_models.dart' as domain;
+import '../../features/import_export/data/markdown_exporter.dart';
+import '../../features/import_export/data/markdown_importer.dart';
+
+/// Direction for a Markdown mirror sync plan.
+enum PendingOverlaySyncDirection { sqliteToMarkdown, markdownToSqlite }
 
 /// Target entity kind for overlay entries.
 enum OverlayTargetKind { project, scene, character, worldNode, draft }
@@ -282,6 +287,17 @@ class OverlayResolutionResult {
   final List<domain.WorldNodeRecord> worldNodes;
   final String draftText;
   final List<OverlayEntry> appliedDecisions;
+
+  /// Convert the resolved state back into exporter input.
+  MarkdownExportInput toMarkdownExportInput() {
+    return MarkdownExportInput(
+      project: project,
+      scenes: scenes,
+      characters: characters,
+      worldNodes: worldNodes,
+      draftText: draftText,
+    );
+  }
 }
 
 /// Input for building pending overlay plan.
@@ -299,6 +315,25 @@ class PendingOverlayInput {
     this.pendingDraftText = '',
   });
 
+  /// Create overlay input from two exporter snapshots.
+  factory PendingOverlayInput.fromExportInputs({
+    required MarkdownExportInput source,
+    required MarkdownExportInput pending,
+  }) {
+    return PendingOverlayInput(
+      sourceProject: source.project,
+      sourceScenes: source.scenes,
+      sourceCharacters: source.characters,
+      sourceWorldNodes: source.worldNodes,
+      sourceDraftText: source.draftText,
+      pendingProject: pending.project,
+      pendingScenes: pending.scenes,
+      pendingCharacters: pending.characters,
+      pendingWorldNodes: pending.worldNodes,
+      pendingDraftText: pending.draftText,
+    );
+  }
+
   final domain.ProjectRecord sourceProject;
   final List<domain.SceneRecord> sourceScenes;
   final List<domain.CharacterRecord> sourceCharacters;
@@ -310,10 +345,113 @@ class PendingOverlayInput {
   final List<domain.CharacterRecord> pendingCharacters;
   final List<domain.WorldNodeRecord> pendingWorldNodes;
   final String pendingDraftText;
+
+  /// Snapshot the source side as markdown exporter input.
+  MarkdownExportInput toSourceExportInput() {
+    return MarkdownExportInput(
+      project: sourceProject,
+      scenes: sourceScenes,
+      characters: sourceCharacters,
+      worldNodes: sourceWorldNodes,
+      draftText: sourceDraftText,
+    );
+  }
+
+  /// Snapshot the pending side as markdown exporter input.
+  MarkdownExportInput toPendingExportInput() {
+    return MarkdownExportInput(
+      project: pendingProject,
+      scenes: pendingScenes,
+      characters: pendingCharacters,
+      worldNodes: pendingWorldNodes,
+      draftText: pendingDraftText,
+    );
+  }
+}
+
+/// Sync plan that bridges Markdown importer output to overlay review.
+class PendingOverlaySyncPlan {
+  const PendingOverlaySyncPlan({
+    required this.direction,
+    required this.input,
+    required this.overlayPlan,
+    this.importPlan,
+    this.importIssues = const [],
+  });
+
+  final PendingOverlaySyncDirection direction;
+  final PendingOverlayInput input;
+  final OverlayPlan overlayPlan;
+  final MarkdownImportPlan? importPlan;
+  final List<MarkdownImportIssue> importIssues;
+
+  List<MarkdownImportIssue> get blockingIssues =>
+      importIssues.where((issue) => issue.blocking).toList(growable: false);
+
+  bool get hasBlockingIssues => blockingIssues.isNotEmpty;
+
+  bool get needsUserReview =>
+      hasBlockingIssues ||
+      overlayPlan.pendingCount > 0 ||
+      overlayPlan.conflictCount > 0;
 }
 
 /// Store for pending overlay between SQLite and Markdown mirror.
 class PendingOverlayStore {
+  /// Build a SQLite -> Markdown mirror plan from two exporter snapshots.
+  PendingOverlaySyncPlan buildMarkdownExportPlan({
+    required MarkdownExportInput source,
+    required MarkdownExportInput pending,
+  }) {
+    final input = PendingOverlayInput.fromExportInputs(
+      source: source,
+      pending: pending,
+    );
+    return PendingOverlaySyncPlan(
+      direction: PendingOverlaySyncDirection.sqliteToMarkdown,
+      input: input,
+      overlayPlan: buildPlan(input),
+    );
+  }
+
+  /// Build a Markdown -> SQLite review plan from an importer result.
+  ///
+  /// Blocking imports keep the pending side equal to source so a corrupt or
+  /// incomplete mirror scan cannot accidentally plan deletions.
+  PendingOverlaySyncPlan buildMarkdownImportPlan({
+    required MarkdownExportInput source,
+    required MarkdownImportResult importResult,
+  }) {
+    final hasBlockingIssues =
+        importResult.project == null || importResult.plan.hasBlockingIssues;
+    final pending = hasBlockingIssues
+        ? source
+        : MarkdownExportInput(
+            project: importResult.project!,
+            scenes: importResult.scenes,
+            characters: importResult.characters,
+            worldNodes: importResult.worldNodes,
+            draftText: importResult.draftText,
+          );
+
+    final input = PendingOverlayInput.fromExportInputs(
+      source: source,
+      pending: pending,
+    );
+    final basePlan = buildPlan(input);
+    final overlayPlan = hasBlockingIssues
+        ? basePlan
+        : _applyImportStatesToPlan(basePlan, importResult.plan);
+
+    return PendingOverlaySyncPlan(
+      direction: PendingOverlaySyncDirection.markdownToSqlite,
+      input: input,
+      overlayPlan: overlayPlan,
+      importPlan: importResult.plan,
+      importIssues: importResult.plan.issues,
+    );
+  }
+
   /// Build an overlay plan comparing source and pending states.
   OverlayPlan buildPlan(PendingOverlayInput input) {
     final entries = <OverlayEntry>[];
@@ -1017,5 +1155,123 @@ class PendingOverlayStore {
       resolvedCount: resolvedCount,
       unchangedCount: unchangedCount,
     );
+  }
+
+  OverlayPlan _applyImportStatesToPlan(
+    OverlayPlan plan,
+    MarkdownImportPlan importPlan,
+  ) {
+    final importEntries = <_ImportEntryKey, List<ImportEntry>>{};
+    for (final entry in importPlan.entries) {
+      final key = _ImportEntryKey.fromImportEntry(entry);
+      importEntries.putIfAbsent(key, () => <ImportEntry>[]).add(entry);
+    }
+
+    final updated = plan.entries.map((entry) {
+      final imports = importEntries[_ImportEntryKey.fromOverlayEntry(entry)];
+      if (imports == null || imports.isEmpty) {
+        return entry;
+      }
+
+      final importStatus = _statusForImportEntries(imports, entry.status);
+      final changedFields = _mergeChangedFields(entry.changedFields, imports);
+      if (importStatus == entry.status &&
+          _listEquals(changedFields, entry.changedFields)) {
+        return entry;
+      }
+
+      return entry.copyWith(status: importStatus, changedFields: changedFields);
+    }).toList();
+
+    return _countEntries(updated);
+  }
+
+  OverlayStatus _statusForImportEntries(
+    List<ImportEntry> entries,
+    OverlayStatus currentStatus,
+  ) {
+    if (entries.any(
+      (entry) =>
+          entry.state == ImportState.conflictKeepBoth ||
+          entry.state == ImportState.unsupported ||
+          entry.state == ImportState.rejected,
+    )) {
+      return OverlayStatus.conflict;
+    }
+
+    if (entries.any((entry) => entry.state == ImportState.needsReview)) {
+      return currentStatus == OverlayStatus.unchanged
+          ? OverlayStatus.pending
+          : currentStatus;
+    }
+
+    return currentStatus;
+  }
+
+  List<String> _mergeChangedFields(
+    List<String>? changedFields,
+    List<ImportEntry> imports,
+  ) {
+    final fields = <String>{...?changedFields};
+    for (final import in imports) {
+      if (import.state == ImportState.safeApply) continue;
+      fields.add(import.reason ?? import.state.name);
+    }
+    return fields.toList()..sort();
+  }
+
+  bool _listEquals(List<String>? a, List<String>? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null || a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
+class _ImportEntryKey {
+  const _ImportEntryKey(this.kind, this.id);
+
+  factory _ImportEntryKey.fromImportEntry(ImportEntry entry) {
+    return _ImportEntryKey(_kindFromImport(entry.kind), _idFromImport(entry));
+  }
+
+  factory _ImportEntryKey.fromOverlayEntry(OverlayEntry entry) {
+    return _ImportEntryKey(entry.targetRef.kind, entry.targetRef.id);
+  }
+
+  final OverlayTargetKind kind;
+  final String id;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _ImportEntryKey && other.kind == kind && other.id == id;
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, id);
+
+  static OverlayTargetKind _kindFromImport(ImportTargetKind kind) {
+    switch (kind) {
+      case ImportTargetKind.project:
+        return OverlayTargetKind.project;
+      case ImportTargetKind.scene:
+        return OverlayTargetKind.scene;
+      case ImportTargetKind.character:
+        return OverlayTargetKind.character;
+      case ImportTargetKind.worldNode:
+        return OverlayTargetKind.worldNode;
+      case ImportTargetKind.draft:
+        return OverlayTargetKind.draft;
+    }
+  }
+
+  static String _idFromImport(ImportEntry entry) {
+    if (entry.kind == ImportTargetKind.draft) {
+      return 'draft';
+    }
+    return entry.id;
   }
 }
