@@ -9,6 +9,7 @@ export 'features/sandbox/presentation/sandbox_monitor_page.dart';
 export 'features/reading/presentation/reading_mode_page.dart';
 export 'features/review_tasks/presentation/review_task_page.dart';
 export 'features/audit/presentation/audit_center_page.dart';
+export 'features/bible/presentation/foreshadowing_tracker_page.dart';
 export 'features/characters/presentation/character_library_page.dart';
 export 'features/import_export/presentation/project_import_export_page.dart';
 export 'features/production_board/presentation/production_board_page.dart';
