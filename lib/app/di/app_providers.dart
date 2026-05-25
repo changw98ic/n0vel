@@ -31,6 +31,7 @@ import '../state/app_version_storage.dart';
 import '../state/app_workspace_storage.dart';
 import '../state/app_workspace_store.dart';
 import '../state/fulltext_search_service.dart';
+import '../state/story_generation_run_storage.dart';
 import '../state/story_generation_run_store.dart';
 import '../state/story_generation_store.dart';
 import '../state/story_generation_storage.dart';
@@ -156,6 +157,13 @@ final appSettingsStorageProvider = Provider<AppSettingsStorage>((ref) {
 /// Native Riverpod provider for [AppWorkspaceStorage].
 final appWorkspaceStorageProvider = Provider<AppWorkspaceStorage>((ref) {
   return createDefaultAppWorkspaceStorage();
+});
+
+/// Native Riverpod provider for [StoryGenerationRunStorage].
+final storyGenerationRunStorageProvider = Provider<StoryGenerationRunStorage>((
+  ref,
+) {
+  return createDefaultStoryGenerationRunStorage();
 });
 
 // -- Core store providers --
@@ -403,10 +411,55 @@ final reviewTaskStoreProvider = Provider<ReviewTaskStore>((ref) {
   return store;
 });
 
-// StoryGenerationRunStore remains registry-backed (out of scope for M4-04)
+// -- M4-10 story generation run store provider --
 
+/// Native Riverpod [NotifierProvider] for [StoryGenerationRunStore].
+///
+/// Bridges [StoryGenerationRunStore.notifyListeners()] to Riverpod rebuilds.
+/// The store is constructed from native Riverpod dependencies.
 class StoryGenerationRunStoreNotifier
-    extends RegistryStoreNotifier<StoryGenerationRunStore> {}
+    extends Notifier<StoryGenerationRunStore> {
+  @override
+  StoryGenerationRunStore build() {
+    final settingsStore = ref.watch(appSettingsStoreProvider);
+    final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+    final generationStore = ref.watch(storyGenerationStoreProvider);
+    final sceneContextStore = ref.watch(appSceneContextStoreProvider);
+    final outlineStore = ref.watch(storyOutlineStoreProvider);
+    final authorFeedbackStore = ref.watch(authorFeedbackStoreProvider);
+    final roleplaySessionStore = ref.watch(roleplaySessionStoreProvider);
+    final characterMemoryStore = ref.watch(characterMemoryStoreProvider);
+    final reviewTaskStore = ref.watch(reviewTaskStoreProvider);
+    final eventBus = ref.watch(appEventBusProvider);
+    final storage = ref.watch(storyGenerationRunStorageProvider);
+    final store = StoryGenerationRunStore(
+      settingsStore: settingsStore,
+      workspaceStore: workspaceStore,
+      generationStore: generationStore,
+      sceneContextStore: sceneContextStore,
+      outlineStore: outlineStore,
+      authorFeedbackStore: authorFeedbackStore,
+      roleplaySessionStore: roleplaySessionStore,
+      characterMemoryStore: characterMemoryStore,
+      reviewTaskStore: reviewTaskStore,
+      eventBus: eventBus,
+      storage: storage,
+    );
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() {
+      store.removeListener(listener);
+      store.dispose();
+    });
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(
+    StoryGenerationRunStore previous,
+    StoryGenerationRunStore next,
+  ) => true;
+}
 
 final storyGenerationRunStoreProvider =
     NotifierProvider<StoryGenerationRunStoreNotifier, StoryGenerationRunStore>(
@@ -542,6 +595,11 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     appWorkspaceStoreProvider.overrideWith(
       () => _RegistryAppWorkspaceStoreNotifier(registry),
     ),
+    // M4-10 story generation run store: use registry-owned instance during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    storyGenerationRunStoreProvider.overrideWith(
+      () => _RegistryStoryGenerationRunStoreNotifier(registry),
+    ),
   ];
 }
 
@@ -583,4 +641,27 @@ class _RegistryAppWorkspaceStoreNotifier extends AppWorkspaceStoreNotifier {
   @override
   bool updateShouldNotify(AppWorkspaceStore previous, AppWorkspaceStore next) =>
       true;
+}
+
+/// Registry-backed notifier for [StoryGenerationRunStore] used during app bootstrap.
+class _RegistryStoryGenerationRunStoreNotifier
+    extends StoryGenerationRunStoreNotifier {
+  _RegistryStoryGenerationRunStoreNotifier(this._registry);
+
+  final ServiceRegistry _registry;
+
+  @override
+  StoryGenerationRunStore build() {
+    final store = _registry.resolve<StoryGenerationRunStore>();
+    void listener() => state = store;
+    store.addListener(listener);
+    ref.onDispose(() => store.removeListener(listener));
+    return store;
+  }
+
+  @override
+  bool updateShouldNotify(
+    StoryGenerationRunStore previous,
+    StoryGenerationRunStore next,
+  ) => true;
 }

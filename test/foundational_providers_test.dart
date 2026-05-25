@@ -16,6 +16,8 @@ import 'package:novel_writer/app/state/story_outline_storage.dart';
 import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/app/state/story_generation_storage.dart';
 import 'package:novel_writer/app/state/story_generation_store.dart';
+import 'package:novel_writer/app/state/story_generation_run_storage.dart';
+import 'package:novel_writer/app/state/story_generation_run_store.dart';
 import 'package:novel_writer/app/state/story_arc_storage.dart';
 import 'package:novel_writer/app/state/story_arc_store.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
@@ -63,6 +65,91 @@ ServiceRegistry createTestRegistry() {
   registry.registerFactory<FulltextSearchService>(
     (r) => FulltextSearchService(db: r.resolve<sqlite3.Database>()),
   );
+  return registry;
+}
+
+/// Helper to create a test registry with minimal StoryGenerationRunStore setup.
+/// This allows testing provider overrides without needing full store dependencies.
+ServiceRegistry createTestRegistryWithRunStore() {
+  final registry = ServiceRegistry();
+
+  // Foundational infrastructure
+  final db = createInMemoryDatabase();
+  registry.registerSingleton<sqlite3.Database>(db);
+  registry.registerFactory<AppEventBus>((_) => AppEventBus());
+  registry.registerFactory<AppEventLog>((_) => AppEventLog());
+  registry.registerFactory<AppLlmClient>((_) => createCachedAppLlmClient());
+  registry.registerFactory<AppLlmRequestPool>(
+    (_) => AppLlmRequestPool(maxConcurrent: 3),
+  );
+  registry.registerFactory<FulltextSearchService>(
+    (r) => FulltextSearchService(db: r.resolve<sqlite3.Database>()),
+  );
+
+  // Storage layer
+  registry.registerFactory<AppWorkspaceStorage>(
+    (_) => InMemoryAppWorkspaceStorage(),
+  );
+  registry.registerFactory<AppSettingsStorage>(
+    (_) => InMemoryAppSettingsStorage(),
+  );
+  registry.registerFactory<StoryGenerationStorage>(
+    (_) => InMemoryStoryGenerationStorage(),
+  );
+  registry.registerFactory<StoryGenerationRunStorage>(
+    (_) => InMemoryStoryGenerationRunStorage(),
+  );
+  registry.registerFactory<AppSceneContextStorage>(
+    (_) => InMemoryAppSceneContextStorage(),
+  );
+  registry.registerFactory<StoryOutlineStorage>(
+    (_) => InMemoryStoryOutlineStorage(),
+  );
+
+  // DB-backed stores
+  registry.registerFactory<RoleplaySessionStore>(
+    (r) => RoleplaySessionStoreIO(db: r.resolve<sqlite3.Database>()),
+  );
+  registry.registerFactory<CharacterMemoryStore>(
+    (r) => CharacterMemoryStoreIO(db: r.resolve<sqlite3.Database>()),
+  );
+
+  // Required stores for StoryGenerationRunStore
+  registry.registerFactory<AppSettingsStore>(
+    (r) => AppSettingsStore(
+      storage: r.resolve<AppSettingsStorage>(),
+      llmClient: r.resolve<AppLlmClient>(),
+      requestPool: r.resolve<AppLlmRequestPool>(),
+      eventLog: r.resolve<AppEventLog>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+  registry.registerFactory<AppWorkspaceStore>(
+    (r) => AppWorkspaceStore(
+      storage: r.resolve<AppWorkspaceStorage>(),
+      eventBus: r.resolve<AppEventBus>(),
+      projectDeletionCleaners: [],
+    ),
+  );
+  registry.registerFactory<StoryGenerationStore>(
+    (r) => StoryGenerationStore(
+      storage: r.resolve<StoryGenerationStorage>(),
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+
+  // Minimal StoryGenerationRunStore with only required dependencies
+  registry.registerFactory<StoryGenerationRunStore>(
+    (r) => StoryGenerationRunStore(
+      settingsStore: r.resolve<AppSettingsStore>(),
+      workspaceStore: r.resolve<AppWorkspaceStore>(),
+      generationStore: r.resolve<StoryGenerationStore>(),
+      storage: r.resolve<StoryGenerationRunStorage>(),
+      eventBus: r.resolve<AppEventBus>(),
+    ),
+  );
+
   return registry;
 }
 
@@ -503,7 +590,8 @@ void main() {
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      // - 1 M4-10 story generation run store
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -713,7 +801,7 @@ void main() {
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -970,7 +1058,7 @@ void main() {
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1237,7 +1325,7 @@ void main() {
       // - 3 M4-06 workspace/session stores
       // - 3 M4-07 story core stores
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1496,7 +1584,7 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now be 22:
+      // Count should now be 23:
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
@@ -1505,7 +1593,8 @@ void main() {
       // - 3 M4-07 story core stores
       // - 1 M4-08 settings store (override generated even if not registered)
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      // - 1 M4-10 story generation run store
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1648,7 +1737,7 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now be 22:
+      // Count should now be 23:
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
@@ -1657,7 +1746,7 @@ void main() {
       // - 3 M4-07 story core stores
       // - 1 M4-08 settings store
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1825,7 +1914,7 @@ void main() {
 
       final overrides = appProviderOverridesForRegistry(registry);
 
-      // Count should now be 22:
+      // Count should now be 23:
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
@@ -1834,7 +1923,7 @@ void main() {
       // - 3 M4-07 story core stores
       // - 1 M4-08 settings store
       // - 1 M4-09 workspace store
-      expect(overrides.length, equals(22));
+      expect(overrides.length, equals(23));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1870,10 +1959,271 @@ void main() {
       final workspaceStore = container.read(appWorkspaceStoreProvider);
       expect(workspaceStore, isA<AppWorkspaceStore>());
     });
+  });
 
-    // Note: StoryGenerationRunStoreNotifier remains registry-backed (out of scope for M4-09).
-    // This is verified by source-level evidence in app_providers.dart:
-    // `StoryGenerationRunStoreNotifier extends RegistryStoreNotifier` (line 408-409).
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native story generation run store provider tests (M4-10)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('storyGenerationRunStoreProvider (native M4-10)', () {
+    test('creates StoryGenerationRunStore with native dependencies', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+          storyGenerationStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationStorage(),
+          ),
+          appSceneContextStorageProvider.overrideWith(
+            (ref) => InMemoryAppSceneContextStorage(),
+          ),
+          storyOutlineStorageProvider.overrideWith(
+            (ref) => InMemoryStoryOutlineStorage(),
+          ),
+          storyGenerationRunStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationRunStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(storyGenerationRunStoreProvider);
+      expect(store, isA<StoryGenerationRunStore>());
+    });
+
+    test('returns same instance across multiple reads', () {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+          storyGenerationStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationStorage(),
+          ),
+          appSceneContextStorageProvider.overrideWith(
+            (ref) => InMemoryAppSceneContextStorage(),
+          ),
+          storyOutlineStorageProvider.overrideWith(
+            (ref) => InMemoryStoryOutlineStorage(),
+          ),
+          storyGenerationRunStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationRunStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store1 = container.read(storyGenerationRunStoreProvider);
+      final store2 = container.read(storyGenerationRunStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+
+    test('disposes StoryGenerationRunStore on container dispose', () async {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+          storyGenerationStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationStorage(),
+          ),
+          appSceneContextStorageProvider.overrideWith(
+            (ref) => InMemoryAppSceneContextStorage(),
+          ),
+          storyOutlineStorageProvider.overrideWith(
+            (ref) => InMemoryStoryOutlineStorage(),
+          ),
+          storyGenerationRunStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationRunStorage(),
+          ),
+        ],
+      );
+
+      final store = container.read(storyGenerationRunStoreProvider);
+      await store.waitUntilReady();
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('run store mutations notify Riverpod listeners', () async {
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+          storyGenerationStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationStorage(),
+          ),
+          appSceneContextStorageProvider.overrideWith(
+            (ref) => InMemoryAppSceneContextStorage(),
+          ),
+          storyOutlineStorageProvider.overrideWith(
+            (ref) => InMemoryStoryOutlineStorage(),
+          ),
+          storyGenerationRunStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationRunStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(storyGenerationRunStoreProvider);
+      await store.waitUntilReady();
+
+      var notificationCount = 0;
+      container.listen<StoryGenerationRunStore>(
+        storyGenerationRunStoreProvider,
+        (_, _) => notificationCount++,
+      );
+
+      // No initial notification without fireImmediately: true
+      expect(notificationCount, equals(0));
+
+      // Mutate run store by transitioning phase
+      final result = await store.transitionCurrentPhase(
+        StoryGenerationRunPhase.candidate,
+      );
+
+      // Should have received notification after mutation
+      expect(result.accepted, isTrue);
+      expect(notificationCount, equals(1));
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-10 coexistence', () {
+    test('includes M4-10 story generation run store override', () {
+      final registry = createTestRegistryWithRunStore();
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now be 23:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      // - 3 M4-06 workspace/session stores
+      // - 3 M4-07 story core stores
+      // - 1 M4-08 settings store
+      // - 1 M4-09 workspace store
+      // - 1 M4-10 story generation run store
+      expect(overrides.length, equals(23));
+
+      // Behavioral evidence: verify the override uses the registry-owned store
+      final registryStore = registry.resolve<StoryGenerationRunStore>();
+
+      final container = ProviderContainer(overrides: overrides);
+      final providerStore = container.read(storyGenerationRunStoreProvider);
+
+      // The provider should return the same instance as the registry
+      expect(
+        identical(providerStore, registryStore),
+        isTrue,
+        reason:
+            'storyGenerationRunStoreProvider should use the registry-owned instance',
+      );
+
+      // Dispose the container first
+      container.dispose();
+
+      // The registry-owned store should still be alive (not double-disposed)
+      // We can verify this by checking that we can still add a listener
+      var listenerCalled = false;
+      void listener() => listenerCalled = true;
+      registryStore.addListener(listener);
+      registryStore.notifyListeners();
+      expect(
+        listenerCalled,
+        isTrue,
+        reason:
+            'Registry-owned store should still be functional after container disposal',
+      );
+      registryStore.removeListener(listener);
+
+      // Finally dispose the registry
+      registry.disposeAll();
+      expect(
+        () => registryStore.addListener(() {}),
+        throwsA(isA<FlutterError>()),
+        reason:
+            'registry.disposeAll should dispose the registry-owned run store',
+      );
+    });
+
+    test('native M4-10 provider works without registry in test mode', () {
+      // Tests can use native provider without touching serviceRegistryProvider
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = createInMemoryDatabase();
+            ref.onDispose(db.dispose);
+            return db;
+          }),
+          appWorkspaceStorageProvider.overrideWith(
+            (ref) => InMemoryAppWorkspaceStorage(),
+          ),
+          appSettingsStorageProvider.overrideWith(
+            (ref) => InMemoryAppSettingsStorage(),
+          ),
+          storyGenerationStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationStorage(),
+          ),
+          appSceneContextStorageProvider.overrideWith(
+            (ref) => InMemoryAppSceneContextStorage(),
+          ),
+          storyOutlineStorageProvider.overrideWith(
+            (ref) => InMemoryStoryOutlineStorage(),
+          ),
+          storyGenerationRunStorageProvider.overrideWith(
+            (ref) => InMemoryStoryGenerationRunStorage(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Native provider should create its own instance
+      final runStore = container.read(storyGenerationRunStoreProvider);
+      expect(runStore, isA<StoryGenerationRunStore>());
+    });
   });
 }
 
