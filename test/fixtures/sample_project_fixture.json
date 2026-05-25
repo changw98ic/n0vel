@@ -1,0 +1,31 @@
+{
+  "title": "Echo Harbor",
+  "characters": [
+    {
+      "name": "Luna Vale",
+      "role": "Explorer",
+      "description": "A curious mapmaker searching for memories stored in old harbor crystals."
+    },
+    {
+      "name": "Milo Archive",
+      "role": "Robot Librarian",
+      "description": "A careful keeper of the floating city's crystal records."
+    }
+  ],
+  "worldRules": [
+    "Memories can be stored inside glowing crystals, but reading one fades its color."
+  ],
+  "scenes": [
+    {
+      "title": "Arrival at Echo Harbor",
+      "summary": "Luna reaches the floating harbor during a crystal storm and follows a fading signal."
+    },
+    {
+      "title": "The Forgotten Library",
+      "summary": "Milo opens a hidden archive and asks Luna to choose which memory to protect."
+    }
+  ],
+  "styleNotes": [
+    "Soft science fantasy with warm dialogue, gentle mystery, and a hopeful adventure pace."
+  ]
+}
