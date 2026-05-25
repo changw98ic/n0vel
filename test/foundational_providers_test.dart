@@ -12,6 +12,12 @@ import 'package:novel_writer/app/llm/app_llm_request_pool.dart';
 import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/fulltext_search_service.dart';
+import 'package:novel_writer/app/state/story_outline_storage.dart';
+import 'package:novel_writer/app/state/story_outline_store.dart';
+import 'package:novel_writer/app/state/story_generation_storage.dart';
+import 'package:novel_writer/app/state/story_generation_store.dart';
+import 'package:novel_writer/app/state/story_arc_storage.dart';
+import 'package:novel_writer/app/state/story_arc_store.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
@@ -493,7 +499,8 @@ void main() {
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
-      expect(overrides.length, equals(17));
+      // - 3 M4-07 story core stores
+      expect(overrides.length, equals(20));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -701,7 +708,8 @@ void main() {
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
-      expect(overrides.length, equals(17));
+      // - 3 M4-07 story core stores
+      expect(overrides.length, equals(20));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -956,7 +964,8 @@ void main() {
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
-      expect(overrides.length, equals(17));
+      // - 3 M4-07 story core stores
+      expect(overrides.length, equals(20));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1221,7 +1230,8 @@ void main() {
       // - 2 M4-04 feature stores
       // - 3 M4-05 core leaf stores
       // - 3 M4-06 workspace/session stores
-      expect(overrides.length, equals(17));
+      // - 3 M4-07 story core stores
+      expect(overrides.length, equals(20));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -1277,6 +1287,272 @@ void main() {
       expect(appDraftStore, isA<AppDraftStore>());
       expect(appSceneContextStore, isA<AppSceneContextStore>());
       expect(appSimulationStore, isA<AppSimulationStore>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native story core store provider tests (M4-07)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('storyOutlineStoreProvider (native M4-07)', () {
+    test('creates StoryOutlineStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(storyOutlineStoreProvider);
+      expect(store, isA<StoryOutlineStore>());
+    });
+
+    test('disposes StoryOutlineStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(storyOutlineStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(storyOutlineStoreProvider);
+      final store2 = container.read(storyOutlineStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('storyGenerationStoreProvider (native M4-07)', () {
+    test('creates StoryGenerationStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(storyGenerationStoreProvider);
+      expect(store, isA<StoryGenerationStore>());
+    });
+
+    test('disposes StoryGenerationStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(storyGenerationStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(storyGenerationStoreProvider);
+      final store2 = container.read(storyGenerationStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('storyArcStoreProvider (native M4-07)', () {
+    test('creates StoryArcStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(storyArcStoreProvider);
+      expect(store, isA<StoryArcStore>());
+    });
+
+    test('disposes StoryArcStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(storyArcStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+      workspaceStore.dispose();
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(storyArcStoreProvider);
+      final store2 = container.read(storyArcStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-07 coexistence', () {
+    test('includes M4-07 story core store overrides', () {
+      final registry = createTestRegistry();
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final eventBus = AppEventBus();
+      final storyOutlineStore = StoryOutlineStore(
+        storage: InMemoryStoryOutlineStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final storyGenerationStore = StoryGenerationStore(
+        storage: InMemoryStoryGenerationStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final storyArcStore = StoryArcStore(
+        storage: InMemoryStoryArcStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      registry.registerSingleton<StoryOutlineStore>(storyOutlineStore);
+      registry.registerSingleton<StoryGenerationStore>(storyGenerationStore);
+      registry.registerSingleton<StoryArcStore>(storyArcStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now be 20:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      // - 3 M4-06 workspace/session stores
+      // - 3 M4-07 story core stores
+      expect(overrides.length, equals(20));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+        workspaceStore.dispose();
+        eventBus.dispose();
+      });
+
+      // Verify that providers return the same instances as registry
+      final storyOutlineFromProvider = container.read(
+        storyOutlineStoreProvider,
+      );
+      final storyOutlineFromRegistry = registry.resolve<StoryOutlineStore>();
+      expect(
+        identical(storyOutlineFromProvider, storyOutlineFromRegistry),
+        isTrue,
+      );
+
+      final storyGenerationFromProvider = container.read(
+        storyGenerationStoreProvider,
+      );
+      final storyGenerationFromRegistry = registry
+          .resolve<StoryGenerationStore>();
+      expect(
+        identical(storyGenerationFromProvider, storyGenerationFromRegistry),
+        isTrue,
+      );
+
+      final storyArcFromProvider = container.read(storyArcStoreProvider);
+      final storyArcFromRegistry = registry.resolve<StoryArcStore>();
+      expect(identical(storyArcFromProvider, storyArcFromRegistry), isTrue);
+    });
+
+    test('native M4-07 providers work without registry in test mode', () {
+      // Tests can override appWorkspaceStoreProvider without touching serviceRegistryProvider
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m407NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      // Native providers should create their own instances
+      final storyOutlineStore = container.read(storyOutlineStoreProvider);
+      final storyGenerationStore = container.read(storyGenerationStoreProvider);
+      final storyArcStore = container.read(storyArcStoreProvider);
+
+      expect(storyOutlineStore, isA<StoryOutlineStore>());
+      expect(storyGenerationStore, isA<StoryGenerationStore>());
+      expect(storyArcStore, isA<StoryArcStore>());
     });
   });
 }
@@ -1448,6 +1724,24 @@ List<Override> _m406NativeOverrides(AppWorkspaceStore workspaceStore) => [
   appSimulationStorageProvider.overrideWith(
     (ref) => InMemoryAppSimulationStorage(),
   ),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test helpers for M4-07 storage isolation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Helper to create storage-isolated overrides for M4-07 native provider tests.
+List<Override> _m407NativeOverrides(AppWorkspaceStore workspaceStore) => [
+  appWorkspaceStoreProvider.overrideWith(
+    () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+  ),
+  storyOutlineStorageProvider.overrideWith(
+    (ref) => InMemoryStoryOutlineStorage(),
+  ),
+  storyGenerationStorageProvider.overrideWith(
+    (ref) => InMemoryStoryGenerationStorage(),
+  ),
+  storyArcStorageProvider.overrideWith((ref) => InMemoryStoryArcStorage()),
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

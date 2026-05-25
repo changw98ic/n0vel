@@ -31,8 +31,11 @@ import '../state/app_workspace_store.dart';
 import '../state/fulltext_search_service.dart';
 import '../state/story_generation_run_store.dart';
 import '../state/story_generation_store.dart';
+import '../state/story_generation_storage.dart';
 import '../state/story_outline_store.dart';
+import '../state/story_outline_storage.dart';
 import '../state/story_arc_store.dart';
+import '../state/story_arc_storage.dart';
 import 'service_registry.dart';
 
 /// Root provider that holds the [ServiceRegistry] reference.
@@ -128,6 +131,21 @@ final appSimulationStorageProvider = Provider<AppSimulationStorage>((ref) {
   return createDefaultAppSimulationStorage();
 });
 
+/// Native Riverpod provider for [StoryOutlineStorage].
+final storyOutlineStorageProvider = Provider<StoryOutlineStorage>((ref) {
+  return createDefaultStoryOutlineStorage();
+});
+
+/// Native Riverpod provider for [StoryGenerationStorage].
+final storyGenerationStorageProvider = Provider<StoryGenerationStorage>((ref) {
+  return createDefaultStoryGenerationStorage();
+});
+
+/// Native Riverpod provider for [StoryArcStorage].
+final storyArcStorageProvider = Provider<StoryArcStorage>((ref) {
+  return createDefaultStoryArcStorage();
+});
+
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration
@@ -165,14 +183,6 @@ class AppWorkspaceStoreNotifier
 
 class AppSettingsStoreNotifier
     extends RegistryStoreNotifier<AppSettingsStore> {}
-
-class StoryOutlineStoreNotifier
-    extends RegistryStoreNotifier<StoryOutlineStore> {}
-
-class StoryGenerationStoreNotifier
-    extends RegistryStoreNotifier<StoryGenerationStore> {}
-
-class StoryArcStoreNotifier extends RegistryStoreNotifier<StoryArcStore> {}
 
 final appWorkspaceStoreProvider =
     NotifierProvider<AppWorkspaceStoreNotifier, AppWorkspaceStore>(
@@ -249,20 +259,44 @@ final appSimulationStoreProvider = Provider<AppSimulationStore>((ref) {
   return store;
 });
 
-final storyOutlineStoreProvider =
-    NotifierProvider<StoryOutlineStoreNotifier, StoryOutlineStore>(
-      StoryOutlineStoreNotifier.new,
-    );
+final storyOutlineStoreProvider = Provider<StoryOutlineStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(storyOutlineStorageProvider);
+  final store = StoryOutlineStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
-final storyGenerationStoreProvider =
-    NotifierProvider<StoryGenerationStoreNotifier, StoryGenerationStore>(
-      StoryGenerationStoreNotifier.new,
-    );
+final storyGenerationStoreProvider = Provider<StoryGenerationStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(storyGenerationStorageProvider);
+  final store = StoryGenerationStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
-final storyArcStoreProvider =
-    NotifierProvider<StoryArcStoreNotifier, StoryArcStore>(
-      StoryArcStoreNotifier.new,
-    );
+final storyArcStoreProvider = Provider<StoryArcStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(storyArcStorageProvider);
+  final store = StoryArcStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 // -- Feature store providers --
 // M4-04: AuthorFeedbackStore and ReviewTaskStore migrated to native Riverpod
@@ -414,6 +448,17 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     appSimulationStoreProvider.overrideWith(
       (ref) => registry.resolve<AppSimulationStore>(),
+    ),
+    // M4-07 story core stores: use registry-owned instances during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    storyOutlineStoreProvider.overrideWith(
+      (ref) => registry.resolve<StoryOutlineStore>(),
+    ),
+    storyGenerationStoreProvider.overrideWith(
+      (ref) => registry.resolve<StoryGenerationStore>(),
+    ),
+    storyArcStoreProvider.overrideWith(
+      (ref) => registry.resolve<StoryArcStore>(),
     ),
   ];
 }
