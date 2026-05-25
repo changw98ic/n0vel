@@ -4,28 +4,13 @@ extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
   Future<void> _restoreCurrentScene() async {
     final restoreVersion = _mutationVersion;
     final sceneScopeId = _activeSceneScopeId;
-    final restored = await _storage.load(sceneScopeId: sceneScopeId);
+    final restored = await _snapshotRepository.restore(sceneScopeId);
     if (restoreVersion != _mutationVersion || restored == null) {
       return;
     }
-    final snapshot = StoryGenerationRunSnapshot.fromJson({
-      for (final entry in restored.entries)
-        entry.key: cloneStorageValue(entry.value),
-    });
-    _snapshot = snapshot;
-    _snapshotsBySceneScope[sceneScopeId] = snapshot;
-    _syncFeedbackCache(sceneScopeId, snapshot);
+    _snapshot = restored;
+    _syncFeedbackCache(sceneScopeId, restored);
     _notifySnapshotListeners();
-  }
-
-  Future<void> _persistSnapshot(
-    StoryGenerationRunSnapshot snapshot,
-    String sceneScopeId,
-  ) {
-    return _storage.save({
-      ...snapshot.toJson(),
-      'sceneScopeId': sceneScopeId,
-    }, sceneScopeId: sceneScopeId);
   }
 
   void _syncFeedbackCache(
@@ -44,8 +29,7 @@ extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
     _mutationVersion += 1;
     final mutationVersion = _mutationVersion;
     final sceneScopeId = _activeSceneScopeId;
-    await _persistSnapshot(next, sceneScopeId);
-    _snapshotsBySceneScope[sceneScopeId] = next;
+    await _snapshotRepository.persist(next, sceneScopeId);
     _syncFeedbackCache(sceneScopeId, next);
     if (mutationVersion == _mutationVersion &&
         sceneScopeId == _activeSceneScopeId) {
@@ -53,15 +37,4 @@ extension _StoryGenerationRunSnapshotPersistence on StoryGenerationRunStore {
       _notifySnapshotListeners();
     }
   }
-
-}
-
-Map<String, Object?> _asStringObjectMap(Object? value) {
-  if (value is! Map) {
-    return const {};
-  }
-  return {
-    for (final entry in value.entries)
-      entry.key.toString(): cloneStorageValue(entry.value),
-  };
 }

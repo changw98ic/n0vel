@@ -29,6 +29,7 @@ part 'story_generation_run/story_generation_run_scene_brief.dart';
 part 'story_generation_run/story_generation_run_scene_state.dart';
 part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
+part 'story_generation_run/story_generation_run_snapshot_repository.dart';
 
 class StoryGenerationRunStore extends AppStoreListenable {
   StoryGenerationRunStore({
@@ -52,7 +53,9 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _authorFeedbackStore = authorFeedbackStore,
        _reviewTaskStore = reviewTaskStore,
        _eventBus = eventBus,
-       _storage = storage ?? createDefaultStoryGenerationRunStorage(),
+       _snapshotRepository = StoryGenerationRunSnapshotRepository(
+         storage ?? createDefaultStoryGenerationRunStorage(),
+       ),
        _orchestratorFactory =
            orchestratorFactory ??
            ((settingsStore) {
@@ -87,11 +90,9 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final AuthorFeedbackStore? _authorFeedbackStore;
   final ReviewTaskStore? _reviewTaskStore;
   final AppEventBus? _eventBus;
-  final StoryGenerationRunStorage _storage;
+  final StoryGenerationRunSnapshotRepository _snapshotRepository;
   final PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
-  final Map<String, StoryGenerationRunSnapshot> _snapshotsBySceneScope =
-      <String, StoryGenerationRunSnapshot>{};
   final Map<String, List<String>> _directorFeedbackBySceneScope =
       <String, List<String>>{};
   late String _activeSceneScopeId;
@@ -127,59 +128,54 @@ class StoryGenerationRunStore extends AppStoreListenable {
   Future<Map<String, Object?>> exportProjectJson() async {
     await waitUntilReady();
     final projectId = _workspaceStore.currentProjectId;
-    final sceneRunsByScope = <String, Object?>{};
-    for (final scene in _workspaceStore.scenes) {
-      final sceneScopeId = '$projectId::${scene.id}';
-      final cached = _snapshotsBySceneScope[sceneScopeId];
-      if (cached != null && cached.hasRun) {
-        sceneRunsByScope[sceneScopeId] = cached.toJson();
-        continue;
-      }
-      final restored = await _storage.load(sceneScopeId: sceneScopeId);
-      if (restored == null) {
-        continue;
-      }
-      final restoredSnapshot = StoryGenerationRunSnapshot.fromJson({
-        for (final entry in restored.entries)
-          entry.key: cloneStorageValue(entry.value),
-      });
-      if (!restoredSnapshot.hasRun) {
-        continue;
-      }
-      sceneRunsByScope[sceneScopeId] = restoredSnapshot.toJson();
-    }
-    return {'projectId': projectId, 'sceneRunsByScope': sceneRunsByScope};
+    final sceneScopeIds = <String>[
+      for (final scene in _workspaceStore.scenes) '$projectId::${scene.id}',
+    ];
+    final cachedSnapshots = _snapshotRepository.exportProjectSnapshots(
+      sceneScopeIds,
+    );
+    final storedSnapshots = await _snapshotRepository.exportStoredSnapshots(
+      sceneScopeIds,
+    );
+    return {
+      'projectId': projectId,
+      'sceneRunsByScope': {...cachedSnapshots, ...storedSnapshots},
+    };
   }
 
   Future<void> importProjectJson(Map<String, Object?> data) async {
     final projectId = _workspaceStore.currentProjectId;
-    final knownSceneScopeIds = {
+    final knownSceneScopeIds = <String>[
       for (final scene in _workspaceStore.scenes) '$projectId::${scene.id}',
-    };
+    ];
     for (final sceneScopeId in knownSceneScopeIds) {
-      _snapshotsBySceneScope.remove(sceneScopeId);
       _directorFeedbackBySceneScope.remove(sceneScopeId);
-      await _storage.clear(sceneScopeId: sceneScopeId);
     }
 
     final rawByScope = data['sceneRunsByScope'];
     if (rawByScope is Map) {
-      for (final entry in rawByScope.entries) {
-        final sceneScopeId = entry.key.toString();
-        if (entry.value is! Map) {
-          continue;
-        }
-        final payload = _asStringObjectMap(entry.value);
-        await _storage.save(payload, sceneScopeId: sceneScopeId);
-        final restoredSnapshot = StoryGenerationRunSnapshot.fromJson(payload);
-        _snapshotsBySceneScope[sceneScopeId] = restoredSnapshot;
-        _directorFeedbackBySceneScope[sceneScopeId] = [
-          for (final message in restoredSnapshot.messages)
-            if (message.kind == StoryGenerationRunMessageKind.authorFeedback &&
-                message.body.trim().isNotEmpty)
-              message.body.trim(),
-        ];
+      await _snapshotRepository.importProjectSnapshots(
+        _asStringObjectMap(rawByScope),
+        knownSceneScopeIds,
+      );
+    } else {
+      await _snapshotRepository.clearKnownScopes(knownSceneScopeIds);
+    }
+
+    final snapshotMap = rawByScope is Map ? rawByScope : const {};
+    for (final entry in snapshotMap.entries) {
+      final sceneScopeId = entry.key.toString();
+      if (entry.value is! Map) {
+        continue;
       }
+      final payload = _asStringObjectMap(entry.value);
+      final restoredSnapshot = StoryGenerationRunSnapshot.fromJson(payload);
+      _directorFeedbackBySceneScope[sceneScopeId] = [
+        for (final message in restoredSnapshot.messages)
+          if (message.kind == StoryGenerationRunMessageKind.authorFeedback &&
+              message.body.trim().isNotEmpty)
+            message.body.trim(),
+      ];
     }
 
     _mutationVersion += 1;
@@ -202,9 +198,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
   void _handleProjectDeleted(ProjectDeletedEvent event) {
     final sceneScopePrefix = '${event.projectId}::';
     _mutationVersion += 1;
-    _snapshotsBySceneScope.removeWhere(
-      (key, _) => key == event.projectId || key.startsWith(sceneScopePrefix),
-    );
+    _snapshotRepository.clearCachedProject(event.projectId);
     _directorFeedbackBySceneScope.removeWhere(
       (key, _) => key == event.projectId || key.startsWith(sceneScopePrefix),
     );
@@ -214,7 +208,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
       _activeRunSceneScopeId = null;
       _runToken += 1;
     }
-    unawaited(_storage.clearProject(event.projectId));
+    unawaited(_snapshotRepository.clearProjectStorage(event.projectId));
   }
 
   Future<void> runCurrentScene({bool forceFailure = false}) async {
@@ -557,6 +551,16 @@ class StoryGenerationRunStore extends AppStoreListenable {
     }
     return result;
   }
+}
+
+Map<String, Object?> _asStringObjectMap(Object? value) {
+  if (value is! Map) {
+    return const {};
+  }
+  return {
+    for (final entry in value.entries)
+      entry.key.toString(): cloneStorageValue(entry.value),
+  };
 }
 
 class StoryGenerationRunScope
