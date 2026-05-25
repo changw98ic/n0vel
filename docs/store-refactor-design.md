@@ -196,7 +196,7 @@ These projections should avoid exposing backing storage payloads directly.
 | M4-16 | Add command provider facades for run workflows | projection/command files, workbench tests | New UI calls command providers instead of full run store where feasible. |
 | M4-17 | Extract run snapshot repository collaborator | run store module, run-store tests | Behavior unchanged; snapshot persistence covered by existing tests. |
 | M4-18 | Extract run session/scope collaborators | run store module, workbench tests | Cancel/retry/scene-switch behavior unchanged. |
-| M4-19 | Provider-first production bootstrap decision record | docs and maybe app tests | Clear go/no-go criteria before removing registry bootstrap. |
+| M4-19 | Provider-first production bootstrap decision record | `docs/provider-bootstrap-cutover-decision.md` | Clear go/no-go criteria before removing registry bootstrap. |
 
 ## 9. Testing Strategy
 
@@ -231,4 +231,6 @@ Projection additions are additive. If a slice regresses behavior:
   Recommendation: use small interfaces only for broad workflows such as runs.
 - Should `ServiceRegistry` be removed before run-store splitting?
   Recommendation: no. Keep bootstrap compatibility until provider-first
-  production startup has crash-recovery and storage coverage.
+  production startup has crash-recovery and storage coverage. M4-19 records
+  the current no-go decision and the required cutover gates in
+  `docs/provider-bootstrap-cutover-decision.md`.

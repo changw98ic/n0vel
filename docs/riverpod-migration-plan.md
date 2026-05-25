@@ -1,7 +1,7 @@
 # Riverpod Migration Plan
 
 > **Plan ID**: M4-01
-> **Status**: M4-12 provider migration status refreshed; projection split pending
+> **Status**: M4-19 bootstrap cutover decision recorded; registry production bootstrap retained
 > **Related Issues**: #40, #23
 > **Created**: 2026-05-25
 > **Reviewed**: 2026-05-25
@@ -323,6 +323,10 @@ class AppWorkspaceNotifier extends Notifier<AppWorkspaceState> {
 **Current M4-12 state**: high-complexity stores have native provider defaults,
 but the production bootstrap compatibility path still overrides them with
 registry-owned instances.
+
+**M4-19 decision**: keep this production bootstrap compatibility path until the
+go/no-go gates in `docs/provider-bootstrap-cutover-decision.md` are satisfied.
+The provider-first bootstrap path remains test-only at this stage.
 
 ```dart
 // Simplified example: production bootstrap override path.
