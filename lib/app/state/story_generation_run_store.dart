@@ -30,6 +30,7 @@ part 'story_generation_run/story_generation_run_scene_state.dart';
 part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
 part 'story_generation_run/story_generation_run_snapshot_repository.dart';
+part 'story_generation_run/story_generation_run_session_controller.dart';
 
 class StoryGenerationRunStore extends AppStoreListenable {
   StoryGenerationRunStore({
@@ -91,6 +92,8 @@ class StoryGenerationRunStore extends AppStoreListenable {
   final ReviewTaskStore? _reviewTaskStore;
   final AppEventBus? _eventBus;
   final StoryGenerationRunSnapshotRepository _snapshotRepository;
+  final StoryGenerationRunSessionController _runSession =
+      StoryGenerationRunSessionController();
   final PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)
   _orchestratorFactory;
   final Map<String, List<String>> _directorFeedbackBySceneScope =
@@ -99,9 +102,6 @@ class StoryGenerationRunStore extends AppStoreListenable {
   late StoryGenerationRunSnapshot _snapshot;
   Future<void> _readyFuture = Future<void>.value();
   int _mutationVersion = 0;
-  int _runToken = 0;
-  int? _activeRunToken;
-  String? _activeRunSceneScopeId;
   StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
   StreamSubscription<SceneChangedEvent>? _sceneChangedSubscription;
   StreamSubscription<ProjectScopeChangedEvent>?
@@ -202,12 +202,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     _directorFeedbackBySceneScope.removeWhere(
       (key, _) => key == event.projectId || key.startsWith(sceneScopePrefix),
     );
-    if (_activeRunSceneScopeId == event.projectId ||
-        (_activeRunSceneScopeId?.startsWith(sceneScopePrefix) ?? false)) {
-      _activeRunToken = null;
-      _activeRunSceneScopeId = null;
-      _runToken += 1;
-    }
+    _runSession.clearProject(event.projectId);
     unawaited(_snapshotRepository.clearProjectStorage(event.projectId));
   }
 
@@ -382,8 +377,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
 
   Future<bool> cancelCurrentRun() async {
     if (_snapshot.status != StoryGenerationRunStatus.running ||
-        _activeRunToken == null ||
-        _activeRunSceneScopeId != _activeSceneScopeId) {
+        !_runSession.isActiveRunForScene(_activeSceneScopeId)) {
       return false;
     }
     _recordSceneStateForCurrentRun(
@@ -409,8 +403,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
         ],
       ),
     );
-    _activeRunToken = null;
-    _activeRunSceneScopeId = null;
+    _runSession.clearActiveRun();
     return true;
   }
 
@@ -442,7 +435,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
       return;
     }
     if (_snapshot.status == StoryGenerationRunStatus.running &&
-        _activeRunSceneScopeId == _activeSceneScopeId) {
+        _runSession.isActiveRunForScene(_activeSceneScopeId)) {
       unawaited(cancelCurrentRun());
     }
     _mutationVersion += 1;
@@ -454,24 +447,19 @@ class StoryGenerationRunStore extends AppStoreListenable {
   }
 
   int _beginRun() {
-    _runToken += 1;
-    _activeRunToken = _runToken;
-    _activeRunSceneScopeId = _activeSceneScopeId;
-    return _runToken;
+    return _runSession.begin(_activeSceneScopeId);
   }
 
   bool _isCurrentRun(int runToken, String sceneScopeId) {
-    return _activeRunToken == runToken &&
-        _activeRunSceneScopeId == sceneScopeId &&
-        _activeSceneScopeId == sceneScopeId;
+    return _runSession.isCurrent(
+      runToken: runToken,
+      runSceneScopeId: sceneScopeId,
+      visibleSceneScopeId: _activeSceneScopeId,
+    );
   }
 
   void _finishRun(int runToken) {
-    if (_activeRunToken != runToken) {
-      return;
-    }
-    _activeRunToken = null;
-    _activeRunSceneScopeId = null;
+    _runSession.finish(runToken);
   }
 
   void _persistReviewTasks(
