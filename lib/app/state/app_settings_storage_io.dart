@@ -3,15 +3,30 @@ import 'dart:io';
 
 import 'app_settings_storage.dart';
 import 'settings_json_cipher.dart';
+import 'settings_secret_store.dart';
 import 'storage_lock.dart';
 
 class FileAppSettingsStorage implements AppSettingsStorage {
   FileAppSettingsStorage({File? file, SettingsJsonCipher? cipher})
-    : this._(file ?? _resolveFile(), cipher);
+    : this._(
+        file ?? _resolveFile(),
+        cipher,
+        usePlatformSecretStore: file == null,
+      );
 
-  FileAppSettingsStorage._(File file, SettingsJsonCipher? cipher)
-    : _file = file,
-      _cipher = cipher ?? SettingsJsonCipher.forSettingsFile(file);
+  FileAppSettingsStorage._(
+    File file,
+    SettingsJsonCipher? cipher, {
+    required bool usePlatformSecretStore,
+  }) : _file = file,
+       _cipher =
+           cipher ??
+           SettingsJsonCipher.forSettingsFile(
+             file,
+             secretStore: usePlatformSecretStore
+                 ? createDefaultSettingsSecretStore()
+                 : const UnavailableSettingsSecretStore(),
+           );
 
   final File _file;
   final SettingsJsonCipher _cipher;

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 
 import 'settings_key_manager.dart';
+import 'settings_secret_store.dart';
 
 const String settingsJsonCipherFormat = 'novel-writer-settings-aes-gcm-v1';
 
@@ -22,16 +23,26 @@ class SettingsJsonCipher {
     AesGcm? algorithm,
     Sha256? keyHasher,
     SettingsKeyManager? keyManager,
+    SettingsSecretStore secretStore = const UnavailableSettingsSecretStore(),
   }) : _keyFile = keyFile,
        _algorithm = algorithm ?? AesGcm.with256bits(),
        _keyHasher = keyHasher ?? Sha256(),
-       _keyManager = keyManager ?? SettingsKeyManager(
-         keyFilePath: keyFile.path,
-       );
+       _keyManager =
+           keyManager ??
+           SettingsKeyManager(
+             keyFilePath: keyFile.path,
+             secretStore: secretStore,
+           );
 
-  factory SettingsJsonCipher.forSettingsFile(File settingsFile) {
+  factory SettingsJsonCipher.forSettingsFile(
+    File settingsFile, {
+    SettingsSecretStore secretStore = const UnavailableSettingsSecretStore(),
+  }) {
     final parent = settingsFile.parent.path;
-    return SettingsJsonCipher(keyFile: File('$parent/.settings.key'));
+    return SettingsJsonCipher(
+      keyFile: File('$parent/.settings.key'),
+      secretStore: secretStore,
+    );
   }
 
   final File _keyFile;
@@ -141,9 +152,7 @@ class SettingsJsonCipher {
       // Key file missing or unreadable — try recovery.
       final recovered = await _keyManager.attemptRecovery();
       if (recovered != null) return recovered;
-      throw const SettingsJsonCipherException(
-        '密钥文件丢失或损坏，且自动恢复失败。请重新配置应用。',
-      );
+      throw const SettingsJsonCipherException('密钥文件丢失或损坏，且自动恢复失败。请重新配置应用。');
     }
   }
 

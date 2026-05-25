@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:novel_writer/app/state/settings_key_manager.dart';
+import 'package:novel_writer/app/state/settings_secret_store.dart';
 
 void main() {
   late Directory tempDir;
@@ -22,6 +24,59 @@ void main() {
   String keyPath() => '${tempDir.path}/.settings.key';
 
   group('loadOrCreateKey', () {
+    test('loads existing key from secret store before key file', () async {
+      final secretBytes = List<int>.generate(32, (i) => (i + 11) % 256);
+      final fileBytes = List<int>.generate(32, (i) => (i + 99) % 256);
+      await File(keyPath()).writeAsString(base64Encode(fileBytes));
+      final secretStore = _FakeSettingsSecretStore(initialSecret: secretBytes);
+
+      final manager = SettingsKeyManager(
+        keyFilePath: keyPath(),
+        secretStore: secretStore,
+      );
+
+      final key = await manager.loadOrCreateKey();
+      final bytes = await key.extractBytes();
+
+      expect(bytes, equals(secretBytes));
+      expect(secretStore.readCount, 1);
+    });
+
+    test('migrates an existing key file into the secret store', () async {
+      final existing = List<int>.generate(32, (i) => (i * 5 + 7) % 256);
+      await File(keyPath()).writeAsString(base64Encode(existing));
+      final secretStore = _FakeSettingsSecretStore();
+
+      final manager = SettingsKeyManager(
+        keyFilePath: keyPath(),
+        secretStore: secretStore,
+      );
+
+      final key = await manager.loadOrCreateKey();
+      final bytes = await key.extractBytes();
+
+      expect(bytes, equals(existing));
+      expect(secretStore.storedSecret, equals(existing));
+      expect(secretStore.writeCount, 1);
+    });
+
+    test('falls back to key file when secret store cannot save', () async {
+      final secretStore = _FakeSettingsSecretStore(failWrites: true);
+      final manager = SettingsKeyManager(
+        keyFilePath: keyPath(),
+        secretStore: secretStore,
+      );
+
+      final key = await manager.loadOrCreateKey();
+      final bytes = await key.extractBytes();
+
+      expect(bytes.length, 32);
+      expect(secretStore.writeCount, 1);
+      final file = File(keyPath());
+      expect(await file.exists(), isTrue);
+      expect(base64Decode(await file.readAsString()), equals(bytes));
+    });
+
     test('creates a new key file on first call', () async {
       final manager = SettingsKeyManager(keyFilePath: keyPath());
       final key = await manager.loadOrCreateKey();
@@ -107,6 +162,28 @@ void main() {
       expect(storedBytes, equals(newBytes));
     });
 
+    test(
+      'rotates secret-store-only key without writing key file backup',
+      () async {
+        final existing = List<int>.generate(32, (i) => (i * 11 + 9) % 256);
+        final secretStore = _FakeSettingsSecretStore(initialSecret: existing);
+        final manager = SettingsKeyManager(
+          keyFilePath: keyPath(),
+          secretStore: secretStore,
+        );
+
+        final newKey = await manager.rotateKey();
+
+        expect(newKey, isNotNull);
+        final newBytes = await newKey!.extractBytes();
+        expect(newBytes.length, 32);
+        expect(newBytes, isNot(equals(existing)));
+        expect(secretStore.storedSecret, equals(newBytes));
+        expect(await File(keyPath()).exists(), isFalse);
+        expect(await File('${keyPath()}.backup').exists(), isFalse);
+      },
+    );
+
     test('returns null when no key file exists', () async {
       final manager = SettingsKeyManager(keyFilePath: keyPath());
       final result = await manager.rotateKey();
@@ -182,4 +259,86 @@ void main() {
       }
     });
   });
+
+  group('PlatformSettingsSecretStore', () {
+    test(
+      'passes saved secret through stdin instead of command arguments',
+      () async {
+        final runner = _CapturingSettingsSecretCommandRunner();
+        final store = createDefaultSettingsSecretStore(commandRunner: runner);
+        final bytes = List<int>.generate(32, (i) => (i * 3 + 17) % 256);
+        final encoded = base64Encode(bytes);
+
+        final saved = await store.saveSecretKey(
+          'test-settings-key',
+          SecretKey(bytes),
+        );
+
+        if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
+          expect(saved, isTrue);
+          expect(runner.calls, hasLength(1));
+          final call = runner.calls.single;
+          expect(call.arguments, isNot(contains(encoded)));
+          expect(call.stdin?.trim(), encoded);
+        } else {
+          expect(saved, isFalse);
+          expect(runner.calls, isEmpty);
+        }
+      },
+    );
+  });
+}
+
+class _FakeSettingsSecretStore implements SettingsSecretStore {
+  _FakeSettingsSecretStore({List<int>? initialSecret, this.failWrites = false})
+    : storedSecret = initialSecret == null
+          ? null
+          : List<int>.from(initialSecret);
+
+  List<int>? storedSecret;
+  final bool failWrites;
+  var readCount = 0;
+  var writeCount = 0;
+
+  @override
+  Future<SecretKey?> loadSecretKey(String keyId) async {
+    readCount++;
+    final bytes = storedSecret;
+    return bytes == null ? null : SecretKey(List<int>.from(bytes));
+  }
+
+  @override
+  Future<bool> saveSecretKey(String keyId, SecretKey key) async {
+    writeCount++;
+    if (failWrites) return false;
+    storedSecret = await key.extractBytes();
+    return true;
+  }
+}
+
+class _CapturingSettingsSecretCommandRunner
+    implements SettingsSecretCommandRunner {
+  final List<_CapturedSettingsSecretCommand> calls = [];
+
+  @override
+  Future<SettingsSecretCommandResult> run(
+    String executable,
+    List<String> arguments, {
+    String? stdin,
+  }) async {
+    calls.add(
+      _CapturedSettingsSecretCommand(
+        arguments: List<String>.from(arguments),
+        stdin: stdin,
+      ),
+    );
+    return const SettingsSecretCommandResult(exitCode: 0);
+  }
+}
+
+class _CapturedSettingsSecretCommand {
+  const _CapturedSettingsSecretCommand({required this.arguments, this.stdin});
+
+  final List<String> arguments;
+  final String? stdin;
 }

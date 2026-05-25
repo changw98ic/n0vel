@@ -3,16 +3,25 @@ import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'settings_secret_store.dart';
+
 /// Manages the lifecycle of the settings encryption key: creation,
 /// device-bound derivation, rotation, and recovery.
 class SettingsKeyManager {
-  SettingsKeyManager({String? keyFilePath})
-    : _keyFilePath = keyFilePath;
+  SettingsKeyManager({
+    String? keyFilePath,
+    SettingsSecretStore secretStore = const UnavailableSettingsSecretStore(),
+    String keyId = settingsSecretStoreKeyId,
+  }) : _keyFilePath = keyFilePath,
+       _secretStore = secretStore,
+       _keyId = keyId;
 
   static const String _salt = 'novel-writer-settings-v1';
   static const int _aesKeyLength = 32;
 
   final String? _keyFilePath;
+  final SettingsSecretStore _secretStore;
+  final String _keyId;
 
   final AesGcm _algorithm = AesGcm.with256bits();
 
@@ -28,16 +37,26 @@ class SettingsKeyManager {
       return SecretKey(await _normalizeOverrideKey(override.trim()));
     }
 
-    final keyFile = _resolveKeyFile();
-    if (await keyFile.exists()) {
-      return _readKeyFile(keyFile);
+    final secretStoreKey = await _loadSecretStoreKey();
+    if (secretStoreKey != null) {
+      return secretStoreKey;
     }
 
-    // First run: generate a new random key and persist it.
+    final keyFile = _resolveKeyFile();
+    if (await keyFile.exists()) {
+      final fileKey = await _readKeyFile(keyFile);
+      await _saveSecretStoreKey(fileKey);
+      return fileKey;
+    }
+
+    // First run: generate a new random key and persist it. Prefer the
+    // platform secret store, then fall back to the legacy key file.
     final secretKey = await _algorithm.newSecretKey();
-    final bytes = await secretKey.extractBytes();
-    await _writeKeyFileAtomic(keyFile, bytes);
-    return SecretKey(bytes);
+    if (!await _saveSecretStoreKey(secretKey)) {
+      final bytes = await secretKey.extractBytes();
+      await _writeKeyFileAtomic(keyFile, bytes);
+    }
+    return secretKey;
   }
 
   /// Rotates the encryption key for [settings].
@@ -52,26 +71,30 @@ class SettingsKeyManager {
   ///
   /// Returns the new [SecretKey] on success, `null` on failure.
   Future<SecretKey?> rotateKey() async {
-    final keyFile = _resolveKeyFile();
-
-    // Load the current key so we can back it up.
-    if (!await keyFile.exists()) {
+    final existing = await _loadExistingKey();
+    if (existing == null) {
       return null;
     }
 
     try {
-      final oldBytes = await _readKeyFileBytes(keyFile);
+      final keyFile = _resolveKeyFile();
+      final keyFileExisted = await keyFile.exists();
+      final oldBytes = await existing.extractBytes();
 
-      // Backup old key.
-      final backupFile = File('${keyFile.path}.backup');
-      await backupFile.writeAsString(base64Encode(oldBytes));
+      if (keyFileExisted) {
+        final backupFile = File('${keyFile.path}.backup');
+        await backupFile.writeAsString(base64Encode(oldBytes));
+      }
 
       // Generate new key and write atomically.
       final newKey = await _algorithm.newSecretKey();
-      final newBytes = await newKey.extractBytes();
-      await _writeKeyFileAtomic(keyFile, newBytes);
+      final savedToSecretStore = await _saveSecretStoreKey(newKey);
+      if (keyFileExisted || !savedToSecretStore) {
+        final newBytes = await newKey.extractBytes();
+        await _writeKeyFileAtomic(keyFile, newBytes);
+      }
 
-      return SecretKey(newBytes);
+      return newKey;
     } on Exception {
       return null;
     }
@@ -114,9 +137,8 @@ class SettingsKeyManager {
     // will be functional.
     try {
       final secretKey = await _algorithm.newSecretKey();
-      final bytes = await secretKey.extractBytes();
-      await _writeKeyFileAtomic(keyFile, bytes);
-      return SecretKey(bytes);
+      await _persistRecoveredKey(keyFile, secretKey);
+      return secretKey;
     } on Exception {
       return null;
     }
@@ -130,9 +152,7 @@ class SettingsKeyManager {
     final hostname = _getHostname();
     final username = _getUsername();
     if (hostname.isEmpty && username.isEmpty) {
-      throw const FormatException(
-        '无法获取设备信息用于密钥派生。',
-      );
+      throw const FormatException('无法获取设备信息用于密钥派生。');
     }
 
     final seed = utf8.encode('$hostname\x00$username');
@@ -170,17 +190,45 @@ class SettingsKeyManager {
 
   /// Persists a recovered key to the key file so subsequent loads succeed.
   Future<void> _persistRecoveredKey(File keyFile, SecretKey key) async {
-    final bytes = await key.extractBytes();
-    await _writeKeyFileAtomic(keyFile, bytes);
+    if (!await _saveSecretStoreKey(key)) {
+      final bytes = await key.extractBytes();
+      await _writeKeyFileAtomic(keyFile, bytes);
+    }
+  }
+
+  Future<SecretKey?> _loadExistingKey() async {
+    final secretStoreKey = await _loadSecretStoreKey();
+    if (secretStoreKey != null) {
+      return secretStoreKey;
+    }
+    final keyFile = _resolveKeyFile();
+    if (!await keyFile.exists()) {
+      return null;
+    }
+    return _readKeyFile(keyFile);
+  }
+
+  Future<SecretKey?> _loadSecretStoreKey() async {
+    try {
+      return _secretStore.loadSecretKey(_keyId);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<bool> _saveSecretStoreKey(SecretKey key) async {
+    try {
+      return _secretStore.saveSecretKey(_keyId, key);
+    } on Object {
+      return false;
+    }
   }
 
   Future<List<int>> _readKeyFileBytes(File file) async {
     final stored = (await file.readAsString()).trim();
     final bytes = base64Decode(stored);
     if (bytes.length != _aesKeyLength) {
-      throw const FormatException(
-        '.settings.key 必须是 32 字节 AES key 的 base64。',
-      );
+      throw const FormatException('.settings.key 必须是 32 字节 AES key 的 base64。');
     }
     return bytes;
   }
