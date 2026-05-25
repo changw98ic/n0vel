@@ -7,6 +7,7 @@ import '../state/app_authoring_storage_io_support.dart';
 import 'app_event_log_storage.dart';
 import 'app_event_log_types.dart';
 import 'app_log.dart';
+import 'app_redaction.dart';
 
 AppEventLogStorage createAppEventLogStorage({
   String? sqlitePath,
@@ -61,9 +62,13 @@ class IoAppEventLogStorage implements AppEventLogStorage {
   // --- Public write API (unchanged) ---
   @override
   Future<void> write(AppEventLogEntry entry) {
+    final redactedEntry = redactAppEventLogEntry(
+      entry,
+      SensitiveDataRedactionPolicy.defaults,
+    );
     final next = _pendingWrite
         .catchError((Object _) {})
-        .then<void>((_) => _writeBestEffort(entry));
+        .then<void>((_) => _writeBestEffort(redactedEntry));
     _pendingWrite = next;
     return next;
   }

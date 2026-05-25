@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app_event_log_storage.dart';
 import 'app_event_log_types.dart';
 import 'app_log.dart';
+import 'app_redaction.dart';
 
 export 'app_event_log_types.dart';
 
@@ -13,19 +14,21 @@ class AppEventLog {
     AppEventLogStorage? storage,
     String? sessionId,
     AppEventLogNowProvider? nowProvider,
+    SensitiveDataRedactionPolicy redactionPolicy =
+        SensitiveDataRedactionPolicy.defaults,
   }) : _nowProvider = nowProvider ?? DateTime.now,
-       _storage =
-           storage ?? createDefaultAppEventLogStorage(),
+       _redactionPolicy = redactionPolicy,
+       _storage = storage ?? createDefaultAppEventLogStorage(),
        sessionId =
            sessionId ?? _generateId('session', (nowProvider ?? DateTime.now)());
 
-  
   final AppEventLogNowProvider _nowProvider;
+  final SensitiveDataRedactionPolicy _redactionPolicy;
   final AppEventLogStorage _storage;
   final String sessionId;
 
   Future<void> write(AppEventLogEntry entry) {
-    return _storage.write(entry);
+    return _storage.write(redactAppEventLogEntry(entry, _redactionPolicy));
   }
 
   Future<void> logBestEffort({

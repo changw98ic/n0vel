@@ -1,3 +1,4 @@
+import '../logging/app_redaction.dart';
 import 'app_llm_client_types.dart';
 import 'app_llm_prompt_version.dart';
 
@@ -74,9 +75,11 @@ class AppLlmCallTraceEntry {
     bool? schemaValid,
     List<String>? schemaViolations,
   }) {
+    const redactionPolicy = SensitiveDataRedactionPolicy.defaults;
     final host = _hostFromBaseUrl(request.baseUrl);
     final promptChars = _promptChars(request.messages);
     final completionChars = result.text?.length ?? 0;
+    final redactedMetadata = redactionPolicy.redactValue(metadata);
     return AppLlmCallTraceEntry(
       timestampMs: DateTime.now().millisecondsSinceEpoch,
       traceName: traceName,
@@ -95,8 +98,14 @@ class AppLlmCallTraceEntry {
       completionChars: completionChars,
       failureKind: result.failureKind?.name,
       statusCode: result.statusCode,
-      errorDetail: result.detail,
-      metadata: Map<String, Object?>.unmodifiable(metadata),
+      errorDetail: result.detail == null
+          ? null
+          : redactionPolicy.redactString(result.detail!),
+      metadata: Map<String, Object?>.unmodifiable(
+        redactedMetadata is Map<String, Object?>
+            ? redactedMetadata
+            : const <String, Object?>{},
+      ),
       promptVersion: promptVersion,
       schemaType: schemaType,
       schemaValid: schemaValid,

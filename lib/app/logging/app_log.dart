@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'app_redaction.dart';
+
 /// Lightweight debug-only logger.
 ///
 /// All calls compile to no-ops in release builds.
@@ -27,6 +29,8 @@ class AppLog {
 
   static String _format(String level, String? tag, String message) {
     final prefix = tag != null ? '$level [$tag]' : level;
-    return '$prefix $message';
+    return SensitiveDataRedactionPolicy.defaults.redactString(
+      '$prefix $message',
+    );
   }
 }
