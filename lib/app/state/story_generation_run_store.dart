@@ -31,6 +31,7 @@ part 'story_generation_run/story_generation_run_snapshot_mapping.dart';
 part 'story_generation_run/story_generation_run_snapshot_persistence.dart';
 part 'story_generation_run/story_generation_run_snapshot_repository.dart';
 part 'story_generation_run/story_generation_run_event_subscriptions.dart';
+part 'story_generation_run/story_generation_run_pipeline_factory.dart';
 part 'story_generation_run/story_generation_run_session_controller.dart';
 
 class StoryGenerationRunStore extends AppStoreListenable {
@@ -47,6 +48,7 @@ class StoryGenerationRunStore extends AppStoreListenable {
     AppEventBus? eventBus,
     StoryGenerationRunStorage? storage,
     SceneContextAssembler? sceneContextAssembler,
+    StoryGenerationRunPipelineFactory? pipelineFactory,
     PipelineStageRunnerImpl Function(AppSettingsStore settingsStore)?
     orchestratorFactory,
   }) : _settingsStore = settingsStore,
@@ -59,16 +61,13 @@ class StoryGenerationRunStore extends AppStoreListenable {
        ),
        _orchestratorFactory =
            orchestratorFactory ??
-           ((settingsStore) {
-             return PipelineStageRunnerImpl(
-               settingsStore: settingsStore,
-               pipelineConfig: GenerationPipelineConfig.fromWorkspace(
-                 workspaceStore,
-               ),
-               roleplaySessionStore: roleplaySessionStore,
-               characterMemoryStore: characterMemoryStore,
-             );
-           }) {
+           (pipelineFactory ??
+                   StoryGenerationRunPipelineFactory(
+                     workspaceStore: workspaceStore,
+                     roleplaySessionStore: roleplaySessionStore,
+                     characterMemoryStore: characterMemoryStore,
+                   ))
+               .create {
     _activeSceneScopeId = _workspaceStore.currentSceneScopeId;
     _snapshot = _idleSnapshotForCurrentScene();
     _eventSubscriptions = StoryGenerationRunEventSubscriptions(

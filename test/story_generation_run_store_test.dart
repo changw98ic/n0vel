@@ -86,6 +86,46 @@ void main() {
     });
   });
 
+  group('StoryGenerationRunPipelineFactory', () {
+    test('builds default pipeline runners from workspace style settings', () {
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+      );
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      addTearDown(settingsStore.dispose);
+      addTearDown(workspaceStore.dispose);
+
+      workspaceStore.updateStyleQuestionnaireField('profile_name', '测试风格');
+      workspaceStore.updateStyleQuestionnaireField(
+        'pov_mode',
+        'third_person_limited',
+      );
+      workspaceStore.updateStyleQuestionnaireField('dialogue_ratio', 'medium');
+      workspaceStore.updateStyleQuestionnaireField(
+        'description_density',
+        'medium',
+      );
+      workspaceStore.updateStyleQuestionnaireField(
+        'emotional_intensity',
+        'medium',
+      );
+      workspaceStore.updateStyleQuestionnaireField('rhythm_profile', 'tight');
+      workspaceStore.updateStyleQuestionnaireField('genre_tags', const ['悬疑']);
+      workspaceStore.generateStyleProfileFromQuestionnaire();
+
+      final runner = StoryGenerationRunPipelineFactory(
+        workspaceStore: workspaceStore,
+      ).create(settingsStore);
+
+      expect(runner.enableWritingReference, isTrue);
+      expect(runner.styleReferenceConfig.enabled, isTrue);
+      expect(runner.styleReferenceConfig.profileName, '测试风格');
+      expect(runner.maxProseRetries, 1);
+    });
+  });
+
   group('StoryGenerationRunSnapshot lifecycle phase', () {
     test(
       'persists and restores the PRD workflow phase separately from status',
