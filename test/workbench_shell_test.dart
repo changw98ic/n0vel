@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/di/service_registry.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
@@ -34,14 +35,18 @@ import 'package:novel_writer/features/story_generation/data/pipeline_definition.
 import 'package:novel_writer/features/workbench/presentation/workbench_shell_page.dart';
 
 void main() {
+  late ServiceRegistry registry;
+
+  List<Override> registryOverrides() =>
+      appProviderOverridesForRegistry(registry);
+
+  tearDown(() {
+    registry.disposeAll();
+  });
+
   group('WorkbenchShellPage restored story runs', () {
-    late ServiceRegistry registry;
     late AppWorkspaceStore workspaceStore;
     late StoryGenerationRunStore runStore;
-
-    tearDown(() {
-      registry.disposeAll();
-    });
 
     testWidgets('prompts when an unfinished generation run is restored', (
       tester,
@@ -72,7 +77,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const WorkbenchShellPage(),
@@ -134,7 +139,7 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            overrides: registryOverrides(),
             child: MaterialApp(
               theme: AppTheme.light(),
               home: const WorkbenchShellPage(),
@@ -153,12 +158,7 @@ void main() {
   });
 
   group('WorkbenchShellPage center pane AI tool invitation', () {
-    late ServiceRegistry registry;
     late AppWorkspaceStore workspaceStore;
-
-    tearDown(() {
-      registry.disposeAll();
-    });
 
     testWidgets('shows AI tool invitation in center pane with working action', (
       tester,
@@ -175,7 +175,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const WorkbenchShellPage(),
@@ -214,12 +214,7 @@ void main() {
   });
 
   group('WorkbenchShellPage Run Center', () {
-    late ServiceRegistry registry;
     late AppWorkspaceStore workspaceStore;
-
-    tearDown(() {
-      registry.disposeAll();
-    });
 
     testWidgets('opens from visible toolbar button and shows idle state', (
       tester,
@@ -236,7 +231,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const WorkbenchShellPage(),
@@ -294,7 +289,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const WorkbenchShellPage(),
@@ -360,7 +355,7 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            overrides: registryOverrides(),
             child: MaterialApp(
               theme: AppTheme.light(),
               home: const WorkbenchShellPage(),
@@ -447,7 +442,7 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            overrides: registryOverrides(),
             child: MaterialApp(
               theme: AppTheme.light(),
               home: const WorkbenchShellPage(),
@@ -483,12 +478,7 @@ void main() {
   });
 
   group('WorkbenchShellPage scene switch guards', () {
-    late ServiceRegistry registry;
     late AppWorkspaceStore workspaceStore;
-
-    tearDown(() {
-      registry.disposeAll();
-    });
 
     testWidgets(
       'running run scene switch shows confirmation and switches only after confirm',
@@ -534,7 +524,7 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+            overrides: registryOverrides(),
             child: MaterialApp(
               theme: AppTheme.light(),
               home: const WorkbenchShellPage(),
@@ -613,7 +603,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const WorkbenchShellPage(),
