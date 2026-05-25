@@ -45,6 +45,8 @@ flutter run -d macos
 | Model | 服务商提供的模型名称 |
 | API key | 你的模型服务密钥 |
 
+常见 OpenAI 兼容服务的示例 Base URL 和 Model 值见 [OpenAI-compatible provider examples](docs/openai-compatible-providers.md)。这些示例不会包含真实密钥；你需要使用自己的 API key。
+
 3. 超时和并发设置先保持默认；只有请求经常超时或服务商有限流时再调整。
 4. 点击连接测试，通过后保存。
 
