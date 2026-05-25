@@ -8,6 +8,7 @@ import '../../../domain/workspace_models.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
+import '../../characters/presentation/character_state_card.dart';
 import '../../review_tasks/data/review_task_store.dart';
 import 'workbench_ai_revision_helpers.dart';
 import 'workbench_shell_page.dart';
@@ -20,6 +21,7 @@ class ToolWindowPanel extends StatelessWidget {
     required this.authorFeedbackStore,
     required this.reviewTaskStore,
     required this.sceneContext,
+    required this.characters,
     required this.scenes,
     required this.currentSceneId,
     required this.currentChapterId,
@@ -48,6 +50,7 @@ class ToolWindowPanel extends StatelessWidget {
     required this.onReplayAiHistory,
     required this.onDeleteAiHistoryEntry,
     required this.onClearAiHistory,
+    required this.onUpdateCharacterState,
     required this.onSyncContext,
     required this.onSelectScene,
     required this.onCreateScene,
@@ -73,6 +76,7 @@ class ToolWindowPanel extends StatelessWidget {
   final AuthorFeedbackStore authorFeedbackStore;
   final ReviewTaskStore reviewTaskStore;
   final AppSceneContextSnapshot sceneContext;
+  final List<CharacterRecord> characters;
   final List<SceneRecord> scenes;
   final String currentSceneId;
   final String currentChapterId;
@@ -101,6 +105,8 @@ class ToolWindowPanel extends StatelessWidget {
   final ValueChanged<AiHistoryEntry> onReplayAiHistory;
   final ValueChanged<AiHistoryEntry> onDeleteAiHistoryEntry;
   final VoidCallback onClearAiHistory;
+  final void Function(CharacterRecord, CharacterStateUpdate)
+  onUpdateCharacterState;
   final VoidCallback onSyncContext;
   final Future<void> Function(SceneRecord) onSelectScene;
   final VoidCallback onCreateScene;
@@ -126,6 +132,10 @@ class ToolWindowPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = desktopPalette(context);
     final diagnosticText = diagnosticReport;
+    final activeCharacter = _selectedCharacterForStateCard(
+      characters: characters,
+      currentSceneId: currentSceneId,
+    );
 
     final (title, description) = switch (activePanel) {
       WorkbenchToolPanel.resources => ('章节资料', '本章会使用的人物、世界观和章节摘要会显示在这里。'),
@@ -223,6 +233,23 @@ class ToolWindowPanel extends StatelessWidget {
                 Text(description, style: theme.textTheme.bodySmall),
                 if (activePanel == WorkbenchToolPanel.resources) ...[
                   const SizedBox(height: 16),
+                  if (activeCharacter != null) ...[
+                    CharacterStateCard(
+                      characterName: activeCharacter.name,
+                      role: activeCharacter.role,
+                      currentState: characterCurrentStateForRecord(
+                        activeCharacter,
+                      ),
+                      recentChange: characterRecentChangeForRecord(
+                        activeCharacter,
+                      ),
+                      history: characterStateHistoryForRecord(activeCharacter),
+                      compact: true,
+                      onStateSubmitted: (update) =>
+                          onUpdateCharacterState(activeCharacter, update),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   if (uiState ==
                       WorkbenchUiState.missingCharacterReference) ...[
                     Text(
@@ -369,6 +396,23 @@ class ToolWindowPanel extends StatelessWidget {
       },
     );
   }
+}
+
+CharacterRecord? _selectedCharacterForStateCard({
+  required List<CharacterRecord> characters,
+  required String currentSceneId,
+}) {
+  if (characters.isEmpty) {
+    return null;
+  }
+  if (currentSceneId.trim().isNotEmpty) {
+    for (final character in characters) {
+      if (character.linkedSceneIds.contains(currentSceneId)) {
+        return character;
+      }
+    }
+  }
+  return characters.first;
 }
 
 Widget _buildRunCenterPanel(ToolWindowPanel panel, BuildContext context) {

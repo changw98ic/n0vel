@@ -11,6 +11,7 @@ import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'character_library_components.dart';
+import 'character_state_card.dart';
 
 enum CharacterLibraryUiState {
   ready,
@@ -45,7 +46,8 @@ class CharacterLibraryPage extends ConsumerStatefulWidget {
   final CharacterLibraryUiState uiState;
 
   @override
-  ConsumerState<CharacterLibraryPage> createState() => _CharacterLibraryPageState();
+  ConsumerState<CharacterLibraryPage> createState() =>
+      _CharacterLibraryPageState();
 }
 
 class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
@@ -117,7 +119,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                 SizedBox(
                   width: 260,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusXLarge,
+                    ),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: AppDesignTokens.glassBlurRadius,
@@ -139,7 +143,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                 const SizedBox(width: 24),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusXLarge,
+                    ),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: AppDesignTokens.glassBlurRadius,
@@ -148,7 +154,12 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                       child: Container(
                         decoration: glassCardDecoration(context),
                         padding: const EdgeInsets.all(20),
-                        child: _buildDetail(theme, resources, projectScenes, current),
+                        child: _buildDetail(
+                          theme,
+                          resources,
+                          projectScenes,
+                          current,
+                        ),
                       ),
                     ),
                   ),
@@ -175,9 +186,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           );
         },
       ),
-      statusBar: const BottomSpecBar(
-        description: '作品设定 · 人物资料已保存',
-      ),
+      statusBar: const BottomSpecBar(description: '作品设定 · 人物资料已保存'),
     );
   }
 
@@ -205,7 +214,10 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           const SizedBox(height: AppDesignTokens.space8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
           const SizedBox(height: AppDesignTokens.space12),
-          const CharacterInfoBlock(title: '没有找到匹配角色', message: '试试更短的名字、别名或身份关键词。'),
+          const CharacterInfoBlock(
+            title: '没有找到匹配角色',
+            message: '试试更短的名字、别名或身份关键词。',
+          ),
           const SizedBox(height: AppDesignTokens.space12),
           SizedBox(
             width: double.infinity,
@@ -296,7 +308,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           children: [
             Text('角色详情', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppDesignTokens.space12),
-            const CharacterStateCard(
+            const CharacterStateCard.notice(
               title: '缺少必填字段',
               message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
               accent: Color(0xFF51624D),
@@ -346,6 +358,24 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           ),
           const SizedBox(height: AppDesignTokens.space12),
           _buildCharacterFields(store, current),
+          const SizedBox(height: AppDesignTokens.space16),
+          CharacterStateCard(
+            characterName: current.name,
+            role: current.role,
+            currentState: characterCurrentStateForRecord(current),
+            recentChange: characterRecentChangeForRecord(current),
+            history: characterStateHistoryForRecord(current),
+            onStateSubmitted: (update) {
+              store.updateCharacter(
+                characterId: current.id,
+                summary: update.currentState,
+                referenceSummary: characterStateHistoryToReferenceSummary(
+                  update.history,
+                ),
+              );
+              ref.read(appSceneContextStoreProvider).syncContext();
+            },
+          ),
           const SizedBox(height: AppDesignTokens.space16),
           if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
             CharacterInfoBlock(
@@ -565,5 +595,4 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       ],
     );
   }
-
 }

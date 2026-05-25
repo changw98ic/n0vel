@@ -16,6 +16,7 @@ import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
 import '../../author_feedback/domain/author_feedback_models.dart';
+import '../../characters/presentation/character_state_card.dart';
 import '../../review_tasks/data/review_task_store.dart';
 
 import 'workbench_ai_revision_helpers.dart';

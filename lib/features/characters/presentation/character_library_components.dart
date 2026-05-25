@@ -102,40 +102,6 @@ class CharacterEditableTextField extends StatelessWidget {
   }
 }
 
-class CharacterStateCard extends StatelessWidget {
-  const CharacterStateCard({
-    required this.title,
-    required this.message,
-    required this.accent,
-    super.key,
-  });
-
-  final String title;
-  final String message;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDesignTokens.space12),
-      decoration: BoxDecoration(
-        color: desktopPalette(context).subtle,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-        border: Border.all(color: desktopPalette(context).borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppDesignTokens.space8),
-          Text(message, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
 class CharacterCallToActionState extends StatelessWidget {
   const CharacterCallToActionState({
     required this.title,

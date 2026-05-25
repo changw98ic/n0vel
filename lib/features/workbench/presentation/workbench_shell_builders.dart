@@ -657,6 +657,7 @@ Widget? _buildToolWindow(
           activePanel: state._orb.activeToolPanel!,
           authorFeedbackStore: authorFeedbackStore,
           reviewTaskStore: reviewTaskStore,
+          characters: workspace.characters,
           scenes: workspace.scenes,
           currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
           currentChapterId: workspace.currentSceneOrNull?.chapterLabel ?? '',
@@ -695,6 +696,16 @@ Widget? _buildToolWindow(
           },
           onClearAiHistory: () {
             state.ref.read(appAiHistoryStoreProvider).clear();
+          },
+          onUpdateCharacterState: (character, update) {
+            workspace.updateCharacter(
+              characterId: character.id,
+              summary: update.currentState,
+              referenceSummary: characterStateHistoryToReferenceSummary(
+                update.history,
+              ),
+            );
+            state.ref.read(appSceneContextStoreProvider).syncContext();
           },
           onSyncContext: () {
             state._orb.syncContext();

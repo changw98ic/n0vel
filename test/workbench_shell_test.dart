@@ -29,10 +29,12 @@ import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/app/theme/app_theme.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
+import 'package:novel_writer/features/characters/presentation/character_state_card.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_definition.dart';
 import 'package:novel_writer/features/workbench/presentation/workbench_shell_page.dart';
+import 'package:novel_writer/features/workbench/presentation/workbench_tool_window_panel.dart';
 
 void main() {
   late ServiceRegistry registry;
@@ -628,6 +630,123 @@ void main() {
 
       // Should still be on same scene
       expect(workspaceStore.currentScene.id, firstSceneId);
+    });
+  });
+
+  group('WorkbenchShellPage character state card', () {
+    late AppWorkspaceStore workspaceStore;
+
+    testWidgets('resources side panel shows and updates character state', (
+      tester,
+    ) async {
+      registry = ServiceRegistry();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '角色状态测试');
+      final settingsStore = registry.resolve<AppSettingsStore>();
+      final promptController = TextEditingController();
+      addTearDown(promptController.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 760,
+              child: ToolWindowPanel(
+                activePanel: WorkbenchToolPanel.resources,
+                authorFeedbackStore: registry.resolve<AuthorFeedbackStore>(),
+                reviewTaskStore: registry.resolve<ReviewTaskStore>(),
+                sceneContext: registry.resolve<AppSceneContextStore>().snapshot,
+                characters: workspaceStore.characters,
+                scenes: workspaceStore.scenes,
+                currentSceneId: workspaceStore.currentScene.id,
+                currentChapterId: workspaceStore.currentScene.chapterLabel,
+                currentSceneLabel: workspaceStore.currentScene.displayLocation,
+                sourceRunId: null,
+                sourceRunLabel: null,
+                uiState: WorkbenchUiState.defaultHidden,
+                settings: settingsStore.snapshot,
+                settingsFeedback: settingsStore.feedback,
+                settingsHasPersistenceIssue: false,
+                canGenerateAi: false,
+                isGeneratingAi: false,
+                diagnosticReport: null,
+                aiToolMode: AiToolMode.rewrite,
+                historyEntries: const [],
+                aiPromptController: promptController,
+                onRetrySecureStore: () async {},
+                draftText: '',
+                currentSelectionPreview: '',
+                selectionDrafts: const [],
+                onSelectAiMode: (_) {},
+                onAddCurrentSelection: () {},
+                onEditSelectionPrompt: (_) {},
+                onRemoveSelection: (_) {},
+                onGenerateAiSuggestion: () {},
+                onReplayAiHistory: (_) {},
+                onDeleteAiHistoryEntry: (_) {},
+                onClearAiHistory: () {},
+                onUpdateCharacterState: (character, update) {
+                  workspaceStore.updateCharacter(
+                    characterId: character.id,
+                    summary: update.currentState,
+                    referenceSummary: characterStateHistoryToReferenceSummary(
+                      update.history,
+                    ),
+                  );
+                },
+                onSyncContext: () {},
+                onSelectScene: (_) async {},
+                onCreateScene: () {},
+                onRenameScene: () {},
+                onDeleteScene: () {},
+                canDeleteScene: false,
+                onOpenSettings: () {},
+                onShowAiMetadata: () {},
+                runSnapshot: const StoryGenerationRunSnapshot(
+                  status: StoryGenerationRunStatus.idle,
+                  sceneId: '',
+                  sceneLabel: '',
+                  headline: '',
+                  summary: '',
+                  stageSummary: '',
+                ),
+                isRunActive: false,
+                canCancelRun: false,
+                canRetryRun: false,
+                onRetryRun: () {},
+                onDiscardRun: () {},
+                onCancelRun: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(CharacterStateCard.cardKey), findsOneWidget);
+      expect(find.text('角色状态'), findsOneWidget);
+      expect(find.text('柳溪'), findsOneWidget);
+      expect(find.text('当前状态'), findsOneWidget);
+      expect(find.text('最近变化'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(CharacterStateCard.stateFieldKey),
+        '证人房间后保持警觉，准备逼近线人。',
+      );
+      await tester.enterText(
+        find.byKey(CharacterStateCard.changeFieldKey),
+        '手动记录：证词顺序被改写',
+      );
+      await tester.tap(find.byKey(CharacterStateCard.saveButtonKey));
+      await tester.pumpAndSettle();
+
+      final updated = workspaceStore.characters.first;
+      expect(updated.summary, '证人房间后保持警觉，准备逼近线人。');
+      expect(updated.referenceSummary, contains('状态历史'));
+      expect(updated.referenceSummary, contains('手动记录：证词顺序被改写'));
     });
   });
 }
