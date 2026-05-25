@@ -8,8 +8,9 @@ void main() {
   test('workspace store provider is backed by a Riverpod notifier', () async {
     final container = ProviderContainer(
       overrides: [
-        appWorkspaceStorageProvider
-            .overrideWithValue(InMemoryAppWorkspaceStorage()),
+        appWorkspaceStorageProvider.overrideWithValue(
+          InMemoryAppWorkspaceStorage(),
+        ),
       ],
     );
     addTearDown(container.dispose);

@@ -18,7 +18,8 @@ void main() {
   late ServiceRegistry registry;
   late AppWorkspaceStore workspaceStore;
 
-  List<Override> registryOverrides() => appProviderOverridesForRegistry(registry);
+  List<Override> registryOverrides() =>
+      appProviderOverridesForRegistry(registry);
 
   tearDown(() {
     registry.disposeAll();
@@ -73,7 +74,9 @@ void main() {
       expect(filledButton.enabled, isFalse);
     });
 
-    testWidgets('create button is enabled when name is entered', (tester) async {
+    testWidgets('create button is enabled when name is entered', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -153,14 +156,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(workspaceStore.projects.length, initialProjectCount + 1);
-      expect(
-        workspaceStore.projects.any((p) => p.title == '新作品测试'),
-        isTrue,
-      );
+      expect(workspaceStore.projects.any((p) => p.title == '新作品测试'), isTrue);
     });
 
-    testWidgets('creates protagonist character seed when provided',
-        (tester) async {
+    testWidgets('creates protagonist character seed when provided', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -190,21 +191,17 @@ void main() {
       await tester.tap(find.byKey(ProjectWizardPage.createButtonKey));
       await tester.pumpAndSettle();
 
-      final createdProject = workspaceStore.projects
-          .firstWhere((p) => p.title == '主角测试作品');
-
-      final ref = ProviderContainer(
-        overrides: registryOverrides(),
+      final createdProject = workspaceStore.projects.firstWhere(
+        (p) => p.title == '主角测试作品',
       );
+
+      final ref = ProviderContainer(overrides: registryOverrides());
       addTearDown(ref.dispose);
 
       ref.read(appWorkspaceStoreProvider).openProject(createdProject.id);
       final characters = ref.read(appWorkspaceStoreProvider).characters;
 
-      expect(
-        characters.any((c) => c.name == '李明' && c.role == '主角'),
-        isTrue,
-      );
+      expect(characters.any((c) => c.name == '李明' && c.role == '主角'), isTrue);
     });
 
     testWidgets('creates world node seed when provided', (tester) async {
@@ -237,21 +234,17 @@ void main() {
       await tester.tap(find.byKey(ProjectWizardPage.createButtonKey));
       await tester.pumpAndSettle();
 
-      final createdProject = workspaceStore.projects
-          .firstWhere((p) => p.title == '世界观测试作品');
-
-      final ref = ProviderContainer(
-        overrides: registryOverrides(),
+      final createdProject = workspaceStore.projects.firstWhere(
+        (p) => p.title == '世界观测试作品',
       );
+
+      final ref = ProviderContainer(overrides: registryOverrides());
       addTearDown(ref.dispose);
 
       ref.read(appWorkspaceStoreProvider).openProject(createdProject.id);
       final worldNodes = ref.read(appWorkspaceStoreProvider).worldNodes;
 
-      expect(
-        worldNodes.any((n) => n.title == '青云门' && n.type == '地点'),
-        isTrue,
-      );
+      expect(worldNodes.any((n) => n.title == '青云门' && n.type == '地点'), isTrue);
     });
 
     testWidgets('all field keys are present for testing', (tester) async {
@@ -273,10 +266,7 @@ void main() {
 
       expect(find.byKey(ProjectWizardPage.nameFieldKey), findsOneWidget);
       expect(find.byKey(ProjectWizardPage.genreFieldKey), findsOneWidget);
-      expect(
-        find.byKey(ProjectWizardPage.protagonistFieldKey),
-        findsOneWidget,
-      );
+      expect(find.byKey(ProjectWizardPage.protagonistFieldKey), findsOneWidget);
       expect(find.byKey(ProjectWizardPage.worldNodeFieldKey), findsOneWidget);
       expect(find.byKey(ProjectWizardPage.createButtonKey), findsOneWidget);
       expect(find.byKey(ProjectWizardPage.cancelButtonKey), findsOneWidget);
