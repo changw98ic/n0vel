@@ -475,6 +475,7 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
                 state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
             onOpenRunCenter: () =>
                 state._orb.toggleToolPanel(WorkbenchToolPanel.runCenter),
+            onOpenBible: state._openBibleAndRestoreAnchor,
             onCreateFirstChapter: () => state._showSceneDialog(
               context,
               title: '新建章节',

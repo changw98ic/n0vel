@@ -13,14 +13,16 @@ class ProjectHomePage extends ConsumerWidget {
   static const shelfEntryKey = ValueKey<String>('project-home-shelf-entry');
   static const studioEntryKey = ValueKey<String>('project-home-studio-entry');
   static const bibleEntryKey = ValueKey<String>('project-home-bible-entry');
-  static const productionEntryKey =
-      ValueKey<String>('project-home-production-entry');
+  static const productionEntryKey = ValueKey<String>(
+    'project-home-production-entry',
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final project = ref.watch(appWorkspaceStoreProvider).currentProjectOrNull;
-    final currentScene =
-        ref.watch(appWorkspaceStoreProvider).currentSceneOrNull;
+    final currentScene = ref
+        .watch(appWorkspaceStoreProvider)
+        .currentSceneOrNull;
 
     if (project == null) {
       return _buildNoProjectShell(context);
@@ -41,7 +43,9 @@ class ProjectHomePage extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppDesignTokens.space48),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDesignTokens.space48,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -79,17 +83,11 @@ class ProjectHomePage extends ConsumerWidget {
               color: desktopPalette(context).navInactive,
             ),
             const SizedBox(height: AppDesignTokens.space16),
-            Text(
-              '未选择作品',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('未选择作品', style: theme.textTheme.titleMedium),
           ],
         ),
       ),
-      statusBar: const DesktopStatusStrip(
-        leftText: '无作品',
-        rightText: '作品主页',
-      ),
+      statusBar: const DesktopStatusStrip(leftText: '无作品', rightText: '作品主页'),
     );
   }
 
@@ -102,7 +100,7 @@ class ProjectHomePage extends ConsumerWidget {
   }
 
   void _navigateToBible(BuildContext context) {
-    AppNavigator.push(context, AppRoutes.workSettingsHub);
+    AppNavigator.push(context, AppRoutes.bible);
   }
 
   void _navigateToProduction(BuildContext context) {
@@ -261,7 +259,9 @@ class _EntryTileState extends State<_EntryTile> {
             boxShadow: _hovered
                 ? [
                     BoxShadow(
-                      color: palette.shadowBase.withValues(alpha: AppDesignTokens.shadowMdAlpha),
+                      color: palette.shadowBase.withValues(
+                        alpha: AppDesignTokens.shadowMdAlpha,
+                      ),
                       blurRadius: AppDesignTokens.shadowMdBlur,
                       offset: const Offset(0, AppDesignTokens.shadowMdOffsetY),
                     ),

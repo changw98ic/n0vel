@@ -58,7 +58,7 @@ void main() {
         (context, _) => const SizedBox.shrink(),
       );
       AppNavigator.register(
-        AppRoutes.workSettingsHub,
+        AppRoutes.bible,
         (context, _) => const SizedBox.shrink(),
       );
       AppNavigator.register(
@@ -214,7 +214,7 @@ void main() {
       expect(workbenchNavigated, true);
     });
 
-    testWidgets('bible entry navigates to work settings hub', (tester) async {
+    testWidgets('bible entry navigates to bible route', (tester) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -223,7 +223,7 @@ void main() {
       workspaceStore.createProject(projectName: '设定集导航测试');
 
       bool bibleNavigated = false;
-      AppNavigator.register(AppRoutes.workSettingsHub, (context, _) {
+      AppNavigator.register(AppRoutes.bible, (context, _) {
         bibleNavigated = true;
         return const SizedBox.shrink();
       });

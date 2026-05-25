@@ -109,6 +109,9 @@ class WorkbenchShellPage extends ConsumerStatefulWidget {
   static const runCenterToolButtonKey = ValueKey<String>(
     'workbench-tool-button-run-center',
   );
+  static const bibleToolButtonKey = ValueKey<String>(
+    'workbench-tool-button-bible',
+  );
   static const feedbackToolButtonKey = ValueKey<String>(
     'workbench-tool-button-feedback',
   );

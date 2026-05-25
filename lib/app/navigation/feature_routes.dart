@@ -39,6 +39,10 @@ void registerFeatureRoutes() {
     (context, _) => const AuditCenterPage(),
   );
   AppNavigator.register(
+    AppRoutes.bible,
+    (context, _) => const WorkSettingsHubPage(),
+  );
+  AppNavigator.register(
     AppRoutes.workSettingsHub,
     (context, _) => const WorkSettingsHubPage(),
   );

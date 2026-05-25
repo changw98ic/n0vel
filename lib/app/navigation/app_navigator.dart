@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const String scenes = 'scenes';
   static const String style = 'style';
   static const String audit = 'audit';
+  static const String bible = 'bible';
   static const String importExport = 'import_export';
   static const String productionBoard = 'production_board';
   static const String reviewTasks = 'review_tasks';

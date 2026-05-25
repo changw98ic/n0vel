@@ -110,7 +110,9 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
     if (isRunActive) {
       descriptionParts.add('当前章节有 AI 试写正在运行，切换章节将取消此次运行。');
     }
-    final description = descriptionParts.join(isEditorDirty && isRunActive ? '\n' : '');
+    final description = descriptionParts.join(
+      isEditorDirty && isRunActive ? '\n' : '',
+    );
 
     final shouldSwitch = await showDialog<bool>(
       context: context,
@@ -137,9 +139,12 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
                       const SizedBox(height: 4),
                       Text(
                         runSnapshot.summary,
-                        style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
-                          color: desktopPalette(dialogContext).secondaryText,
-                        ),
+                        style: Theme.of(dialogContext).textTheme.bodySmall
+                            ?.copyWith(
+                              color: desktopPalette(
+                                dialogContext,
+                              ).secondaryText,
+                            ),
                       ),
                     ],
                   ),
@@ -153,14 +158,12 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
             const SizedBox(width: 8),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: appDangerColor,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: appDangerColor),
               child: isEditorDirty && isRunActive
                   ? const Text('放弃修改并取消运行，切换')
                   : isEditorDirty
-                      ? const Text('放弃修改并切换')
-                      : const Text('取消运行并切换'),
+                  ? const Text('放弃修改并切换')
+                  : const Text('取消运行并切换'),
             ),
           ],
         );
@@ -182,6 +185,15 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
       _orb.closeToolPanel();
     }
     await AppNavigator.push(context, AppRoutes.settings);
+    if (!mounted) {
+      return;
+    }
+    await _restoreReturnAnchor(anchor);
+  }
+
+  Future<void> _openBibleAndRestoreAnchor() async {
+    final anchor = _captureReturnAnchor();
+    await AppNavigator.push(context, AppRoutes.bible);
     if (!mounted) {
       return;
     }

@@ -18,6 +18,7 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.isRunCenterOpen,
     required this.onToggleToolPanel,
     required this.onOpenRunCenter,
+    required this.onOpenBible,
     required this.onCreateFirstChapter,
     super.key,
   });
@@ -32,6 +33,7 @@ class WorkbenchEditorPane extends StatelessWidget {
   final bool isRunCenterOpen;
   final VoidCallback onToggleToolPanel;
   final VoidCallback onOpenRunCenter;
+  final VoidCallback onOpenBible;
   final VoidCallback onCreateFirstChapter;
 
   @override
@@ -49,105 +51,107 @@ class WorkbenchEditorPane extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                if (!hasScenes)
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.menu_book_outlined,
-                            size: 48,
-                            color: palette.tertiaryText,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '还没有章节',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: palette.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '创建第一章后即可开始写作。',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: palette.tertiaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: onCreateFirstChapter,
-                            child: const Text('创建第一章'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else ...[
-                  _EditorToolbar(
-                    sceneTitle: sceneTitle,
-                    isToolPanelOpen: isToolPanelOpen,
-                    isRunCenterOpen: isRunCenterOpen,
-                    onToggleToolPanel: onToggleToolPanel,
-                    onOpenRunCenter: onOpenRunCenter,
-                  ),
-                  Expanded(
+              if (!hasScenes)
+                Expanded(
+                  child: Center(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            key: WorkbenchShellPage.editorTextFieldKey,
-                            controller: draftController,
-                            focusNode: focusNode,
-                            scrollController: scrollController,
-                            maxLines: null,
-                            expands: true,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontSize: 18,
-                              height: 1.75,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: '开始书写当前章节正文…',
-                              hintStyle: TextStyle(
-                                color: palette.tertiaryText,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.fromLTRB(
-                                90, 54, 90, 16,
-                              ),
-                            ),
+                        Icon(
+                          Icons.menu_book_outlined,
+                          size: 48,
+                          color: palette.tertiaryText,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '还没有章节',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: palette.secondaryText,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(90, 0, 90, 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${draftText.length} 字',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF77736A),
-                                ),
-                              ),
-                              Text(
-                                '已保存',
-                                key: WorkbenchShellPage.editorSurfaceMetaKey,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF77736A),
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 8),
+                        Text(
+                          '创建第一章后即可开始写作。',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: palette.tertiaryText,
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: onCreateFirstChapter,
+                          child: const Text('创建第一章'),
                         ),
                       ],
                     ),
                   ),
-                ],
+                )
+              else ...[
+                _EditorToolbar(
+                  sceneTitle: sceneTitle,
+                  isToolPanelOpen: isToolPanelOpen,
+                  isRunCenterOpen: isRunCenterOpen,
+                  onToggleToolPanel: onToggleToolPanel,
+                  onOpenRunCenter: onOpenRunCenter,
+                  onOpenBible: onOpenBible,
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: WorkbenchShellPage.editorTextFieldKey,
+                          controller: draftController,
+                          focusNode: focusNode,
+                          scrollController: scrollController,
+                          maxLines: null,
+                          expands: true,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 18,
+                            height: 1.75,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '开始书写当前章节正文…',
+                            hintStyle: TextStyle(color: palette.tertiaryText),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              90,
+                              54,
+                              90,
+                              16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(90, 0, 90, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${draftText.length} 字',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF77736A),
+                              ),
+                            ),
+                            Text(
+                              '已保存',
+                              key: WorkbenchShellPage.editorSurfaceMetaKey,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF77736A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
-            ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -158,6 +162,7 @@ class _EditorToolbar extends StatelessWidget {
     required this.isRunCenterOpen,
     required this.onToggleToolPanel,
     required this.onOpenRunCenter,
+    required this.onOpenBible,
   });
 
   final String sceneTitle;
@@ -165,6 +170,7 @@ class _EditorToolbar extends StatelessWidget {
   final bool isRunCenterOpen;
   final VoidCallback onToggleToolPanel;
   final VoidCallback onOpenRunCenter;
+  final VoidCallback onOpenBible;
 
   @override
   Widget build(BuildContext context) {
@@ -175,29 +181,31 @@ class _EditorToolbar extends StatelessWidget {
       decoration: const BoxDecoration(color: Color(0xFFFBFAF6)),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '正文写作',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF77736A),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '正文写作',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF77736A),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                sceneTitle,
-                key: WorkbenchShellPage.editorSurfaceHeaderKey,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF243226),
+                const SizedBox(height: 3),
+                Text(
+                  sceneTitle,
+                  key: WorkbenchShellPage.editorSurfaceHeaderKey,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF243226),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 16),
           EditorToolbarIconButton(
             icon: Icons.undo,
             tooltip: '撤销',
@@ -220,6 +228,13 @@ class _EditorToolbar extends StatelessWidget {
             icon: Icons.highlight,
             tooltip: '高亮',
             onTap: () {},
+          ),
+          const SizedBox(width: 14),
+          EditorToolbarIconButton(
+            key: WorkbenchShellPage.bibleToolButtonKey,
+            icon: Icons.library_books_outlined,
+            tooltip: '设定集',
+            onTap: onOpenBible,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(

@@ -27,6 +27,7 @@ import 'package:novel_writer/app/state/story_generation_store.dart';
 import 'package:novel_writer/app/state/story_outline_storage.dart';
 import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/app/theme/app_theme.dart';
+import 'package:novel_writer/app/navigation/app_navigator.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_storage.dart';
 import 'package:novel_writer/features/author_feedback/data/author_feedback_store.dart';
 import 'package:novel_writer/features/characters/presentation/character_state_card.dart';
@@ -212,6 +213,50 @@ void main() {
       // The AI panel shows "助手" and "写作助手" headers
       expect(find.text('助手'), findsOneWidget);
       expect(find.text('写作助手'), findsOneWidget);
+    });
+  });
+
+  group('WorkbenchShellPage Bible navigation', () {
+    late AppWorkspaceStore workspaceStore;
+
+    testWidgets('opens Bible from visible editor toolbar button', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      _registerWorkbenchStores(registry);
+      workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '设定集入口测试');
+
+      var bibleNavigated = false;
+      AppNavigator.register(AppRoutes.bible, (context, _) {
+        bibleNavigated = true;
+        return const SizedBox.shrink();
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: registryOverrides(),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final bibleButton = find.byKey(WorkbenchShellPage.bibleToolButtonKey);
+      expect(bibleButton, findsOneWidget);
+
+      await tester.tap(bibleButton);
+      await tester.pumpAndSettle();
+
+      expect(bibleNavigated, true);
     });
   });
 
