@@ -10,6 +10,7 @@ import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_settings_store.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/state/projection/run_commands.dart';
 import '../../../app/state/story_generation_run_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';

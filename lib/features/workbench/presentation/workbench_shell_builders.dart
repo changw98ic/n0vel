@@ -76,9 +76,12 @@ void _syncDraftScopeChange(
     state._activeDraftScopeId = draftStore.activeProjectId;
     state._orb.clearSelections();
     state._lastDraftText = draft.text;
-    state._lastEditorSelection = TextSelection.collapsed(offset: draft.text.length);
+    state._lastEditorSelection = TextSelection.collapsed(
+      offset: draft.text.length,
+    );
     if (state._pendingReturnAnchor != null &&
-        state._pendingReturnAnchor!.sceneId != workspace.currentProject.sceneId) {
+        state._pendingReturnAnchor!.sceneId !=
+            workspace.currentProject.sceneId) {
       state._pendingReturnAnchor = null;
     }
     if (state._draftController != null &&
@@ -97,7 +100,8 @@ void _applyDraftTextSync(
   AppDraftSnapshot draft,
   TextSelection selectionToRestore,
 ) {
-  if (state._draftController != null && state._draftController!.text != draft.text) {
+  if (state._draftController != null &&
+      state._draftController!.text != draft.text) {
     state._draftController!.value = TextEditingValue(
       text: draft.text,
       selection: clampWorkbenchEditorSelection(
@@ -115,9 +119,15 @@ TextSelection? _normalizedEditorSelection(
 ) {
   final controller = state._draftController;
   if (controller == null) return null;
-  final selection = clampWorkbenchEditorSelection(controller.selection, text.length);
+  final selection = clampWorkbenchEditorSelection(
+    controller.selection,
+    text.length,
+  );
   if (!selection.isValid || selection.isCollapsed) return null;
-  return TextSelection(baseOffset: selection.start, extentOffset: selection.end);
+  return TextSelection(
+    baseOffset: selection.start,
+    extentOffset: selection.end,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -247,10 +257,7 @@ Widget _buildEmptyPane({
   return Container(
     decoration: BoxDecoration(
       color: palette.surface,
-      border: Border.all(
-        color: const Color(0x5CD6DDD0),
-        width: 1,
-      ),
+      border: Border.all(color: const Color(0x5CD6DDD0), width: 1),
     ),
     child: Center(
       child: Opacity(
@@ -294,10 +301,7 @@ Widget _buildAiToolInvitationPane({
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: palette.surface,
-      border: Border.all(
-        color: const Color(0x5CD6DDD0),
-        width: 1,
-      ),
+      border: Border.all(color: const Color(0x5CD6DDD0), width: 1),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,10 +314,7 @@ Widget _buildAiToolInvitationPane({
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 8),
-            Text(
-              'AI 写作助手',
-              style: theme.textTheme.labelSmall,
-            ),
+            Text('AI 写作助手', style: theme.textTheme.labelSmall),
           ],
         ),
         const SizedBox(height: 12),
@@ -386,15 +387,17 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
   final settings = settingsStore.snapshot;
   final settingsFeedback = settingsStore.feedback;
   final diagnosticReport = settingsStore.diagnosticReport;
+  final runCommands = state.ref.read(runCommandsProvider);
   final guideStageIndex = state._orb.creativeGuideStageIndex;
   final hasSceneCharacterBinding = state._orb.sceneCharacterBinding;
   final hasSceneWorldReference = state._orb.sceneWorldReference;
   final statusBanner = _buildStatusBanner(state.widget.uiState);
-  final runRecoveryPrompt = state._orb.shouldPromptForRunRecovery(storyRunSnapshot)
+  final runRecoveryPrompt =
+      state._orb.shouldPromptForRunRecovery(storyRunSnapshot)
       ? _RunRecoveryPrompt(
           snapshot: storyRunSnapshot,
-          onRetry: () => state._orb.retryRecoveredRun(),
-          onDiscard: () => state._orb.discardRecoveredRun(),
+          onRetry: runCommands.retryRecoveredRun,
+          onDiscard: runCommands.discardRecoveredRun,
         )
       : null;
 
@@ -466,9 +469,12 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             focusNode: state._draftFocusNode,
             scrollController: state._editorScrollController,
             isToolPanelOpen: state._orb.activeToolPanel != null,
-            isRunCenterOpen: state._orb.activeToolPanel == WorkbenchToolPanel.runCenter,
-            onToggleToolPanel: () => state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
-            onOpenRunCenter: () => state._orb.toggleToolPanel(WorkbenchToolPanel.runCenter),
+            isRunCenterOpen:
+                state._orb.activeToolPanel == WorkbenchToolPanel.runCenter,
+            onToggleToolPanel: () =>
+                state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
+            onOpenRunCenter: () =>
+                state._orb.toggleToolPanel(WorkbenchToolPanel.runCenter),
             onCreateFirstChapter: () => state._showSceneDialog(
               context,
               title: '新建章节',
@@ -491,7 +497,8 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
                   height: 200.0,
                   child: _ChapterListPanel(
                     scenes: workspace.scenes,
-                    currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
+                    currentSceneId:
+                        workspace.currentProjectOrNull?.sceneId ?? '',
                     onSelectScene: (scene) async {
                       await state._confirmSceneSwitch(
                         scene,
@@ -517,7 +524,8 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
           // Center pane: AI tool invitation
           final centerPane = _buildAiToolInvitationPane(
             context: context,
-            onOpenAiTool: () => state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
+            onOpenAiTool: () =>
+                state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
           );
 
           // Right pane: summary area (empty state for future implementation)
@@ -530,17 +538,24 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
           final totalAvailableWidth = layoutConstraints.maxWidth;
           final hasToolWindow = toolWindow != null;
           final toolWindowWidth = hasToolWindow
-              ? DesktopLayoutTokens.workbenchToolWindowWidth + 1.0 // divider
+              ? DesktopLayoutTokens.workbenchToolWindowWidth +
+                    1.0 // divider
               : 0.0;
           final effectiveWidth = totalAvailableWidth - toolWindowWidth;
 
           // Ensure we have minimum width for all panes
-          final totalFixedWidth = state._leftPaneWidth + state._rightPaneWidth + (2 * _WorkbenchShellPageState._dividerWidth);
+          final totalFixedWidth =
+              state._leftPaneWidth +
+              state._rightPaneWidth +
+              (2 * _WorkbenchShellPageState._dividerWidth);
           final centerPaneCalculatedWidth = effectiveWidth - totalFixedWidth;
 
           // For constrained widths, use Flexible to let panes shrink gracefully.
           // Use flexible layout when current left/right widths leave center pane below minimum.
-          final useFlexibleLayout = effectiveWidth <= 0 || centerPaneCalculatedWidth < _WorkbenchShellPageState._minPaneWidth;
+          final useFlexibleLayout =
+              effectiveWidth <= 0 ||
+              centerPaneCalculatedWidth <
+                  _WorkbenchShellPageState._minPaneWidth;
 
           final workbenchBody = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -551,16 +566,24 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
                 SizedBox(width: state._leftPaneWidth, child: leftPane),
               _PaneDivider(
                 onDragStart: state._handleLeftDividerDragStart,
-                onDragUpdate: (deltaX) => state._handleLeftDividerDragUpdate(deltaX, effectiveWidth),
+                onDragUpdate: (deltaX) =>
+                    state._handleLeftDividerDragUpdate(deltaX, effectiveWidth),
                 onDragEnd: state._handleLeftDividerDragEnd,
               ),
               if (useFlexibleLayout)
                 Expanded(flex: 3, child: centerPane)
               else
-                SizedBox(width: centerPaneCalculatedWidth.clamp(_WorkbenchShellPageState._minPaneWidth, double.infinity), child: centerPane),
+                SizedBox(
+                  width: centerPaneCalculatedWidth.clamp(
+                    _WorkbenchShellPageState._minPaneWidth,
+                    double.infinity,
+                  ),
+                  child: centerPane,
+                ),
               _PaneDivider(
                 onDragStart: state._handleRightDividerDragStart,
-                onDragUpdate: (deltaX) => state._handleRightDividerDragUpdate(deltaX, effectiveWidth),
+                onDragUpdate: (deltaX) =>
+                    state._handleRightDividerDragUpdate(deltaX, effectiveWidth),
                 onDragEnd: state._handleRightDividerDragEnd,
               ),
               if (useFlexibleLayout)
@@ -614,6 +637,7 @@ Widget? _buildToolWindow(
 }) {
   if (state._orb.activeToolPanel == null) return null;
 
+  final runCommands = state.ref.read(runCommandsProvider);
   final isAiPanel = state._orb.activeToolPanel == WorkbenchToolPanel.ai;
   return ClipRRect(
     borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
@@ -634,40 +658,31 @@ Widget? _buildToolWindow(
           authorFeedbackStore: authorFeedbackStore,
           reviewTaskStore: reviewTaskStore,
           scenes: workspace.scenes,
-          currentSceneId:
-              workspace.currentProjectOrNull?.sceneId ?? '',
-          currentChapterId:
-              workspace.currentSceneOrNull?.chapterLabel ?? '',
+          currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
+          currentChapterId: workspace.currentSceneOrNull?.chapterLabel ?? '',
           currentSceneLabel:
               workspace.currentSceneOrNull?.displayLocation ?? '',
           sourceRunId: state._orb.sourceRunId(
             workspace.currentProjectOrNull?.id ?? '',
           ),
           sourceRunLabel: state._orb.sourceRunLabel(),
-          sceneContext: state.ref
-              .watch(appSceneContextStoreProvider)
-              .snapshot,
+          sceneContext: state.ref.watch(appSceneContextStoreProvider).snapshot,
           uiState: state.widget.uiState,
           settings: settings,
           settingsFeedback: settingsFeedback,
-          settingsHasPersistenceIssue:
-              settingsStore.hasPersistenceIssue,
+          settingsHasPersistenceIssue: settingsStore.hasPersistenceIssue,
           canGenerateAi: state._orb.canGenerateAi,
           isGeneratingAi: state._orb.isGeneratingAi,
           diagnosticReport: diagnosticReport,
           aiToolMode: state._orb.aiToolMode,
-          historyEntries: state.ref
-              .watch(appAiHistoryStoreProvider)
-              .entries,
+          historyEntries: state.ref.watch(appAiHistoryStoreProvider).entries,
           aiPromptController: state._aiPromptController,
-          onRetrySecureStore:
-              settingsStore.retrySecureStoreAccess,
+          onRetrySecureStore: settingsStore.retrySecureStoreAccess,
           draftText: draft.text,
           currentSelectionPreview: currentSelectionPreview,
-          selectionDrafts:
-              List<WorkbenchAiSelectionDraft>.unmodifiable(
-                state._orb.aiSelections,
-              ),
+          selectionDrafts: List<WorkbenchAiSelectionDraft>.unmodifiable(
+            state._orb.aiSelections,
+          ),
           onSelectAiMode: (mode) {
             state._orb.selectAiMode(mode);
           },
@@ -702,18 +717,14 @@ Widget? _buildToolWindow(
           onRenameScene: () => state._showSceneDialog(
             context,
             title: '重命名章节',
-            initialValue:
-                workspace.currentSceneOrNull?.title ?? '',
+            initialValue: workspace.currentSceneOrNull?.title ?? '',
             onConfirm: workspace.renameCurrentScene,
           ),
-          onDeleteScene: () => state._confirmDeleteScene(
-            context,
-            workspace.deleteCurrentScene,
-          ),
+          onDeleteScene: () =>
+              state._confirmDeleteScene(context, workspace.deleteCurrentScene),
           canDeleteScene: workspace.canDeleteCurrentScene,
-          onOpenSettings: () => state._openSettingsAndRestoreAnchor(
-            closeToolPanel: true,
-          ),
+          onOpenSettings: () =>
+              state._openSettingsAndRestoreAnchor(closeToolPanel: true),
           onShowAiMetadata: () {
             final metadata = state._orb.buildRequestMetadata();
             showAppSheet(
@@ -751,20 +762,15 @@ Widget? _buildToolWindow(
           canCancelRun:
               storyRunSnapshot.status == StoryGenerationRunStatus.running,
           canRetryRun: state._orb.canRetryRun(storyRunSnapshot),
-          onRetryRun: () => state._orb.retryRecoveredRun(),
-          onDiscardRun: () => state._orb.discardRecoveredRun(),
-          onCancelRun: () async {
-            final storyRunStore = state.ref.read(storyGenerationRunStoreProvider);
-            await storyRunStore.cancelCurrentRun();
-          },
+          onRetryRun: runCommands.retryRecoveredRun,
+          onDiscardRun: runCommands.discardRecoveredRun,
+          onCancelRun: runCommands.cancelCurrentRun,
           statusBanner: statusBanner,
           creationGuide: _CreationGuideCard(
             currentStageIndex: guideStageIndex,
             hasCharacters: workspace.characters.isNotEmpty,
             hasWorldNodes: workspace.worldNodes.isNotEmpty,
-            hasSceneSummary: workspace.currentScene.summary
-                .trim()
-                .isNotEmpty,
+            hasSceneSummary: workspace.currentScene.summary.trim().isNotEmpty,
             hasDraft: draft.text.trim().isNotEmpty,
             hasSceneCharacterBinding: hasSceneCharacterBinding,
             hasSceneWorldReference: hasSceneWorldReference,
