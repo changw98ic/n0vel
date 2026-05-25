@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/di/service_registry.dart';
 import 'package:novel_writer/app/events/app_event_bus.dart';
@@ -16,6 +17,8 @@ import 'package:novel_writer/features/projects/presentation/project_wizard_page.
 void main() {
   late ServiceRegistry registry;
   late AppWorkspaceStore workspaceStore;
+
+  List<Override> registryOverrides() => appProviderOverridesForRegistry(registry);
 
   tearDown(() {
     registry.disposeAll();
@@ -54,7 +57,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -78,7 +81,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -106,7 +109,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -131,7 +134,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -165,7 +168,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -191,7 +194,7 @@ void main() {
           .firstWhere((p) => p.title == '主角测试作品');
 
       final ref = ProviderContainer(
-        overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+        overrides: registryOverrides(),
       );
       addTearDown(ref.dispose);
 
@@ -212,7 +215,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
@@ -238,7 +241,7 @@ void main() {
           .firstWhere((p) => p.title == '世界观测试作品');
 
       final ref = ProviderContainer(
-        overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+        overrides: registryOverrides(),
       );
       addTearDown(ref.dispose);
 
@@ -259,7 +262,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          overrides: registryOverrides(),
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const Scaffold(body: ProjectWizardPage()),
