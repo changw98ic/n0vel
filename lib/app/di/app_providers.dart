@@ -10,17 +10,20 @@ import '../../features/story_generation/data/character_memory_store_io.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
 import '../../features/story_generation/data/roleplay_session_store_io.dart';
 import '../../features/writing_stats/data/writing_stats_store.dart';
+import '../../features/writing_stats/data/writing_stats_storage.dart';
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../state/app_ai_history_store.dart';
+import '../state/app_ai_history_storage.dart';
 import '../state/app_authoring_storage_io_support.dart';
 import '../state/app_draft_store.dart';
 import '../state/app_scene_context_store.dart';
 import '../state/app_settings_store.dart';
 import '../state/app_simulation_store.dart';
 import '../state/app_version_store.dart';
+import '../state/app_version_storage.dart';
 import '../state/app_workspace_store.dart';
 import '../state/fulltext_search_service.dart';
 import '../state/story_generation_run_store.dart';
@@ -89,6 +92,24 @@ final fulltextSearchServiceProvider = Provider<FulltextSearchService>((ref) {
   return FulltextSearchService(db: db);
 });
 
+// -- M4-05 core leaf storage providers --
+// These allow tests to inject in-memory storage instead of production defaults.
+
+/// Native Riverpod provider for [AppVersionStorage].
+final appVersionStorageProvider = Provider<AppVersionStorage>((ref) {
+  return createDefaultAppVersionStorage();
+});
+
+/// Native Riverpod provider for [AppAiHistoryStorage].
+final appAiHistoryStorageProvider = Provider<AppAiHistoryStorage>((ref) {
+  return createDefaultAppAiHistoryStorage();
+});
+
+/// Native Riverpod provider for [WritingStatsStorage].
+final writingStatsStorageProvider = Provider<WritingStatsStorage>((ref) {
+  return createDefaultWritingStatsStorage();
+});
+
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration
@@ -129,11 +150,6 @@ class AppSettingsStoreNotifier
 
 class AppDraftStoreNotifier extends RegistryStoreNotifier<AppDraftStore> {}
 
-class AppVersionStoreNotifier extends RegistryStoreNotifier<AppVersionStore> {}
-
-class AppAiHistoryStoreNotifier
-    extends RegistryStoreNotifier<AppAiHistoryStore> {}
-
 class AppSceneContextStoreNotifier
     extends RegistryStoreNotifier<AppSceneContextStore> {}
 
@@ -163,15 +179,31 @@ final appDraftStoreProvider =
       AppDraftStoreNotifier.new,
     );
 
-final appVersionStoreProvider =
-    NotifierProvider<AppVersionStoreNotifier, AppVersionStore>(
-      AppVersionStoreNotifier.new,
-    );
+final appVersionStoreProvider = Provider<AppVersionStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(appVersionStorageProvider);
+  final store = AppVersionStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
-final appAiHistoryStoreProvider =
-    NotifierProvider<AppAiHistoryStoreNotifier, AppAiHistoryStore>(
-      AppAiHistoryStoreNotifier.new,
-    );
+final appAiHistoryStoreProvider = Provider<AppAiHistoryStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(appAiHistoryStorageProvider);
+  final store = AppAiHistoryStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 final appSceneContextStoreProvider =
     NotifierProvider<AppSceneContextStoreNotifier, AppSceneContextStore>(
@@ -241,15 +273,20 @@ final storyGenerationRunStoreProvider =
       StoryGenerationRunStoreNotifier.new,
     );
 
-// -- Writing stats store provider --
+// -- Writing stats store provider (M4-05 native) --
 
-class WritingStatsStoreNotifier
-    extends RegistryStoreNotifier<WritingStatsStore> {}
-
-final writingStatsStoreProvider =
-    NotifierProvider<WritingStatsStoreNotifier, WritingStatsStore>(
-      WritingStatsStoreNotifier.new,
-    );
+final writingStatsStoreProvider = Provider<WritingStatsStore>((ref) {
+  final workspaceStore = ref.watch(appWorkspaceStoreProvider);
+  final eventBus = ref.watch(appEventBusProvider);
+  final storage = ref.watch(writingStatsStorageProvider);
+  final store = WritingStatsStore(
+    storage: storage,
+    workspaceStore: workspaceStore,
+    eventBus: eventBus,
+  );
+  ref.onDispose(store.dispose);
+  return store;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DB-backed stores (M4-03 native providers)
@@ -321,6 +358,17 @@ List<Override> appProviderOverridesForRegistry(ServiceRegistry registry) {
     ),
     reviewTaskStoreProvider.overrideWith(
       (ref) => registry.resolve<ReviewTaskStore>(),
+    ),
+    // M4-05 core leaf stores: use registry-owned instances during normal app bootstrap
+    // Do not double-dispose: registry remains the disposer for shared instances.
+    appVersionStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppVersionStore>(),
+    ),
+    writingStatsStoreProvider.overrideWith(
+      (ref) => registry.resolve<WritingStatsStore>(),
+    ),
+    appAiHistoryStoreProvider.overrideWith(
+      (ref) => registry.resolve<AppAiHistoryStore>(),
     ),
   ];
 }

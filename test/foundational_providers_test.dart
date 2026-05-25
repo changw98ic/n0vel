@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
 import 'package:novel_writer/app/di/service_registry.dart';
@@ -16,12 +17,18 @@ import 'package:novel_writer/features/author_feedback/data/author_feedback_store
 import 'package:novel_writer/features/review_tasks/data/review_task_storage.dart';
 import 'package:novel_writer/features/review_tasks/data/review_task_store.dart';
 import 'package:novel_writer/features/search/presentation/fulltext_search_page.dart';
+import 'package:novel_writer/app/state/app_ai_history_storage.dart';
+import 'package:novel_writer/app/state/app_ai_history_store.dart';
+import 'package:novel_writer/app/state/app_version_storage.dart';
+import 'package:novel_writer/app/state/app_version_store.dart';
+import 'package:novel_writer/features/writing_stats/data/writing_stats_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_store_io.dart';
 import 'package:novel_writer/features/story_generation/data/character_memory_delta_models.dart';
 import 'package:novel_writer/features/story_generation/data/roleplay_session_store.dart';
 import 'package:novel_writer/features/story_generation/data/roleplay_session_store_io.dart';
 import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
+import 'package:novel_writer/features/writing_stats/data/writing_stats_storage.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
@@ -478,7 +485,8 @@ void main() {
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
-      expect(overrides.length, equals(11));
+      // - 3 M4-05 core leaf stores
+      expect(overrides.length, equals(14));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -684,7 +692,8 @@ void main() {
       // - 7 foundational providers
       // - 2 DB-backed stores
       // - 2 M4-04 feature stores
-      expect(overrides.length, equals(11));
+      // - 3 M4-05 core leaf stores
+      expect(overrides.length, equals(14));
 
       final container = ProviderContainer(overrides: overrides);
       addTearDown(() {
@@ -733,6 +742,266 @@ void main() {
 
       expect(authorFeedbackStore, isA<AuthorFeedbackStore>());
       expect(reviewTaskStore, isA<ReviewTaskStore>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Native core leaf store provider tests (M4-05)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  group('appVersionStoreProvider (native M4-05)', () {
+    test('creates AppVersionStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(appVersionStoreProvider);
+      expect(store, isA<AppVersionStore>());
+    });
+
+    test('disposes AppVersionStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(appVersionStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(appVersionStoreProvider);
+      final store2 = container.read(appVersionStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('writingStatsStoreProvider (native M4-05)', () {
+    test('creates WritingStatsStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(writingStatsStoreProvider);
+      expect(store, isA<WritingStatsStore>());
+    });
+
+    test('disposes WritingStatsStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(writingStatsStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(writingStatsStoreProvider);
+      final store2 = container.read(writingStatsStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appAiHistoryStoreProvider (native M4-05)', () {
+    test('creates AppAiHistoryStore with workspace and event bus', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store = container.read(appAiHistoryStoreProvider);
+      expect(store, isA<AppAiHistoryStore>());
+    });
+
+    test('disposes AppAiHistoryStore on container dispose', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+
+      final store = container.read(appAiHistoryStoreProvider);
+
+      // Store should be usable before disposal
+      expect(() => store.addListener(() {}), returnsNormally);
+
+      container.dispose();
+
+      // Store operations should fail after disposal
+      expect(() => store.addListener(() {}), throwsA(isA<FlutterError>()));
+    });
+
+    test('returns same instance across multiple reads', () {
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      final store1 = container.read(appAiHistoryStoreProvider);
+      final store2 = container.read(appAiHistoryStoreProvider);
+
+      expect(identical(store1, store2), isTrue);
+    });
+  });
+
+  group('appProviderOverridesForRegistry M4-05 coexistence', () {
+    test('includes M4-05 core leaf store overrides', () {
+      final registry = createTestRegistry();
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final eventBus = AppEventBus();
+      final appVersionStore = AppVersionStore(
+        storage: InMemoryAppVersionStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final writingStatsStore = WritingStatsStore(
+        storage: _InMemoryWritingStatsStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      final appAiHistoryStore = AppAiHistoryStore(
+        storage: InMemoryAppAiHistoryStorage(),
+        workspaceStore: workspaceStore,
+        eventBus: eventBus,
+      );
+      registry.registerSingleton<AppVersionStore>(appVersionStore);
+      registry.registerSingleton<WritingStatsStore>(writingStatsStore);
+      registry.registerSingleton<AppAiHistoryStore>(appAiHistoryStore);
+
+      final overrides = appProviderOverridesForRegistry(registry);
+
+      // Count should now include:
+      // - 7 foundational providers
+      // - 2 DB-backed stores
+      // - 2 M4-04 feature stores
+      // - 3 M4-05 core leaf stores
+      expect(overrides.length, equals(14));
+
+      final container = ProviderContainer(overrides: overrides);
+      addTearDown(() {
+        container.dispose();
+        registry.disposeAll();
+        workspaceStore.dispose();
+        eventBus.dispose();
+      });
+
+      // Verify that providers return the same instances as registry
+      final appVersionFromProvider = container.read(appVersionStoreProvider);
+      final appVersionFromRegistry = registry.resolve<AppVersionStore>();
+      expect(identical(appVersionFromProvider, appVersionFromRegistry), isTrue);
+
+      final writingStatsFromProvider = container.read(
+        writingStatsStoreProvider,
+      );
+      final writingStatsFromRegistry = registry.resolve<WritingStatsStore>();
+      expect(
+        identical(writingStatsFromProvider, writingStatsFromRegistry),
+        isTrue,
+      );
+
+      final appAiHistoryFromProvider = container.read(
+        appAiHistoryStoreProvider,
+      );
+      final appAiHistoryFromRegistry = registry.resolve<AppAiHistoryStore>();
+      expect(
+        identical(appAiHistoryFromProvider, appAiHistoryFromRegistry),
+        isTrue,
+      );
+    });
+
+    test('native M4-05 providers work without registry in test mode', () {
+      // Tests can override appWorkspaceStoreProvider without touching serviceRegistryProvider
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      final container = ProviderContainer(
+        overrides: _m405NativeOverrides(workspaceStore),
+      );
+      addTearDown(() {
+        container.dispose();
+        workspaceStore.dispose();
+      });
+
+      // Native providers should create their own instances
+      final appVersionStore = container.read(appVersionStoreProvider);
+      final writingStatsStore = container.read(writingStatsStoreProvider);
+      final appAiHistoryStore = container.read(appAiHistoryStoreProvider);
+
+      expect(appVersionStore, isA<AppVersionStore>());
+      expect(writingStatsStore, isA<WritingStatsStore>());
+      expect(appAiHistoryStore, isA<AppAiHistoryStore>());
     });
   });
 }
@@ -797,3 +1066,93 @@ class _MockCharacterMemoryStore implements CharacterMemoryStore {
     required List<CharacterMemoryDelta> deltas,
   }) async {}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test helpers for M4-05 storage isolation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// In-memory implementation of [WritingStatsStorage] for testing.
+class _InMemoryWritingStatsStorage implements WritingStatsStorage {
+  final List<Map<String, Object?>> dailyStats = [];
+  final Map<String, Map<String, Object?>> projectStats = {};
+  final Map<String, Map<String, Object?>> goals = {};
+
+  @override
+  Future<List<Map<String, Object?>>> loadDailyStats({
+    required String projectId,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    return [
+      for (final row in dailyStats)
+        if (row['projectId'] == projectId) Map<String, Object?>.from(row),
+    ];
+  }
+
+  @override
+  Future<Map<String, Object?>?> loadProjectStat({
+    required String projectId,
+  }) async {
+    final row = projectStats[projectId];
+    return row == null ? null : Map<String, Object?>.from(row);
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> loadGoals({String? projectId}) async {
+    return [
+      for (final row in goals.values)
+        if (projectId == null ||
+            projectId.isEmpty ||
+            row['projectId'] == projectId ||
+            row['projectId'] == '')
+          Map<String, Object?>.from(row),
+    ];
+  }
+
+  @override
+  Future<void> upsertDailyStat(Map<String, Object?> row) async {
+    dailyStats.removeWhere(
+      (existing) =>
+          existing['date'] == row['date'] &&
+          existing['sceneScopeId'] == row['sceneScopeId'],
+    );
+    dailyStats.add(Map<String, Object?>.from(row));
+  }
+
+  @override
+  Future<void> upsertProjectStat(Map<String, Object?> row) async {
+    projectStats[row['projectId']?.toString() ?? ''] =
+        Map<String, Object?>.from(row);
+  }
+
+  @override
+  Future<void> upsertGoal(Map<String, Object?> goal) async {
+    goals[goal['id']?.toString() ?? ''] = Map<String, Object?>.from(goal);
+  }
+
+  @override
+  Future<void> deleteGoal({required String goalId}) async {
+    goals.remove(goalId);
+  }
+
+  @override
+  Future<void> clearProject(String projectId) async {
+    dailyStats.removeWhere((row) => row['projectId'] == projectId);
+    projectStats.remove(projectId);
+    goals.removeWhere((_, row) => row['projectId'] == projectId);
+  }
+}
+
+/// Helper to create storage-isolated overrides for M4-05 native provider tests.
+List<Override> _m405NativeOverrides(AppWorkspaceStore workspaceStore) => [
+  appWorkspaceStoreProvider.overrideWith(
+    () => _TestAppWorkspaceStoreNotifier(workspaceStore),
+  ),
+  appVersionStorageProvider.overrideWith((ref) => InMemoryAppVersionStorage()),
+  appAiHistoryStorageProvider.overrideWith(
+    (ref) => InMemoryAppAiHistoryStorage(),
+  ),
+  writingStatsStorageProvider.overrideWith(
+    (ref) => _InMemoryWritingStatsStorage(),
+  ),
+];
