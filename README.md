@@ -41,6 +41,8 @@ flutter run -d macos
 
 如果你使用 Windows 或 Linux，把命令里的 `macos` 换成 `windows` 或 `linux`。当前 Web/Chrome 预览仍受本地 `sqlite3`/`dart:ffi` 依赖限制，建议先用桌面端试用。
 
+想制作本地桌面预览包或了解当前 release 限制，请看 [Desktop Preview Builds](docs/desktop-preview-builds.md)。当前 macOS 预览包是从源码本地构建的 unsigned/not notarized archive，不会包含 API key 或私人项目数据。
+
 ## 第一次使用
 
 1. 打开 `Settings`。
@@ -144,6 +146,8 @@ flutter test
 ```
 
 架构说明在 `docs/architecture.md`，产品需求在 `docs/prd.md`。
+
+桌面预览构建和本地 macOS 打包说明见 [Desktop Preview Builds](docs/desktop-preview-builds.md)。
 
 推广素材位于 `docs/assets/`，详细清单和真实性标签见 [ASSET_MANIFEST.md](docs/assets/ASSET_MANIFEST.md)：
 

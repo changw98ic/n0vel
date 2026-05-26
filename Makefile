@@ -1,4 +1,4 @@
-.PHONY: test analyze docs-check mvp-docs-check verify-macos
+.PHONY: test analyze docs-check mvp-docs-check verify-macos package-macos-preview
 
 test:
 	flutter test
@@ -14,3 +14,6 @@ mvp-docs-check:
 
 verify-macos:
 	bash scripts/verify_macos.sh
+
+package-macos-preview:
+	bash scripts/package_macos_preview.sh
