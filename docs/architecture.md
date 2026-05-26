@@ -252,4 +252,4 @@ stateDiagram-v2
 ## 6. UI Source of Truth
 
 - 当前唯一 UI 稿：`editor.pen`
-- 本文档与 [最新 PRD](/Users/chengwen/dev/novel-wirter/docs/prd.md) 一起定义产品事实来源。
+- 本文档与 [最新 PRD](prd.md) 一起定义产品事实来源。
