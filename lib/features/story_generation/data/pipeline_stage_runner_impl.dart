@@ -239,8 +239,29 @@ class PipelineStageRunnerImpl
   ) async {
     final sceneBrief = context.metadata['sceneBrief'];
     if (sceneBrief is SceneBrief) {
-      await runScene(sceneBrief);
-      return PipelineRunResult(success: true, events: _eventLog.query());
+      final materials = context.metadata['materials'];
+      try {
+        final output = await StoryPromptTemplates.runWithLanguage(
+          _settingsStore.snapshot.promptLanguage,
+          () => _runSceneFinalization(
+            _briefWithStyleReference(sceneBrief),
+            materials: materials is ProjectMaterialSnapshot ? materials : null,
+            context: _runnerContextFor(brief, context),
+          ),
+        );
+        return PipelineRunResult(
+          success: true,
+          events: _eventLog.query(),
+          finalArtifact: output,
+        );
+      } on Object catch (_) {
+        return PipelineRunResult(
+          success: false,
+          events: _eventLog.query(),
+          failureCode: FailureCode.recoverable,
+          failedStageId: _lastFailedStageId(),
+        );
+      }
     }
     return PipelineRunResult(
       success: false,
@@ -299,6 +320,21 @@ class PipelineStageRunnerImpl
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) async {
+    final finalization = await _runSceneFinalization(
+      brief,
+      materials: materials,
+      onSpeculationReady: onSpeculationReady,
+      context: _defaultContextFor(brief),
+    );
+    return finalization.output;
+  }
+
+  Future<FinalizationOutput> _runSceneFinalization(
+    SceneBrief brief, {
+    ProjectMaterialSnapshot? materials,
+    void Function()? onSpeculationReady,
+    required PipelineContext context,
+  }) async {
     _directorMemory = _directorMemory.withActiveRoundState(
       DirectorRoundState(
         sceneId: brief.sceneId,
@@ -318,54 +354,63 @@ class PipelineStageRunnerImpl
     }
 
     // Step 1: Context enrichment (runs once)
-    final contextOutput = await _contextEnrichmentStep.execute(
+    final contextOutput = await _executeTypedStage(
+      _contextEnrichmentStep,
       ContextEnrichmentInput(brief: brief, materials: materials),
-      _eventLog,
+      context,
+      brief,
     );
 
     // Outer loop: scene replan
     while (true) {
       // Step 2: Scene planning
-      final planOutput = await _scenePlanningStep.execute(
+      final planOutput = await _executeTypedStage(
+        _scenePlanningStep,
         ScenePlanningInput(
           brief: currentBrief,
           ragContext: contextOutput.ragContext,
           directorMemory: _directorMemory,
           narrativeArc: _narrativeArc,
         ),
-        _eventLog,
+        context,
+        currentBrief,
       );
 
       // Step 3: Roleplay
-      final roleplayOutput = await _roleplayStep.execute(
+      final roleplayOutput = await _executeRoleplayStage(
         RoleplayInput(
           brief: currentBrief,
           plan: planOutput,
           ragContext: contextOutput.ragContext,
         ),
-        _eventLog,
+        context,
+        currentBrief,
         isRunCancelled: isRunCancelled,
       );
 
       // Step 4: Stage narration
-      final stageOutput = await _stageNarrationStep.execute(
+      final stageOutput = await _executeTypedStage(
+        _stageNarrationStep,
         StageNarrationInput(
           plan: planOutput,
           roleplay: roleplayOutput,
           ragContext: contextOutput.ragContext,
         ),
-        _eventLog,
+        context,
+        currentBrief,
       );
 
       // Step 5: Beat resolution
-      final beatsOutput = await _beatResolutionStep.execute(
+      final beatsOutput = await _executeTypedStage(
+        _beatResolutionStep,
         BeatResolutionInput(
           brief: currentBrief,
           plan: planOutput,
           roleplay: roleplayOutput,
           stage: stageOutput,
         ),
-        _eventLog,
+        context,
+        currentBrief,
       );
 
       var attempt = 1;
@@ -378,7 +423,8 @@ class PipelineStageRunnerImpl
         _emitStatus(currentBrief, 'editorial attempt $attempt');
 
         // Step 6: Editorial
-        final editorialOutput = await _editorialStep.execute(
+        final editorialOutput = await _executeTypedStage(
+          _editorialStep,
           EditorialInput(
             brief: currentBrief,
             plan: planOutput,
@@ -389,11 +435,13 @@ class PipelineStageRunnerImpl
             reviewFeedback: reviewFeedback,
             previousProse: previousProse,
           ),
-          _eventLog,
+          context,
+          currentBrief,
         );
 
         // Step 7: Review
-        final reviewOutput = await _reviewStep.execute(
+        final reviewOutput = await _executeTypedStage(
+          _reviewStep,
           ReviewInput(
             brief: currentBrief,
             plan: planOutput,
@@ -403,7 +451,8 @@ class PipelineStageRunnerImpl
             attempt: attempt,
             softFailureCount: softFailureCount,
           ),
-          _eventLog,
+          context,
+          currentBrief,
         );
 
         // Update director memory with review digest
@@ -465,32 +514,37 @@ class PipelineStageRunnerImpl
         if (!reviewOutput.wasLengthRetry &&
             reviewOutput.action == SceneReviewDecision.rewriteProse &&
             softFailureCount + 1 > maxProseRetries) {
-          final polishOutput = await _polishStep.execute(
+          final polishOutput = await _executeTypedStage(
+            _polishStep,
             PolishInput(
               brief: currentBrief,
               editorial: editorialOutput,
               beats: beatsOutput,
               review: reviewOutput,
             ),
-            _eventLog,
+            context,
+            currentBrief,
           );
           proseForOutput = polishOutput.prose;
         } else if (reviewOutput.action == SceneReviewDecision.pass) {
           markSpeculationReady();
-          final polishOutput = await _polishStep.execute(
+          final polishOutput = await _executeTypedStage(
+            _polishStep,
             PolishInput(
               brief: currentBrief,
               editorial: editorialOutput,
               beats: beatsOutput,
               review: reviewOutput,
             ),
-            _eventLog,
+            context,
+            currentBrief,
           );
           proseForOutput = polishOutput.prose;
         }
 
         // Step 9: Finalization
-        final finalizationOutput = await _finalizationStep.execute(
+        final finalizationOutput = await _executeTypedStage(
+          _finalizationStep,
           FinalizationInput(
             brief: currentBrief,
             plan: planOutput,
@@ -507,7 +561,8 @@ class PipelineStageRunnerImpl
             softFailureCount: softFailureCount,
             narrativeArcBeforeScene: narrativeArcBeforeScene,
           ),
-          _eventLog,
+          context,
+          currentBrief,
         );
 
         _lastRetrievalTrace = finalizationOutput.retrievalTrace;
@@ -516,9 +571,138 @@ class PipelineStageRunnerImpl
           output: finalizationOutput.output,
         );
 
-        return finalizationOutput.output;
+        return finalizationOutput;
       }
     }
+  }
+
+  PipelineContext _defaultContextFor(SceneBrief brief) {
+    final sceneRef = SceneBriefRef(
+      projectId: brief.projectId ?? brief.chapterId,
+      sceneId: brief.sceneId,
+      sceneIndex: brief.sceneIndex,
+      totalScenesInChapter: brief.totalScenesInChapter,
+    );
+    return PipelineContext(
+      eventLog: _eventLog,
+      retrievalPolicy: defaultRetrievalPolicy,
+      writebackGate: _writebackGate,
+      sceneBrief: sceneRef,
+      metadata: {'sceneBrief': brief},
+    );
+  }
+
+  PipelineContext _runnerContextFor(
+    SceneBriefRef brief,
+    PipelineContext context,
+  ) {
+    return PipelineContext(
+      eventLog: _eventLog,
+      retrievalPolicy: context.retrievalPolicy,
+      writebackGate: _writebackGate,
+      sceneBrief: brief,
+      metadata: context.metadata,
+    );
+  }
+
+  Future<O>
+  _executeTypedStage<I extends TypedArtifact, O extends TypedArtifact>(
+    PipelineStage<I, O> stage,
+    I input,
+    PipelineContext context,
+    SceneBrief brief,
+  ) async {
+    return _executeStageWithLifecycle(
+      stage: stage,
+      input: input,
+      brief: brief,
+      execute: () => stage.execute(input, context),
+    );
+  }
+
+  Future<RoleplayOutput> _executeRoleplayStage(
+    RoleplayInput input,
+    PipelineContext context,
+    SceneBrief brief, {
+    bool Function()? isRunCancelled,
+  }) async {
+    return _executeStageWithLifecycle(
+      stage: _roleplayStep,
+      input: input,
+      brief: brief,
+      execute: () =>
+          _roleplayStep.execute(input, context, isRunCancelled: isRunCancelled),
+    );
+  }
+
+  Future<O>
+  _executeStageWithLifecycle<I extends TypedArtifact, O extends TypedArtifact>({
+    required PipelineStage<I, O> stage,
+    required I input,
+    required SceneBrief brief,
+    required Future<O> Function() execute,
+  }) async {
+    _emitStageLifecycle(
+      stage: stage,
+      brief: brief,
+      eventType: 'stage_started',
+      input: input,
+    );
+    try {
+      final output = await execute();
+      _emitStageLifecycle(
+        stage: stage,
+        brief: brief,
+        eventType: 'stage_completed',
+        input: input,
+        output: output,
+      );
+      return output;
+    } on Object catch (error) {
+      _emitStageLifecycle(
+        stage: stage,
+        brief: brief,
+        eventType: 'stage_failed',
+        input: input,
+        failureCode: FailureCode.recoverable,
+        error: error,
+      );
+      rethrow;
+    }
+  }
+
+  void _emitStageLifecycle<I extends TypedArtifact, O extends TypedArtifact>({
+    required PipelineStage<I, O> stage,
+    required SceneBrief brief,
+    required String eventType,
+    required TypedArtifact input,
+    TypedArtifact? output,
+    FailureCode? failureCode,
+    Object? error,
+  }) {
+    final metadata = <String, Object?>{
+      'projectId': brief.projectId ?? brief.chapterId,
+      'sceneId': brief.sceneId,
+      'inputType': input.type.name,
+      if (output != null) 'outputType': output.type.name,
+      if (error != null) 'error': error.toString(),
+    };
+    _eventLog.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: stage.roleId,
+        eventType: eventType,
+        artifactType: output?.type ?? stage.outputType,
+        failureCode: failureCode,
+        metadata: metadata,
+      ),
+    );
+  }
+
+  String? _lastFailedStageId() {
+    final failedEvents = _eventLog.query(eventType: 'stage_failed');
+    if (failedEvents.isEmpty) return 'runner';
+    return failedEvents.last.stageId;
   }
 
   void _emitStatus(SceneBrief brief, String message) {
