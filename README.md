@@ -2,9 +2,9 @@
 
 Novel Writer 是一个本地优先的长篇小说写作工作台。它把项目、角色、世界观、场景、参考资料和 AI 写作助手放在同一个地方，帮助作者从资料整理、正文起草到改写、审阅、版本保存和通读检查形成一条完整流程。
 
-![Novel Writer 静态排版占位图，不是真实应用截图](docs/assets/novel-writer-preview.png)
+![Novel Writer macOS 桌面端 AI 候选审阅截图](docs/assets/real-desktop-ai-review.png)
 
-> **MOCK PLACEHOLDER** — 上图为程序生成的静态排版设计稿，不是真实应用截图。应用 UI 稳定后会制作真实截图。
+> **REAL APP SCREENSHOT** — 上图来自 macOS 桌面端运行中的 Workbench，使用临时演示数据和本地演示模型配置，展示 AI 候选稿审阅流程。
 
 当前项目还是开发预览版，暂时没有安装包。普通用户如果想试用，需要先安装 Flutter，然后从源码启动应用。
 
@@ -145,15 +145,16 @@ flutter test
 
 架构说明在 `docs/architecture.md`，产品需求在 `docs/prd.md`。
 
-推广素材（静态排版占位图，非真实应用截图）位于 `docs/assets/`，详细清单和真实性标签见 [ASSET_MANIFEST.md](docs/assets/ASSET_MANIFEST.md)：
+推广素材位于 `docs/assets/`，详细清单和真实性标签见 [ASSET_MANIFEST.md](docs/assets/ASSET_MANIFEST.md)：
 
 | 用途 | 文件 | 说明 |
 | --- | --- | --- |
-| README 预览图 | `novel-writer-preview.png` | MOCK PLACEHOLDER |
+| README 真实截图 | `real-desktop-ai-review.png` | REAL APP SCREENSHOT |
+| README 旧预览占位图 | `novel-writer-preview.png` | MOCK PLACEHOLDER |
 | GitHub social preview | `social-preview.png` | MOCK PLACEHOLDER |
 | 视频标题/CTA/摘要卡 | `title-card.png` `cta-card.png` `summary-card.png` | STATIC DESIGN ASSET |
 | 视频章节叠加图 | `section-overlay-01.png` ~ `section-overlay-05.png` | STATIC DESIGN ASSET |
 
-以上素材均为程序生成的静态设计占位图，不是真实应用截图。真实截图待应用 UI 稳定后制作（Tier B）。
+除 `real-desktop-ai-review.png` 外，其余素材均为程序生成的静态设计占位图或视频叠加图，不应当被描述为真实应用截图。
 
-所有持久化内容更新都要在 GitHub issue 中留下记录。当前规则记录在 [issue #2](https://github.com/changw98ic/n0vel/issues/2)，这次 README 更新记录在 [issue #3](https://github.com/changw98ic/n0vel/issues/3)，当前架构分析报告在 [issue #4](https://github.com/changw98ic/n0vel/issues/4)，推广与私测准备记录在 [issue #5](https://github.com/changw98ic/n0vel/issues/5)。
+所有持久化内容更新都要在 GitHub issue 中留下记录。当前规则记录在 [issue #2](https://github.com/changw98ic/n0vel/issues/2)，README 基础更新记录在 [issue #3](https://github.com/changw98ic/n0vel/issues/3)，当前架构分析报告在 [issue #4](https://github.com/changw98ic/n0vel/issues/4)，推广与私测准备记录在 [issue #5](https://github.com/changw98ic/n0vel/issues/5)，真实桌面截图记录在 [issue #6](https://github.com/changw98ic/n0vel/issues/6)。
