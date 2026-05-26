@@ -13,6 +13,8 @@
 - 结构化创作：角色、世界观、场景和正文上下文都是长期资产。
 - 可恢复：失败时必须说明影响范围，并允许作者继续推进工作。
 
+推广与增长工作围绕同一个定位展开：给长篇小说作者用的本地优先 AI 创作工作台。执行细节不改变当前产品范围，单独沉淀在 [推广与增长路线图](growth-roadmap.md)。
+
 ## 2. 目标与非目标
 
 ### 2.1 当前目标
@@ -35,7 +37,7 @@
 - AI 接入：通过用户自配 provider 与模型端点接入。
 - 运行方式：无强制后端依赖，核心编排、状态和持久化可在本地完成。
 - UI 稿源：`editor.pen` 是唯一有效 UI 稿。
-- 架构细节：实现分层、路由和数据流细节以 [最新架构图](/Users/chengwen/dev/novel-wirter/docs/architecture.md) 为准。
+- 架构细节：实现分层、路由和数据流细节以 [最新架构图](architecture.md) 为准。
 
 ## 4. 产品范围
 
@@ -121,6 +123,6 @@
 
 当前仓库只保留以下三份产品事实来源：
 
-- [最新 PRD](/Users/chengwen/dev/novel-wirter/docs/prd.md)
-- [最新架构图](/Users/chengwen/dev/novel-wirter/docs/architecture.md)
+- [最新 PRD](prd.md)
+- [最新架构图](architecture.md)
 - `editor.pen`

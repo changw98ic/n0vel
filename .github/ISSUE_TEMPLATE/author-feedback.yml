@@ -1,0 +1,133 @@
+name: Author feedback
+description: Share feedback from trying n0vel as a long-form fiction writer.
+title: "[Author feedback]: "
+labels:
+  - feedback
+  - private-beta
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying n0vel. This template is for early author feedback, especially installation, first project setup, AI candidate draft quality, and whether the workflow feels useful for long-form fiction.
+  - type: dropdown
+    id: writer_type
+    attributes:
+      label: Writer type
+      description: Which best describes your current writing context?
+      options:
+        - Web novel / serial fiction author
+        - Genre fiction author
+        - AI writing experimenter
+        - Developer testing the workflow
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: genre
+    attributes:
+      label: Genre or project type
+      description: For example, mystery, urban fantasy, romance, sci-fi, xianxia, thriller.
+    validations:
+      required: false
+  - type: dropdown
+    id: writing_stage
+    attributes:
+      label: Current writing stage
+      description: Where are you in your current novel project?
+      options:
+        - Planning / outlining
+        - Early chapters (1-10)
+        - Mid-story (10+ chapters, ongoing)
+        - Revision / editing
+        - Completed, maintaining consistency
+        - Not yet started, exploring tools
+    validations:
+      required: false
+  - type: textarea
+    id: pain
+    attributes:
+      label: Biggest writing pain
+      description: What is hardest in your current long-form writing workflow?
+      placeholder: Keeping characters consistent, daily drafting, worldbuilding drift, scene pacing, revision backlog...
+    validations:
+      required: true
+  - type: dropdown
+    id: install_status
+    attributes:
+      label: Installation status
+      options:
+        - I could run the app from source
+        - I tried but got stuck
+        - I only read the docs / watched the demo
+    validations:
+      required: true
+  - type: checkboxes
+    id: activation
+    attributes:
+      label: First-session progress
+      options:
+        - label: Created or opened a project
+        - label: Added at least one character
+        - label: Added worldbuilding or scene notes
+        - label: Ran an AI generation or rewrite
+        - label: Reviewed an AI candidate draft
+        - label: Adopted any generated text into the draft
+  - type: textarea
+    id: ai_quality
+    attributes:
+      label: AI candidate draft feedback
+      description: If you generated text, what worked and what failed?
+      placeholder: Character voice, consistency, pacing, prose quality, whether the candidate flow felt safer than direct overwrite...
+    validations:
+      required: false
+  - type: textarea
+    id: workflow_feedback
+    attributes:
+      label: Workflow feedback
+      description: What would make n0vel more useful for writing a long novel?
+    validations:
+      required: true
+  - type: dropdown
+    id: return_intent
+    attributes:
+      label: Would you try it again?
+      options:
+        - Yes, I would continue using it
+        - Maybe, if a blocker is fixed
+        - Not yet
+    validations:
+      required: true
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Blockers or concerns
+      description: Installation issues, data privacy concerns, missing model support, confusing UI, missing export, etc.
+    validations:
+      required: false
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy and model concerns
+      description: Any concerns about sending content to external models, data handling, or model behavior?
+      placeholder: For example, worry about story content being sent to cloud, preference for local models, unexpected model outputs...
+    validations:
+      required: false
+  - type: dropdown
+    id: interview
+    attributes:
+      label: Would you be open to a follow-up conversation?
+      description: We may reach out to learn more about your writing workflow and how n0vel can help.
+      options:
+        - Yes, I am open to a short interview
+        - Yes, I would share a public case study
+        - Yes, both interview and case study
+        - No, feedback only
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Links, screenshots, sample output, or anything else that helps.
+    validations:
+      required: false
