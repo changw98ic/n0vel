@@ -10,8 +10,11 @@ import 'package:novel_writer/features/story_generation/data/generation_pipeline_
 import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
+import 'package:novel_writer/features/story_generation/data/step_finalization_io.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/stage_runner.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/typed_artifact.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/structured_profile.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
@@ -489,6 +492,89 @@ void main() {
         );
       },
     );
+
+    test('typed run returns final artifact and stage timeline', () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (request) {
+          final systemPrompt = request.messages.first.content;
+          final userPrompt = request.messages.last.content;
+
+          if (systemPrompt.contains('scene plan polisher')) {
+            return const AppLlmChatResult.success(
+              text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+            );
+          }
+          final roleplay = _defaultRoleplayResponse(request);
+          if (roleplay != null) {
+            return roleplay;
+          }
+          if (systemPrompt.contains('scene beat resolver')) {
+            return const AppLlmChatResult.success(
+              text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @narrator 岳刃露出破绽',
+            );
+          }
+          if (systemPrompt.contains('scene editor')) {
+            return const AppLlmChatResult.success(
+              text: '正文：柳溪逼近半步，岳刃终于露出破绽。沈渡低声提醒她账本藏在旧仓。',
+            );
+          }
+          if (userPrompt.contains('任务：scene_combined_review')) {
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+          }
+          if (userPrompt.contains('任务：language_polish')) {
+            return const AppLlmChatResult.success(
+              text: '正文：柳溪逼近半步，岳刃终于露出破绽。沈渡低声提醒她账本藏在旧仓。',
+            );
+          }
+
+          throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+        },
+      );
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: fakeClient,
+      );
+      addTearDown(settingsStore.dispose);
+
+      final runner = PipelineStageRunnerImpl(
+        settingsStore: settingsStore,
+        pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+      );
+      final brief = _brief();
+      final context = PipelineContext(
+        eventLog: runner.eventLog,
+        retrievalPolicy: runner.defaultRetrievalPolicy,
+        writebackGate: runner.writebackGate,
+        sceneBrief: SceneBriefRef(
+          projectId: brief.projectId ?? brief.chapterId,
+          sceneId: brief.sceneId,
+        ),
+        metadata: {'sceneBrief': brief},
+      );
+
+      final result = await runner.run(context.sceneBrief, context);
+
+      expect(result.success, isTrue);
+      expect(result.failureCode, isNull);
+      expect(result.finalArtifact, isA<FinalizationOutput>());
+      expect(result.finalArtifact!.type, ArtifactType.sceneOutput);
+
+      final completedStages = result.events
+          .where((event) => event.eventType == 'stage_completed')
+          .toList();
+      expect(
+        completedStages.map((event) => event.stageId),
+        runner.stages.map((stage) => stage.roleId),
+      );
+      expect(
+        completedStages.map((event) => event.artifactType),
+        runner.stages.map((stage) => stage.outputType),
+      );
+      expect(
+        completedStages.map((event) => event.metadata['sceneId']).toSet(),
+        {brief.sceneId},
+      );
+    });
 
     test(
       'surfaces quality scorer failures on the scene output and report',
