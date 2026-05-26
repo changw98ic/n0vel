@@ -429,6 +429,68 @@ void main() {
     );
 
     test(
+      'records review gate events in the runner event timeline without an injected log',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final systemPrompt = request.messages.first.content;
+            final userPrompt = request.messages.last.content;
+
+            if (systemPrompt.contains('scene plan polisher')) {
+              return const AppLlmChatResult.success(
+                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+              );
+            }
+            final roleplay = _defaultRoleplayResponse(request);
+            if (roleplay != null) {
+              return roleplay;
+            }
+            if (systemPrompt.contains('scene beat resolver')) {
+              return const AppLlmChatResult.success(
+                text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @narrator 岳刃露出破绽',
+              );
+            }
+            if (systemPrompt.contains('scene editor')) {
+              return const AppLlmChatResult.success(
+                text: '夜色覆盖码头，雨水落下。岳刃露出破绽。',
+              );
+            }
+            if (userPrompt.contains('任务：language_polish')) {
+              return const AppLlmChatResult.success(
+                text: '夜色覆盖码头，雨水落下。岳刃露出破绽。',
+              );
+            }
+
+            throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
+          },
+        );
+        final settingsStore = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+          llmClient: fakeClient,
+        );
+        addTearDown(settingsStore.dispose);
+
+        final orchestrator = PipelineStageRunnerImpl(
+          settingsStore: settingsStore,
+        );
+
+        await orchestrator.runScene(_brief());
+
+        expect(
+          orchestrator.eventLog.query(
+            stageId: 'review',
+            eventType: 'hard_gate',
+          ),
+          isNotEmpty,
+        );
+        expect(
+          orchestrator.eventLog.query(stageId: 'orchestrator'),
+          isNotEmpty,
+        );
+      },
+    );
+
+    test(
       'surfaces quality scorer failures on the scene output and report',
       () async {
         final fakeClient = FakeAppLlmClient(

@@ -76,129 +76,129 @@ class PipelineStageRunnerImpl
     CanonKeeper? canonKeeper,
     SoulContractValidator? soulValidator,
     MemoryWritebackGate? writebackGate,
-  }) : _settingsStore = settingsStore,
-       _pipelineConfig = pipelineConfig,
-       _eventLog = eventLog ?? PipelineEventLogImpl(),
-       _writebackGate =
-           writebackGate ??
-           BasicMemoryWritebackGate(
-             soulValidator: soulValidator?.asWritebackValidator(),
-           ),
-       _contextEnrichmentStep = ContextEnrichmentStep(
-         chapterContextBridge: chapterContextBridge,
-         contextAssembler: contextAssembler ?? SceneContextAssembler(),
-         memoryStorage: memoryStorage,
-         memoryRetriever: memoryRetriever,
-         hybridRetriever: hybridRetriever,
-         contextCache: contextCache,
-       ),
-       _scenePlanningStep = ScenePlanningStep(
-         castResolver: castResolver ?? SceneCastResolver(),
-         consistencyVerifier: consistencyVerifier,
-         directorOrchestrator:
-             directorOrchestrator ??
-             SceneDirectorOrchestrator(settingsStore: settingsStore),
-         arcPromptBuilder: NarrativeArcPromptBuilder(),
-       ),
-       _roleplayStep = RoleplayStep(
-         dynamicRoleAgentRunner:
-             dynamicRoleAgentRunner ??
-             DynamicRoleAgentRunner(
-               settingsStore: settingsStore,
-               characterMemoryStore: characterMemoryStore,
-               eventLog: eventLog,
-             ),
-         roleplaySessionStore: roleplaySessionStore,
-         characterMemoryStore: characterMemoryStore,
-         retrievalController: RetrievalController(
-           materialReferenceRetriever: MaterialReferenceRetriever(
-             rootPath: pipelineConfig.styleReferenceConfig.rootPath,
-           ),
-           enableWritingReference:
-               pipelineConfig.enableWritingReference &&
-               pipelineConfig.styleReferenceConfig.enabled,
-         ),
-       ),
-       _stageNarrationStep = StageNarrationStep(
-         stageNarrator:
-             stageNarrator ??
-             SceneStageNarrator(
-               settingsStore: settingsStore,
-               eventLog: eventLog,
-             ),
-         retrievalController: RetrievalController(
-           materialReferenceRetriever: MaterialReferenceRetriever(
-             rootPath: pipelineConfig.styleReferenceConfig.rootPath,
-           ),
-           enableWritingReference:
-               pipelineConfig.enableWritingReference &&
-               pipelineConfig.styleReferenceConfig.enabled,
-         ),
-       ),
-       _beatResolutionStep = BeatResolutionStep(
-         stateResolver:
-             stateResolver ??
-             SceneStateResolver(
-               settingsStore: settingsStore,
-               eventLog: eventLog,
-             ),
-       ),
-       _editorialStep = EditorialStep(
-         editorialGenerator:
-             editorialGenerator ??
-             SceneEditorialGenerator(settingsStore: settingsStore),
-       ),
-       _reviewStep = ReviewStep(
-         reviewCoordinator:
-             reviewCoordinator ??
-             SceneReviewCoordinator(
-               settingsStore: settingsStore,
-               hardGatesEnabled: pipelineConfig.hardGatesEnabled,
-               canonKeeper: canonKeeper,
-             ),
-         consistencyVerifier: consistencyVerifier,
-         maxProseRetries: pipelineConfig.maxProseRetries,
-         hardGatesEnabled: pipelineConfig.hardGatesEnabled,
-         eventLog: eventLog ?? PipelineEventLogImpl(),
-       ),
-       _polishStep = PolishStep(
-         polishPass:
-             polishPass ?? ScenePolishPass(settingsStore: settingsStore),
-         eventLog: eventLog,
-       ),
-       _finalizationStep = FinalizationStep(
-         qualityScorer: qualityScorer,
-         thoughtUpdater: thoughtUpdater,
-         writebackGate:
-             writebackGate ??
-             BasicMemoryWritebackGate(
-               soulValidator: soulValidator?.asWritebackValidator(),
-             ),
-         narrativeArcTracker: NarrativeArcTracker(),
-       );
+  }) {
+    final sharedEventLog = eventLog ?? PipelineEventLogImpl();
+    final sharedWritebackGate =
+        writebackGate ??
+        BasicMemoryWritebackGate(
+          soulValidator: soulValidator?.asWritebackValidator(),
+        );
 
-  final GenerationPipelineConfig _pipelineConfig;
+    _settingsStore = settingsStore;
+    _pipelineConfig = pipelineConfig;
+    _eventLog = sharedEventLog;
+    _writebackGate = sharedWritebackGate;
+    _contextEnrichmentStep = ContextEnrichmentStep(
+      chapterContextBridge: chapterContextBridge,
+      contextAssembler: contextAssembler ?? SceneContextAssembler(),
+      memoryStorage: memoryStorage,
+      memoryRetriever: memoryRetriever,
+      hybridRetriever: hybridRetriever,
+      contextCache: contextCache,
+    );
+    _scenePlanningStep = ScenePlanningStep(
+      castResolver: castResolver ?? SceneCastResolver(),
+      consistencyVerifier: consistencyVerifier,
+      directorOrchestrator:
+          directorOrchestrator ??
+          SceneDirectorOrchestrator(settingsStore: settingsStore),
+      arcPromptBuilder: NarrativeArcPromptBuilder(),
+    );
+    _roleplayStep = RoleplayStep(
+      dynamicRoleAgentRunner:
+          dynamicRoleAgentRunner ??
+          DynamicRoleAgentRunner(
+            settingsStore: settingsStore,
+            characterMemoryStore: characterMemoryStore,
+            eventLog: sharedEventLog,
+          ),
+      roleplaySessionStore: roleplaySessionStore,
+      characterMemoryStore: characterMemoryStore,
+      retrievalController: RetrievalController(
+        materialReferenceRetriever: MaterialReferenceRetriever(
+          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        ),
+        enableWritingReference:
+            pipelineConfig.enableWritingReference &&
+            pipelineConfig.styleReferenceConfig.enabled,
+      ),
+    );
+    _stageNarrationStep = StageNarrationStep(
+      stageNarrator:
+          stageNarrator ??
+          SceneStageNarrator(
+            settingsStore: settingsStore,
+            eventLog: sharedEventLog,
+          ),
+      retrievalController: RetrievalController(
+        materialReferenceRetriever: MaterialReferenceRetriever(
+          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        ),
+        enableWritingReference:
+            pipelineConfig.enableWritingReference &&
+            pipelineConfig.styleReferenceConfig.enabled,
+      ),
+    );
+    _beatResolutionStep = BeatResolutionStep(
+      stateResolver:
+          stateResolver ??
+          SceneStateResolver(
+            settingsStore: settingsStore,
+            eventLog: sharedEventLog,
+          ),
+    );
+    _editorialStep = EditorialStep(
+      editorialGenerator:
+          editorialGenerator ??
+          SceneEditorialGenerator(settingsStore: settingsStore),
+    );
+    _reviewStep = ReviewStep(
+      reviewCoordinator:
+          reviewCoordinator ??
+          SceneReviewCoordinator(
+            settingsStore: settingsStore,
+            hardGatesEnabled: pipelineConfig.hardGatesEnabled,
+            canonKeeper: canonKeeper,
+          ),
+      consistencyVerifier: consistencyVerifier,
+      maxProseRetries: pipelineConfig.maxProseRetries,
+      hardGatesEnabled: pipelineConfig.hardGatesEnabled,
+      eventLog: sharedEventLog,
+    );
+    _polishStep = PolishStep(
+      polishPass: polishPass ?? ScenePolishPass(settingsStore: settingsStore),
+      eventLog: sharedEventLog,
+    );
+    _finalizationStep = FinalizationStep(
+      qualityScorer: qualityScorer,
+      thoughtUpdater: thoughtUpdater,
+      writebackGate: sharedWritebackGate,
+      narrativeArcTracker: NarrativeArcTracker(),
+    );
+  }
+
+  late final GenerationPipelineConfig _pipelineConfig;
   int get maxProseRetries => _pipelineConfig.maxProseRetries;
   int get maxSceneReplanRetries => _pipelineConfig.maxSceneReplanRetries;
   bool get enableWritingReference => _pipelineConfig.enableWritingReference;
   StyleReferenceConfig get styleReferenceConfig =>
       _pipelineConfig.styleReferenceConfig;
 
-  final PipelineEventLog _eventLog;
-  final MemoryWritebackGate _writebackGate;
+  late final PipelineEventLog _eventLog;
+  late final MemoryWritebackGate _writebackGate;
 
   bool Function()? isRunCancelled;
 
-  final AppSettingsStore _settingsStore;
-  final ContextEnrichmentStep _contextEnrichmentStep;
-  final ScenePlanningStep _scenePlanningStep;
-  final RoleplayStep _roleplayStep;
-  final StageNarrationStep _stageNarrationStep;
-  final BeatResolutionStep _beatResolutionStep;
-  final EditorialStep _editorialStep;
-  final ReviewStep _reviewStep;
-  final PolishStep _polishStep;
-  final FinalizationStep _finalizationStep;
+  late final AppSettingsStore _settingsStore;
+  late final ContextEnrichmentStep _contextEnrichmentStep;
+  late final ScenePlanningStep _scenePlanningStep;
+  late final RoleplayStep _roleplayStep;
+  late final StageNarrationStep _stageNarrationStep;
+  late final BeatResolutionStep _beatResolutionStep;
+  late final EditorialStep _editorialStep;
+  late final ReviewStep _reviewStep;
+  late final PolishStep _polishStep;
+  late final FinalizationStep _finalizationStep;
 
   DirectorMemory _directorMemory = DirectorMemory();
   NarrativeArcState _narrativeArc = NarrativeArcState();
