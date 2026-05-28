@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/author_feedback/data/author_feedback_store.dart';
 import '../../features/review_tasks/data/review_task_store.dart';
-import '../../features/story_generation/data/character_memory_store.dart';
-import '../../features/story_generation/data/roleplay_session_store.dart';
 import '../../features/writing_stats/data/writing_stats_store.dart';
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
@@ -47,13 +45,6 @@ final appLlmRequestPoolProvider = Provider<AppLlmRequestPool>((ref) {
   return ref.watch(serviceRegistryProvider).resolve<AppLlmRequestPool>();
 });
 
-final roleplaySessionStoreProvider = Provider<RoleplaySessionStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<RoleplaySessionStore>();
-});
-
-final characterMemoryStoreProvider = Provider<CharacterMemoryStore>((ref) {
-  return ref.watch(serviceRegistryProvider).resolve<CharacterMemoryStore>();
-});
 
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod

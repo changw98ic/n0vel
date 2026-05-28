@@ -20,7 +20,7 @@ import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/app_workspace_storage.dart';
 import 'package:novel_writer/app/state/app_workspace_storage_io.dart';
 import 'package:novel_writer/app/theme/app_theme.dart';
-import 'package:novel_writer/features/workbench/presentation/workbench_ai_controller.dart';
+import 'package:novel_writer/features/workbench/data/workbench_ai_controller.dart';
 import 'package:novel_writer/features/workbench/presentation/workbench_ai_review_dialog.dart';
 import 'package:novel_writer/features/workbench/presentation/workbench_ai_revision_helpers.dart';
 

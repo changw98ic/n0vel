@@ -150,6 +150,47 @@ void main() {
       });
     }
   });
+
+  group('WorkbenchShellPage three-pane layout', () {
+    late ServiceRegistry registry;
+
+    tearDown(() {
+      registry.disposeAll();
+    });
+
+    testWidgets('renders editor pane filling available space', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 820);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      registry = ServiceRegistry();
+      _registerWorkbenchStores(registry);
+      final runStorage = InMemoryStoryGenerationRunStorage();
+      _registerStoryRunStore(registry, runStorage: runStorage);
+      await registry.resolve<StoryGenerationRunStore>().ready;
+      final workspaceStore = registry.resolve<AppWorkspaceStore>();
+      workspaceStore.createProject(projectName: '布局测试');
+      workspaceStore.createScene('第一章');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [serviceRegistryProvider.overrideWithValue(registry)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const WorkbenchShellPage(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Verify editor pane exists and no placeholder panes
+      expect(find.byType(Row), findsWidgets);
+      expect(find.byIcon(Icons.summarize_outlined), findsNothing);
+    });
+  });
 }
 
 void _registerWorkbenchStores(ServiceRegistry registry) {

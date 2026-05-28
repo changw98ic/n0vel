@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
-
 import '../events/app_domain_events.dart';
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
@@ -133,18 +131,4 @@ class AppDraftStore extends AppProjectScopedStore {
   @override
   Future<void> clearDeletedProjectScope(String projectId) =>
       _storage.clearProject(projectId);
-}
-
-class AppDraftScope extends InheritedNotifier<AppDraftStore> {
-  const AppDraftScope({
-    super.key,
-    required AppDraftStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static AppDraftStore of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<AppDraftScope>();
-    assert(scope != null, 'AppDraftScope is missing in the widget tree.');
-    return scope!.notifier!;
-  }
 }

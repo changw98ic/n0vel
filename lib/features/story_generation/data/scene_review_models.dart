@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_storage_clone.dart';
+import 'package:novel_writer/domain/storage_utils.dart';
 
 import '../domain/scene_models.dart' show SceneQualityScore;
 import 'scene_context_models.dart';

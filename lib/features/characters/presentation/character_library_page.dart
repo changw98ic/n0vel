@@ -8,6 +8,7 @@ import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'character_library_components.dart';
@@ -52,6 +53,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
   int _selectedIndex = 0;
   int _sortIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _sidebarScrollController = ScrollController();
+  final ScrollController _detailScrollController = ScrollController();
 
   static const _sortOptions = <AppListSortOption<CharacterRecord>>[
     AppListSortOption(label: '按名称', compare: _compareByName),
@@ -67,6 +70,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _sidebarScrollController.dispose();
+    _detailScrollController.dispose();
     super.dispose();
   }
 
@@ -243,19 +248,32 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
             child: AppEmptyState(title: '没有匹配角色', message: '换个关键词，或新建一个角色。'),
           )
         else
-          for (final character in visibleCharacters) ...[
-            CharacterListButton(
-              buttonKey: character.name == '岳人'
-                  ? CharacterLibraryPage.yueRenKey
-                  : null,
-              label: character.name,
-              selected: characters[selectedIndex] == character,
-              onPressed: () => setState(() {
-                _selectedIndex = characters.indexOf(character);
-              }),
+          Expanded(
+            child: AppPremiumScrollbar(
+              controller: _sidebarScrollController,
+              child: SingleChildScrollView(
+                controller: _sidebarScrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final character in visibleCharacters) ...[
+                      CharacterListButton(
+                        buttonKey: character.name == '岳人'
+                            ? CharacterLibraryPage.yueRenKey
+                            : null,
+                        label: character.name,
+                        selected: characters[selectedIndex] == character,
+                        onPressed: () => setState(() {
+                          _selectedIndex = characters.indexOf(character);
+                        }),
+                      ),
+                      const SizedBox(height: AppDesignTokens.space8),
+                    ],
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: AppDesignTokens.space8),
-          ],
+          ),
       ],
     );
   }
@@ -290,22 +308,26 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       );
     }
     if (widget.uiState == CharacterLibraryUiState.missingRequiredFields) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('角色详情', style: theme.textTheme.titleMedium),
-            const SizedBox(height: AppDesignTokens.space12),
-            const CharacterStateCard(
-              title: '缺少必填字段',
-              message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
-              accent: Color(0xFF51624D),
-            ),
-            if (current != null) ...[
+      return AppPremiumScrollbar(
+        controller: _detailScrollController,
+        child: SingleChildScrollView(
+          controller: _detailScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('角色详情', style: theme.textTheme.titleMedium),
               const SizedBox(height: AppDesignTokens.space12),
-              _buildCharacterFields(store, current),
+              const CharacterStateCard(
+                title: '缺少必填字段',
+                message: '当前人物还没有名字，因此这次暂不写入人物资料，也不会刷新写作工作台的人物摘要。',
+                accent: Color(0xFF51624D),
+              ),
+              if (current != null) ...[
+                const SizedBox(height: AppDesignTokens.space12),
+                _buildCharacterFields(store, current),
+              ],
             ],
-          ],
+          ),
         ),
       );
     }
@@ -326,55 +348,59 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('角色详情', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              IconButton(
-                key: CharacterLibraryPage.deleteButtonKey,
-                onPressed: () =>
-                    _confirmDeleteCharacter(context, store, current),
-                tooltip: '删除角色',
-                color: appDangerColor,
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDesignTokens.space12),
-          _buildCharacterFields(store, current),
-          const SizedBox(height: AppDesignTokens.space16),
-          if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
-            CharacterInfoBlock(
-              title: '引用摘要',
-              message: current.referenceSummary.isEmpty
-                  ? current.summary
-                  : current.referenceSummary,
-            ),
-          if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
-            const SizedBox(height: AppDesignTokens.space12),
-          Text('引用场景', style: theme.textTheme.bodySmall),
-          const SizedBox(height: AppDesignTokens.space4),
-          Wrap(
-            spacing: AppDesignTokens.space8,
-            runSpacing: AppDesignTokens.space8,
-            children: [
-              for (final scene in projectScenes.scenes)
-                FilterChip(
-                  label: Text(scene.displayLocation),
-                  selected: current.linkedSceneIds.contains(scene.id),
-                  onSelected: (linked) => store.setCharacterSceneLinked(
-                    characterId: current.id,
-                    sceneId: scene.id,
-                    linked: linked,
-                  ),
+    return AppPremiumScrollbar(
+      controller: _detailScrollController,
+      child: SingleChildScrollView(
+        controller: _detailScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('角色详情', style: theme.textTheme.titleMedium),
+                const Spacer(),
+                IconButton(
+                  key: CharacterLibraryPage.deleteButtonKey,
+                  onPressed: () =>
+                      _confirmDeleteCharacter(context, store, current),
+                  tooltip: '删除角色',
+                  color: appDangerColor,
+                  icon: const Icon(Icons.delete_outline),
                 ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppDesignTokens.space12),
+            _buildCharacterFields(store, current),
+            const SizedBox(height: AppDesignTokens.space16),
+            if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+              CharacterInfoBlock(
+                title: '引用摘要',
+                message: current.referenceSummary.isEmpty
+                    ? current.summary
+                    : current.referenceSummary,
+              ),
+            if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+              const SizedBox(height: AppDesignTokens.space12),
+            Text('引用场景', style: theme.textTheme.bodySmall),
+            const SizedBox(height: AppDesignTokens.space4),
+            Wrap(
+              spacing: AppDesignTokens.space8,
+              runSpacing: AppDesignTokens.space8,
+              children: [
+                for (final scene in projectScenes.scenes)
+                  FilterChip(
+                    label: Text(scene.displayLocation),
+                    selected: current.linkedSceneIds.contains(scene.id),
+                    onSelected: (linked) => store.setCharacterSceneLinked(
+                      characterId: current.id,
+                      sceneId: scene.id,
+                      linked: linked,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -4,7 +4,7 @@ import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_settings_store.dart';
 import '../../../app/state/app_simulation_store.dart';
 import '../../../app/state/app_workspace_store.dart';
-import 'workbench_ai_revision_helpers.dart';
+import '../presentation/workbench_ai_revision_helpers.dart';
 
 class AiRequestMetadata {
   const AiRequestMetadata({

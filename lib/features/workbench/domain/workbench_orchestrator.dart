@@ -11,10 +11,10 @@ import '../../../app/state/story_generation_run_store.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
 import '../../author_feedback/domain/author_feedback_models.dart';
 import '../../review_tasks/data/review_task_store.dart';
-import 'workbench_ai_controller.dart';
-import 'workbench_ai_revision_helpers.dart';
-import 'workbench_editor_helpers.dart';
-import 'workbench_types.dart';
+import '../data/workbench_ai_controller.dart';
+import '../presentation/workbench_ai_revision_helpers.dart';
+import '../presentation/workbench_editor_helpers.dart';
+import '../presentation/workbench_types.dart';
 
 // --- AI flow command results ---
 

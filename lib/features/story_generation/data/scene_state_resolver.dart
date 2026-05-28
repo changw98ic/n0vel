@@ -2,7 +2,7 @@
 export 'scene_transition_models.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'prompt_string_utils.dart';
 import 'scene_beat_helpers.dart';
@@ -21,12 +21,12 @@ import '../domain/contracts/stage_runner.dart';
 /// happens until the resolver has produced an ordered list of beats.
 class SceneStateResolver {
   SceneStateResolver({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     PipelineEventLog? eventLog,
   }) : _settingsStore = settingsStore,
        _eventLog = eventLog;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final PipelineEventLog? _eventLog;
 
   static SceneTransitionReport trackTransitions({

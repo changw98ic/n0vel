@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_memory_delta_models.dart';
 import 'character_visible_context_builder.dart';
@@ -32,7 +32,7 @@ class SceneRoleplayRuntime {
   static const int _defaultVisibleTranscriptWindow = 1000;
 
   SceneRoleplayRuntime({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     this.defaultMaxRounds = 1,
     PipelineEventLog? eventLog,
     CharacterVisibleContextBuilder? visibleContextBuilder,

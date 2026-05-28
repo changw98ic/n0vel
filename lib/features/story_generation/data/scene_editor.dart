@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import '../domain/roleplay_models.dart';
 import '../domain/scene_models.dart';
@@ -12,10 +12,10 @@ import 'story_generation_pass_retry.dart';
 /// constraint; the [EditorialDraft] provides helpers for external
 /// fact-audit checks.
 class SceneEditor {
-  SceneEditor({required AppSettingsStore settingsStore})
+  SceneEditor({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   Future<EditorialDraft> draft({
     required SceneBrief brief,

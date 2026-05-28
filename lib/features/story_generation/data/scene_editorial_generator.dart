@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'prompt_string_utils.dart';
 import 'scene_cast_roleplay_policy.dart';
@@ -16,10 +16,10 @@ import 'story_prompt_templates.dart';
 /// the editorial generator stitches beats into coherent prose, preserving
 /// factual boundaries established by the resolver.
 class SceneEditorialGenerator {
-  SceneEditorialGenerator({required AppSettingsStore settingsStore})
+  SceneEditorialGenerator({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   /// Build scene-position and hook warning lines for the editorial user prompt.
   static String buildUserPrompt({

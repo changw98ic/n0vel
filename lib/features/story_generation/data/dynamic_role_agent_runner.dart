@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'scene_pipeline_models.dart' show SceneTaskCard;
 import 'scene_roleplay_runtime.dart';
@@ -12,14 +12,14 @@ import '../domain/story_pipeline_interfaces.dart';
 
 class DynamicRoleAgentRunner implements DynamicRoleAgentService {
   DynamicRoleAgentRunner({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     CharacterMemoryStore? characterMemoryStore,
     PipelineEventLog? eventLog,
   }) : _settingsStore = settingsStore,
        _characterMemoryStore = characterMemoryStore,
        _eventLog = eventLog;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final CharacterMemoryStore? _characterMemoryStore;
   final PipelineEventLog? _eventLog;
 

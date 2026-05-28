@@ -213,7 +213,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
     unawaited(_storage.clearProject(event.projectId));
   }
 
-  Future<void> runCurrentScene({bool forceFailure = false}) async {
+  Future<void> runCurrentScene({
+    bool forceFailure = false,
+    String? outlineOverride,
+    String? rulesOverride,
+  }) async {
     await _generationStore.waitUntilReady();
     await _authorFeedbackStore?.waitUntilReady();
     final runToken = _beginRun();
@@ -233,8 +237,11 @@ class StoryGenerationRunStore extends AppStoreListenable {
       chapterTitle: currentScene.chapterLabel,
       sceneId: currentScene.id,
       sceneTitle: currentScene.title,
-      sceneSummary: currentScene.summary,
-      metadata: _runtimeMetadata(revisionRequests: revisionRequests),
+      sceneSummary: outlineOverride ?? currentScene.summary,
+      metadata: _runtimeMetadata(
+        revisionRequests: revisionRequests,
+        rulesOverride: rulesOverride,
+      ),
     );
     final baseParticipants = _participantsForBrief(brief);
     await _setSnapshot(

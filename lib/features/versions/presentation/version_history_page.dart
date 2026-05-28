@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/di/app_providers.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_dialog.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 
 class VersionHistoryPage extends ConsumerStatefulWidget {
@@ -17,6 +18,15 @@ class VersionHistoryPage extends ConsumerStatefulWidget {
 
 class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
   int _selectedIndex = 0;
+  final ScrollController _listScrollController = ScrollController();
+  final ScrollController _detailScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _listScrollController.dispose();
+    _detailScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,42 +66,46 @@ class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
                 Text('版本池', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: AppDesignTokens.space12),
                 Expanded(
-                  child: ListView.separated(
-                    itemCount: entries.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppDesignTokens.space8),
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      final isSelected = index == selectedIndex;
-                      final palette = desktopPalette(context);
-                      return TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedIndex = index;
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppDesignTokens.space12,
-                            vertical: 10,
-                          ),
-                          backgroundColor: isSelected
-                              ? palette.subtle
-                              : palette.elevated,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppDesignTokens.radiusMedium,
+                  child: AppPremiumScrollbar(
+                    controller: _listScrollController,
+                    child: ListView.separated(
+                      controller: _listScrollController,
+                      itemCount: entries.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppDesignTokens.space8),
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+                        final isSelected = index == selectedIndex;
+                        final palette = desktopPalette(context);
+                        return TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedIndex = index;
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppDesignTokens.space12,
+                              vertical: 10,
                             ),
-                            side: BorderSide(color: palette.border),
+                            backgroundColor: isSelected
+                                ? palette.subtle
+                                : palette.elevated,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusMedium,
+                              ),
+                              side: BorderSide(color: palette.border),
+                            ),
+                            alignment: Alignment.centerLeft,
                           ),
-                          alignment: Alignment.centerLeft,
-                        ),
-                        child: Text(
-                          entry.label,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      );
-                    },
+                          child: Text(
+                            entry.label,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -146,10 +160,14 @@ class _VersionHistoryPageState extends ConsumerState<VersionHistoryPage> {
                       context,
                       color: desktopPalette(context).elevated,
                     ),
-                    child: SingleChildScrollView(
-                      child: Text(
-                        selectedEntry.content,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                    child: AppPremiumScrollbar(
+                      controller: _detailScrollController,
+                      child: SingleChildScrollView(
+                        controller: _detailScrollController,
+                        child: Text(
+                          selectedEntry.content,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                     ),
                   ),

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'scene_pipeline_models.dart';
 import 'scene_type_classifier.dart';
@@ -13,10 +13,10 @@ import '../domain/story_pipeline_interfaces.dart';
 class SceneDirectorOrchestrator implements SceneDirectorService {
   static const Duration _requestTimeout = Duration(seconds: 60);
 
-  SceneDirectorOrchestrator({required AppSettingsStore settingsStore})
+  SceneDirectorOrchestrator({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
   final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 

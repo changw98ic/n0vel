@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'scene_runtime_models.dart' show SceneTaskCard;
 import 'story_generation_pass_retry.dart';
@@ -8,10 +8,10 @@ import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
 class SceneProseGenerator implements SceneProseService {
-  SceneProseGenerator({required AppSettingsStore settingsStore})
+  SceneProseGenerator({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   @override
   Future<SceneProseDraft> generate({

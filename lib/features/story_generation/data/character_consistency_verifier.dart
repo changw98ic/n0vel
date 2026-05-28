@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client_types.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_consistency_models.dart';
 import 'knowledge_visibility_filter.dart';
@@ -15,7 +15,7 @@ class CharacterConsistencyVerifier {
     SoulContractValidator? soulValidator,
   }) : _soulValidator = soulValidator;
 
-  final AppSettingsStore settingsStore;
+  final StoryGenerationSettingsContract settingsStore;
   final SoulContractValidator? _soulValidator;
 
   /// Pre-generation check: validates character context against their profiles.

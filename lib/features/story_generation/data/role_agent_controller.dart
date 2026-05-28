@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'context_capsule_compressor.dart';
 import '../domain/roleplay_models.dart';
@@ -90,14 +90,14 @@ class RolePromptAdapter {
 ///    the retrieval budget is exhausted.
 class RoleAgentController {
   RoleAgentController({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     ContextCapsuleCompressor? capsuleCompressor,
     int maxRetrievalRounds = 2,
   }) : _settingsStore = settingsStore,
        _capsuleCompressor = capsuleCompressor ?? ContextCapsuleCompressor(),
        _maxRetrievalRounds = maxRetrievalRounds;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final ContextCapsuleCompressor _capsuleCompressor;
   final int _maxRetrievalRounds;
 

@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'prompt_string_utils.dart';
 import 'scene_pipeline_models.dart' as pipeline;
@@ -14,14 +14,14 @@ import '../domain/scene_models.dart';
 /// to narrate: environment, atmosphere, physical mechanisms, and public clues.
 class SceneStageNarrator {
   SceneStageNarrator({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     PipelineEventLog? eventLog,
   }) : _settingsStore = settingsStore,
        _eventLog = eventLog;
 
   static const String capsuleToolName = 'scene_stage_narrator';
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final PipelineEventLog? _eventLog;
 
   Future<pipeline.LightContextCapsule?> generate({

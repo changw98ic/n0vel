@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'story_generation_pass_retry.dart';
 import '../domain/contracts/memory_policy.dart';
@@ -17,7 +17,7 @@ import 'story_generation_formatter_trace.dart';
 
 class SceneReviewCoordinator implements SceneReviewService {
   SceneReviewCoordinator({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     StoryGenerationFormatterTraceSink? formatterTraceSink,
     this.hardGatesEnabled = true,
     CanonKeeper? canonKeeper,
@@ -25,7 +25,7 @@ class SceneReviewCoordinator implements SceneReviewService {
        _formatterTraceSink = formatterTraceSink,
        _canonKeeper = canonKeeper;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final StoryGenerationFormatterTraceSink? _formatterTraceSink;
   final bool hardGatesEnabled;
   final CanonKeeper? _canonKeeper;

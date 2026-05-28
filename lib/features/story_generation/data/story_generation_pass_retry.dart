@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 import 'package:novel_writer/features/story_generation/data/request_rate_limiter.dart';
 
 const int _defaultMaxTransientRetries = 3;
@@ -22,7 +22,7 @@ Duration _exponentialBackoffWithJitter(int attempt) {
 }
 
 Future<AppLlmChatResult> requestStoryGenerationPassWithRetry({
-  required AppSettingsStore settingsStore,
+  required StoryGenerationSettingsContract settingsStore,
   required List<AppLlmChatMessage> messages,
   int maxTransientRetries = _defaultMaxTransientRetries,
   int maxOutputRetries = 2,

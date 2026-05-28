@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_memory_delta_models.dart';
 import 'character_visible_context_models.dart';
@@ -19,10 +19,10 @@ abstract interface class RoleTurnSkill {
 }
 
 class BasicRoleTurnSkill implements RoleTurnSkill {
-  BasicRoleTurnSkill({required AppSettingsStore settingsStore})
+  BasicRoleTurnSkill({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   @override
   String get skillId => 'basic_role_turn';

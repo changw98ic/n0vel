@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_storage_clone.dart';
+import 'package:novel_writer/domain/storage_utils.dart';
 
 enum PlotThreadStatus { rising, climax, falling, resolved }
 

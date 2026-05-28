@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_consistency_verifier.dart';
 import 'pipeline_event_log.dart';
@@ -51,7 +51,7 @@ import 'steps/finalization_step.dart';
 class PipelineStageRunnerImpl
     implements ChapterGenerationService, PipelineStageRunner {
   PipelineStageRunnerImpl({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     GenerationPipelineConfig pipelineConfig = const GenerationPipelineConfig(),
     PipelineEventLog? eventLog,
     SceneCastResolverService? castResolver,
@@ -189,7 +189,7 @@ class PipelineStageRunnerImpl
 
   bool Function()? isRunCancelled;
 
-  late final AppSettingsStore _settingsStore;
+  late final StoryGenerationSettingsContract _settingsStore;
   late final ContextEnrichmentStep _contextEnrichmentStep;
   late final ScenePlanningStep _scenePlanningStep;
   late final RoleplayStep _roleplayStep;
@@ -242,7 +242,7 @@ class PipelineStageRunnerImpl
       final materials = context.metadata['materials'];
       try {
         final output = await StoryPromptTemplates.runWithLanguage(
-          _settingsStore.snapshot.promptLanguage,
+          _settingsStore.promptLanguage,
           () => _runSceneFinalization(
             _briefWithStyleReference(sceneBrief),
             materials: materials is ProjectMaterialSnapshot ? materials : null,
@@ -283,7 +283,7 @@ class PipelineStageRunnerImpl
     void Function()? onSpeculationReady,
   }) {
     return StoryPromptTemplates.runWithLanguage(
-      _settingsStore.snapshot.promptLanguage,
+      _settingsStore.promptLanguage,
       () => _runScene(
         _briefWithStyleReference(brief),
         materials: materials,

@@ -8,6 +8,7 @@ import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/app_empty_state.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'worldbuilding_components.dart';
@@ -52,6 +53,9 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   int _selectedIndex = 0;
   int _sortIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _treeScrollController = ScrollController();
+  final ScrollController _detailScrollController = ScrollController();
+  final ScrollController _rulesScrollController = ScrollController();
 
   static const _sortOptions = <AppListSortOption<WorldNodeRecord>>[
     AppListSortOption(label: '按名称', compare: _compareByTitle),
@@ -71,6 +75,9 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _treeScrollController.dispose();
+    _detailScrollController.dispose();
+    _rulesScrollController.dispose();
     super.dispose();
   }
 
@@ -258,19 +265,32 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
             child: AppEmptyState(title: '没有匹配节点', message: '换个关键词，或新建一个节点。'),
           )
         else
-          for (final node in visibleNodes) ...[
-            WorldbuildingListButton(
-              buttonKey: node.title == '码头风暴'
-                  ? WorldbuildingPage.stormNodeKey
-                  : null,
-              label: node.title,
-              selected: nodes[selectedIndex] == node,
-              onPressed: () => setState(() {
-                _selectedIndex = nodes.indexOf(node);
-              }),
+          Expanded(
+            child: AppPremiumScrollbar(
+              controller: _treeScrollController,
+              child: SingleChildScrollView(
+                controller: _treeScrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final node in visibleNodes) ...[
+                      WorldbuildingListButton(
+                        buttonKey: node.title == '码头风暴'
+                            ? WorldbuildingPage.stormNodeKey
+                            : null,
+                        label: node.title,
+                        selected: nodes[selectedIndex] == node,
+                        onPressed: () => setState(() {
+                          _selectedIndex = nodes.indexOf(node);
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
       ],
     );
   }
@@ -304,22 +324,26 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       );
     }
     if (widget.uiState == WorldbuildingUiState.missingType) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('节点详情', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            const WorldbuildingStateCard(
-              title: '缺少必填类型',
-              message: '当前素材尚未指定类型，因此本轮暂不写入世界观索引，也不会同步规则引用。',
-              accent: Color(0xFF51624D),
-            ),
-            if (current != null) ...[
+      return AppPremiumScrollbar(
+        controller: _detailScrollController,
+        child: SingleChildScrollView(
+          controller: _detailScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('节点详情', style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
-              _buildNodeFields(store, current),
+              const WorldbuildingStateCard(
+                title: '缺少必填类型',
+                message: '当前素材尚未指定类型，因此本轮暂不写入世界观索引，也不会同步规则引用。',
+                accent: Color(0xFF51624D),
+              ),
+              if (current != null) ...[
+                const SizedBox(height: 12),
+                _buildNodeFields(store, current),
+              ],
             ],
-          ],
+          ),
         ),
       );
     }
@@ -340,26 +364,30 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('节点详情', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              IconButton(
-                key: WorldbuildingPage.deleteButtonKey,
-                onPressed: () => _confirmDeleteNode(context, store, current),
-                tooltip: '删除节点',
-                color: appDangerColor,
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildNodeFields(store, current),
-        ],
+    return AppPremiumScrollbar(
+      controller: _detailScrollController,
+      child: SingleChildScrollView(
+        controller: _detailScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('节点详情', style: theme.textTheme.titleMedium),
+                const Spacer(),
+                IconButton(
+                  key: WorldbuildingPage.deleteButtonKey,
+                  onPressed: () => _confirmDeleteNode(context, store, current),
+                  tooltip: '删除节点',
+                  color: appDangerColor,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildNodeFields(store, current),
+          ],
+        ),
       ),
     );
   }
@@ -488,65 +516,69 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         ],
       );
     }
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('规则与引用', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            '把地点、组织和规则绑定回具体场景，写作时就能直接看到限制条件。',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          if (current == null)
-            const AppEmptyState(title: '暂无规则摘要', message: '请先搜索或新建一个节点。')
-          else ...[
-            WorldbuildingInfoBlock(
-              title: '引用场景',
-              message: current.linkedSceneIds.isEmpty
-                  ? '暂未绑定场景，可在下方选择相关场景。'
-                  : '已绑定 ${current.linkedSceneIds.length} 个场景，规则会同步到写作工作台。',
-            ),
+    return AppPremiumScrollbar(
+      controller: _rulesScrollController,
+      child: SingleChildScrollView(
+        controller: _rulesScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('规则与引用', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            WorldbuildingEditableTextField(
-              fieldKey: ValueKey<String>(
-                'worldbuilding-rule-field-${current.id}',
+            Text(
+              '把地点、组织 and 规则绑定回具体场景，写作时就能直接看到限制条件。',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            if (current == null)
+              const AppEmptyState(title: '暂无规则摘要', message: '请先搜索或新建一个节点。')
+            else ...[
+              WorldbuildingInfoBlock(
+                title: '引用场景',
+                message: current.linkedSceneIds.isEmpty
+                    ? '暂未绑定场景，可在下方选择相关场景。'
+                    : '已绑定 ${current.linkedSceneIds.length} 个场景，规则会同步到写作工作台。',
               ),
-              label: '规则摘要',
-              initialValue: current.ruleSummary,
-              maxLines: 3,
-              onChanged: (value) {
-                store.updateWorldNode(nodeId: current.id, ruleSummary: value);
-                ref.read(appSceneContextStoreProvider).syncContext();
-              },
-            ),
-            const SizedBox(height: 8),
-            WorldbuildingInfoBlock(
-              title: '引用摘要',
-              message: current.referenceSummary.isEmpty
-                  ? current.summary
-                  : current.referenceSummary,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final scene in projectScenes.scenes)
-                  FilterChip(
-                    label: Text(scene.title),
-                    selected: current.linkedSceneIds.contains(scene.id),
-                    onSelected: (linked) => store.setWorldNodeSceneLinked(
-                      nodeId: current.id,
-                      sceneId: scene.id,
-                      linked: linked,
+              const SizedBox(height: 8),
+              WorldbuildingEditableTextField(
+                fieldKey: ValueKey<String>(
+                  'worldbuilding-rule-field-${current.id}',
+                ),
+                label: '规则摘要',
+                initialValue: current.ruleSummary,
+                maxLines: 3,
+                onChanged: (value) {
+                  store.updateWorldNode(nodeId: current.id, ruleSummary: value);
+                  ref.read(appSceneContextStoreProvider).syncContext();
+                },
+              ),
+              const SizedBox(height: 8),
+              WorldbuildingInfoBlock(
+                title: '引用摘要',
+                message: current.referenceSummary.isEmpty
+                    ? current.summary
+                    : current.referenceSummary,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final scene in projectScenes.scenes)
+                    FilterChip(
+                      label: Text(scene.title),
+                      selected: current.linkedSceneIds.contains(scene.id),
+                      onSelected: (linked) => store.setWorldNodeSceneLinked(
+                        nodeId: current.id,
+                        sceneId: scene.id,
+                        linked: linked,
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

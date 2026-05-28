@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
-
 import '../../../app/state/app_project_scoped_store.dart';
 import '../domain/author_feedback_models.dart';
 import 'author_feedback_storage.dart';
@@ -327,20 +325,5 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
       return null;
     }
     return trimmed;
-  }
-}
-
-class AuthorFeedbackScope extends InheritedNotifier<AuthorFeedbackStore> {
-  const AuthorFeedbackScope({
-    super.key,
-    required AuthorFeedbackStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static AuthorFeedbackStore of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<AuthorFeedbackScope>();
-    assert(scope != null, 'AuthorFeedbackScope is missing in the widget tree.');
-    return scope!.notifier!;
   }
 }

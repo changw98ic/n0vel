@@ -1,4 +1,4 @@
-import '../../../app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 import 'pipeline_stage_runner_impl.dart';
 import 'character_memory_store.dart';
 import 'generation_pipeline_config.dart';
@@ -16,7 +16,7 @@ class ChapterConcurrentRunner {
     this.characterMemoryStore,
   });
 
-  final AppSettingsStore settingsStore;
+  final StoryGenerationSettingsContract settingsStore;
   final GenerationPipelineConfig pipelineConfig;
   final RoleplaySessionStore? roleplaySessionStore;
   final CharacterMemoryStore? characterMemoryStore;

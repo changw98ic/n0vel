@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../data/project_transfer_service.dart';
 import '../data/standard_format_exporter.dart';
@@ -51,6 +52,10 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
   StandardExportFormat _selectedFormat = StandardExportFormat.markdown;
   StandardExportMode _selectedMode = StandardExportMode.manuscript;
 
+  final ScrollController _exportScrollController = ScrollController();
+  final ScrollController _importScrollController = ScrollController();
+  final ScrollController _manifestScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +68,14 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshManifestSummary();
     });
+  }
+
+  @override
+  void dispose() {
+    _exportScrollController.dispose();
+    _importScrollController.dispose();
+    _manifestScrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -133,96 +146,100 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
   ) {
     final exportDisabled =
         effectiveUiState == ProjectImportExportUiState.noExportableProject;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('导出工程', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: appPanelDecoration(
-              context,
-              color: desktopPalette(context).elevated,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  exportDisabled ? '当前没有可导出的项目' : '本地导出目录',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+    return AppPremiumScrollbar(
+      controller: _exportScrollController,
+      child: SingleChildScrollView(
+        controller: _exportScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('导出工程', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: appPanelDecoration(
+                context,
+                color: desktopPalette(context).elevated,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exportDisabled ? '当前没有可导出的项目' : '本地导出目录',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                exportDisabled
-                    ? Text('请先创建或导入项目', style: theme.textTheme.bodyMedium)
-                    : ImportExportPathValueText(value: _service.exportPackagePath),
-              ],
+                  const SizedBox(height: 6),
+                  exportDisabled
+                      ? Text('请先创建或导入项目', style: theme.textTheme.bodyMedium)
+                      : ImportExportPathValueText(value: _service.exportPackagePath),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: exportDisabled ? null : () => _handleExport(context),
-              child: const Text('导出当前工程'),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: exportDisabled ? null : () => _handleExport(context),
+                child: const Text('导出当前工程'),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text('导出稿件', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: appPanelDecoration(
-              context,
-              color: desktopPalette(context).elevated,
+            const SizedBox(height: 16),
+            Text('导出稿件', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: appPanelDecoration(
+                context,
+                color: desktopPalette(context).elevated,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('格式', style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 4),
+                  ImportExportFormatDropdown<StandardExportFormat>(
+                    title: '选择导出格式',
+                    value: _selectedFormat,
+                    items: const [
+                      (StandardExportFormat.markdown, 'Markdown'),
+                      (StandardExportFormat.html, 'HTML'),
+                      (StandardExportFormat.plainText, '纯文本'),
+                      (StandardExportFormat.json, 'JSON'),
+                    ],
+                    onChanged: (v) => setState(() => _selectedFormat = v),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('范围', style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 4),
+                  ImportExportFormatDropdown<StandardExportMode>(
+                    title: '选择导出范围',
+                    value: _selectedMode,
+                    items: const [
+                      (StandardExportMode.manuscript, '稿件正文'),
+                      (StandardExportMode.fullProject, '完整项目'),
+                      (StandardExportMode.finalDraft, '终稿'),
+                    ],
+                    onChanged: (v) => setState(() => _selectedMode = v),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('格式', style: theme.textTheme.bodySmall),
-                const SizedBox(height: 4),
-                ImportExportFormatDropdown<StandardExportFormat>(
-                  title: '选择导出格式',
-                  value: _selectedFormat,
-                  items: const [
-                    (StandardExportFormat.markdown, 'Markdown'),
-                    (StandardExportFormat.html, 'HTML'),
-                    (StandardExportFormat.plainText, '纯文本'),
-                    (StandardExportFormat.json, 'JSON'),
-                  ],
-                  onChanged: (v) => setState(() => _selectedFormat = v),
-                ),
-                const SizedBox(height: 8),
-                Text('范围', style: theme.textTheme.bodySmall),
-                const SizedBox(height: 4),
-                ImportExportFormatDropdown<StandardExportMode>(
-                  title: '选择导出范围',
-                  value: _selectedMode,
-                  items: const [
-                    (StandardExportMode.manuscript, '稿件正文'),
-                    (StandardExportMode.fullProject, '完整项目'),
-                    (StandardExportMode.finalDraft, '终稿'),
-                  ],
-                  onChanged: (v) => setState(() => _selectedMode = v),
-                ),
-              ],
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: exportDisabled
+                    ? null
+                    : () => _handleFormatExport(context),
+                child: const Text('导出稿件'),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: exportDisabled
-                  ? null
-                  : () => _handleFormatExport(context),
-              child: const Text('导出稿件'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -233,88 +250,96 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
     ProjectImportExportUiState effectiveUiState,
   ) {
     final status = _statusDescriptor(effectiveUiState);
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('导入工程', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          ImportExportFieldRow(label: '工程包', value: _service.importPackagePath),
-          const SizedBox(height: 8),
-          const ImportExportFieldRow(label: '导入方式', value: '导入为新项目'),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: 108,
-            child: FilledButton(
-              onPressed:
-                  effectiveUiState ==
-                      ProjectImportExportUiState.majorVersionBlocked
-                  ? null
-                  : () => _handleImport(context),
-              key: ProjectImportExportPage.executeImportButtonKey,
-              child: const Text('执行导入'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ImportExportStatusCard(
-            descriptor: status,
-            accent: _stateAccent(effectiveUiState),
-          ),
-          if (_shouldShowGuidanceCard(effectiveUiState)) ...[
+    return AppPremiumScrollbar(
+      controller: _importScrollController,
+      child: SingleChildScrollView(
+        controller: _importScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('导入工程', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            ImportExportGuidanceCard(
-              descriptor: _guidanceDescriptor(effectiveUiState),
+            ImportExportFieldRow(label: '工程包', value: _service.importPackagePath),
+            const SizedBox(height: 8),
+            const ImportExportFieldRow(label: '导入方式', value: '导入为新项目'),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 108,
+              child: FilledButton(
+                onPressed:
+                    effectiveUiState ==
+                        ProjectImportExportUiState.majorVersionBlocked
+                    ? null
+                    : () => _handleImport(context),
+                key: ProjectImportExportPage.executeImportButtonKey,
+                child: const Text('执行导入'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ImportExportStatusCard(
+              descriptor: status,
               accent: _stateAccent(effectiveUiState),
             ),
+            if (_shouldShowGuidanceCard(effectiveUiState)) ...[
+              const SizedBox(height: 12),
+              ImportExportGuidanceCard(
+                descriptor: _guidanceDescriptor(effectiveUiState),
+                accent: _stateAccent(effectiveUiState),
+              ),
+            ],
+            if (effectiveUiState == ProjectImportExportUiState.importSuccess ||
+                effectiveUiState ==
+                    ProjectImportExportUiState.overwriteSuccess) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    onPressed: () =>
+                        AppNavigator.push(context, AppRoutes.workbench),
+                    child: const Text('打开项目'),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    child: const Text('返回项目列表'),
+                  ),
+                ],
+              ),
+            ],
           ],
-          if (effectiveUiState == ProjectImportExportUiState.importSuccess ||
-              effectiveUiState ==
-                  ProjectImportExportUiState.overwriteSuccess) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: () =>
-                      AppNavigator.push(context, AppRoutes.workbench),
-                  child: const Text('打开项目'),
-                ),
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('返回项目列表'),
-                ),
-              ],
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildManifestPanel(ThemeData theme) {
     final manifest = _manifest;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('包信息 / 兼容性', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          ImportExportFieldRow(label: '包名', value: manifest?.packageName ?? '小说工程包'),
-          const SizedBox(height: 8),
-          ImportExportFieldRow(label: '包版本', value: manifest?.schemaLabel ?? 'v1.0'),
-          const SizedBox(height: 8),
-          ImportExportFieldRow(label: '项目', value: manifest?.projectTitle ?? '等待导入或导出'),
-          const SizedBox(height: 8),
-          ImportExportFieldRow(
-            label: '内容摘要',
-            value: manifest?.contentSummary ?? '正文 / 资料 / 风格 / 版本',
-          ),
-          if (_manifestPackagePath != null) ...[
+    return AppPremiumScrollbar(
+      controller: _manifestScrollController,
+      child: SingleChildScrollView(
+        controller: _manifestScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('包信息 / 兼容性', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            ImportExportFieldRow(label: '包名', value: manifest?.packageName ?? '小说工程包'),
             const SizedBox(height: 8),
-            ImportExportFieldRow(label: '包路径', value: _manifestPackagePath!),
+            ImportExportFieldRow(label: '包版本', value: manifest?.schemaLabel ?? 'v1.0'),
+            const SizedBox(height: 8),
+            ImportExportFieldRow(label: '项目', value: manifest?.projectTitle ?? '等待导入或导出'),
+            const SizedBox(height: 8),
+            ImportExportFieldRow(
+              label: '内容摘要',
+              value: manifest?.contentSummary ?? '正文 / 资料 / 风格 / 版本',
+            ),
+            if (_manifestPackagePath != null) ...[
+              const SizedBox(height: 8),
+              ImportExportFieldRow(label: '包路径', value: _manifestPackagePath!),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

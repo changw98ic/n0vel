@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:novel_writer/app/llm/app_llm_client_types.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import '../domain/memory_models.dart';
 import 'scene_review_models.dart';
@@ -11,7 +11,7 @@ import 'scene_review_models.dart';
 class ChapterSummarizer {
   ChapterSummarizer({required this.settingsStore});
 
-  final AppSettingsStore settingsStore;
+  final StoryGenerationSettingsContract settingsStore;
 
   /// Generates a structured [ChapterSummary] from the scene outputs of a
   /// completed chapter.

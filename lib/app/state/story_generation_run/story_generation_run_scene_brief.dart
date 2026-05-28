@@ -14,11 +14,14 @@ extension _StoryGenerationRunSceneBrief on StoryGenerationRunStore {
 
   Map<String, Object?> _runtimeMetadata({
     List<AuthorFeedbackItem> revisionRequests = const [],
+    String? rulesOverride,
   }) {
     final localOnly = !_settingsStore.hasReadyConfiguration;
     final revisionNotes = [
       for (final request in revisionRequests)
         if (request.note.trim().isNotEmpty) request.note.trim(),
+      if (rulesOverride != null && rulesOverride.trim().isNotEmpty)
+        rulesOverride.trim(),
     ];
     return {
       'structuredRoleplayPipeline': true,

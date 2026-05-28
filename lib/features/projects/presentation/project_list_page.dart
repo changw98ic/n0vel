@@ -9,6 +9,7 @@ import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import 'project_list_components.dart';
@@ -41,6 +42,7 @@ class ProjectListPage extends ConsumerStatefulWidget {
 
 class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _gridScrollController = ScrollController();
   final int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
@@ -81,6 +83,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _gridScrollController.dispose();
     super.dispose();
   }
 
@@ -227,21 +230,25 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                       columns;
               const cardHeight = 320.0;
               final aspectRatio = cardWidth / cardHeight;
-              return GridView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  childAspectRatio: aspectRatio,
-                  crossAxisSpacing: crossAxisSpacing,
-                  mainAxisSpacing: mainAxisSpacing,
-                ),
-                itemCount: projects.length,
-                itemBuilder: (context, index) => ProjectShelfCard(
-                  project: projects[index],
-                  onTap: () => _openWorkbench(context, projects[index]),
-                  onSecondaryTap: (offset) =>
-                      _showCardContextMenu(context, projects[index], offset),
+              return AppPremiumScrollbar(
+                controller: _gridScrollController,
+                child: GridView.builder(
+                  controller: _gridScrollController,
+                  padding:
+                      const EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    childAspectRatio: aspectRatio,
+                    crossAxisSpacing: crossAxisSpacing,
+                    mainAxisSpacing: mainAxisSpacing,
+                  ),
+                  itemCount: projects.length,
+                  itemBuilder: (context, index) => ProjectShelfCard(
+                    project: projects[index],
+                    onTap: () => _openWorkbench(context, projects[index]),
+                    onSecondaryTap: (offset) =>
+                        _showCardContextMenu(context, projects[index], offset),
+                  ),
                 ),
               );
             },

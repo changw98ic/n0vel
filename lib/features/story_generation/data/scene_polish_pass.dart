@@ -1,5 +1,5 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'ai_cliche_detector.dart';
 import 'scene_pipeline_models.dart'
@@ -24,10 +24,10 @@ class ScenePolishPass {
   static const Duration _polishTimeout = Duration(seconds: 120);
   static const int _maxPolishAttempts = 2;
 
-  ScenePolishPass({required AppSettingsStore settingsStore})
+  ScenePolishPass({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
   final AiClicheDetector _clicheDetector = AiClicheDetector();
 
   Future<ScenePolishResult> polish({

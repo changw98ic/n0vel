@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_storage_clone.dart';
+import 'package:novel_writer/domain/storage_utils.dart';
 
 import '../domain/contracts/structured_profile.dart';
 import 'narrative_arc_models.dart';
