@@ -219,7 +219,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
               const crossAxisSpacing = 16.0;
               const mainAxisSpacing = 16.0;
               const horizontalPadding = 56.0;
-              const columns = 4;
+              final columns = (constraints.maxWidth / 280).floor().clamp(2, 6);
               final availableWidth =
                   constraints.maxWidth - horizontalPadding * 2;
               final cardWidth =
@@ -245,58 +245,6 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                 ),
               );
             },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-          child: Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0x88FFFFFF),
-                    borderRadius:
-                        BorderRadius.circular(AppDesignTokens.radiusFull),
-                    border: Border.all(
-                      color: const Color(0x99FFFFFF),
-                      width: 1,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x181F2A1D),
-                        blurRadius: 28,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        size: 14,
-                        color: Color(0xFF243226),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        '卡片 hover 上浮 6px / 160ms',
-                        style: TextStyle(
-                          fontFamily: AppDesignTokens.fontCaption,
-                          fontSize: 12,
-                          color: Color(0xFF243226),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ),
         ),
       ],

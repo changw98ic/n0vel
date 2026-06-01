@@ -49,7 +49,7 @@ class WorldbuildingPage extends ConsumerStatefulWidget {
 }
 
 class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
-  int _selectedIndex = 0;
+  String? _selectedNodeId;
   int _sortIndex = 0;
   final TextEditingController _searchController = TextEditingController();
 
@@ -82,8 +82,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     final projectScenes = workspace.projectSceneFacade;
     final nodes = resources.worldNodes;
     final visibleNodes = _visibleNodes(nodes);
-    final selectedIndex = _resolveSelectedIndex(nodes, visibleNodes);
-    final current = visibleNodes.isEmpty ? null : nodes[selectedIndex];
+    final current = _resolveSelectedNode(visibleNodes);
     final body = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDesignTokens.space24,
@@ -105,7 +104,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: frostedSidebarDecoration(context),
                   padding: const EdgeInsets.all(18),
-                  child: _buildTree(theme, nodes, visibleNodes, selectedIndex),
+                  child: _buildTree(theme, nodes, visibleNodes, current),
                 ),
               ),
             ),
@@ -123,7 +122,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: glassCardDecoration(context),
                   padding: const EdgeInsets.all(20),
-                  child: _buildDetail(theme, resources, current),
+                  child: _buildDetail(theme, resources, visibleNodes, current),
                 ),
               ),
             ),
@@ -142,7 +141,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: glassCardDecoration(context),
                   padding: const EdgeInsets.all(20),
-                  child: _buildRules(theme, resources, projectScenes, current),
+                  child: _buildRules(theme, resources, projectScenes, visibleNodes, current),
                 ),
               ),
             ),
@@ -204,7 +203,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     ThemeData theme,
     List<WorldNodeRecord> nodes,
     List<WorldNodeRecord> visibleNodes,
-    int selectedIndex,
+    WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
       return Column(
@@ -268,9 +267,9 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                   ? WorldbuildingPage.stormNodeKey
                   : null,
               label: node.title,
-              selected: nodes[selectedIndex] == node,
+              selected: current?.id == node.id,
               onPressed: () => setState(() {
-                _selectedIndex = nodes.indexOf(node);
+                _selectedNodeId = node.id;
               }),
             ),
             const SizedBox(height: 8),
@@ -282,6 +281,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   Widget _buildDetail(
     ThemeData theme,
     WorkspaceResourceLibraryFacade store,
+    List<WorldNodeRecord> visibleNodes,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
@@ -292,7 +292,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         onPressed: () => _createNode(store),
       );
     }
-    if (_showFilterNoResults(const <WorldNodeRecord>[])) {
+    if (_showFilterNoResults(visibleNodes)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -377,24 +377,30 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     );
   }
 
-  int _resolveSelectedIndex(
-    List<WorldNodeRecord> nodes,
+  WorldNodeRecord? _resolveSelectedNode(
     List<WorldNodeRecord> visibleNodes,
   ) {
-    if (nodes.isEmpty || visibleNodes.isEmpty) {
-      return 0;
+    if (visibleNodes.isEmpty) {
+      return null;
     }
-    if (_selectedIndex < nodes.length &&
-        visibleNodes.contains(nodes[_selectedIndex])) {
-      return _selectedIndex;
+    if (_selectedNodeId != null) {
+      final match = visibleNodes
+          .cast<WorldNodeRecord?>()
+          .firstWhere(
+            (n) => n?.id == _selectedNodeId,
+            orElse: () => null,
+          );
+      if (match != null) {
+        return match;
+      }
     }
-    return nodes.indexOf(visibleNodes.first);
+    return visibleNodes.first;
   }
 
   void _createNode(WorkspaceResourceLibraryFacade store) {
     setState(() {
       store.createWorldNode();
-      _selectedIndex = 0;
+      _selectedNodeId = store.worldNodes.first.id;
       _searchController.clear();
     });
   }
@@ -442,11 +448,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       setState(() {
         store.deleteWorldNode(node.id);
         final visible = _visibleNodes(store.worldNodes);
-        _selectedIndex = visible.isEmpty
-            ? 0
-            : store.worldNodes
-                  .indexOf(visible.first)
-                  .clamp(0, store.worldNodes.length - 1);
+        _selectedNodeId = visible.isEmpty ? null : visible.first.id;
       });
       if (context.mounted) {
         ref.read(appSceneContextStoreProvider).syncContext();
@@ -458,6 +460,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     ThemeData theme,
     WorkspaceResourceLibraryFacade store,
     WorkspaceProjectSceneFacade projectScenes,
+    List<WorldNodeRecord> visibleNodes,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
@@ -470,7 +473,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         ],
       );
     }
-    if (_showFilterNoResults(const <WorldNodeRecord>[])) {
+    if (_showFilterNoResults(visibleNodes)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

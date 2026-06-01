@@ -193,25 +193,25 @@ class _EditorToolbar extends StatelessWidget {
           EditorToolbarIconButton(
             icon: Icons.undo,
             tooltip: '撤销',
-            onTap: () {},
+            onTap: null,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(
             icon: Icons.format_bold,
             tooltip: '加粗',
-            onTap: () {},
+            onTap: null,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(
             icon: Icons.message_outlined,
             tooltip: '批注',
-            onTap: () {},
+            onTap: null,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(
             icon: Icons.highlight,
             tooltip: '高亮',
-            onTap: () {},
+            onTap: null,
           ),
           const SizedBox(width: 14),
           EditorToolbarIconButton(
