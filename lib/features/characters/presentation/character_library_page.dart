@@ -87,11 +87,15 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       header: DesktopHeaderBar(
         tabs: const ['设定资料', '编辑资料', '正文'],
         activeTabIndex: 0,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 1) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }
@@ -160,7 +164,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           return Stack(
             children: [
               if (_showDeleteOverlay)
-                Opacity(opacity: 0.55, child: body)
+                IgnorePointer(child: Opacity(opacity: 0.55, child: body))
               else
                 body,
               if (_showDeleteOverlay && current != null)
@@ -182,6 +186,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                             ? null
                             : visible.first.id;
                       });
+                      if (!mounted) return;
                       ref.read(appSceneContextStoreProvider).syncContext();
                     },
                   ),
@@ -459,6 +464,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     }
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
@@ -506,7 +512,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     CharacterRecord? current,
   ) {
     if (current == null || current.linkedSceneIds.isEmpty) {
-      return '第 3 章 / 场景 05';
+      return '未找到关联场景';
     }
     SceneRecord? matchedScene;
     for (final sceneId in current.linkedSceneIds) {
@@ -522,7 +528,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       matchedScene ??= scene;
     }
     if (matchedScene == null) {
-      return '第 3 章 / 场景 05';
+      return '未找到关联场景';
     }
     return matchedScene.displayLocation;
   }

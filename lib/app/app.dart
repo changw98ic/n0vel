@@ -136,8 +136,20 @@ class _NovelWriterAppState extends State<NovelWriterApp>
       darkTheme: AppTheme.dark(),
       home: _CorruptionRecoveryScreen(
         onRestoreComplete: () {
-          // After backup restore, user must restart the app.
-          // A full hot-restart is needed to re-register services.
+          setState(() {
+            _dbCorrupted = false;
+            _crashDetected = false;
+          });
+          if (NovelWriterApp.debugRegistryOverride == null) {
+            try {
+              registerAppServices(_registry);
+            } on DatabaseCorruptedException {
+              setState(() {
+                _crashDetected = true;
+                _dbCorrupted = true;
+              });
+            }
+          }
         },
       ),
     );

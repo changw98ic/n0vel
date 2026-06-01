@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
@@ -176,13 +177,41 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
       showPersistenceOverlay: showPersistenceOverlay,
     );
 
-    return DesktopShellFrame(
-      header: const DesktopHeaderBar(
-        title: '设置',
-        subtitle: '管理模型连接、界面偏好与高级选项',
-        showBackButton: true,
-      ),
-      body: LayoutBuilder(
+    return PopScope(
+      canPop: !_isFormDirty(settings),
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await showDialog<bool>(
+          context: context,
+          barrierLabel: '关闭',
+          builder: (dialogContext) => DesktopModalDialog(
+            title: '未保存的修改',
+            description: '当前设置有未保存的修改，确定要离开吗？',
+            body: const SizedBox.shrink(),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('继续编辑'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('离开'),
+              ),
+            ],
+          ),
+        );
+        if (shouldLeave == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: DesktopShellFrame(
+        header: const DesktopHeaderBar(
+          title: '设置',
+          subtitle: '管理模型连接、界面偏好与高级选项',
+          showBackButton: true,
+        ),
+        body: LayoutBuilder(
         builder: (context, constraints) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,6 +238,7 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
             ? '深色模式'
             : '浅色模式',
       ),
+    ),
     );
   }
 
@@ -324,6 +354,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                       controller: _connectTimeoutController,
                       fieldKey: SettingsShellPage.connectTimeoutFieldKey,
                       suffix: 'ms',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                   SizedBox(
@@ -333,6 +365,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                       controller: _sendTimeoutController,
                       fieldKey: SettingsShellPage.sendTimeoutFieldKey,
                       suffix: 'ms',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                   SizedBox(
@@ -342,6 +376,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                       controller: _receiveTimeoutController,
                       fieldKey: SettingsShellPage.receiveTimeoutFieldKey,
                       suffix: 'ms',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                   SizedBox(
@@ -350,6 +386,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                       label: '并发上限',
                       controller: _maxConcurrentRequestsController,
                       fieldKey: SettingsShellPage.maxConcurrentRequestsFieldKey,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                 ],
@@ -595,6 +633,21 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
       maxConcurrentRequests:
           int.tryParse(_maxConcurrentRequestsController.text.trim()) ?? 0,
     );
+  }
+
+  bool _isFormDirty(AppSettingsSnapshot settings) {
+    return _providerController.text.trim() != settings.providerName ||
+        _baseUrlController.text.trim() != settings.baseUrl ||
+        _modelController.text.trim() != settings.model ||
+        _apiKeyController.text.trim() != settings.apiKey ||
+        _connectTimeoutController.text.trim() !=
+            settings.timeout.connectTimeoutMs.toString() ||
+        _sendTimeoutController.text.trim() !=
+            settings.timeout.sendTimeoutMs.toString() ||
+        _receiveTimeoutController.text.trim() !=
+            settings.timeout.receiveTimeoutMs.toString() ||
+        _maxConcurrentRequestsController.text.trim() !=
+            settings.maxConcurrentRequests.toString();
   }
 
   void _synchronizeControllers(AppSettingsSnapshot settings) {

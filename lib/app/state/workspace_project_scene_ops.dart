@@ -5,24 +5,20 @@ mixin _ProjectSceneOps on _WorkspaceFields {
   // Project CRUD
   // ---------------------------------------------------------------------------
 
-  void createProject({String? projectName}) {
+  ProjectRecord createProject({String? projectName}) {
     final nextIndex = _nextNewProjectIndex();
-    _projects = sortProjects([
-      ProjectRecord(
-        id: generateProjectId(),
-        sceneId: generateSceneId(),
-        title: projectName ?? '新建项目 $nextIndex',
-        genre: '悬疑 / 草稿',
-        summary: '从空白书架里直接开始，先搭设定，还是先落正文都可以。',
-        recentLocation: '第 1 章 / 场景 01 · 等待命名',
-        lastOpenedAtMs: DateTime.now().millisecondsSinceEpoch,
-      ),
-      ..._projects,
-    ]);
-    _currentProjectId = _projects.first.id;
-    _scenesByProjectId[_currentProjectId] = defaultScenesForProject(
-      _projects.first,
+    final project = ProjectRecord(
+      id: generateProjectId(),
+      sceneId: generateSceneId(),
+      title: projectName ?? '新建项目 $nextIndex',
+      genre: '悬疑 / 草稿',
+      summary: '从空白书架里直接开始，先搭设定，还是先落正文都可以。',
+      recentLocation: '第 1 章 / 场景 01 · 等待命名',
+      lastOpenedAtMs: DateTime.now().millisecondsSinceEpoch,
     );
+    _projects = sortProjects([project, ..._projects]);
+    _currentProjectId = project.id;
+    _scenesByProjectId[_currentProjectId] = defaultScenesForProject(project);
     _initializeProjectResources(_currentProjectId);
     _commitMutation();
     _publishWorkspaceEvent(ProjectCreatedEvent(projectId: _currentProjectId));
@@ -32,6 +28,7 @@ mixin _ProjectSceneOps on _WorkspaceFields {
         sceneScopeId: currentSceneScopeId,
       ),
     );
+    return project;
   }
 
   void deleteProject(ProjectRecord project) {

@@ -254,8 +254,10 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
       header: DesktopHeaderBar(
         tabs: const ['作品资料', '大纲', '正文'],
         activeTabIndex: 2,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 2) return;
+          final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+          if (!canNavigate) return;
           Navigator.of(context).popUntil((route) => route.isFirst);
           AppNavigator.push(context, AppRoutes.workSettingsHub);
         },

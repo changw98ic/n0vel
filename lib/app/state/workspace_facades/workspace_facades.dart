@@ -16,7 +16,7 @@ abstract interface class WorkspaceProjectSceneFacade {
   ProjectRecord? projectById(String projectId);
   SceneRecord? sceneById(String projectId, String sceneId);
 
-  void createProject({String? projectName});
+  ProjectRecord createProject({String? projectName});
   void deleteProject(ProjectRecord project);
   void selectProject(String projectId);
   void openProject(String projectId);
@@ -163,7 +163,7 @@ final class _AppWorkspaceProjectSceneFacade
       _store.sceneById(projectId, sceneId);
 
   @override
-  void createProject({String? projectName}) =>
+  ProjectRecord createProject({String? projectName}) =>
       _store.createProject(projectName: projectName);
 
   @override

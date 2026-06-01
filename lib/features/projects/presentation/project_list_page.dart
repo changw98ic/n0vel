@@ -45,7 +45,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   int _filterIndex = 0;
   int _headerTabIndex = 0;
 
-  static const _headerTabs = ['书架', '最近编辑', '归档'];
+  static const _headerTabs = ['书架', '最近编辑', '进行中'];
 
   static const _sortOptions = <AppListSortOption<ProjectRecord>>[
     AppListSortOption(label: '打开时间', compare: _compareByRecent),
@@ -100,7 +100,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
             if (i == 1) {
               _filterIndex = 1; // 最近打开
             } else if (i == 2) {
-              _filterIndex = 2; // 进行中（归档）
+              _filterIndex = 2; // 进行中
             } else {
               _filterIndex = 0; // 全部作品
             }
@@ -423,6 +423,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
@@ -505,10 +506,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       );
       if (proceed != true || !mounted) return;
     }
+    final project = store.createProject(projectName: name);
     setState(() {
-      store.createProject(projectName: name);
       _searchController.clear();
     });
+    if (!mounted) return;
+    _openWorkbench(context, project);
   }
 
   List<ProjectRecord> _visibleProjects(List<ProjectRecord> projects) {
