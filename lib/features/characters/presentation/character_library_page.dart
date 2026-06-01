@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -18,7 +19,6 @@ enum CharacterLibraryUiState {
   empty,
   searchNoResults,
   missingRequiredFields,
-  deleteReferencedConfirm,
 }
 
 class CharacterLibraryPage extends ConsumerStatefulWidget {
@@ -52,6 +52,8 @@ class CharacterLibraryPage extends ConsumerStatefulWidget {
 class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
   int _selectedIndex = 0;
   int _sortIndex = 0;
+  bool _showDeleteOverlay = false;
+  Timer? _syncContextTimer;
   final TextEditingController _searchController = TextEditingController();
 
   static const _sortOptions = <AppListSortOption<CharacterRecord>>[
@@ -67,6 +69,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
 
   @override
   void dispose() {
+    _syncContextTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -149,7 +152,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                       child: Container(
                         decoration: glassCardDecoration(context),
                         padding: const EdgeInsets.all(20),
-                        child: _buildDetail(theme, resources, projectScenes, current),
+                        child: _buildDetail(theme, resources, projectScenes, current, visibleCharacters),
                       ),
                     ),
                   ),
@@ -159,17 +162,33 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           );
           return Stack(
             children: [
-              if (widget.uiState ==
-                  CharacterLibraryUiState.deleteReferencedConfirm)
+              if (_showDeleteOverlay)
                 Opacity(opacity: 0.55, child: body)
               else
                 body,
-              if (widget.uiState ==
-                  CharacterLibraryUiState.deleteReferencedConfirm)
+              if (_showDeleteOverlay && current != null)
                 Positioned.fill(
                   child: CharacterDeleteOverlay(
-                    characterName: current?.name ?? '当前角色',
+                    characterName: current.name,
                     sceneLabel: _linkedSceneTag(projectScenes, current),
+                    onCancel: () => setState(() {
+                      _showDeleteOverlay = false;
+                    }),
+                    onForceDelete: () {
+                      final character = current;
+                      if (character == null) return;
+                      setState(() {
+                        resources.deleteCharacter(character.id);
+                        _showDeleteOverlay = false;
+                        final visible = _visibleCharacters(resources.characters);
+                        _selectedIndex = visible.isEmpty
+                            ? 0
+                            : resources.characters
+                                  .indexOf(visible.first)
+                                  .clamp(0, resources.characters.length - 1);
+                      });
+                      ref.read(appSceneContextStoreProvider).syncContext();
+                    },
                   ),
                 ),
             ],
@@ -266,6 +285,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     WorkspaceResourceLibraryFacade store,
     WorkspaceProjectSceneFacade projectScenes,
     CharacterRecord? current,
+    List<CharacterRecord> visibleCharacters,
   ) {
     if (widget.uiState == CharacterLibraryUiState.empty) {
       return CharacterCallToActionState(
@@ -275,7 +295,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         onPressed: () => _createCharacter(store),
       );
     }
-    if (_showSearchNoResults(const <CharacterRecord>[])) {
+    if (_searchController.text.trim().isNotEmpty &&
+        visibleCharacters.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -418,8 +439,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       return;
     }
     setState(() {
-      store.createCharacter();
-      final newCharacter = store.characters.first;
+      final newCharacter = store.createCharacter();
       store.updateCharacter(characterId: newCharacter.id, name: name.trim());
       _selectedIndex = 0;
       _searchController.clear();
@@ -431,6 +451,12 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     WorkspaceResourceLibraryFacade store,
     CharacterRecord character,
   ) async {
+    if (character.linkedSceneIds.isNotEmpty) {
+      setState(() {
+        _showDeleteOverlay = true;
+      });
+      return;
+    }
     final shouldDelete = await showDialog<bool>(
       context: context,
       barrierLabel: '关闭',
@@ -440,7 +466,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           description: '删除后，角色资料和场景引用关系都会被移除。',
           body: Text(
             character.name,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(dialogContext).textTheme.bodyMedium,
           ),
           actions: [
             OutlinedButton(
@@ -525,7 +551,12 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         need: need,
         summary: summary,
       );
-      ref.read(appSceneContextStoreProvider).syncContext();
+      _syncContextTimer?.cancel();
+      _syncContextTimer = Timer(const Duration(milliseconds: 400), () {
+        if (mounted) {
+          ref.read(appSceneContextStoreProvider).syncContext();
+        }
+      });
     }
 
     return Column(

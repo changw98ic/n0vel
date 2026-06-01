@@ -216,11 +216,15 @@ class CharacterDeleteOverlay extends StatelessWidget {
   const CharacterDeleteOverlay({
     required this.characterName,
     required this.sceneLabel,
+    this.onCancel,
+    this.onForceDelete,
     super.key,
   });
 
   final String characterName;
   final String sceneLabel;
+  final VoidCallback? onCancel;
+  final VoidCallback? onForceDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -251,9 +255,9 @@ class CharacterDeleteOverlay extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(onPressed: () {}, child: const Text('取消')),
+                  OutlinedButton(onPressed: onCancel, child: const Text('取消')),
                   const SizedBox(width: 10),
-                  FilledButton(onPressed: () {}, child: const Text('查看引用后再删')),
+                  FilledButton(onPressed: onForceDelete, child: const Text('确认删除')),
                 ],
               ),
             ],

@@ -37,7 +37,7 @@ abstract interface class WorkspaceResourceLibraryFacade {
   List<CharacterRecord> get characters;
   List<WorldNodeRecord> get worldNodes;
 
-  void createCharacter();
+  CharacterRecord createCharacter();
   void updateCharacter({
     required String characterId,
     String? name,
@@ -221,7 +221,7 @@ final class _AppWorkspaceResourceLibraryFacade
   List<WorldNodeRecord> get worldNodes => _store.worldNodes;
 
   @override
-  void createCharacter() => _store.createCharacter();
+  CharacterRecord createCharacter() => _store.createCharacter();
 
   @override
   void updateCharacter({

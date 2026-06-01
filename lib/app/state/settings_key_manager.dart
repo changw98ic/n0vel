@@ -151,6 +151,17 @@ class SettingsKeyManager {
       return File(path);
     }
     // Match the default location used by SettingsJsonCipher.
+    if (Platform.isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'];
+      if (localAppData != null && localAppData.isNotEmpty) {
+        return File('$localAppData\\NovelWriter\\.settings.key');
+      }
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null && userProfile.isNotEmpty) {
+        return File('$userProfile\\AppData\\Local\\NovelWriter\\.settings.key');
+      }
+      return File('.settings.key');
+    }
     final home = Platform.environment['HOME'];
     if (home != null && home.isNotEmpty) {
       if (Platform.isMacOS) {

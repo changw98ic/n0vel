@@ -482,8 +482,31 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       confirmText: '创建',
     );
     if (name == null || name.isEmpty || !mounted) return;
+    final store = ref.read(appWorkspaceStoreProvider);
+    if (store.projects.any((p) => p.title == name.trim())) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        barrierLabel: '关闭',
+        builder: (dialogContext) => DesktopModalDialog(
+          title: '作品名称重复',
+          description: '已存在同名作品「${name.trim()}」，是否仍要创建？',
+          body: const SizedBox.shrink(),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('继续创建'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
     setState(() {
-      ref.read(appWorkspaceStoreProvider).createProject(projectName: name);
+      store.createProject(projectName: name);
       _searchController.clear();
     });
   }

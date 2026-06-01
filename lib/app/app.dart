@@ -164,6 +164,7 @@ class _CrashRecoveryOverlay extends StatefulWidget {
 
 class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
   bool _dialogShown = false;
+  String? _restoreError;
 
   @override
   void didChangeDependencies() {
@@ -189,8 +190,12 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
       final latest = backups.first;
       try {
         await backupService.restoreBackup(latest.id);
-      } catch (_) {
-        // A failed restore should leave the app running on the current data.
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _restoreError = '恢复失败：$e';
+        });
+        return;
       }
       if (!mounted) return;
     }
@@ -200,6 +205,30 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    if (_restoreError != null) {
+      return Material(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                const SizedBox(height: 16),
+                Text('恢复失败', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text(_restoreError!, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: widget.onRestoreComplete,
+                  child: const Text('继续使用当前数据'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return widget.child;
   }
 }

@@ -45,12 +45,12 @@ String resolveTelemetryDbPath({String? homeOverride}) {
     if (userProfile != null && userProfile.isNotEmpty) {
       return '$userProfile\\AppData\\Local\\NovelWriter\\telemetry.db';
     }
-    return '.telemetry.db';
+    return '.novel_writer_telemetry.db';
   }
 
   final home = homeOverride ?? Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
-    return '.telemetry.db';
+    return '.novel_writer_telemetry.db';
   }
 
   if (Platform.isMacOS) {

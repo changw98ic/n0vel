@@ -47,9 +47,12 @@ class AppNavigator {
     Object? arguments,
   }) {
     final builder = _routes[name];
-    assert(builder != null, 'No route registered for "$name"');
+    if (builder == null) {
+      throw StateError('No route registered for "$name". '
+          'Registered routes: ${_routes.keys.join(', ')}');
+    }
     return Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (ctx) => builder!(ctx, arguments)),
+      MaterialPageRoute<void>(builder: (ctx) => builder(ctx, arguments)),
     );
   }
 }

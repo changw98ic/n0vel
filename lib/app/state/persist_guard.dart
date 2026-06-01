@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
@@ -6,20 +7,23 @@ import '../events/app_event_bus.dart';
 /// Wraps a persistence operation with one retry and failure notification.
 ///
 /// Use instead of raw `unawaited(_persist())` to ensure failed writes are
-/// retried once and the user is notified when persistence fails.
+/// retried once (for transient I/O errors) and the user is notified when
+/// persistence fails.
 Future<void> safePersist(
   Future<void> Function() persistFn, {
   AppEventBus? eventBus,
 }) async {
   try {
     await persistFn();
-  } catch (_) {
+  } on FileSystemException catch (_) {
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       await persistFn();
     } catch (_) {
       _notifyFailure(eventBus);
     }
+  } catch (_) {
+    _notifyFailure(eventBus);
   }
 }
 
