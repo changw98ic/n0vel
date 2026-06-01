@@ -165,9 +165,9 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
+            child: OutlinedButton(
               onPressed: exportDisabled ? null : () => _handleExport(context),
-              child: const Text('导出当前工程'),
+              child: const Text('导出当前工程 (开发中)'),
             ),
           ),
           const SizedBox(height: 16),
@@ -219,7 +219,7 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
               onPressed: exportDisabled
                   ? null
                   : () => _handleFormatExport(context),
-              child: const Text('导出稿件'),
+              child: const Text('导出稿件 (开发中)'),
             ),
           ),
         ],

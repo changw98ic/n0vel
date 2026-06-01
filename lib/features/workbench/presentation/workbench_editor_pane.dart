@@ -17,6 +17,7 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.isToolPanelOpen,
     required this.onToggleToolPanel,
     required this.onCreateFirstChapter,
+    this.isDirty = false,
     super.key,
   });
 
@@ -29,6 +30,7 @@ class WorkbenchEditorPane extends StatelessWidget {
   final bool isToolPanelOpen;
   final VoidCallback onToggleToolPanel;
   final VoidCallback onCreateFirstChapter;
+  final bool isDirty;
 
   @override
   Widget build(BuildContext context) {
@@ -125,10 +127,12 @@ class WorkbenchEditorPane extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '已保存',
+                                isDirty ? '有未保存的修改' : '已保存',
                                 key: WorkbenchShellPage.editorSurfaceMetaKey,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF77736A),
+                                  color: isDirty
+                                      ? const Color(0xFFB6813B)
+                                      : const Color(0xFF77736A),
                                 ),
                               ),
                             ],

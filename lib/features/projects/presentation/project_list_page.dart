@@ -41,7 +41,7 @@ class ProjectListPage extends ConsumerStatefulWidget {
 
 class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final TextEditingController _searchController = TextEditingController();
-  final int _sortIndex = 0;
+  int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
 
@@ -107,6 +107,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
           });
         },
         actions: [
+          AppListSortDropdown<ProjectRecord>(
+            options: _sortOptions,
+            selectedIndex: _sortIndex,
+            onChanged: (i) => setState(() => _sortIndex = i),
+          ),
+          const SizedBox(width: 8),
           FilledButton(
             key: ProjectListPage.newProjectButtonKey,
             onPressed: _createProject,
@@ -239,7 +245,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                 itemCount: projects.length,
                 itemBuilder: (context, index) => ProjectShelfCard(
                   project: projects[index],
-                  onTap: () => _openWorkbench(context, projects[index]),
+                  onTap: () => _openEditor(context, projects[index]),
                   onSecondaryTap: (offset) =>
                       _showCardContextMenu(context, projects[index], offset),
                 ),
@@ -267,14 +273,11 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       ),
       items: <PopupMenuEntry<dynamic>>[
         PopupMenuItem(
-          onTap: () => _openWorkbench(context, project),
+          onTap: () => _openEditor(context, project),
           child: const Text('打开作品'),
         ),
         PopupMenuItem(
-          onTap: () {
-            ref.read(appWorkspaceStoreProvider).openProject(project.id);
-            AppNavigator.push(context, AppRoutes.workSettingsHub);
-          },
+          onTap: () => _openWorkSettings(context, project),
           child: const Text('作品设定'),
         ),
         const PopupMenuDivider(),
@@ -416,7 +419,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
     });
   }
 
-  void _openWorkbench(BuildContext context, ProjectRecord project) {
+  void _openEditor(BuildContext context, ProjectRecord project) {
+    ref.read(appWorkspaceStoreProvider).openProject(project.id);
+    AppNavigator.push(context, AppRoutes.workbench);
+  }
+
+  void _openWorkSettings(BuildContext context, ProjectRecord project) {
     ref.read(appWorkspaceStoreProvider).openProject(project.id);
     AppNavigator.push(context, AppRoutes.workSettingsHub);
   }
@@ -459,7 +467,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       _searchController.clear();
     });
     if (!mounted) return;
-    _openWorkbench(context, project);
+    _openWorkSettings(context, project);
   }
 
   List<ProjectRecord> _visibleProjects(List<ProjectRecord> projects) {

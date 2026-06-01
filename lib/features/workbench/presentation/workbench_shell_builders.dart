@@ -299,6 +299,7 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
               initialValue: '',
               onConfirm: state.ref.read(appWorkspaceStoreProvider).createScene,
             ),
+            isDirty: state._isEditorDirty,
           );
 
           final chapterListPanel =

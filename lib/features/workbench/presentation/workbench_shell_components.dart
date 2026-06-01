@@ -352,13 +352,16 @@ class _EditorToolbarIconButtonState extends State<EditorToolbarIconButton> {
     final color = enabled && (widget.isActive || _hovered)
         ? const Color(0xFF243226)
         : const Color(0xFFB0B5AF);
-    return MouseRegion(
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
-      onExit: enabled ? (_) => setState(() => _hovered = false) : null,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Icon(widget.icon, size: 18, color: color),
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Icon(widget.icon, size: 18, color: color),
+        ),
       ),
     );
   }

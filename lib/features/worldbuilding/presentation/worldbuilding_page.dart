@@ -51,6 +51,7 @@ class WorldbuildingPage extends ConsumerStatefulWidget {
 class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   String? _selectedNodeId;
   int _sortIndex = 0;
+  bool _showDeleteOverlay = false;
   final TextEditingController _searchController = TextEditingController();
 
   static const _sortOptions = <AppListSortOption<WorldNodeRecord>>[
@@ -183,13 +184,28 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       ),
       body: Stack(
         children: [
-          if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
-            Opacity(opacity: 0.55, child: body)
+          if (_showDeleteOverlay)
+            IgnorePointer(child: Opacity(opacity: 0.55, child: body))
           else
             body,
-          if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
+          if (_showDeleteOverlay && current != null)
             Positioned.fill(
-              child: WorldbuildingDeleteOverlay(nodeTitle: current?.title ?? '当前节点'),
+              child: WorldbuildingDeleteOverlay(
+                nodeTitle: current.title,
+                onCancel: () => setState(() => _showDeleteOverlay = false),
+                onConfirm: () {
+                  final node = current;
+                  setState(() {
+                    resources.deleteWorldNode(node.id);
+                    final visible = _visibleNodes(resources.worldNodes);
+                    _selectedNodeId = visible.isEmpty ? null : visible.first.id;
+                    _showDeleteOverlay = false;
+                  });
+                  if (context.mounted) {
+                    ref.read(appSceneContextStoreProvider).syncContext();
+                  }
+                },
+              ),
             ),
         ],
       ),
@@ -423,6 +439,12 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     WorkspaceResourceLibraryFacade store,
     WorldNodeRecord node,
   ) async {
+    if (node.linkedSceneIds.isNotEmpty) {
+      setState(() {
+        _showDeleteOverlay = true;
+      });
+      return;
+    }
     final shouldDelete = await showDialog<bool>(
       context: context,
       barrierLabel: '关闭',

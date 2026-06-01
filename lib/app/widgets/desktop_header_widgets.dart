@@ -54,7 +54,7 @@ abstract final class AppNavTabs {
       case 2:
         if (!hasProject(ref)) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
-        AppNavigator.push(context, AppRoutes.workSettingsHub);
+        AppNavigator.push(context, AppRoutes.worldbuilding);
       case 3:
         if (!hasProject(ref)) return;
         Navigator.of(context).popUntil((route) => route.isFirst);

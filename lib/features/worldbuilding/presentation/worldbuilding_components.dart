@@ -204,9 +204,16 @@ class WorldbuildingCenteredPanelState extends StatelessWidget {
 }
 
 class WorldbuildingDeleteOverlay extends StatelessWidget {
-  const WorldbuildingDeleteOverlay({required this.nodeTitle, super.key});
+  const WorldbuildingDeleteOverlay({
+    required this.nodeTitle,
+    this.onCancel,
+    this.onConfirm,
+    super.key,
+  });
 
   final String nodeTitle;
+  final VoidCallback? onCancel;
+  final VoidCallback? onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -237,9 +244,9 @@ class WorldbuildingDeleteOverlay extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(onPressed: () {}, child: const Text('取消')),
+                  OutlinedButton(onPressed: onCancel, child: const Text('取消')),
                   const SizedBox(width: 10),
-                  FilledButton(onPressed: () {}, child: const Text('查看影响后再删')),
+                  FilledButton(onPressed: onConfirm, child: const Text('查看影响后再删')),
                 ],
               ),
             ],

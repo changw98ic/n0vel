@@ -69,7 +69,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
                 child: Container(
                   decoration: appPanelDecoration(context),
                   padding: const EdgeInsets.all(16),
-                  child: _buildEvidence(theme, currentIssue),
+                  child: _buildEvidence(theme, issues, currentIssue),
                 ),
               ),
               const SizedBox(width: 16),
@@ -78,7 +78,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
                 child: Container(
                   decoration: appPanelDecoration(context),
                   padding: const EdgeInsets.all(16),
-                  child: _buildActions(theme, store, currentIssue),
+                  child: _buildActions(theme, store, issues, currentIssue),
                 ),
               ),
             ],
@@ -182,14 +182,14 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
     );
   }
 
-  Widget _buildEvidence(ThemeData theme, AuditIssueRecord? currentIssue) {
+  Widget _buildEvidence(ThemeData theme, List<AuditIssueRecord> issues, AuditIssueRecord? currentIssue) {
     if (widget.uiState == AuditCenterUiState.empty) {
       return const AuditCallToActionState(
         title: '暂无一致性问题',
         message: '当前作品没有发现角色、规则、道具或时间线冲突。',
       );
     }
-    if (_showFilterNoResults(const <AuditIssueRecord>[])) {
+    if (_showFilterNoResults(issues)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -284,6 +284,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
   Widget _buildActions(
     ThemeData theme,
     WorkspaceAuditFacade store,
+    List<AuditIssueRecord> issues,
     AuditIssueRecord? currentIssue,
   ) {
     if (widget.uiState == AuditCenterUiState.empty) {
@@ -299,7 +300,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
         ],
       );
     }
-    if (_showFilterNoResults(const <AuditIssueRecord>[])) {
+    if (_showFilterNoResults(issues)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
