@@ -244,15 +244,15 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
           const ImportExportFieldRow(label: '导入方式', value: '导入为新项目'),
           const SizedBox(height: 12),
           SizedBox(
-            width: 108,
-            child: FilledButton(
+            width: 148,
+            child: OutlinedButton(
               onPressed:
                   effectiveUiState ==
                       ProjectImportExportUiState.majorVersionBlocked
                   ? null
                   : () => _handleImport(context),
               key: ProjectImportExportPage.executeImportButtonKey,
-              child: const Text('执行导入'),
+              child: const Text('执行导入(开发中)'),
             ),
           ),
           const SizedBox(height: 16),

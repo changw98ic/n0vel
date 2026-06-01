@@ -259,7 +259,11 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
           final canNavigate = await AppNavTabs.confirmIfBlocked(context);
           if (!canNavigate) return;
           Navigator.of(context).popUntil((route) => route.isFirst);
-          AppNavigator.push(context, AppRoutes.workSettingsHub);
+          if (i == 1) {
+            AppNavigator.push(context, AppRoutes.scenes);
+          } else {
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          }
         },
         actions: [_ModePillButton(onPressed: state._openReadingMode)],
       ),
@@ -535,7 +539,7 @@ Widget? _buildToolWindow(
               state._restoreReturnAnchor(anchor);
             },
             onOpenOutline: () {
-              AppNavigator.push(context, AppRoutes.worldbuilding);
+              AppNavigator.push(context, AppRoutes.characters);
             },
           ),
         ),

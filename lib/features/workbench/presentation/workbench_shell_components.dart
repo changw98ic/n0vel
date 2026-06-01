@@ -353,7 +353,7 @@ class _EditorToolbarIconButtonState extends State<EditorToolbarIconButton> {
         ? const Color(0xFF243226)
         : const Color(0xFFB0B5AF);
     return Tooltip(
-      message: widget.tooltip,
+      message: enabled ? widget.tooltip : '${widget.tooltip}（开发中）',
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: enabled ? (_) => setState(() => _hovered = true) : null,

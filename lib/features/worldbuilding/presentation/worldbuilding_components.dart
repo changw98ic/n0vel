@@ -232,10 +232,10 @@ class WorldbuildingDeleteOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('删除父节点？', style: Theme.of(context).textTheme.titleLarge),
+              Text('删除关联节点？', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 16),
               Text(
-                '节点"$nodeTitle"仍包含子节点或关联规则。删除该父节点可能会连带影响地点树、规则摘要与引用场景。\n\n请选择先取消、或在未来版本中进入连带删除流程。',
+                '节点"$nodeTitle"仍被场景引用。删除该节点会导致相关场景失去世界观绑定。\n\n请选择先取消、或在未来版本中进入连带删除流程。',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
@@ -246,7 +246,7 @@ class WorldbuildingDeleteOverlay extends StatelessWidget {
                 children: [
                   OutlinedButton(onPressed: onCancel, child: const Text('取消')),
                   const SizedBox(width: 10),
-                  FilledButton(onPressed: onConfirm, child: const Text('查看影响后再删')),
+                  FilledButton(onPressed: onConfirm, child: const Text('确认删除')),
                 ],
               ),
             ],

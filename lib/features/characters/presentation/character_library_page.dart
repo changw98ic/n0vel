@@ -517,15 +517,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     SceneRecord? matchedScene;
     for (final sceneId in current.linkedSceneIds) {
       final candidate = store.scenes.where((scene) => scene.id == sceneId);
-      if (candidate.isEmpty) {
-        continue;
-      }
-      final scene = candidate.first;
-      if (scene.locationParts.chapterNumber == 3) {
-        matchedScene = scene;
-        break;
-      }
-      matchedScene ??= scene;
+      if (candidate.isEmpty) continue;
+      matchedScene ??= candidate.first;
     }
     if (matchedScene == null) {
       return '未找到关联场景';

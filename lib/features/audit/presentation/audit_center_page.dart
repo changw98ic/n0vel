@@ -111,7 +111,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
       body: body,
       statusBar: DesktopStatusStrip(
         leftText: '改稿 · 核对线索已更新',
-        rightText: currentIssue?.target ?? '第 3 章',
+        rightText: currentIssue?.target ?? '',
       ),
     );
   }
@@ -331,7 +331,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: const Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(
@@ -359,7 +359,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: const Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(title: '当前限制', message: '当前无法直接跳转到原证据位置。'),
