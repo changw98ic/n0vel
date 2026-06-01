@@ -99,6 +99,13 @@ Map<String, Object?> decodeProjectTransferObjectMap(Object? raw) {
 }
 
 Directory resolveProjectTransferExportsDirectory({String? homeOverride}) {
+  if (homeOverride == null && Platform.isWindows) {
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile != null && userProfile.isNotEmpty) {
+      return Directory('$userProfile\\Documents\\NovelWriter\\exports');
+    }
+    return Directory('./exports');
+  }
   final home = homeOverride ?? Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
     return Directory('./exports');
@@ -107,6 +114,13 @@ Directory resolveProjectTransferExportsDirectory({String? homeOverride}) {
 }
 
 Directory resolveProjectTransferImportsDirectory({String? homeOverride}) {
+  if (homeOverride == null && Platform.isWindows) {
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile != null && userProfile.isNotEmpty) {
+      return Directory('$userProfile\\Documents\\NovelWriter\\imports');
+    }
+    return Directory('./imports');
+  }
   final home = homeOverride ?? Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
     return Directory('./imports');

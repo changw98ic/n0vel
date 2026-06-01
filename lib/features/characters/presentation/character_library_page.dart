@@ -7,6 +7,7 @@ import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
+import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
 import '../../../app/widgets/desktop_shell.dart';
@@ -98,8 +99,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         actions: [
           DesignActionButton(
             key: CharacterLibraryPage.newCharacterButtonKey,
-            icon: Icons.check,
-            label: '保存设定',
+            icon: Icons.person_add,
+            label: '新建角色',
             onPressed: () => _createCharacter(resources),
           ),
         ],
@@ -402,9 +403,24 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     return characters.indexOf(visibleCharacters.first);
   }
 
-  void _createCharacter(WorkspaceResourceLibraryFacade store) {
+  Future<void> _createCharacter(WorkspaceResourceLibraryFacade store) async {
+    final name = await showAppTextInputDialog(
+      context: context,
+      title: '新建角色',
+      description: '为角色起个名字，创建后可以继续补充身份、需求和场景引用。',
+      hintText: '输入角色名',
+      confirmText: '创建',
+    );
+    if (name == null || name.trim().isEmpty) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() {
       store.createCharacter();
+      final newCharacter = store.characters.first;
+      store.updateCharacter(characterId: newCharacter.id, name: name.trim());
       _selectedIndex = 0;
       _searchController.clear();
     });
