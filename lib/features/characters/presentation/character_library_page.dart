@@ -50,7 +50,7 @@ class CharacterLibraryPage extends ConsumerStatefulWidget {
 }
 
 class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
-  int _selectedIndex = 0;
+  String? _selectedCharacterId;
   int _sortIndex = 0;
   bool _showDeleteOverlay = false;
   Timer? _syncContextTimer;
@@ -82,10 +82,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     final projectScenes = workspace.projectSceneFacade;
     final characters = resources.characters;
     final visibleCharacters = _visibleCharacters(characters);
-    final selectedIndex = _resolveSelectedIndex(characters, visibleCharacters);
-    final current = visibleCharacters.isEmpty
-        ? null
-        : characters[selectedIndex];
+    final current = _resolveSelectedCharacter(characters, visibleCharacters);
     return DesktopShellFrame(
       header: DesktopHeaderBar(
         tabs: const ['设定资料', '编辑资料', '正文'],
@@ -134,7 +131,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                           theme,
                           characters,
                           visibleCharacters,
-                          selectedIndex,
+                          current,
                         ),
                       ),
                     ),
@@ -181,11 +178,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                         resources.deleteCharacter(character.id);
                         _showDeleteOverlay = false;
                         final visible = _visibleCharacters(resources.characters);
-                        _selectedIndex = visible.isEmpty
-                            ? 0
-                            : resources.characters
-                                  .indexOf(visible.first)
-                                  .clamp(0, resources.characters.length - 1);
+                        _selectedCharacterId = visible.isEmpty
+                            ? null
+                            : visible.first.id;
                       });
                       ref.read(appSceneContextStoreProvider).syncContext();
                     },
@@ -205,7 +200,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     ThemeData theme,
     List<CharacterRecord> characters,
     List<CharacterRecord> visibleCharacters,
-    int selectedIndex,
+    CharacterRecord? current,
   ) {
     if (widget.uiState == CharacterLibraryUiState.empty) {
       return Column(
@@ -269,9 +264,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                   ? CharacterLibraryPage.yueRenKey
                   : null,
               label: character.name,
-              selected: characters[selectedIndex] == character,
+              selected: current?.id == character.id,
               onPressed: () => setState(() {
-                _selectedIndex = characters.indexOf(character);
+                _selectedCharacterId = character.id;
               }),
             ),
             const SizedBox(height: AppDesignTokens.space8),
@@ -410,18 +405,23 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     );
   }
 
-  int _resolveSelectedIndex(
+  CharacterRecord? _resolveSelectedCharacter(
     List<CharacterRecord> characters,
     List<CharacterRecord> visibleCharacters,
   ) {
-    if (characters.isEmpty || visibleCharacters.isEmpty) {
-      return 0;
+    if (visibleCharacters.isEmpty) {
+      return null;
     }
-    if (_selectedIndex < characters.length &&
-        visibleCharacters.contains(characters[_selectedIndex])) {
-      return _selectedIndex;
+    if (_selectedCharacterId != null) {
+      final match = visibleCharacters.cast<CharacterRecord?>().firstWhere(
+        (c) => c?.id == _selectedCharacterId,
+        orElse: () => null,
+      );
+      if (match != null) {
+        return match;
+      }
     }
-    return characters.indexOf(visibleCharacters.first);
+    return characters.isEmpty ? null : visibleCharacters.first;
   }
 
   Future<void> _createCharacter(WorkspaceResourceLibraryFacade store) async {
@@ -441,7 +441,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     setState(() {
       final newCharacter = store.createCharacter();
       store.updateCharacter(characterId: newCharacter.id, name: name.trim());
-      _selectedIndex = 0;
+      _selectedCharacterId = newCharacter.id;
       _searchController.clear();
     });
   }
@@ -485,11 +485,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       setState(() {
         store.deleteCharacter(character.id);
         final visible = _visibleCharacters(store.characters);
-        _selectedIndex = visible.isEmpty
-            ? 0
-            : store.characters
-                  .indexOf(visible.first)
-                  .clamp(0, store.characters.length - 1);
+        _selectedCharacterId = visible.isEmpty ? null : visible.first.id;
       });
       if (context.mounted) {
         ref.read(appSceneContextStoreProvider).syncContext();

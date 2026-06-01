@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'di/app_providers.dart';
@@ -222,6 +223,14 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
                 FilledButton(
                   onPressed: widget.onRestoreComplete,
                   child: const Text('继续使用当前数据'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () {
+                    final data = ClipboardData(text: _restoreError!);
+                    Clipboard.setData(data);
+                  },
+                  child: const Text('复制错误信息'),
                 ),
               ],
             ),
