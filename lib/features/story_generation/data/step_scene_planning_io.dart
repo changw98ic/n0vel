@@ -1,4 +1,5 @@
-import 'package:novel_writer/app/rag/hybrid_retriever.dart' show RagSceneContext;
+import 'package:novel_writer/app/rag/hybrid_retriever.dart'
+    show RagSceneContext;
 
 import 'scene_context_models.dart' show ResolvedSceneCastMember;
 import 'scene_pipeline_models.dart' as pipeline show SceneTaskCard;
@@ -51,8 +52,24 @@ class ScenePlanningOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.directorPlan;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'consistencyConstraints': consistencyConstraints};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'resumeSafe': resolvedCast.every(
+      (member) => member.profile == null && member.metadata.isEmpty,
+    ),
+    'consistencyConstraints': consistencyConstraints,
+    'directorText': director.text,
+    'directorPlan': taskCard.directorPlan,
+    'cast': [
+      for (final member in resolvedCast)
+        {
+          'characterId': member.characterId,
+          'name': member.name,
+          'role': member.role,
+          'contributions': [for (final item in member.contributions) item.name],
+        },
+    ],
+  };
 
   @override
   int get tokenEstimate => 0;

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "artifactId": "three_chapter_repaired",
+  "artifactStatus": "unscored_unreleased",
+  "auditDate": "2026-07-16",
+  "source": {
+    "authority": {
+      "path": "artifacts/real_validation/three_chapter_run/outline/three_chapter_outline.md",
+      "sha256": "8c45b388297340c717bf12289b1a10b271a0bf9a6ec24802a79dd62dccf19367"
+    },
+    "historicalChapters": [
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-01.md",
+        "sha256": "ad4e434c896a99eca1abf43e6db15677c53f0dac23b9c3447befec4e9a2cdc09"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-02.md",
+        "sha256": "6901a81d0aa2704b2e5950b89176b30988dd25eacbc853ee9aebe8db4c1bbb7a"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-03.md",
+        "sha256": "c6e54e629942957cd209f6016d3b0a221e949e7a879272c2ec8760cf197ca130"
+      }
+    ],
+    "historicalQualityReport": {
+      "path": "artifacts/real_validation/three_chapter_run/reports/quality-report.json",
+      "sha256": "bff311ea5ffa93761e2513ced40f7cadf238f5cae1b0ec34926354ff873b7ef8",
+      "observedSceneScoreRange": {
+        "minimum": 88,
+        "maximum": 94
+      },
+      "historicalOnly": true,
+      "transferableToRepairedText": false
+    }
+  },
+  "derived": {
+    "authorityCopy": {
+      "path": "artifacts/real_validation/three_chapter_repaired/outline/three_chapter_outline.md",
+      "sha256": "d25deca868c5433ea1ec28f533dd0943b486808076348fdc9bc2612734579338",
+      "contentRelation": "source content copied; terminal newline normalized"
+    },
+    "chapters": [
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-01.md",
+        "sha256": "a689e51ff833f17710030e8822b6126bc0e2ad6324da74047b9a5ede627e1a25"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-02.md",
+        "sha256": "07373cd8f110d5249a76de7075a95706b31a749f8b27b5b9a1687b563b2b933e"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-03.md",
+        "sha256": "ba279eb51f4c45a233cc9e06ebdc593987e864f00fb822b1ade3f79ca40f30f6"
+      }
+    ],
+    "sceneHardGateReleaseHash": {
+      "value": "sha256:24af7a88c1a1b4e6bfab417c5f0a795af8eb6bb3cd89bee9c5d23ae44be72074",
+      "status": "verified_by_production_deterministic_gate",
+      "reason": "The repaired prose passed the production scene hard gates under this exact release hash; LLM quality scoring remains separate and pending."
+    },
+    "productionPreQualityPath": {
+      "boundary": "ProductionPreQualityGate used by PipelineStageRunnerImpl",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "chapterEvidenceRootHashes": {
+        "chapter-01": "sha256:77e994d2d6a0adbf4137288f91209cfee3df83fd6468378a48ebedbb8860befd",
+        "chapter-02": "sha256:aed8aaa95aacb17faf9d00a56e8a742cd744a67d0fda27fae1763de39d403e55",
+        "chapter-03": "sha256:0aa66c3c93d329af3695119bfc21161863e88c03a754e10d1e80cd088790e45d"
+      },
+      "evidenceRootHash": "sha256:990e085c05ff0903a792523228f606101697057ac556673e31a2f95c594be909",
+      "artifactSetHash": "sha256:63dde3c457779a112e003e7b1d2011ba3e7c3ad0bc05bee9c47619fa8f1c8274",
+      "qualityStatus": "not_run",
+      "candidateFinalizationEligible": false,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "candidateProofStatus": "not_created",
+      "commitReceiptStatus": "not_created",
+      "releaseStatus": "unreleased",
+      "reason": "Exact repaired prose crossed the provider-free author-revision pre-quality boundary. It must be revalidated by the candidate-eligible pipeline-polish path before final council, quality, candidate finalization, and author commit."
+    },
+    "productionPreQualityEvidence": {
+      "path": "artifacts/real_validation/three_chapter_repaired/reports/production-pre-quality-evidence.json",
+      "sha256": "ca04e8da42902e03a546a76e828b9911bced4942684976422051d7c8a028d758",
+      "status": "provider_free_pre_quality_only"
+    },
+    "auditReports": [
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/README.md",
+        "sha256": "65703047f566235e9e56b889937322e15c6eb634fa061389486b0658e7a1c7d2"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/reports/deterministic-repair-audit.md",
+        "sha256": "e462d0771b7aa468dd340f040e4229339d5bbdd263ead125cbab06b168ae381a"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/reports/deterministic-repair-audit.json",
+        "sha256": "a4ff238145ae8d85738f10256b84ce82a4216a3b2a4a6dc9b87423608b618b0f"
+      }
+    ]
+  },
+  "repairMethod": [
+    "Treat the stored high-level outline as the scene-beat authority.",
+    "Rewrite into a separate derived directory without mutating historical artifacts.",
+    "Replace competing U-drive and memory-card props with one evidence phone whose introduce, relocate, transfer, and observe events bind unique exact-prose evidence.",
+    "Run the shared production pre-quality boundary plus outline, continuity, repetition, dialogue, opening-hook, ending-hook, and cross-scene gates.",
+    "Keep quality scoring and release authorization pending the production scorer."
+  ],
+  "releaseGate": {
+    "productionOverallMinimum": 95,
+    "allCriticalDimensionsMinimum": 90,
+    "deterministicHardGatesMustPass": true,
+    "productionPreQualityBoundaryMustPass": true,
+    "productionPreQualityBoundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+    "productionPreQualityBoundaryVerified": true,
+    "sceneHardGateReleaseHashMustBeVerified": true,
+    "sceneHardGateReleaseHashVerified": true
+  }
+}

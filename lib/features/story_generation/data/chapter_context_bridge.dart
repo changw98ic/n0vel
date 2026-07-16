@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:sqlite3/sqlite3.dart' show Database;
+
 import '../../../app/logging/app_log.dart';
 import '../domain/memory_models.dart';
 import '../domain/outline_plan_models.dart';
@@ -13,6 +15,43 @@ const String _chapterSummaryScopeId = '__chapter_summaries';
 
 /// Tag used to mark chapter summary sources for filtering.
 const String _chapterSummaryTag = 'chapter-summary';
+const String _chapterSummaryRevisionTag = 'chapter-summary-revision';
+const String _chapterSummaryHeadTag = 'chapter-summary-head';
+
+/// Immutable authoritative chapter-summary revision bound to the exact set of
+/// committed scene receipts that produced it.
+class ChapterSummaryRevision {
+  const ChapterSummaryRevision({
+    required this.chapterId,
+    required this.sceneCommitSetHash,
+    required this.summary,
+    required this.createdAtMs,
+  });
+
+  final String chapterId;
+  final String sceneCommitSetHash;
+  final ChapterSummary summary;
+  final int createdAtMs;
+
+  Map<String, Object?> toJson() => {
+    'chapterId': chapterId,
+    'sceneCommitSetHash': sceneCommitSetHash,
+    'summary': summary.toJson(),
+    'createdAtMs': createdAtMs,
+  };
+
+  static ChapterSummaryRevision? fromJson(Map<Object?, Object?> json) {
+    final rawSummary = json['summary'];
+    final hash = json['sceneCommitSetHash']?.toString() ?? '';
+    if (rawSummary is! Map || hash.isEmpty) return null;
+    return ChapterSummaryRevision(
+      chapterId: json['chapterId']?.toString() ?? '',
+      sceneCommitSetHash: hash,
+      summary: ChapterSummary.fromJson(Map<String, Object?>.from(rawSummary)),
+      createdAtMs: (json['createdAtMs'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
 
 // -- Chapter continuity models -------------------------------------------------
 
@@ -315,9 +354,14 @@ List<String> _parseStringList(Object? raw) {
 /// level and loads context from previous chapters to maintain narrative
 /// continuity across chapter boundaries.
 class ChapterContextBridge implements ChapterContextBridgeService {
-  ChapterContextBridge({required this.storage, this.summarizer});
+  ChapterContextBridge({
+    required this.storage,
+    this.summarizer,
+    this.authorityDb,
+  });
 
   final StoryMemoryStorage storage;
+  final Database? authorityDb;
 
   /// Optional LLM-based summarizer. When set, [summarizeFromOutputs] will
   /// attempt LLM summarization first and fall back to structural logic.
@@ -372,6 +416,115 @@ class ChapterContextBridge implements ChapterContextBridgeService {
     return summaries;
   }
 
+  /// Appends an immutable authoritative revision and advances the chapter head
+  /// only when the committed receipt set changes. This is intentionally a
+  /// storage primitive: the accept coordinator owns the surrounding CAS.
+  Future<ChapterSummaryRevision> saveAuthoritativeSummaryRevision({
+    required String projectId,
+    required String sceneCommitSetHash,
+    required ChapterSummary summary,
+    int? nowMs,
+  }) async {
+    if (sceneCommitSetHash.trim().isEmpty) {
+      throw ArgumentError.value(
+        sceneCommitSetHash,
+        'sceneCommitSetHash',
+        'must not be empty',
+      );
+    }
+    final existing = await loadAuthoritativeSummaryHead(
+      projectId: projectId,
+      chapterId: summary.chapterId,
+    );
+    if (existing != null && existing.sceneCommitSetHash == sceneCommitSetHash) {
+      return existing;
+    }
+    final revision = ChapterSummaryRevision(
+      chapterId: summary.chapterId,
+      sceneCommitSetHash: sceneCommitSetHash,
+      summary: summary,
+      createdAtMs: nowMs ?? DateTime.now().millisecondsSinceEpoch,
+    );
+    final sources = await storage.loadSources(projectId);
+    final revisionId = 'csr_${summary.chapterId}_$sceneCommitSetHash';
+    final headId = 'csh_${summary.chapterId}';
+    final kept = sources
+        .where((source) => source.id != revisionId && source.id != headId)
+        .toList();
+    kept.addAll([
+      StoryMemorySource(
+        id: revisionId,
+        projectId: projectId,
+        scopeId: _chapterSummaryScopeId,
+        kind: MemorySourceKind.sceneSummary,
+        content: jsonEncode(revision.toJson()),
+        tags: const [_chapterSummaryRevisionTag],
+        createdAtMs: revision.createdAtMs,
+      ),
+      StoryMemorySource(
+        id: headId,
+        projectId: projectId,
+        scopeId: _chapterSummaryScopeId,
+        kind: MemorySourceKind.sceneSummary,
+        content: jsonEncode(revision.toJson()),
+        tags: const [_chapterSummaryHeadTag],
+        createdAtMs: revision.createdAtMs,
+      ),
+    ]);
+    await storage.saveSources(projectId, kept);
+    return revision;
+  }
+
+  Future<ChapterSummaryRevision?> loadAuthoritativeSummaryHead({
+    required String projectId,
+    required String chapterId,
+  }) async {
+    final db = authorityDb;
+    if (db != null) {
+      final rows = db.select(
+        '''
+        SELECT r.payload_json FROM story_generation_summary_heads h
+        JOIN story_generation_summary_revisions r ON r.revision_id = h.revision_id
+        WHERE h.project_id = ? AND h.chapter_id = ?
+      ''',
+        [projectId, chapterId],
+      );
+      if (rows.length == 1) {
+        try {
+          final raw = jsonDecode(rows.single['payload_json'] as String) as Map;
+          final summaryRaw = raw['summary'];
+          if (summaryRaw is Map) {
+            return ChapterSummaryRevision(
+              chapterId: chapterId,
+              sceneCommitSetHash: raw['sceneCommitSetHash']?.toString() ?? '',
+              summary: ChapterSummary.fromJson(
+                Map<String, Object?>.from(summaryRaw),
+              ),
+              createdAtMs: 0,
+            );
+          }
+        } on Object {
+          // Fall through to the legacy blob reader.
+        }
+      }
+    }
+    final sources = await storage.loadSources(projectId);
+    for (final source in sources) {
+      if (source.id != 'csh_$chapterId' ||
+          !source.tags.contains(_chapterSummaryHeadTag)) {
+        continue;
+      }
+      try {
+        return ChapterSummaryRevision.fromJson(
+          Map<Object?, Object?>.from(jsonDecode(source.content) as Map),
+        );
+      } on Object {
+        return null;
+      }
+    }
+    return null;
+  }
+
   @override
   ChapterSummary summarizeFromOutputs({
     required String chapterId,
@@ -419,10 +572,13 @@ class ChapterContextBridge implements ChapterContextBridgeService {
     required String chapterTitle,
     required List<SceneRuntimeOutput> outputs,
     int? nowMs,
+    String? projectId,
   }) async {
     if (summarizer == null) return null;
 
-    final summaries = await loadChapterSummaries(chapterId);
+    final summaries = projectId == null
+        ? const <ChapterSummary>[]
+        : await loadChapterSummaries(projectId);
     final previousSummary = summaries.isNotEmpty ? summaries.last : null;
 
     return summarizer!.summarizeChapter(
@@ -451,11 +607,12 @@ class ChapterContextBridge implements ChapterContextBridgeService {
         .toList();
 
     final thoughts = <ThoughtAtom>[];
+    final projectThoughts = await storage.loadThoughts(projectId);
     for (final summary in selectedSummaries) {
       try {
-        final chapterThoughts = await storage.loadThoughts(summary.chapterId);
         thoughts.addAll(
-          chapterThoughts
+          projectThoughts
+              .where((thought) => thought.scopeId.contains(summary.chapterId))
               .where((t) => t.confidence >= 0.7 && t.abstractionLevel >= 1.5)
               .take(5),
         );

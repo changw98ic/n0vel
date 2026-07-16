@@ -1,7 +1,7 @@
 part of '../story_generation_run_store.dart';
 
 extension _StoryGenerationRunSceneState on StoryGenerationRunStore {
-  void _recordSceneState({
+  Future<void> _recordSceneState({
     required SceneBrief brief,
     required StorySceneGenerationStatus status,
     required StoryReviewStatus reviewStatus,
@@ -77,21 +77,27 @@ extension _StoryGenerationRunSceneState on StoryGenerationRunStore {
     }
 
     _generationStore.replaceSnapshot(snapshot.copyWith(chapters: chapters));
+    // StoryGenerationStorage may persist on a helper isolate. Await its
+    // durable completion before the authoritative run/ledger connection
+    // enters the next write boundary; otherwise two writers can overlap and
+    // a long busy timeout merely hides the lifecycle race.
+    return _generationStore.waitUntilReady();
   }
 
-  void _recordSceneStateForCurrentRun({
+  Future<void> _recordSceneStateForCurrentRun({
     required StorySceneGenerationStatus status,
     required StoryReviewStatus reviewStatus,
     String terminalReason = '',
   }) {
     final currentScene = _workspaceStore.currentScene;
-    _recordSceneState(
+    return _recordSceneState(
       brief: SceneBrief(
         chapterId: currentScene.chapterLabel,
         chapterTitle: currentScene.chapterLabel,
         sceneId: currentScene.id,
         sceneTitle: currentScene.title,
         sceneSummary: currentScene.summary,
+        formalExecution: formalEvaluation,
         metadata: _runtimeMetadata(
           revisionRequests: _activeRevisionRequestsForCurrentScene(
             chapterId: currentScene.chapterLabel,

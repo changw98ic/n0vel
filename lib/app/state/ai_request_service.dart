@@ -1,4 +1,7 @@
 import '../llm/app_llm_client.dart';
+import '../llm/app_llm_call_site_inventory.dart';
+import '../llm/app_llm_prompt_release.dart';
+import '../llm/app_llm_prompt_invocation.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../logging/app_event_log.dart';
 import 'app_settings_store.dart';
@@ -16,13 +19,16 @@ class AiRequestService {
     required AppLlmClient llmClient,
     AppLlmCallTraceSink? llmTraceSink,
     AppEventLog? eventLog,
+    FailoverEndpointGatewayProvider? failoverGatewayProvider,
   }) : _llmClient = llmClient,
        _llmTraceSink = llmTraceSink,
-       _eventLog = eventLog ?? AppEventLog();
+       _eventLog = eventLog ?? AppEventLog(),
+       _failoverGatewayProvider = failoverGatewayProvider;
 
   final AppLlmClient _llmClient;
   final AppLlmCallTraceSink? _llmTraceSink;
   final AppEventLog _eventLog;
+  final FailoverEndpointGatewayProvider? _failoverGatewayProvider;
   final Map<String, AppLlmClientGateway> _failoverGateways =
       <String, AppLlmClientGateway>{};
 
@@ -42,10 +48,17 @@ class AiRequestService {
     String? traceName,
     Map<String, Object?> traceMetadata = const {},
     List<FailoverEndpoint>? failoverEndpoints,
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
     PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
     String? schemaType,
     bool? schemaValid,
     List<String>? schemaViolations,
+    required AppLlmRegisteredPromptAuthority callSiteAuthority,
   }) async {
     final resolvedTraceName = traceName ?? _inferLlmTraceName(messages);
     final request = AppLlmChatRequest(
@@ -58,26 +71,85 @@ class AiRequestService {
       ),
       provider: providerForSettings(route.providerName, route.baseUrl),
       messages: messages,
+      formalCacheIdentity:
+          stageId != null &&
+              generationBundleHash != null &&
+              promptInvocationEvidence != null
+          ? AppLlmFormalCacheRequestIdentity(
+              stageId: stageId,
+              generationBundleHash: generationBundleHash,
+              parserRelease: promptInvocationEvidence.release.parserRelease,
+            )
+          : null,
     );
+    callSiteAuthority.validateMessages(request.messages);
 
-    // 没有备用 provider，走原有路径（单次请求 + retry）。
-    if (failoverEndpoints == null || failoverEndpoints.isEmpty) {
+    final primaryEndpointId = route.providerProfileId ?? 'primary';
+    final primaryBaseUrl = route.baseUrl.trim();
+    final seenEndpointIds = <String>{primaryEndpointId};
+    final seenBaseUrls = <String>{primaryBaseUrl};
+    final distinctFailoverEndpoints = <FailoverEndpoint>[];
+    for (final endpoint in failoverEndpoints ?? const <FailoverEndpoint>[]) {
+      final baseUrl = endpoint.baseUrl.trim();
+      if (seenEndpointIds.contains(endpoint.id) ||
+          seenBaseUrls.contains(baseUrl)) {
+        continue;
+      }
+      seenEndpointIds.add(endpoint.id);
+      seenBaseUrls.add(baseUrl);
+      distinctFailoverEndpoints.add(endpoint);
+    }
+
+    // A synced primary profile is present in normal settings snapshots. It is
+    // not a real fallback and must not silently move this request behind a
+    // retrying gateway, because that would hide physical provider dispatches
+    // from the call trace.
+    if (distinctFailoverEndpoints.isEmpty) {
       return requestPool.run(() async {
-        final result = await _llmClient.chat(request);
-        await _recordLlmCallTrace(
-          request: request,
-          result: result,
-          traceName: resolvedTraceName,
-          traceMetadata: {
-            ...traceMetadata,
-            if (route.providerProfileId != null)
-              'providerProfileId': route.providerProfileId,
-          },
-          promptVersion: promptVersion,
-          schemaType: schemaType,
-          schemaValid: schemaValid,
-          schemaViolations: schemaViolations,
-        );
+        final poolActiveAtDispatch = requestPool.active;
+        final poolLimitAtDispatch = requestPool.maxConcurrent;
+        final timing = _LlmDispatchTiming.start();
+        Future<void> recordResult(AppLlmChatResult result) =>
+            _recordLlmCallTrace(
+              request: request,
+              result: result,
+              traceName: resolvedTraceName,
+              traceMetadata: {
+                ...traceMetadata,
+                if (route.providerProfileId != null)
+                  'providerProfileId': route.providerProfileId,
+                'poolActiveAtDispatch': poolActiveAtDispatch,
+                'poolLimitAtDispatch': poolLimitAtDispatch,
+              },
+              startedAtMs: timing.startedAtMs,
+              completedAtMs: timing.completedAtMs,
+              promptReleaseRef: promptReleaseRef,
+              promptInvocationEvidence: promptInvocationEvidence,
+              promptVersion: promptVersion,
+              stageId: stageId,
+              callSiteId: callSiteId,
+              variantId: variantId,
+              generationBundleHash: generationBundleHash,
+              schemaType: schemaType,
+              schemaValid: schemaValid,
+              schemaViolations: schemaViolations,
+            );
+        late final AppLlmChatResult result;
+        try {
+          // llm-call-site: boundary.ai-request.primary
+          result = await _llmClient.chat(request);
+        } on Object catch (error, stackTrace) {
+          timing.complete();
+          await recordResult(
+            AppLlmChatResult.failure(
+              failureKind: AppLlmFailureKind.server,
+              detail: 'AppLlmClient.chat threw ${error.runtimeType}',
+            ),
+          );
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+        timing.complete();
+        await recordResult(result);
         if (_shouldCoolDownLlmRequestPool(result)) {
           requestPool.coolDownFor(_llmPoolTransientFailureCooldown);
         }
@@ -96,64 +168,56 @@ class AiRequestService {
         isLocal: _isLocalCompatibleEndpoint(route.baseUrl),
         providerProfileId: route.providerProfileId,
       ),
-      ...failoverEndpoints,
+      ...distinctFailoverEndpoints,
     ];
 
-    // 过滤掉与主 provider 相同的 endpoint（避免重复请求）。
-    final primaryId = allEndpoints.first.id;
-    final dedupedEndpoints = [
-      allEndpoints.first,
-      for (final ep in allEndpoints.skip(1))
-        if (ep.id != primaryId && ep.baseUrl != allEndpoints.first.baseUrl) ep,
-    ];
+    final failoverEndpointCount = allEndpoints.length;
 
     final chain = LlmFailoverChain(
-      endpoints: dedupedEndpoints,
+      endpoints: allEndpoints,
       delegate: _llmClient,
       strategy: FailoverStrategy.configOrder,
       gatewayProvider: _gatewayForEndpoint,
-      endpointRunner: (endpoint, operation) async {
-        final endpointPool =
-            requestPoolForProvider?.call(endpoint.providerProfileId) ??
-            requestPool;
-        final result = await endpointPool.run(operation);
-        if (_shouldCoolDownLlmRequestPool(result)) {
-          endpointPool.coolDownFor(_llmPoolTransientFailureCooldown);
-        }
-        return result;
-      },
+      physicalDispatchRunner:
+          ({
+            required endpoint,
+            required request,
+            required endpointIndex,
+            required gatewayRetryIndex,
+            required wasFallback,
+            required operation,
+          }) {
+            final endpointPool =
+                requestPoolForProvider?.call(endpoint.providerProfileId) ??
+                requestPool;
+            return _runFailoverPhysicalDispatch(
+              endpoint: endpoint,
+              request: request,
+              endpointIndex: endpointIndex,
+              gatewayRetryIndex: gatewayRetryIndex,
+              wasFallback: wasFallback,
+              operation: operation,
+              endpointPool: endpointPool,
+              failoverEndpointCount: failoverEndpointCount,
+              primaryEndpointId: primaryEndpointId,
+              traceName: resolvedTraceName,
+              traceMetadata: traceMetadata,
+              promptReleaseRef: promptReleaseRef,
+              promptInvocationEvidence: promptInvocationEvidence,
+              promptVersion: promptVersion,
+              stageId: stageId,
+              callSiteId: callSiteId,
+              variantId: variantId,
+              generationBundleHash: generationBundleHash,
+              schemaType: schemaType,
+              schemaValid: schemaValid,
+              schemaViolations: schemaViolations,
+            );
+          },
     );
 
     final attempts = <FailoverAttemptResult>[];
     final result = await chain.executeWithFailover(request, attempts: attempts);
-
-    // 记录 trace：主请求。
-    await _recordLlmCallTrace(
-      request: request,
-      result: attempts.isNotEmpty ? attempts.first.result : result,
-      traceName: resolvedTraceName,
-      traceMetadata: {
-        ...traceMetadata,
-        if (route.providerProfileId != null)
-          'providerProfileId': route.providerProfileId,
-        'failover': attempts.length > 1,
-        if (attempts.length > 1)
-          'failoverAttempts': [
-            for (final a in attempts)
-              {
-                'endpointId': a.endpointId,
-                'succeeded': a.result.succeeded,
-                'attemptIndex': a.attemptIndex,
-                if (a.result.failureKind != null)
-                  'failureKind': a.result.failureKind!.name,
-              },
-          ],
-      },
-      promptVersion: promptVersion,
-      schemaType: schemaType,
-      schemaValid: schemaValid,
-      schemaViolations: schemaViolations,
-    );
 
     // 如果 failover 切换到了备用 provider，额外记录一条 fallback trace。
     if (attempts.length > 1) {
@@ -185,6 +249,14 @@ class AiRequestService {
     required String providerName,
   }) {
     final normalizedModel = normalizeRequestedModel(model);
+    final authority = AppLlmCallSiteAuthority.operational(
+      AppLlmCallSiteIds.settingsConnectionProbe,
+    );
+    const messages = <AppLlmChatMessage>[
+      AppLlmChatMessage(role: 'user', content: '连接测试：请回复 pong'),
+    ];
+    authority.validateMessages(messages);
+    // llm-call-site: boundary.settings.connection-probe
     return _llmClient.chat(
       AppLlmChatRequest(
         baseUrl: baseUrl.trim(),
@@ -193,9 +265,7 @@ class AiRequestService {
         timeout: timeout,
         maxTokens: AppLlmChatRequest.normalizeMaxTokens(maxTokens),
         provider: providerForSettings(providerName, baseUrl),
-        messages: const [
-          AppLlmChatMessage(role: 'user', content: '连接测试：请回复 pong'),
-        ],
+        messages: messages,
       ),
     );
   }
@@ -384,7 +454,9 @@ class AiRequestService {
     final key = _gatewayKey(endpoint);
     return _failoverGateways.putIfAbsent(
       key,
-      () => AppLlmClientGateway(delegate: _llmClient),
+      () =>
+          _failoverGatewayProvider?.call(endpoint) ??
+          AppLlmClientGateway(delegate: _llmClient),
     );
   }
 
@@ -396,6 +468,87 @@ class AiRequestService {
     ].join('|');
   }
 
+  Future<AppLlmChatResult> _runFailoverPhysicalDispatch({
+    required FailoverEndpoint endpoint,
+    required AppLlmChatRequest request,
+    required int endpointIndex,
+    required int gatewayRetryIndex,
+    required bool wasFallback,
+    required Future<AppLlmChatResult> Function() operation,
+    required AppLlmRequestPool endpointPool,
+    required int failoverEndpointCount,
+    required String primaryEndpointId,
+    required String traceName,
+    required Map<String, Object?> traceMetadata,
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
+    PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
+    String? schemaType,
+    bool? schemaValid,
+    List<String>? schemaViolations,
+  }) {
+    return endpointPool.run(() async {
+      final poolActiveAtDispatch = endpointPool.active;
+      final poolLimitAtDispatch = endpointPool.maxConcurrent;
+      final timing = _LlmDispatchTiming.start();
+      final physicalMetadata = <String, Object?>{
+        ...traceMetadata,
+        if (endpoint.providerProfileId != null)
+          'providerProfileId': endpoint.providerProfileId,
+        'endpointId': endpoint.id,
+        'primaryEndpointId': primaryEndpointId,
+        'endpointIndex': endpointIndex,
+        'gatewayRetryIndex': gatewayRetryIndex,
+        'wasFallback': wasFallback,
+        'failoverEndpointCount': failoverEndpointCount,
+        'poolActiveAtDispatch': poolActiveAtDispatch,
+        'poolLimitAtDispatch': poolLimitAtDispatch,
+      };
+      Future<void> recordResult(AppLlmChatResult result) => _recordLlmCallTrace(
+        request: request,
+        result: result,
+        traceName: traceName,
+        traceMetadata: physicalMetadata,
+        startedAtMs: timing.startedAtMs,
+        completedAtMs: timing.completedAtMs,
+        promptReleaseRef: promptReleaseRef,
+        promptInvocationEvidence: promptInvocationEvidence,
+        promptVersion: promptVersion,
+        stageId: stageId,
+        callSiteId: callSiteId,
+        variantId: variantId,
+        generationBundleHash: generationBundleHash,
+        schemaType: schemaType,
+        schemaValid: schemaValid,
+        schemaViolations: schemaViolations,
+      );
+
+      late final AppLlmChatResult result;
+      try {
+        result = await operation();
+      } on Object catch (error, stackTrace) {
+        timing.complete();
+        await recordResult(
+          AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.server,
+            detail: 'AppLlmClient.chat threw ${error.runtimeType}',
+          ),
+        );
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      timing.complete();
+      await recordResult(result);
+      if (_shouldCoolDownLlmRequestPool(result)) {
+        endpointPool.coolDownFor(_llmPoolTransientFailureCooldown);
+      }
+      return result;
+    });
+  }
+
   Future<void> _recordFailoverTrace({
     required String fromEndpointId,
     required String toEndpointId,
@@ -403,26 +556,22 @@ class AiRequestService {
     required String traceName,
     int? latencyMs,
   }) async {
-    try {
-      await _eventLog.logBestEffort(
-        level: succeeded ? AppEventLogLevel.info : AppEventLogLevel.warn,
-        category: AppEventLogCategory.ai,
-        action: 'llm.failover',
-        status: succeeded
-            ? AppEventLogStatus.succeeded
-            : AppEventLogStatus.failed,
-        message: succeeded
-            ? 'Failover: $fromEndpointId → $toEndpointId succeeded'
-            : 'Failover: $fromEndpointId → $toEndpointId failed',
-        metadata: {
-          'fromEndpointId': fromEndpointId,
-          'toEndpointId': toEndpointId,
-          'latencyMs':? latencyMs,
-        },
-      );
-    } on Object {
-      // Failover trace should never block generation.
-    }
+    await _eventLog.logBestEffort(
+      level: succeeded ? AppEventLogLevel.info : AppEventLogLevel.warn,
+      category: AppEventLogCategory.ai,
+      action: 'llm.failover',
+      status: succeeded
+          ? AppEventLogStatus.succeeded
+          : AppEventLogStatus.failed,
+      message: succeeded
+          ? 'Failover: $fromEndpointId → $toEndpointId succeeded'
+          : 'Failover: $fromEndpointId → $toEndpointId failed',
+      metadata: {
+        'fromEndpointId': fromEndpointId,
+        'toEndpointId': toEndpointId,
+        'latencyMs': ?latencyMs,
+      },
+    );
   }
 
   Future<void> _recordLlmCallTrace({
@@ -430,7 +579,15 @@ class AiRequestService {
     required AppLlmChatResult result,
     required String traceName,
     required Map<String, Object?> traceMetadata,
+    int? startedAtMs,
+    int? completedAtMs,
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
     PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
     String? schemaType,
     bool? schemaValid,
     List<String>? schemaViolations,
@@ -440,7 +597,15 @@ class AiRequestService {
       result: result,
       traceName: traceName,
       metadata: traceMetadata,
+      startedAtMs: startedAtMs,
+      completedAtMs: completedAtMs,
+      promptReleaseRef: promptReleaseRef,
+      promptInvocationEvidence: promptInvocationEvidence,
       promptVersion: promptVersion,
+      stageId: stageId,
+      callSiteId: callSiteId,
+      variantId: variantId,
+      generationBundleHash: generationBundleHash,
       schemaType: schemaType,
       schemaValid: schemaValid,
       schemaViolations: schemaViolations,
@@ -449,6 +614,7 @@ class AiRequestService {
     try {
       await _llmTraceSink?.record(entry);
     } on Object {
+      if (_llmTraceSink is AppLlmRequiredCallTraceSink) rethrow;
       // LLM tracing should never block generation.
     }
 
@@ -536,5 +702,50 @@ class AiRequestService {
     if (uri == null || !uri.hasAuthority) return false;
     final host = uri.host.toLowerCase();
     return host == 'localhost' || host == '127.0.0.1' || host == '::1';
+  }
+}
+
+/// A wall-clock anchor plus a monotonic elapsed duration for one pooled
+/// dispatch. The wall-clock completion is preferred so adjacent queued calls
+/// keep a shared half-open boundary. Sub-millisecond calls receive the minimum
+/// representable one-millisecond interval.
+final class _LlmDispatchTiming {
+  _LlmDispatchTiming._({
+    required this.startedAtMs,
+    required Stopwatch stopwatch,
+  }) : _stopwatch = stopwatch;
+
+  factory _LlmDispatchTiming.start() {
+    final stopwatch = Stopwatch()..start();
+    return _LlmDispatchTiming._(
+      startedAtMs: DateTime.now().millisecondsSinceEpoch,
+      stopwatch: stopwatch,
+    );
+  }
+
+  final int startedAtMs;
+  final Stopwatch _stopwatch;
+  int? _completedAtMs;
+
+  int get completedAtMs {
+    final value = _completedAtMs;
+    if (value == null) {
+      throw StateError('dispatch timing has not completed');
+    }
+    return value;
+  }
+
+  void complete() {
+    if (_completedAtMs != null) return;
+    _stopwatch.stop();
+    final wallCompletedAtMs = DateTime.now().millisecondsSinceEpoch;
+    final monotonicCompletedAtMs =
+        startedAtMs + _stopwatch.elapsedMicroseconds ~/ 1000;
+    final observedCompletedAtMs = wallCompletedAtMs > monotonicCompletedAtMs
+        ? wallCompletedAtMs
+        : monotonicCompletedAtMs;
+    _completedAtMs = observedCompletedAtMs > startedAtMs
+        ? observedCompletedAtMs
+        : startedAtMs + 1;
   }
 }

@@ -2,13 +2,17 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/state/app_authoring_storage_io_support.dart';
+import 'package:novel_writer/app/state/db_schema_manager.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   late Directory tempDir;
   late String dbPath;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('novel_writer_integrity_test');
+    tempDir = await Directory.systemTemp.createTemp(
+      'novel_writer_integrity_test',
+    );
     dbPath = '${tempDir.path}/authoring.db';
   });
 
@@ -42,6 +46,40 @@ void main() {
       final db = openAuthoringDatabase(nestedPath);
       expect(db, isNotNull);
       db.dispose();
+    });
+
+    test('disposes the connection when a V28 database is rejected', () {
+      final raw = sqlite3.open(dbPath);
+      raw.execute('PRAGMA user_version = 28');
+      raw.dispose();
+
+      expect(
+        () => openAuthoringDatabase(dbPath),
+        throwsA(isA<UnsupportedDatabaseSchemaVersion>()),
+      );
+
+      final reopened = sqlite3.open(dbPath);
+      expect(reopened.select('PRAGMA user_version').single['user_version'], 28);
+      reopened.dispose();
+      File(dbPath).deleteSync();
+      expect(File(dbPath).existsSync(), isFalse);
+    });
+
+    test('existing-schema mismatch disposes before returning failure', () {
+      final raw = sqlite3.open(dbPath);
+      raw.execute('PRAGMA user_version = 26');
+      raw.dispose();
+
+      expect(
+        () => openExistingAuthoringDatabase(dbPath),
+        throwsA(isA<DatabaseCorruptedException>()),
+      );
+
+      final reopened = sqlite3.open(dbPath);
+      expect(reopened.select('PRAGMA user_version').single['user_version'], 26);
+      reopened.dispose();
+      File(dbPath).deleteSync();
+      expect(File(dbPath).existsSync(), isFalse);
     });
   });
 

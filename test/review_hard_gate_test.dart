@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/features/story_generation/data/prose_style_analyzer.dart';
+import 'package:novel_writer/features/story_generation/data/scene_hard_gates.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart'
     as pipeline;
 import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
@@ -74,6 +75,137 @@ void main() {
         reviewCoordinator: _SentryReviewService(),
         maxProseRetries: 2,
         eventLog: eventLog,
+      );
+    });
+
+    test('rejects an abruptly truncated prose tail before LLM review', () {
+      expect(sceneProseTruncationViolationText('他伸手去按门把手，'), contains('截断'));
+      expect(
+        sceneProseTruncationViolationText('他推开门，风声忽然变得浓得化不...'),
+        contains('截断'),
+      );
+      expect(sceneProseTruncationViolationText('他推开门。'), isNull);
+    });
+
+    test('enforces the lower bound for normal production scene targets', () {
+      final brief = SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '测试章节',
+        sceneId: 'ch-01-sc-03',
+        sceneTitle: '测试场景',
+        sceneSummary: '测试',
+        targetLength: 2200,
+      );
+      expect(
+        sceneMinimumLengthViolationText(
+          brief: brief,
+          proseText: List.filled(1500, '字').join(),
+        ),
+        contains('最低长度'),
+      );
+      expect(
+        sceneMinimumLengthViolationText(
+          brief: brief,
+          proseText: List.filled(1800, '字').join(),
+        ),
+        isNull,
+      );
+    });
+
+    test('explicit cliche hard gate rejects nearby sentence self-repeat', () {
+      final brief = SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '测试章节',
+        sceneId: 'ch-01-sc-02',
+        sceneTitle: '测试场景',
+        sceneSummary: '测试',
+        targetLength: 200,
+        metadata: const <String, Object?>{'requireClicheHardGate': true},
+      );
+
+      final violations = sceneHardGateViolations(
+        brief: brief,
+        proseText: '「你看见了吗？」柳溪问。水痕蜿蜒如线，蜿蜒到门边。',
+      );
+
+      expect(
+        violations.map((violation) => violation.text),
+        contains(contains('句内复沓硬约束')),
+      );
+    });
+
+    test('legacy scene does not promote self-repeat to a hard gate', () {
+      final brief = SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '测试章节',
+        sceneId: 'ch-01-sc-02',
+        sceneTitle: '测试场景',
+        sceneSummary: '测试',
+        targetLength: 200,
+      );
+
+      final violations = sceneHardGateViolations(
+        brief: brief,
+        proseText: '「你看见了吗？」柳溪问。水痕蜿蜒如线，蜿蜒到门边。',
+      );
+
+      expect(
+        violations.map((violation) => violation.text),
+        isNot(contains(contains('句内复沓硬约束'))),
+      );
+    });
+
+    test(
+      'resolved ending is not rescued by punctuation or weak hook words',
+      () {
+        final brief = SceneBrief(
+          chapterId: 'ch-01',
+          chapterTitle: '测试章节',
+          sceneId: 'ch-01-sc-03',
+          sceneTitle: '测试场景',
+          sceneSummary: '测试',
+          sceneIndex: 2,
+          totalScenesInChapter: 3,
+          targetLength: 200,
+        );
+
+        final violations = sceneHardGateViolations(
+          brief: brief,
+          proseText: '「我们终于可以走了！」他们决定离开。秘密已经公开，所有人都安全了。',
+        );
+
+        expect(
+          violations.map((violation) => violation.text),
+          contains(contains('章尾')),
+        );
+      },
+    );
+
+    test('required primary character must be introduced by name', () {
+      final brief = SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '测试章节',
+        sceneId: 'ch-01-sc-01',
+        sceneTitle: '测试场景',
+        sceneSummary: '测试',
+        sceneIndex: 0,
+        totalScenesInChapter: 3,
+        targetLength: 200,
+        cast: <SceneCastCandidate>[
+          SceneCastCandidate(characterId: 'liuxi', name: '柳溪', role: '记者'),
+          SceneCastCandidate(characterId: 'shendu', name: '沈渡', role: '线人'),
+        ],
+        metadata: const <String, Object?>{'requireCharacterIntroduction': true},
+      );
+
+      final violations = sceneHardGateViolations(
+        brief: brief,
+        proseText: '「快走！」她冲进档案室，抓起桌上的名单。门外警报骤然响起。',
+      );
+
+      expect(
+        violations.map((violation) => violation.text),
+        contains(contains('角色引入')),
       );
     });
 
@@ -170,6 +302,7 @@ void main() {
         // Prose that opens with pure environmental description (no hook keywords)
         const weakOpeningProse =
             '清晨的阳光透过窗帘洒进房间。空气中弥漫着淡淡的花香。'
+            '窗台上的玻璃杯映着树影，桌布平整得没有一丝褶皱。'
             '「你来了。」张三看着门外的人说道。'
             '「是的，我来了。」李四点了点头。'
             '「事情比你想象的要复杂。」张三叹了口气。'
@@ -344,6 +477,73 @@ void main() {
       // this proves the hook gate did NOT intercept.
       expect(() => reviewStep.execute(input, eventLog), throwsStateError);
     });
+
+    test('concrete 拍门禁 action is not mistaken for atmosphere', () async {
+      const prose =
+          '柳溪猛地拍上门禁终端，绿点晃了一下——她突然发现时间戳不对。'
+          '「这不是今晚的记录，谁动过系统？」她压低声音问。'
+          '「别再拍了，走廊里有人。」保安伸手拦住她。'
+          '「我需要一个解释，而且现在就要。」柳溪盯住那盏闪烁的绿灯。'
+          '「如果记录被改过，下一次失踪的就是活人。」她把终端转向他。'
+          '「那就去地下库房，答案可能还在那里。」保安终于让开了路。';
+      final brief = SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '测试章节',
+        sceneId: 'ch-01-sc-01',
+        sceneTitle: '门禁',
+        sceneSummary: '测试',
+        sceneIndex: 0,
+        totalScenesInChapter: 3,
+        targetLength: 200,
+      );
+      final input = ReviewInput(
+        brief: brief,
+        plan: _stubPlan(brief),
+        roleplay: _stubRoleplay(),
+        editorial: _stubEditorial(prose),
+        context: _stubContext(),
+        attempt: 1,
+        softFailureCount: 0,
+      );
+      expect(() => reviewStep.execute(input, eventLog), throwsStateError);
+    });
+
+    test(
+      'action followed by dialogue within 50 characters passes hook gate',
+      () async {
+        // No question mark or suspense keyword: this only passes if the gate
+        // recognises the immediate dialogue after the opening action.
+        const prose =
+            '柳溪一把拍在门禁终端，指尖压得屏幕边框嘎吱作响。「别装傻，日志被人动过。」'
+            '保安的手悬在半空，没有立刻按下警报。'
+            '「我没有碰过系统。」他盯着滚动的时间戳，声音发紧。'
+            '「那这串多出来的记录从哪来的？」柳溪把屏幕转向他。'
+            '「地下库房今晚一直锁着。」保安后退半步，挡住通往楼梯的门。'
+            '「锁着不代表没人进去。」柳溪收回手，听见走廊尽头传来脚步声。';
+        final brief = SceneBrief(
+          chapterId: 'ch-01',
+          chapterTitle: '测试章节',
+          sceneId: 'ch-01-sc-01',
+          sceneTitle: '门禁',
+          sceneSummary: '测试',
+          sceneIndex: 0,
+          totalScenesInChapter: 3,
+          targetLength: 200,
+        );
+        final input = ReviewInput(
+          brief: brief,
+          plan: _stubPlan(brief),
+          roleplay: _stubRoleplay(),
+          editorial: _stubEditorial(prose),
+          context: _stubContext(),
+          attempt: 1,
+          softFailureCount: 0,
+        );
+
+        // The throw from the fake LLM confirms the deterministic gate passed.
+        expect(() => reviewStep.execute(input, eventLog), throwsStateError);
+      },
+    );
   });
 
   group('ProseStyleAnalyzer dialogue detection', () {
@@ -357,6 +557,40 @@ void main() {
       const text = '街道上一片寂静。张三沿着墙根走着。远处灯光忽明忽暗。';
       final fingerprint = ProseStyleAnalyzer().analyze(text);
       expect(fingerprint.dialogueRatio, lessThan(0.05));
+    });
+  });
+
+  group('physical continuity hard gate', () {
+    test('hard-gate release identity is a canonical digest', () {
+      expect(
+        sceneHardGateReleaseHash,
+        matches(RegExp(r'^sha256:[a-f0-9]{64}$')),
+      );
+    });
+
+    test('rejects an explicit same-minute two-location alibi', () {
+      expect(
+        scenePhysicalContinuityViolationText('他本人在同一分钟出现在相距3公里的两地盖章，记录因此完全重叠。'),
+        contains('物理连续性硬约束'),
+      );
+    });
+
+    test('does not reject a supported system-delay explanation', () {
+      expect(
+        scenePhysicalContinuityViolationText(
+          '系统延迟让两条不同时间的记录在屏幕上显示为同一分钟，代签人随后承认操作。',
+        ),
+        isNull,
+      );
+    });
+
+    test('does not reject the same actor when delegation is explicit', () {
+      expect(
+        scenePhysicalContinuityViolationText(
+          '他本人在同一分钟被两地系统记录，但西站记录由同伴代签并因系统延迟同步。',
+        ),
+        isNull,
+      );
     });
   });
 }

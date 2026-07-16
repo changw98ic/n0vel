@@ -274,6 +274,11 @@ class ProductionBoardSnapshotBuilder {
       StoryGenerationRunStatus.idle => '暂无运行',
       StoryGenerationRunStatus.running => '运行中',
       StoryGenerationRunStatus.completed => '已完成',
+      StoryGenerationRunStatus.preliminaryReviewBlocked => '初审阻断',
+      StoryGenerationRunStatus.finalReviewBlocked => '终审阻断',
+      StoryGenerationRunStatus.qualityBlocked => '质量阻断',
+      StoryGenerationRunStatus.budgetBlocked => '预算阻断',
+      StoryGenerationRunStatus.conflict => '资料/正文冲突',
       StoryGenerationRunStatus.failed => '失败',
       StoryGenerationRunStatus.cancelled => '已取消',
     };

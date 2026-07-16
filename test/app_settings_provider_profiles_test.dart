@@ -4,6 +4,8 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 
+import 'test_support/app_llm_authorized_request.dart';
+
 void main() {
   late AppSettingsStore store;
 
@@ -553,7 +555,8 @@ void main() {
       ),
     );
 
-    await store.requestAiCompletion(
+    await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
       traceName: 'scene_review_plot',
     );
@@ -562,6 +565,75 @@ void main() {
     expect(llmClient.lastRequest!.model, 'glm-5.1');
     expect(llmClient.lastRequest!.apiKey, 'review-key');
   });
+
+  test(
+    'synced primary profile does not create a hidden gateway retry',
+    () async {
+      final llmClient = _ThrowingLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+      await store.save(
+        providerName: 'Default',
+        baseUrl: 'https://default.example.com/v1',
+        model: 'gpt-5.4',
+        apiKey: 'default-key',
+      );
+      expect(store.snapshot.providerProfiles.single.id, 'primary');
+
+      await expectLater(
+        requestAuthorizedAiCompletionForTest(
+          store,
+          messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
+          traceName: 'scene_review_plot',
+        ),
+        throwsStateError,
+      );
+
+      expect(llmClient.calls, 1);
+    },
+  );
+
+  test(
+    'a distinct provider profile remains a real failover endpoint',
+    () async {
+      final llmClient = _RouteAwareFailoverClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+      await store.save(
+        providerName: 'Default',
+        baseUrl: 'https://default.example.com/v1',
+        model: 'gpt-5.4',
+        apiKey: 'default-key',
+      );
+      await store.upsertProviderProfile(
+        const AppLlmProviderProfile(
+          id: 'review-fallback',
+          providerName: 'Review fallback',
+          baseUrl: 'https://fallback.example.com/v1',
+          model: 'glm-5.1',
+          apiKey: 'fallback-key',
+        ),
+      );
+
+      final result = await requestAuthorizedAiCompletionForTest(
+        store,
+        messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
+        traceName: 'scene_review_plot',
+      );
+
+      expect(result.succeeded, isTrue);
+      expect(llmClient.baseUrls, <String>[
+        'https://default.example.com/v1',
+        'https://fallback.example.com/v1',
+      ]);
+    },
+  );
 
   test(
     'removing profile causes fallback to default provider on next request',
@@ -597,7 +669,8 @@ void main() {
 
       await store.removeProviderProfile('review');
 
-      await store.requestAiCompletion(
+      await requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
         traceName: 'scene_review_plot',
       );
@@ -622,4 +695,35 @@ class _CapturingLlmClient implements AppLlmClient {
     lastRequest = request;
     return Stream<String>.value('pong');
   }
+}
+
+final class _ThrowingLlmClient implements AppLlmClient {
+  int calls = 0;
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    calls += 1;
+    throw StateError('provider failed');
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) => const Stream.empty();
+}
+
+final class _RouteAwareFailoverClient implements AppLlmClient {
+  final List<String> baseUrls = <String>[];
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    baseUrls.add(request.baseUrl);
+    if (request.baseUrl == 'https://default.example.com/v1') {
+      return const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.invalidResponse,
+      );
+    }
+    return const AppLlmChatResult.success(text: 'fallback');
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) => const Stream.empty();
 }

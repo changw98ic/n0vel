@@ -27,6 +27,10 @@ void main() {
 
       expect(prompt, contains('本章首个场景'));
       expect(prompt, contains('悬念'));
+      expect(prompt, contains('最终交稿机械自检'));
+      expect(prompt, contains('至少35%'));
+      expect(prompt, contains('175个中文对白字'));
+      expect(prompt, contains('至少8个'));
       expect(prompt, contains('第1个场景'));
       expect(prompt, contains('共3个'));
     });
@@ -98,5 +102,19 @@ void main() {
       expect(prompt, contains('首个场景'));
       expect(prompt, contains('最后场景'));
     });
+
+    test(
+      'revision constraint turns quoted rejected evidence into a ban list',
+      () {
+        final directive =
+            SceneEditorialGenerator.buildRejectedEvidenceDirective(
+              '关键剧情道具“打印机/纸带”违反物理规则，无法在“断电”期间主动打印。',
+            );
+
+        expect(directive, contains('已证伪元素不得复用'));
+        expect(directive, contains('打印机/纸带'));
+        expect(directive, contains('断电'));
+      },
+    );
   });
 }

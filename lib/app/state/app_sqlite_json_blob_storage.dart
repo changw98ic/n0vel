@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:sqlite3/sqlite3.dart';
+
 import 'app_authoring_storage_io_support.dart';
 import 'storage_write_verification.dart';
 
@@ -13,9 +15,11 @@ class SqliteJsonBlobStorage {
     required String dbPath,
     required String tableName,
     required String jsonColumn,
+    bool requireExistingSchema = false,
   }) : _dbPath = dbPath,
        _tableName = tableName,
-       _jsonColumn = jsonColumn {
+       _jsonColumn = jsonColumn,
+       _requireExistingSchema = requireExistingSchema {
     checkedSqlIdentifier(tableName);
     checkedSqlIdentifier(jsonColumn);
   }
@@ -23,10 +27,11 @@ class SqliteJsonBlobStorage {
   final String _dbPath;
   final String _tableName;
   final String _jsonColumn;
+  final bool _requireExistingSchema;
 
   Future<Map<String, Object?>?> load({required String projectId}) async {
     return Isolate.run(() {
-      return withAuthoringDb(_dbPath, (db) {
+      Map<String, Object?>? read(Database db) {
         final rows = db.select(
           'SELECT $_jsonColumn FROM $_tableName WHERE project_id = ? LIMIT 1',
           [projectId],
@@ -41,7 +46,11 @@ class SqliteJsonBlobStorage {
             entry.key.toString(): entry.value as Object?,
           'projectId': decoded['projectId']?.toString() ?? projectId,
         };
-      });
+      }
+
+      return _requireExistingSchema
+          ? withExistingAuthoringDb(_dbPath, read, readOnly: true)
+          : withAuthoringDb(_dbPath, read);
     });
   }
 
@@ -55,9 +64,12 @@ class SqliteJsonBlobStorage {
   }
 
   /// Writes [data] to the database without verification.
-  Future<void> _writeToDb(Map<String, Object?> data, {required String projectId}) {
+  Future<void> _writeToDb(
+    Map<String, Object?> data, {
+    required String projectId,
+  }) {
     return Isolate.run(() {
-      withAuthoringDb(_dbPath, (db) {
+      void write(Database db) {
         db.execute(
           '''
           INSERT INTO $_tableName (project_id, $_jsonColumn, updated_at_ms)
@@ -75,23 +87,35 @@ class SqliteJsonBlobStorage {
             DateTime.now().millisecondsSinceEpoch,
           ],
         );
-      });
+      }
+
+      _requireExistingSchema
+          ? withExistingAuthoringDb(_dbPath, write)
+          : withAuthoringDb(_dbPath, write);
     });
   }
 
   Future<void> clear({String? projectId}) async {
     await Isolate.run(() {
-      withAuthoringDb(_dbPath, (db) {
+      void clear(Database db) {
         clearByProject(db, _tableName, projectId: projectId);
-      });
+      }
+
+      _requireExistingSchema
+          ? withExistingAuthoringDb(_dbPath, clear)
+          : withAuthoringDb(_dbPath, clear);
     });
   }
 
   Future<void> clearProject(String projectId) async {
     await Isolate.run(() {
-      withAuthoringDb(_dbPath, (db) {
+      void clear(Database db) {
         clearByProjectScope(db, _tableName, projectId);
-      });
+      }
+
+      _requireExistingSchema
+          ? withExistingAuthoringDb(_dbPath, clear)
+          : withAuthoringDb(_dbPath, clear);
     });
   }
 }

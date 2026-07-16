@@ -1,10 +1,11 @@
 import 'dart:convert';
 
-import 'package:novel_writer/app/llm/app_llm_client_types.dart';
 import '../domain/contracts/settings_contract.dart';
 
 import '../domain/memory_models.dart';
 import 'scene_review_models.dart';
+import 'story_prompt_registry.dart';
+import 'evaluation/agent_evaluation_trace_context.dart';
 
 /// Uses an LLM to produce structured chapter summaries for cross-chapter
 /// coherence. Falls back to the existing structural approach on failure.
@@ -31,21 +32,34 @@ class ChapterSummarizer {
     final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     final sceneTexts = _collectSceneTexts(outputs);
 
-    final systemPrompt = _buildSystemPrompt();
-    final userPrompt = _buildUserPrompt(
-      chapterTitle: chapterTitle,
-      sceneTexts: sceneTexts,
-      previousSummary: previousSummary,
-    );
-
     try {
+      final promptIdentity = StoryPromptRegistry.production.invocation(
+        stageId: 'chapter-summary',
+        callSiteId: 'chapter-summarizer',
+      );
+      final resolvedVariables = <String, Object?>{
+        'chapterTitle': chapterTitle,
+        'previousSummaryBlock': _previousSummaryBlock(previousSummary),
+        'sceneTexts': sceneTexts,
+      };
+      final messages = promptIdentity.render(resolvedVariables).messages;
+      // llm-call-site: boundary.story.chapter-summary
       final result = await settingsStore.requestAiCompletion(
-        messages: [
-          AppLlmChatMessage(role: 'system', content: systemPrompt),
-          AppLlmChatMessage(role: 'user', content: userPrompt),
-        ],
+        messages: messages,
         maxTokens: 2048,
         traceName: 'chapter-summarizer',
+        traceMetadata:
+            AgentEvaluationTraceContext.current?.toTraceMetadata() ??
+            const <String, Object?>{},
+        promptReleaseRef: promptIdentity.promptReleaseRef,
+        promptInvocationEvidence: promptIdentity.evidence(
+          messages,
+          resolvedVariables: resolvedVariables,
+        ),
+        stageId: promptIdentity.callSite.stageId,
+        callSiteId: promptIdentity.callSite.callSiteId,
+        variantId: promptIdentity.callSite.variantId,
+        generationBundleHash: promptIdentity.generationBundleHash,
       );
 
       if (result.text == null || result.text!.trim().isEmpty) return null;
@@ -62,52 +76,17 @@ class ChapterSummarizer {
     }
   }
 
-  String _buildSystemPrompt() {
-    return '你是一个小说章节摘要生成器。根据给定的场景输出，生成结构化的 JSON 摘要。\n'
-        '必须严格按以下 JSON 格式输出，不要添加任何其他文字：\n'
-        '{\n'
-        '  "plotProgression": "本章剧情进展的核心描述",\n'
-        '  "characterStateChanges": ["角色A: 情感/状态变化", "角色B: ..."],\n'
-        '  "unresolvedThreads": ["未解决的悬念1", "未解决的悬念2"],\n'
-        '  "worldStateChanges": "世界观/设定的变化",\n'
-        '  "foreshadowingStatus": "已埋伏笔的状态（已回收/仍待解）",\n'
-        '  "emotionalArcs": "主要角色的情感弧线变化",\n'
-        '  "keyRevelations": "本章揭示的关键信息"\n'
-        '}\n'
-        '要求：\n'
-        '- plotProgression 必须简洁但完整，涵盖本章核心事件\n'
-        '- characterStateChanges 每条以"角色名: 变化描述"格式\n'
-        '- 如果上一章摘要提供了增量上下文，要确保连续性\n'
-        '- 各字段不要为空，即使内容为"无变化"也要明确说明';
-  }
-
-  String _buildUserPrompt({
-    required String chapterTitle,
-    required String sceneTexts,
-    required ChapterSummary? previousSummary,
-  }) {
+  String _previousSummaryBlock(ChapterSummary? previousSummary) {
+    if (previousSummary == null) return '';
     final buffer = StringBuffer();
-    buffer.writeln('章节标题: $chapterTitle');
-    buffer.writeln();
-
-    if (previousSummary != null) {
-      buffer.writeln('【上一章摘要】');
-      buffer.writeln('剧情: ${previousSummary.plotProgress}');
-      if (previousSummary.unresolvedThreads.isNotEmpty) {
-        buffer.writeln('未解悬念: ${previousSummary.unresolvedThreads.join("; ")}');
-      }
-      if (previousSummary.foreshadowingStatus.isNotEmpty) {
-        buffer.writeln('伏笔状态: ${previousSummary.foreshadowingStatus}');
-      }
-      buffer.writeln();
+    buffer.writeln('剧情: ${previousSummary.plotProgress}');
+    if (previousSummary.unresolvedThreads.isNotEmpty) {
+      buffer.writeln('未解悬念: ${previousSummary.unresolvedThreads.join("; ")}');
     }
-
-    buffer.writeln('【本章场景输出】');
-    buffer.writeln(sceneTexts);
-    buffer.writeln();
-    buffer.writeln('请生成上述章节的结构化摘要 JSON：');
-
-    return buffer.toString();
+    if (previousSummary.foreshadowingStatus.isNotEmpty) {
+      buffer.writeln('伏笔状态: ${previousSummary.foreshadowingStatus}');
+    }
+    return buffer.toString().trimRight();
   }
 
   String _collectSceneTexts(List<SceneRuntimeOutput> outputs) {
@@ -143,7 +122,9 @@ class ChapterSummarizer {
       // Extract JSON from response — handle markdown code blocks
       var jsonStr = response.trim();
       if (jsonStr.contains('```')) {
-        final match = RegExp(r'```(?:json)?\s*([\s\S]*?)```').firstMatch(jsonStr);
+        final match = RegExp(
+          r'```(?:json)?\s*([\s\S]*?)```',
+        ).firstMatch(jsonStr);
         if (match != null) jsonStr = match.group(1)?.trim() ?? jsonStr;
       }
 

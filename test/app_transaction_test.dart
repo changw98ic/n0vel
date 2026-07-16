@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -112,6 +113,44 @@ void main() {
                 as int,
       );
       expect(remaining, 0);
+    });
+
+    test(
+      'existing-schema opener avoids FTS migration in 32 isolates',
+      () async {
+        withAuthoringDb(dbPath, (db) {
+          db.execute('''INSERT INTO story_outline_snapshots (
+               project_id, snapshot_json, updated_at_ms
+             ) VALUES ('p1', '{"chapters":[]}', 1)''');
+        });
+
+        final counts = await Future.wait(<Future<int>>[
+          for (var index = 0; index < 32; index += 1)
+            Isolate.run(
+              () => withExistingAuthoringDb(
+                dbPath,
+                (db) =>
+                    db.select('''SELECT count(*) AS c
+                               FROM story_outline_snapshots''').single['c']
+                        as int,
+                readOnly: true,
+              ),
+            ),
+        ]);
+
+        expect(counts, everyElement(1));
+      },
+    );
+
+    test('existing-schema opener rejects an unfrozen schema version', () {
+      final db = sqlite3.open(dbPath);
+      db.execute('PRAGMA user_version = 1');
+      db.dispose();
+
+      expect(
+        () => withExistingAuthoringDb(dbPath, (_) => null, readOnly: true),
+        throwsA(isA<DatabaseCorruptedException>()),
+      );
     });
   });
 

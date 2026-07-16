@@ -1,0 +1,294 @@
+{
+  "generatedAtMs": 1777754850094,
+  "sceneCount": 12,
+  "scenes": [
+    {
+      "chapterId": "chapter-01",
+      "chapterTitle": "第一章 雨夜码头",
+      "sceneId": "scene-01",
+      "sceneTitle": "抵达旧码头",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 393,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色行动与对白精准完成导演指令的对峙与亮明底线功能，无越权或死尸违规，局面推进符合裁决事实。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 89.0,
+        "prose": 88.0,
+        "coherence": 85.0,
+        "character": 92.0,
+        "completeness": 90.0,
+        "summary": "暴雨中的旧码头对峙张力拉满，动作细节与环境压迫完美交融，人物决绝姿态刻画入木三分。"
+      }
+    },
+    {
+      "chapterId": "chapter-01",
+      "chapterTitle": "第一章 雨夜码头",
+      "sceneId": "scene-02",
+      "sceneTitle": "雨棚下的试探",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 364,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "正文忠实还原了角色回合的动作与对白，双向试探氛围到位，无越权或死尸行动等阻塞问题，剧情功能正常推进。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 91.0,
+        "prose": 92.0,
+        "coherence": 90.0,
+        "character": 93.0,
+        "completeness": 88.0,
+        "summary": "雨夜暗涌中的精彩攻防，柳溪的紧与沈渡的松形成绝佳张力，试探氛围刻画入微。"
+      }
+    },
+    {
+      "chapterId": "chapter-01",
+      "chapterTitle": "第一章 雨夜码头",
+      "sceneId": "scene-03",
+      "sceneTitle": "条件交换",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 377,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色以有条件合作（带路换先取底册）完成了导演目标中“达成脆弱合作、锁定先取底册”的同等剧情功能，正文无越权或死尸能动等阻塞问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 93.0,
+        "prose": 90.0,
+        "coherence": 95.0,
+        "character": 92.0,
+        "completeness": 95.0,
+        "summary": "氛围感与拉扯感俱佳，以精准的动作细节和极简的对话完成了一场高张力条件交换。"
+      }
+    },
+    {
+      "chapterId": "chapter-01",
+      "chapterTitle": "第一章 雨夜码头",
+      "sceneId": "scene-04",
+      "sceneTitle": "封港前的离场",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 340,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "剧情功能完整达成，柳溪承诺不连累并敲定丑时行动，收束本章；动作对白符合角色输入，无越权或逻辑阻塞问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 88.0,
+        "prose": 80.0,
+        "coherence": 92.0,
+        "character": 88.0,
+        "completeness": 95.0,
+        "summary": "氛围压迫感与动作细节配合默契，高效完成定约与钩子铺设，是标准的收束段落。"
+      }
+    },
+    {
+      "chapterId": "chapter-02",
+      "chapterTitle": "第二章 档案楼暗门",
+      "sceneId": "scene-01",
+      "sceneTitle": "侧门潜入",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 424,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "正文忠实于角色扮演与裁决事实，成功建立高压静默氛围与急进/谨慎的极限拉扯，无越权或出戏问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 92.0,
+        "prose": 90.0,
+        "coherence": 92.0,
+        "character": 95.0,
+        "completeness": 90.0,
+        "summary": "动作与暗哨细节刻画极具画面感，急进与谨慎的肢体拉扯将高压静默氛围推至顶峰。"
+      }
+    },
+    {
+      "chapterId": "chapter-02",
+      "chapterTitle": "第二章 档案楼暗门",
+      "sceneId": "scene-02",
+      "sceneTitle": "封存柜检索",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 414,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色动作对白忠实于输入，检索节奏与催促的拉扯冲突体现充分，柳溪发现跳号、沈渡提供\"星川\"线索推进了搜索范围收缩，无阻塞问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 93.0,
+        "prose": 92.0,
+        "coherence": 95.0,
+        "character": 95.0,
+        "completeness": 95.0,
+        "summary": "暗室检索氛围刻画极佳，双角色的快准拉扯张力十足，线索收束干脆利落。"
+      }
+    },
+    {
+      "chapterId": "chapter-02",
+      "chapterTitle": "第二章 档案楼暗门",
+      "sceneId": "scene-03",
+      "sceneTitle": "发现被动过的底册",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 422,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色行动与对白忠实完成导演冲突与推进要求，正文补充的封签错位与墨迹覆写细节有效强化了“他人捷足先登”与“请君入瓮”的剧情功能，无越权或出戏问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 94.0,
+        "prose": 94.0,
+        "coherence": 95.0,
+        "character": 93.0,
+        "completeness": 95.0,
+        "summary": "细节精密极具画面感，由物理痕迹至心理陷阱的顿悟一气呵成，瞬间引爆生存危机。"
+      }
+    },
+    {
+      "chapterId": "chapter-02",
+      "chapterTitle": "第二章 档案楼暗门",
+      "sceneId": "scene-04",
+      "sceneTitle": "撤离前的分歧",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 507,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "冲突完整呈现，正文通过划痕与档案错位成功补全“留下破绽”的导演指令，符合角色行动与剧情功能。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 90.0,
+        "prose": 88.0,
+        "coherence": 90.0,
+        "character": 88.0,
+        "completeness": 92.0,
+        "summary": "极窄空间内张力拉满，物理破绽与心理博弈精准咬合，完美执行撤离留雷的导演指令。"
+      }
+    },
+    {
+      "chapterId": "chapter-03",
+      "chapterTitle": "第三章 天台交锋",
+      "sceneId": "scene-01",
+      "sceneTitle": "逼退到天台",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 342,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "正文完整呈现了导演要求的追兵逼近与门口封堵争取喘息的推进，忠实还原了柳溪死保线索与沈渡以命相逼的对峙张力，无越权或逻辑阻塞问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 93.0,
+        "prose": 93.0,
+        "coherence": 91.0,
+        "character": 94.0,
+        "completeness": 95.0,
+        "summary": "雨夜天台绝境中，以命相逼与死守线索的对峙张力拉满，生死压迫感呼之欲出。"
+      }
+    },
+    {
+      "chapterId": "chapter-03",
+      "chapterTitle": "第三章 天台交锋",
+      "sceneId": "scene-02",
+      "sceneTitle": "公开还是潜伏",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 375,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色动作与对白完整呈现了“知情权”与“港区安危”的价值观正面对撞，证据及环境未违规异动，同等剧情功能已达成。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 93.0,
+        "prose": 92.0,
+        "coherence": 93.0,
+        "character": 94.0,
+        "completeness": 92.0,
+        "summary": "寒风天台上的价值对撞刀刀见血，“知情权”与“生存权”的底线交锋极具张力。"
+      }
+    },
+    {
+      "chapterId": "chapter-03",
+      "chapterTitle": "第三章 天台交锋",
+      "sceneId": "scene-03",
+      "sceneTitle": "分头计划",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 417,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "正文忠实还原角色扮演动作与裁决事实，两人争抢诱饵的冲突和证据往复推塞的互动完整呈现，场景未收束但推进方向与导演目标一致，无阻塞问题。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 92.0,
+        "prose": 92.0,
+        "coherence": 95.0,
+        "character": 92.0,
+        "completeness": 90.0,
+        "summary": "紧迫的破门声与强硬的动作交锋，将生死抉择压成紧凑的分工，张力与画面感俱佳。"
+      }
+    },
+    {
+      "chapterId": "chapter-03",
+      "chapterTitle": "第三章 天台交锋",
+      "sceneId": "scene-04",
+      "sceneTitle": "转折与余波",
+      "proseAttempts": 1,
+      "softFailureCount": 0,
+      "characterCount": 431,
+      "review": {
+        "decision": "pass",
+        "judgeStatus": "pass",
+        "judgeReason": "角色互动完成分头逃亡节拍与长线钩子，沈渡断后持盘与柳溪撤离符合同等剧情功能。",
+        "consistencyStatus": "pass",
+        "consistencyReason": "合并审查已覆盖一致性检查。"
+      },
+      "qualityScore": {
+        "overall": 91.0,
+        "prose": 88.0,
+        "coherence": 90.0,
+        "character": 92.0,
+        "completeness": 95.0,
+        "summary": "雨夜绝境中的反向拉扯极具张力，动作与氛围交融，悬念钩子干脆利落。"
+      }
+    }
+  ]
+}

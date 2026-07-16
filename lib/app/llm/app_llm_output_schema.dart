@@ -18,10 +18,7 @@ import 'app_llm_client_types.dart';
 
 /// Outcome of an [AppLlmOutputSchema.validate] call.
 class AppLlmSchemaResult {
-  const AppLlmSchemaResult({
-    required this.isValid,
-    this.violations = const [],
-  });
+  const AppLlmSchemaResult({required this.isValid, this.violations = const []});
 
   /// `true` when all rules pass.
   final bool isValid;
@@ -73,7 +70,8 @@ class AppLlmOutputSchema {
   static AppLlmOutputSchema prose({int minProseLength = 50}) {
     return AppLlmOutputSchema(
       minLength: minProseLength,
-      description: 'Scene prose output (min $minProseLength chars, '
+      description:
+          'Scene prose output (min $minProseLength chars, '
           'no markdown fences or preamble)',
       forbiddenPatterns: _proseForbiddenPatterns,
     );
@@ -150,9 +148,7 @@ class AppLlmOutputSchema {
 
     for (final pattern in requiredPatterns) {
       if (!pattern.hasMatch(output)) {
-        violations.add(
-          'Required pattern not found: ${pattern.pattern}',
-        );
+        violations.add('Required pattern not found: ${pattern.pattern}');
       }
     }
 
@@ -214,14 +210,20 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
     AppLlmChatRequest request, {
     AppLlmOutputSchema? schema,
     String? schemaType,
-    void Function(String? schemaType, AppLlmSchemaResult validation,
-        AppLlmChatResult result)? onSchemaValidated,
+    void Function(
+      String? schemaType,
+      AppLlmSchemaResult validation,
+      AppLlmChatResult result,
+    )?
+    onSchemaValidated,
   }) async {
     if (schema == null) {
+      // llm-call-site: boundary.schema.passthrough
       return _delegate.chat(request);
     }
 
     var currentMessages = List<AppLlmChatMessage>.of(request.messages);
+    // llm-call-site: boundary.schema.initial
     var lastResult = await _delegate.chat(request);
 
     for (var attempt = 0; attempt < maxValidationRetries; attempt++) {
@@ -238,6 +240,7 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
       // Build retry feedback.
       final feedback = _buildRetryFeedback(result, schema);
       currentMessages = [...currentMessages, feedback];
+      // llm-call-site: boundary.schema.repair
       lastResult = await _delegate.chat(
         AppLlmChatRequest(
           baseUrl: request.baseUrl,
@@ -248,6 +251,7 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
           messages: currentMessages,
           provider: request.provider,
           onPartialText: request.onPartialText,
+          formalCacheIdentity: request.formalCacheIdentity,
         ),
       );
     }
@@ -269,11 +273,13 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) {
+    // llm-call-site: boundary.schema.interface
     return _delegate.chat(request);
   }
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) {
+    // llm-call-site: boundary.schema.stream-interface
     return _delegate.chatStream(request);
   }
 
@@ -285,15 +291,14 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
     AppLlmSchemaResult result,
     AppLlmOutputSchema schema,
   ) {
-    final bulletPoints = result.violations
-        .map((v) => '- $v')
-        .join('\n');
+    final bulletPoints = result.violations.map((v) => '- $v').join('\n');
     final description = schema.description.isEmpty
         ? 'the expected format'
         : schema.description;
     return AppLlmChatMessage(
       role: 'user',
-      content: '上一轮输出未满足格式要求（$description）。'
+      content:
+          '上一轮输出未满足格式要求（$description）。'
           '请修正以下问题并重新生成：\n$bulletPoints\n'
           '直接输出修正后的内容，不要解释。',
     );

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:sqlite3/sqlite3.dart';
+
 import 'app_auto_backup.dart';
 import 'app_authoring_storage_io_support.dart';
 
@@ -30,7 +32,17 @@ class FileAutoBackupService implements AutoBackupService {
       seq++;
     }
 
-    await source.copy(target.path);
+    final temporary = File('${target.path}.tmp-$pid');
+    if (await temporary.exists()) await temporary.delete();
+    final sourceDb = sqlite3.open(source.path, mode: OpenMode.readOnly);
+    try {
+      // SQLite owns the snapshot so committed WAL pages are included.
+      sourceDb.execute('VACUUM INTO ?', <Object?>[temporary.path]);
+    } finally {
+      sourceDb.dispose();
+    }
+    _validateSnapshot(temporary.path);
+    await temporary.rename(target.path);
 
     final stat = await target.stat();
     return BackupEntry(
@@ -55,11 +67,13 @@ class FileAutoBackupService implements AutoBackupService {
 
       final id = _extractId(name);
       final stat = await entity.stat();
-      entries.add(BackupEntry(
-        id: id,
-        sizeBytes: stat.size,
-        createdAtMs: stat.modified.millisecondsSinceEpoch,
-      ));
+      entries.add(
+        BackupEntry(
+          id: id,
+          sizeBytes: stat.size,
+          createdAtMs: stat.modified.millisecondsSinceEpoch,
+        ),
+      );
     }
 
     entries.sort((a, b) => b.createdAtMs.compareTo(a.createdAtMs));
@@ -68,19 +82,53 @@ class FileAutoBackupService implements AutoBackupService {
 
   @override
   Future<void> restoreBackup(String id) async {
+    _requireValidId(id);
     final dir = _backupDirectory;
     final backupFile = File('${dir.path}/authoring_$id.db');
     if (!await backupFile.exists()) {
       throw StateError('backup not found: $id');
     }
 
-    final target = File(_dbPath);
+    _validateSnapshot(backupFile.path);
+    final target = File(_dbPath).absolute;
     await target.parent.create(recursive: true);
-    await backupFile.copy(target.path);
+    final stage = File('${target.path}.restore-$pid.tmp');
+    if (await stage.exists()) await stage.delete();
+    final backupDb = sqlite3.open(backupFile.path, mode: OpenMode.readOnly);
+    try {
+      backupDb.execute('VACUUM INTO ?', <Object?>[stage.path]);
+    } finally {
+      backupDb.dispose();
+    }
+    _validateSnapshot(stage.path);
+
+    // Refuse to replace a busy live database, and checkpoint its WAL before
+    // the atomic rename. The app already requires restart after restore.
+    if (await target.exists()) {
+      final live = sqlite3.open(target.path);
+      try {
+        live.execute('PRAGMA busy_timeout = 1');
+        live.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+        live.execute('BEGIN EXCLUSIVE');
+        live.execute('COMMIT');
+      } on Object {
+        if (live.autocommit == false) live.execute('ROLLBACK');
+        if (await stage.exists()) await stage.delete();
+        rethrow;
+      } finally {
+        live.dispose();
+      }
+    }
+    await stage.rename(target.path);
+    for (final suffix in const <String>['-wal', '-shm']) {
+      final sidecar = File('${target.path}$suffix');
+      if (await sidecar.exists()) await sidecar.delete();
+    }
   }
 
   @override
   Future<void> deleteBackup(String id) async {
+    if (!RegExp(r'^\d{8}_\d{6}_\d{3}(?:_\d+)?$').hasMatch(id)) return;
     final dir = _backupDirectory;
     final backupFile = File('${dir.path}/authoring_$id.db');
     if (await backupFile.exists()) {
@@ -114,7 +162,8 @@ class FileAutoBackupService implements AutoBackupService {
     final min = dt.minute.toString().padLeft(2, '0');
     final s = dt.second.toString().padLeft(2, '0');
     final ms = dt.millisecond.toString().padLeft(3, '0');
-    return '$y$m$d' '_$h$min${s}_$ms';
+    return '$y$m$d'
+        '_$h$min${s}_$ms';
   }
 
   static bool _isBackupFile(String name) {
@@ -125,6 +174,22 @@ class FileAutoBackupService implements AutoBackupService {
 
   static String _extractId(String name) {
     return name.replaceAll('authoring_', '').replaceAll('.db', '');
+  }
+
+  static void _requireValidId(String id) {
+    if (!RegExp(r'^\d{8}_\d{6}_\d{3}(?:_\d+)?$').hasMatch(id)) {
+      throw StateError('invalid backup id');
+    }
+  }
+
+  static void _validateSnapshot(String path) {
+    final db = sqlite3.open(path, mode: OpenMode.readOnly);
+    try {
+      final result = db.select('PRAGMA integrity_check').single.values.single;
+      if (result != 'ok') throw StateError('backup integrity check failed');
+    } finally {
+      db.dispose();
+    }
   }
 }
 

@@ -2,6 +2,7 @@ import '../domain/contracts/settings_contract.dart';
 
 import 'character_memory_delta_models.dart';
 import 'character_visible_context_builder.dart';
+import 'formal_evaluation_policy.dart';
 import 'role_skill_registry.dart';
 import 'scene_arbiter_skill.dart';
 import 'scene_pipeline_models.dart' show SceneTaskCard;
@@ -130,12 +131,14 @@ class SceneRoleplayRuntime {
         round: round,
         transcript: transcript,
       );
-      _emitLog(SceneRoleplayLog.speakerScheduleLogLine(
-        brief: brief,
-        round: round,
-        plan: speakerPlan,
-        parallelTurns: parallelRoleplayTurns,
-      ));
+      _emitLog(
+        SceneRoleplayLog.speakerScheduleLogLine(
+          brief: brief,
+          round: round,
+          plan: speakerPlan,
+          parallelTurns: parallelRoleplayTurns,
+        ),
+      );
 
       final roundTurns = await _runRoundTurns(
         brief: brief,
@@ -179,12 +182,14 @@ class SceneRoleplayRuntime {
           existingFacts: committedFacts,
         ),
       );
-      _emitLog(SceneRoleplayLog.arbitrationLogLine(
-        brief: brief,
-        round: round,
-        arbitration: arbitration,
-        committedFactCount: committedFacts.length,
-      ));
+      _emitLog(
+        SceneRoleplayLog.arbitrationLogLine(
+          brief: brief,
+          round: round,
+          arbitration: arbitration,
+          committedFactCount: committedFacts.length,
+        ),
+      );
       rounds.add(
         SceneRoleplayRound(
           round: round,
@@ -208,12 +213,14 @@ class SceneRoleplayRuntime {
       }
     }
 
-    _emitLog(SceneRoleplayLog.completeLogLine(
-      brief: brief,
-      rounds: rounds,
-      committedFactCount: committedFacts.length,
-      finalPublicState: sceneState,
-    ));
+    _emitLog(
+      SceneRoleplayLog.completeLogLine(
+        brief: brief,
+        rounds: rounds,
+        committedFactCount: committedFacts.length,
+        finalPublicState: sceneState,
+      ),
+    );
 
     return SceneRoleplayRuntimeResult(
       outputs: [
@@ -267,7 +274,10 @@ class SceneRoleplayRuntime {
       member: member,
       metadata: brief.metadata,
     );
-    final turn = await skill.runTurn(context: visibleContext, round: round);
+    final turn = await FormalEvaluationPolicy.runWithFormalExecution(
+      formalExecution: brief.formalExecution,
+      body: () => skill.runTurn(context: visibleContext, round: round),
+    );
     return _boundary.apply(turn: turn, speaker: member, cast: cast);
   }
 
@@ -320,12 +330,14 @@ class SceneRoleplayRuntime {
       }
       final turns = await Future.wait(futures);
       for (var turnOrder = 0; turnOrder < turns.length; turnOrder += 1) {
-        _emitLog(SceneRoleplayLog.turnLogLine(
-          brief: brief,
-          round: round,
-          turnOrder: turnOrder + 1,
-          turn: turns[turnOrder],
-        ));
+        _emitLog(
+          SceneRoleplayLog.turnLogLine(
+            brief: brief,
+            round: round,
+            turnOrder: turnOrder + 1,
+            turn: turns[turnOrder],
+          ),
+        );
       }
       return turns;
     }
@@ -359,12 +371,14 @@ class SceneRoleplayRuntime {
             memoryDeltasByCharacter[member.characterId] ??
             const <CharacterMemoryDelta>[],
       );
-      _emitLog(SceneRoleplayLog.turnLogLine(
-        brief: brief,
-        round: round,
-        turnOrder: turnOrder + 1,
-        turn: turn,
-      ));
+      _emitLog(
+        SceneRoleplayLog.turnLogLine(
+          brief: brief,
+          round: round,
+          turnOrder: turnOrder + 1,
+          turn: turn,
+        ),
+      );
       localTranscript.add(turn);
       turns.add(turn);
     }
@@ -382,12 +396,15 @@ class SceneRoleplayRuntime {
     required List<SceneRoleplayTurn> roundTurns,
     required List<SceneRoleplayTurn> transcript,
   }) async {
-    return _arbiterSkill.arbitrate(
-      sceneTitle: brief.sceneTitle,
-      previousPublicState: sceneState,
-      round: round,
-      roundTurns: roundTurns,
-      transcript: transcript,
+    return FormalEvaluationPolicy.runWithFormalExecution(
+      formalExecution: brief.formalExecution,
+      body: () => _arbiterSkill.arbitrate(
+        sceneTitle: brief.sceneTitle,
+        previousPublicState: sceneState,
+        round: round,
+        roundTurns: roundTurns,
+        transcript: transcript,
+      ),
     );
   }
 
@@ -424,21 +441,25 @@ class SceneRoleplayRuntime {
   // ---------------------------------------------------------------------------
 
   void _emitStatus(String sceneId, String message) {
-    _eventLog?.emit(PipelineEvent(
-      timestampMs: DateTime.now().millisecondsSinceEpoch,
-      stageId: 'roleplay',
-      eventType: 'status',
-      metadata: {'sceneId': sceneId, 'message': message},
-    ));
+    _eventLog?.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'roleplay',
+        eventType: 'status',
+        metadata: {'sceneId': sceneId, 'message': message},
+      ),
+    );
   }
 
   void _emitLog(String line) {
-    _eventLog?.emit(PipelineEvent(
-      timestampMs: DateTime.now().millisecondsSinceEpoch,
-      stageId: 'roleplay',
-      eventType: 'log',
-      metadata: {'line': line},
-    ));
+    _eventLog?.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'roleplay',
+        eventType: 'log',
+        metadata: {'line': line},
+      ),
+    );
   }
 
   String _initialSceneState({
@@ -446,11 +467,20 @@ class SceneRoleplayRuntime {
     required SceneDirectorOutput director,
   }) {
     final explicitPublicState =
-        SceneRoleplayOutputBuilder.metadataString(brief.metadata['publicSceneState']) ??
-        SceneRoleplayOutputBuilder.metadataString(brief.metadata['publicSceneSetup']) ??
-        SceneRoleplayOutputBuilder.metadataString(brief.metadata['publicOpening']);
+        SceneRoleplayOutputBuilder.metadataString(
+          brief.metadata['publicSceneState'],
+        ) ??
+        SceneRoleplayOutputBuilder.metadataString(
+          brief.metadata['publicSceneSetup'],
+        ) ??
+        SceneRoleplayOutputBuilder.metadataString(
+          brief.metadata['publicOpening'],
+        );
     if (explicitPublicState != null && explicitPublicState.isNotEmpty) {
-      return SceneRoleplayOutputBuilder.compact(explicitPublicState, maxChars: 240);
+      return SceneRoleplayOutputBuilder.compact(
+        explicitPublicState,
+        maxChars: 240,
+      );
     }
     return '场景：${brief.sceneTitle}';
   }

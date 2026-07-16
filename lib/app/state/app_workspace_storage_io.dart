@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
+import '../../features/story_generation/data/generation_material_manifest_repository.dart';
+
 import 'app_authoring_storage_io_support.dart';
 import 'app_workspace_storage.dart';
 import 'storage_write_verification.dart';
@@ -416,6 +418,33 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
             'auditActionFeedback': 'audit_action_feedback',
           },
         );
+        final journal = GenerationMaterialManifestRepository(db: database);
+        final projectIds = <String>{
+          for (final entry in charactersByProject.entries) entry.key.toString(),
+          for (final entry in worldNodesByProject.entries) entry.key.toString(),
+          for (final entry in scenesByProject.entries) entry.key.toString(),
+        }..removeWhere((id) => id.trim().isEmpty);
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        for (final projectId in projectIds) {
+          journal.deleteSource(
+            projectId: projectId,
+            sceneId: '*',
+            sourceKind: 'workspace',
+            sourceId: projectId,
+          );
+          journal.replaceCanonicalSource(
+            projectId: projectId,
+            sceneId: '*',
+            sourceKind: 'workspace',
+            sourceId: projectId,
+            canonicalContent: {
+              'world': worldNodesByProject[projectId] ?? const [],
+              'profiles': charactersByProject[projectId] ?? const [],
+              'scenes': scenesByProject[projectId] ?? const [],
+            },
+            updatedAtMs: nowMs,
+          );
+        }
       });
     } finally {
       database.dispose();

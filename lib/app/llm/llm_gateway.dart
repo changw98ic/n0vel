@@ -28,6 +28,7 @@ class LlmGateway implements AppLlmClient {
 
     try {
       final result = await (() async {
+        // llm-call-site: boundary.provider.legacy-gateway-http
         final response = await dio.postUri<ResponseBody>(
           endpoint,
           data: adapter.buildBody(

@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_storage.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
 
 import 'test_support/fake_app_llm_client.dart';
@@ -172,13 +170,10 @@ void main() {
   // requestStoryGenerationPassWithRetry
   // ===========================================================================
   group('requestStoryGenerationPassWithRetry', () {
-    AppSettingsStore setupStore(FakeAppLlmClient fakeClient) {
-      final store = AppSettingsStore(
-        storage: InMemoryAppSettingsStorage(),
-        llmClient: fakeClient,
-      );
-      addTearDown(store.dispose);
-      return store;
+    StoryGenerationAttemptDispatcher setupStore(FakeAppLlmClient fakeClient) {
+      return _retryDispatcher(fakeClient, const <AppLlmChatMessage>[
+        AppLlmChatMessage(role: 'user', content: 'generate'),
+      ]);
     }
 
     test('returns success immediately on first attempt', () async {
@@ -187,10 +182,7 @@ void main() {
       );
       final store = setupStore(fakeClient);
 
-      final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
-      );
+      final result = await requestStoryGenerationPassWithRetry(dispatch: store);
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'scene prose');
@@ -214,8 +206,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 2,
       );
 
@@ -241,8 +232,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 2,
       );
 
@@ -268,8 +258,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 2,
       );
 
@@ -288,8 +277,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 3,
       );
 
@@ -308,8 +296,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 3,
       );
 
@@ -328,8 +315,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 3,
       );
 
@@ -348,8 +334,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 2,
       );
 
@@ -369,8 +354,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 0,
       );
 
@@ -396,8 +380,7 @@ void main() {
       final store = setupStore(fakeClient);
 
       final result = await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: const [AppLlmChatMessage(role: 'user', content: 'generate')],
+        dispatch: store,
         maxTransientRetries: 3,
       );
 
@@ -424,11 +407,10 @@ void main() {
           return const AppLlmChatResult.success(text: 'prose');
         },
       );
-      final store = setupStore(fakeClient);
+      final store = _retryDispatcher(fakeClient, messages);
 
       await requestStoryGenerationPassWithRetry(
-        settingsStore: store,
-        messages: messages,
+        dispatch: store,
         maxTransientRetries: 2,
       );
 
@@ -442,3 +424,22 @@ void main() {
     });
   });
 }
+
+StoryGenerationAttemptDispatcher _retryDispatcher(
+  AppLlmClient client,
+  List<AppLlmChatMessage> messages,
+) =>
+    ({
+      required int maxTokens,
+      required int attempt,
+      required int transientRetryCount,
+      required int outputRetryCount,
+    }) => client.chat(
+      AppLlmChatRequest(
+        baseUrl: 'https://retry-policy.test',
+        apiKey: 'test-credential',
+        model: 'test-model',
+        maxTokens: maxTokens,
+        messages: messages,
+      ),
+    );

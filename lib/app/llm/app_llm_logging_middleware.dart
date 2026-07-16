@@ -29,6 +29,7 @@ class AppLlmLoggingMiddleware implements AppLlmClient {
     final stopwatch = Stopwatch()..start();
     AppLlmChatResult result;
     try {
+      // llm-call-site: boundary.logging.delegate
       result = await _delegate.chat(request);
     } catch (error) {
       stopwatch.stop();
@@ -85,6 +86,7 @@ class AppLlmLoggingMiddleware implements AppLlmClient {
     int charCount = 0;
 
     try {
+      // llm-call-site: boundary.logging.stream-delegate
       await for (final delta in _delegate.chatStream(request)) {
         charCount += delta.length;
         yield delta;

@@ -302,6 +302,59 @@ void main() {
         expect(loaded, isEmpty);
       });
 
+      test(
+        'keeps immutable receipt-set revisions and advances one summary head',
+        () async {
+          const original = ChapterSummary(
+            chapterId: 'ch-01',
+            chapterTitle: '第一章',
+            sceneCount: 1,
+            plotProgress: '原始提交',
+          );
+          final first = await bridge.saveAuthoritativeSummaryRevision(
+            projectId: 'project-1',
+            sceneCommitSetHash: 'receipt-set-a',
+            summary: original,
+            nowMs: 1000,
+          );
+          final sameSet = await bridge.saveAuthoritativeSummaryRevision(
+            projectId: 'project-1',
+            sceneCommitSetHash: 'receipt-set-a',
+            summary: const ChapterSummary(
+              chapterId: 'ch-01',
+              chapterTitle: '第一章',
+              sceneCount: 1,
+              plotProgress: '不应覆盖',
+            ),
+            nowMs: 2000,
+          );
+          expect(sameSet.createdAtMs, first.createdAtMs);
+          expect(sameSet.summary.plotProgress, '原始提交');
+
+          await bridge.saveAuthoritativeSummaryRevision(
+            projectId: 'project-1',
+            sceneCommitSetHash: 'receipt-set-b',
+            summary: const ChapterSummary(
+              chapterId: 'ch-01',
+              chapterTitle: '第一章',
+              sceneCount: 2,
+              plotProgress: '重采纳后的提交集',
+            ),
+            nowMs: 3000,
+          );
+          final head = await bridge.loadAuthoritativeSummaryHead(
+            projectId: 'project-1',
+            chapterId: 'ch-01',
+          );
+          expect(head?.sceneCommitSetHash, 'receipt-set-b');
+          expect(head?.summary.plotProgress, '重采纳后的提交集');
+          final revisions = (await storage.loadSources('project-1')).where(
+            (source) => source.tags.contains('chapter-summary-revision'),
+          );
+          expect(revisions, hasLength(2));
+        },
+      );
+
       test('logs malformed summary sources while skipping them', () async {
         final originalDebugPrint = debugPrint;
         final messages = <String>[];
@@ -459,10 +512,10 @@ void main() {
             ),
           );
 
-          await storage.saveThoughts('ch-01', [
+          await storage.saveThoughts('project-1', [
             const ThoughtAtom(
               id: 't1',
-              projectId: 'ch-01',
+              projectId: 'project-1',
               scopeId: 'ch-01:scene-01',
               thoughtType: ThoughtType.plotCausality,
               content: '岳刃暴露了货单线索',
@@ -472,7 +525,7 @@ void main() {
             ),
             const ThoughtAtom(
               id: 't2',
-              projectId: 'ch-01',
+              projectId: 'project-1',
               scopeId: 'ch-01:scene-01',
               thoughtType: ThoughtType.persona,
               content: '低置信度',

@@ -35,8 +35,7 @@ class EditorialInput extends TypedArtifact {
   ArtifactType get type => ArtifactType.proseDraft;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'attempt': attempt};
+  Map<String, Object?> toJson() => {'type': type.name, 'attempt': attempt};
 
   @override
   int get tokenEstimate => 0;
@@ -52,8 +51,14 @@ class EditorialOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.proseDraft;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'attempt': prose.attempt};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'draftText': draft.text,
+    'draftBeatCount': draft.beatCount,
+    'draftAttempt': draft.attempt,
+    'proseText': prose.text,
+    'attempt': prose.attempt,
+  };
 
   @override
   int get tokenEstimate => 0;

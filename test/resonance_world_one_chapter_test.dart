@@ -33,6 +33,7 @@ import 'package:novel_writer/app/state/story_outline_storage_io.dart';
 import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/features/import_export/data/project_transfer_service.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
@@ -49,6 +50,11 @@ const int _maxChapterSimulationTransportRetries = 3;
 const int _maxConcurrentSceneRuns = 2;
 
 void main() {
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/resonance_world_one_chapter_test.dart',
+        environment: Platform.environment,
+      );
   test('phase 3 persists resonance world outline into workspace scenes', () {
     final workspaceStore = AppWorkspaceStore(
       storage: InMemoryAppWorkspaceStorage(),
@@ -84,10 +90,8 @@ void main() {
   test(
     'real resonance world one chapter generation leaves visible artifacts',
     () async {
-      if (Platform.environment['RUN_REAL_STORY_VALIDATION'] != '1') {
-        markTestSkipped(
-          'Set RUN_REAL_STORY_VALIDATION=1 to run the real provider validation.',
-        );
+      if (!legacyRealProviderDecision.authorized) {
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 

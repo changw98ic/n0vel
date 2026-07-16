@@ -9,13 +9,16 @@ class FakeVectorStore implements VectorStore {
   @override
   Future<void> upsert({
     required String id,
+    required String projectId,
     required String content,
     required List<double> embedding,
     required MemoryTier tier,
     Map<String, dynamic> metadata = const {},
   }) async {
-    _entries[id] = _Entry(
+    final effectiveProjectId = _requireProjectId(projectId);
+    _entries[_key(effectiveProjectId, id)] = _Entry(
       id: id,
+      projectId: effectiveProjectId,
       content: content,
       embedding: List<double>.from(embedding),
       tier: tier,
@@ -24,24 +27,72 @@ class FakeVectorStore implements VectorStore {
   }
 
   @override
+  Future<void> upsertAll(List<VectorStoreEntry> entries) async {
+    for (final entry in entries) {
+      await upsert(
+        id: entry.id,
+        projectId: entry.projectId,
+        content: entry.content,
+        embedding: entry.embedding,
+        tier: entry.tier,
+        metadata: entry.metadata,
+      );
+    }
+  }
+
+  @override
   Future<List<VectorSearchHit>> search({
     required List<double> embedding,
+    required String projectId,
     Set<MemoryTier>? tiers,
     int limit = 10,
   }) async {
+    return (await searchDetailed(
+      embedding: embedding,
+      projectId: projectId,
+      tiers: tiers,
+      limit: limit,
+    )).hits;
+  }
+
+  @override
+  Future<VectorSearchResult> searchDetailed({
+    required List<double> embedding,
+    required String projectId,
+    Set<MemoryTier>? tiers,
+    int limit = 10,
+  }) async {
+    final effectiveProjectId = _requireProjectId(projectId);
     final hits = <VectorSearchHit>[];
     for (final e in _entries.values) {
+      if (e.projectId != effectiveProjectId) continue;
+      if (e.embedding.length != embedding.length) continue;
       if (tiers != null && !tiers.contains(e.tier)) continue;
-      hits.add(VectorSearchHit(
-        id: e.id,
-        score: cosineSimilarity(embedding, e.embedding),
-        content: e.content,
-        tier: e.tier,
-        metadata: e.metadata,
-      ));
+      hits.add(
+        VectorSearchHit(
+          id: e.id,
+          score: cosineSimilarity(embedding, e.embedding),
+          content: e.content,
+          tier: e.tier,
+          metadata: e.metadata,
+        ),
+      );
     }
     hits.sort((a, b) => b.score.compareTo(a.score));
-    return hits.take(limit).toList();
+    final boundedLimit = limit < 0 ? 0 : limit;
+    return VectorSearchResult(
+      hits: hits.take(boundedLimit).toList(),
+      diagnostics: VectorSearchDiagnostics(
+        totalRows: _entries.length,
+        eligibleRows: hits.length,
+        candidateRows: hits.length,
+        decodedRows: hits.length,
+        scoredRows: hits.length,
+        candidateLimit: hits.length,
+        probeCount: 0,
+        usedFullScan: true,
+      ),
+    );
   }
 
   @override
@@ -53,6 +104,7 @@ class FakeVectorStore implements VectorStore {
       final embedding = await embeddingForChunk(chunk.content);
       await upsert(
         id: chunk.id,
+        projectId: chunk.projectId,
         content: chunk.content,
         embedding: embedding,
         tier: chunk.tier,
@@ -67,14 +119,31 @@ class FakeVectorStore implements VectorStore {
   }
 
   @override
-  Future<void> delete(String id) async {
-    _entries.remove(id);
+  Future<void> delete(String id, {required String projectId}) async {
+    _entries.remove(_key(_requireProjectId(projectId), id));
+  }
+
+  @override
+  Future<void> clearProject(String projectId) async {
+    final effectiveProjectId = _requireProjectId(projectId);
+    _entries.removeWhere((_, entry) => entry.projectId == effectiveProjectId);
+  }
+
+  static String _key(String projectId, String id) => '$projectId\u0000$id';
+
+  static String _requireProjectId(String projectId) {
+    final normalized = projectId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(projectId, 'projectId', 'must not be empty');
+    }
+    return normalized;
   }
 }
 
 class _Entry {
   _Entry({
     required this.id,
+    required this.projectId,
     required this.content,
     required this.embedding,
     required this.tier,
@@ -82,6 +151,7 @@ class _Entry {
   });
 
   final String id;
+  final String projectId;
   final String content;
   final List<double> embedding;
   final MemoryTier tier;

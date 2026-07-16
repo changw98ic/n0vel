@@ -168,9 +168,11 @@ void main() {
           );
         },
       );
+      final traceSink = _RecordingLlmTraceSink();
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
         llmClient: fakeClient,
+        llmTraceSink: traceSink,
       );
       final store = AppSimulationStore(storage: storage);
       addTearDown(store.dispose);
@@ -184,6 +186,27 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(fakeClient.requests, hasLength(6));
+      expect(traceSink.entries, hasLength(fakeClient.requests.length));
+      expect(
+        traceSink.entries.map((entry) => entry.traceName),
+        everyElement('simulation_real_agent_turn'),
+      );
+      expect(
+        traceSink.entries.map((entry) => entry.metadata['agentId']).toSet(),
+        <Object?>{'director', 'protagonist', 'antagonist'},
+      );
+      expect(
+        traceSink.entries.map((entry) => entry.metadata['agentRole']).toSet(),
+        <Object?>{'director', 'protagonist', 'antagonist'},
+      );
+      expect(
+        traceSink.entries.map((entry) => entry.metadata['round']),
+        <Object?>[1, 1, 1, 2, 2, 2],
+      );
+      expect(
+        traceSink.entries.map((entry) => entry.metadata['attempt']),
+        everyElement(0),
+      );
       expect(store.snapshot.status, SimulationStatus.completed);
       expect(store.snapshot.messages, hasLength(6));
       expect(
@@ -387,6 +410,15 @@ class _RecordingAppEventLogStorage implements AppEventLogStorage {
 
   @override
   Future<void> write(AppEventLogEntry entry) async {
+    entries.add(entry);
+  }
+}
+
+class _RecordingLlmTraceSink implements AppLlmCallTraceSink {
+  final List<AppLlmCallTraceEntry> entries = <AppLlmCallTraceEntry>[];
+
+  @override
+  Future<void> record(AppLlmCallTraceEntry entry) async {
     entries.add(entry);
   }
 }

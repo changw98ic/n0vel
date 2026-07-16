@@ -169,15 +169,37 @@ void main() {
       expect(score.summary, '整体质量良好');
     });
 
-    test('computes overall as average when missing', () {
+    test('parses the extended formal quality rubric', () {
+      const raw =
+          '文笔：92\n连贯：96\n角色：94\n完整：95\n文风：91\n修辞：90\n'
+          '节奏：93\n忠实：98\n综合：94\n总结：比喻克制，事实边界清楚';
+      final score = SceneQualityScorer.parseScore(
+        raw,
+        requireExtendedRubric: true,
+      );
+      expect(score.hasExtendedRubric, isTrue);
+      expect(score.style, 91);
+      expect(score.imagery, 90);
+      expect(score.rhythm, 93);
+      expect(score.faithfulness, 98);
+    });
+
+    test('formal rubric rejects legacy scorecards without text dimensions', () {
+      const raw = '文笔：95\n连贯：95\n角色：95\n完整：95\n综合：95\n总结：通过';
+      expect(
+        () => SceneQualityScorer.parseScore(raw, requireExtendedRubric: true),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects an omitted overall score', () {
       const raw = '文笔：80\n连贯：70\n角色：90\n完整：60\n总结：还行';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.overall, closeTo(75, 0.01));
-      expect(score.summary, '还行');
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
     });
 
     test('handles extra whitespace and blank lines', () {
-      const raw = '\n  文笔：85  \n\n  连贯：90\n\n  角色：78\n\n  完整：82\n\n  综合：84\n\n  总结：不错\n  ';
+      const raw =
+          '\n  文笔：85  \n\n  连贯：90\n\n  角色：78\n\n  完整：82\n\n  综合：84\n\n  总结：不错\n  ';
       final score = SceneQualityScorer.parseScore(raw);
       expect(score.prose, 85);
       expect(score.coherence, 90);
@@ -185,42 +207,23 @@ void main() {
       expect(score.summary, '不错');
     });
 
-    test('returns zeros for completely empty input', () {
-      final score = SceneQualityScorer.parseScore('');
-      expect(score.overall, 0);
-      expect(score.prose, 0);
-      expect(score.coherence, 0);
-      expect(score.character, 0);
-      expect(score.completeness, 0);
-      expect(score.summary, '');
+    test('rejects completely empty input', () {
+      expect(() => SceneQualityScorer.parseScore(''), throwsFormatException);
     });
 
-    test('returns zeros for unrecognized input', () {
+    test('rejects unrecognized input', () {
       const raw = 'something completely unrelated\nno scores here';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.overall, 0);
-      expect(score.prose, 0);
-      expect(score.summary, '');
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
     });
 
-    test('clamps scores above 100', () {
+    test('rejects scores above 100', () {
       const raw = '文笔：150\n连贯：200\n角色：999\n完整：100\n综合：120\n总结：溢出';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.prose, 100);
-      expect(score.coherence, 100);
-      expect(score.character, 100);
-      expect(score.completeness, 100);
-      expect(score.overall, 100);
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
     });
 
-    test('clamps negative scores to zero', () {
+    test('rejects negative scores', () {
       const raw = '文笔：-10\n连贯：-50\n角色：-1\n完整：0\n综合：-99\n总结：灾难';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.prose, 0);
-      expect(score.coherence, 0);
-      expect(score.character, 0);
-      expect(score.completeness, 0);
-      expect(score.overall, 0);
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
     });
 
     test('handles decimal scores', () {
@@ -233,21 +236,41 @@ void main() {
       expect(score.overall, 84.2);
     });
 
-    test('handles non-numeric score values gracefully', () {
-      const raw = '文笔：good\n连贯：N/A\n角色：78\n完整：82\n综合：80\n总结：部分异常';
+    test('parses markdown-emphasized provider scorecards', () {
+      const raw =
+          '**文笔：88**\n**连贯：92**\n**角色：85**\n**完整：95**\n'
+          '**综合：90**\n**总结：**结构完整且冲突清晰';
       final score = SceneQualityScorer.parseScore(raw);
-      expect(score.prose, 0);
-      expect(score.coherence, 0);
-      expect(score.character, 78);
-      expect(score.completeness, 82);
-      expect(score.overall, 80);
+      expect(score.overall, 90);
+      expect(score.prose, 88);
+      expect(score.summary, '结构完整且冲突清晰');
     });
 
-    test('ignores duplicate keys by using last occurrence', () {
-      const raw = '文笔：60\n文笔：85\n连贯：90\n角色：78\n完整：82\n综合：84\n总结：重复';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.prose, 85);
+    test('accepts ASCII colons and numbered markdown scorecards', () {
+      const raw =
+          '1. 文笔: 92\n2. 连贯: 94\n3. 角色: 93\n4. 完整: 95\n'
+          '5. 文风: 91\n6. 修辞: 90\n7. 节奏: 92\n8. 忠实: 96\n'
+          '9. 综合: 93\n10. 总结: 事实边界清楚';
+      final score = SceneQualityScorer.parseScore(
+        raw,
+        requireExtendedRubric: true,
+      );
+      expect(score.overall, 93);
+      expect(score.faithfulness, 96);
     });
+
+    test('rejects non-numeric score values', () {
+      const raw = '文笔：good\n连贯：N/A\n角色：78\n完整：82\n综合：80\n总结：部分异常';
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
+    });
+
+    test(
+      'rejects duplicate keys rather than accepting an ambiguous scorecard',
+      () {
+        const raw = '文笔：60\n文笔：85\n连贯：90\n角色：78\n完整：82\n综合：84\n总结：重复';
+        expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
+      },
+    );
 
     test('extracts summary with complex content', () {
       const raw = '文笔：85\n连贯：90\n角色：78\n完整：82\n综合：84\n总结：文笔流畅，角色塑造有待加强，情节连贯性好';
@@ -261,15 +284,9 @@ void main() {
       expect(score.summary, '评价：良好');
     });
 
-    test('handles partial input with only some dimensions', () {
+    test('rejects partial input with only some dimensions', () {
       const raw = '文笔：85\n角色：78';
-      final score = SceneQualityScorer.parseScore(raw);
-      expect(score.prose, 85);
-      expect(score.character, 78);
-      expect(score.coherence, 0);
-      expect(score.completeness, 0);
-      // overall = average of (85 + 0 + 78 + 0) / 4 = 40.75
-      expect(score.overall, closeTo(40.75, 0.01));
+      expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
     });
   });
 
@@ -277,12 +294,12 @@ void main() {
 
   group('SceneRuntimeOutput with qualityScore', () {
     SceneBrief makeBrief() => SceneBrief(
-          chapterId: 'ch1',
-          chapterTitle: '第一章',
-          sceneId: 'sc1',
-          sceneTitle: '开篇',
-          sceneSummary: '故事开始',
-        );
+      chapterId: 'ch1',
+      chapterTitle: '第一章',
+      sceneId: 'sc1',
+      sceneTitle: '开篇',
+      sceneSummary: '故事开始',
+    );
 
     test('holds qualityScore when provided', () {
       const score = SceneQualityScore(

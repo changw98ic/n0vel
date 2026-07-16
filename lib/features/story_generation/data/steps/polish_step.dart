@@ -2,6 +2,7 @@ import '../scene_pipeline_models.dart' as pipeline;
 import '../scene_polish_pass.dart';
 import '../scene_review_models.dart';
 import '../scene_runtime_models.dart';
+import '../formal_evaluation_policy.dart';
 import '../../domain/contracts/event_log.dart';
 import '../../domain/contracts/stage_runner.dart';
 import '../step_io.dart';
@@ -9,11 +10,9 @@ import '../../domain/contracts/pipeline_role_contract.dart';
 import '../../domain/contracts/typed_artifact.dart';
 
 class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
-  PolishStep({
-    required ScenePolishPass polishPass,
-    PipelineEventLog? eventLog,
-  }) : _polishPass = polishPass,
-       _eventLog = eventLog;
+  PolishStep({required ScenePolishPass polishPass, PipelineEventLog? eventLog})
+    : _polishPass = polishPass,
+      _eventLog = eventLog;
 
   final ScenePolishPass _polishPass;
   final PipelineEventLog? _eventLog;
@@ -55,15 +54,17 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
     if (!input.review.wasLengthRetry &&
         review.decision == SceneReviewDecision.pass &&
         _shouldRunFinalPolish(brief)) {
-      _eventLog?.emit(PipelineEvent(
-        timestampMs: DateTime.now().millisecondsSinceEpoch,
-        stageId: 'polish',
-        eventType: 'status',
-        metadata: {
-          'sceneId': '${brief.chapterId}/${brief.sceneId}',
-          'message': 'reader polish',
-        },
-      ));
+      _eventLog?.emit(
+        PipelineEvent(
+          timestampMs: DateTime.now().millisecondsSinceEpoch,
+          stageId: 'polish',
+          eventType: 'status',
+          metadata: {
+            'sceneId': '${brief.chapterId}/${brief.sceneId}',
+            'message': 'reader polish',
+          },
+        ),
+      );
       final polishResult = await _polishPass.polish(
         brief: brief,
         editorialDraft: pipeline.SceneEditorialDraft(
@@ -76,6 +77,11 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
         refinementGuidance: review.refinementGuidance,
       );
       final polishedText = polishResult.text.trim();
+      _rejectFormalPolishFallback(
+        brief: brief,
+        result: polishResult,
+        text: polishedText,
+      );
       if (!polishResult.usedLocalFallback && polishedText.isNotEmpty) {
         outputProse = SceneProseDraft(
           text: polishedText,
@@ -108,6 +114,11 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
       refinementGuidance:
           review.refinementGuidance ?? review.synthesizeGuidance(),
     );
+    _rejectFormalPolishFallback(
+      brief: brief,
+      result: polishResult,
+      text: polishResult.text.trim(),
+    );
     if (polishResult.text.trim().isEmpty) {
       return draft;
     }
@@ -116,6 +127,22 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
       beatCount: draft.beatCount,
       attempt: draft.attempt,
     );
+  }
+
+  void _rejectFormalPolishFallback({
+    required SceneBrief brief,
+    required ScenePolishResult result,
+    required String text,
+  }) {
+    if (FormalEvaluationPolicy.isActive(
+          brief.metadata,
+          formalExecution: brief.formalExecution,
+        ) &&
+        (result.usedLocalFallback || text.isEmpty)) {
+      throw StateError(
+        'formal polish stage rejected fallback or empty final prose',
+      );
+    }
   }
 
   bool _shouldRunFinalPolish(SceneBrief brief) {

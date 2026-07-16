@@ -32,15 +32,16 @@ const String _fallbackVersionProjectId =
     'project-yuechao::scene-05-witness-room';
 
 class AppVersionStore extends AppProjectScopedStore {
-  AppVersionStore({AppVersionStorage? storage, super.workspaceStore, super.eventBus})
-    : _storage =
-          storage ?? createDefaultAppVersionStorage(),
-      _entries = const <VersionEntry>[],
-      super(fallbackProjectId: _fallbackVersionProjectId) {
+  AppVersionStore({
+    AppVersionStorage? storage,
+    super.workspaceStore,
+    super.eventBus,
+  }) : _storage = storage ?? createDefaultAppVersionStorage(),
+       _entries = const <VersionEntry>[],
+       super(fallbackProjectId: _fallbackVersionProjectId) {
     onRestore();
   }
 
-  
   final AppVersionStorage _storage;
   List<VersionEntry> _entries;
 
@@ -79,6 +80,25 @@ class AppVersionStore extends AppProjectScopedStore {
       _entries = previousEntries;
       rethrow;
     }
+  }
+
+  /// Mirrors a version already committed by the shared authoring-db
+  /// transaction.  This must not call [_persist], because that would use a
+  /// separate connection after the commit boundary.
+  void applyCommittedSnapshotFromAuthoringTransaction({
+    required String sceneScopeId,
+    required String label,
+    required String content,
+  }) {
+    if (sceneScopeId != activeProjectId) {
+      return;
+    }
+    markMutated();
+    _entries = [
+      VersionEntry(label: label, content: content),
+      ..._entries,
+    ].take(5).toList();
+    notifyListeners();
   }
 
   void restoreEntry(VersionEntry entry) {

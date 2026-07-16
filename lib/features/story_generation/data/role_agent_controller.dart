@@ -6,7 +6,9 @@ import '../domain/roleplay_models.dart';
 import '../domain/pipeline_models.dart';
 import '../domain/scene_models.dart';
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
 import 'tool_intent_parser.dart';
+import 'formal_evaluation_policy.dart';
 
 /// Adapts [RolePromptPacket] to legacy plain-text prompt format.
 ///
@@ -115,6 +117,14 @@ class RoleAgentController {
     required SceneDirectorOutput director,
     required Future<String> Function(RetrievalIntent intent) retrievalTool,
   }) async {
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     final capsules = <ContextCapsule>[];
     var retrievalRounds = 0;
 
@@ -124,6 +134,7 @@ class RoleAgentController {
         member: member,
         director: director,
         capsules: capsules,
+        agentRound: retrievalRounds + 1,
       );
 
       if (!result.succeeded) {
@@ -155,11 +166,19 @@ class RoleAgentController {
         continue;
       }
 
-      return RoleplayTurn.parse(
+      final parsed = RoleplayTurn.parse(
         characterId: member.characterId,
         name: member.name,
         text: text,
       );
+      if (formalEvaluation &&
+          (text.isEmpty ||
+              parsed.stance.trim().isEmpty ||
+              parsed.action.trim().isEmpty ||
+              parsed.taboo.trim().isEmpty)) {
+        throw StateError('formal role agent output was malformed');
+      }
+      return parsed;
     }
   }
 
@@ -168,41 +187,40 @@ class RoleAgentController {
     required ResolvedSceneCastMember member,
     required SceneDirectorOutput director,
     required List<ContextCapsule> capsules,
+    required int agentRound,
   }) {
     final capsuleContext = capsules.isEmpty
         ? ''
         : '补充信息：\n${capsules.map((c) => '  [${c.sourceTool}] ${c.summary}').join('\n')}';
 
-    return requestStoryGenerationPassWithRetry(
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'roleplay',
+      callSiteId: 'role-agent-controller',
+    );
+    final resolvedVariables = <String, Object?>{
+      'characterName': member.name,
+      'characterRole': member.role,
+      'sceneSummary': _compact(brief.sceneSummary, maxChars: 100),
+      'director': _compact(director.text, maxChars: 120),
+      'capsuleContext': capsuleContext,
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    return requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
-      messages: [
-        const AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a dynamic role agent for a Chinese novel scene. '
-              'Use this 3-line role brief:\n'
-              '立场：...\n'
-              '动作：...\n'
-              '禁忌：...\n'
-              'When critical context would help the decision, use:\n'
-              'RETRIEVE:tool_name:param=value\n'
-              'where tool_name is one of: character_profile, '
-              'relationship_history, scene_context, world_rule, '
-              'search_writing_reference.\n'
-              'Keep every line concrete and brief.',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：dynamic_role',
-            '格式：立场/动作/禁忌',
-            '角色：${member.name}(${member.role})',
-            '梗概：${_compact(brief.sceneSummary, maxChars: 100)}',
-            '导演：${_compact(director.text, maxChars: 120)}',
-            if (capsuleContext.isNotEmpty) capsuleContext,
-          ].join('\n'),
-        ),
-      ],
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      traceName: 'scene_roleplay_turn',
+      traceMetadata: <String, Object?>{
+        'agentId': member.characterId,
+        'agentRole': member.role,
+        'agentName': member.name,
+        'round': agentRound,
+        'retrievalRound': agentRound - 1,
+      },
+      messages: messages,
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/app/rag/local_rag_storage.dart';
+import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -23,6 +24,96 @@ void main() {
       );
 
       expect(context.isEmpty, isFalse);
+    });
+
+    test('formats a query-aware English window without truncating results', () {
+      final content = [
+        'UNRELATED_HEAD_ONLY',
+        List<String>.filled(80, 'ordinary opening material').join(' '),
+        'TAIL_BEACON',
+        List<String>.filled(20, 'closing material').join(' '),
+      ].join(' ');
+      final chunk = StoryMemoryChunk(
+        id: 'long-english',
+        projectId: 'project-1',
+        scopeId: 'scope-1',
+        kind: MemorySourceKind.sceneSummary,
+        content: content,
+        tags: const ['chapter'],
+      );
+
+      final context = RagSceneContext.fromPack(
+        _pack(query: 'ordinary TAIL_BEACON', chunk: chunk),
+      );
+      final excerpt = _singleExcerpt(context);
+
+      expect(excerpt, contains('TAIL_BEACON'));
+      expect(excerpt, isNot(contains('UNRELATED_HEAD_ONLY')));
+      expect(excerpt.runes.length, lessThanOrEqualTo(200));
+      expect(context.results.single.content, content);
+      expect(context.results.single.metadata, chunk.toJson());
+    });
+
+    test('formats a query-aware CJK window near a tail match', () {
+      final content = [
+        '仅在开头出现的无关标记',
+        List<String>.filled(300, '山').join(),
+        '月蚀密钥藏在钟楼之后',
+        List<String>.filled(80, '海').join(),
+      ].join();
+
+      final context = RagSceneContext.fromPack(
+        _pack(query: '月蚀密钥', chunk: _chunk(content)),
+      );
+      final excerpt = _singleExcerpt(context);
+
+      expect(excerpt, contains('月蚀密钥'));
+      expect(excerpt, isNot(contains('仅在开头出现的无关标记')));
+      expect(excerpt.runes.length, lessThanOrEqualTo(200));
+    });
+
+    test('falls back to the head when no query token occurs in content', () {
+      final content = [
+        'HEAD_FALLBACK',
+        List<String>.filled(300, 'x').join(),
+        'TAIL_MUST_NOT_APPEAR',
+      ].join(' ');
+
+      final context = RagSceneContext.fromPack(
+        _pack(query: 'semantic-only concept', chunk: _chunk(content)),
+      );
+      final excerpt = _singleExcerpt(context);
+
+      expect(excerpt, startsWith('HEAD_FALLBACK'));
+      expect(excerpt, isNot(contains('TAIL_MUST_NOT_APPEAR')));
+      expect(excerpt.runes.length, 200);
+    });
+
+    test('preserves non-BMP characters while clipping by Unicode rune', () {
+      final content = [
+        List<String>.filled(240, '😀').join(),
+        '🚀深空信标🛰️',
+        List<String>.filled(120, '🌌').join(),
+      ].join();
+
+      final context = RagSceneContext.fromPack(
+        _pack(query: '深空信标', chunk: _chunk(content)),
+      );
+      final excerpt = _singleExcerpt(context);
+
+      expect(excerpt, contains('🚀深空信标🛰️'));
+      expect(excerpt, isNot(contains('\uFFFD')));
+      expect(excerpt.runes.length, lessThanOrEqualTo(200));
+    });
+
+    test('keeps short content unchanged', () {
+      const content = 'short 😀 context';
+      final context = RagSceneContext.fromPack(
+        _pack(query: 'context', chunk: _chunk(content)),
+      );
+
+      expect(_singleExcerpt(context), content);
+      expect(context.results.single.content, content);
     });
   });
 
@@ -189,4 +280,29 @@ void main() {
       );
     });
   });
+}
+
+StoryMemoryChunk _chunk(String content) => StoryMemoryChunk(
+  id: 'chunk-1',
+  projectId: 'project-1',
+  scopeId: 'scope-1',
+  kind: MemorySourceKind.sceneSummary,
+  content: content,
+);
+
+StoryRetrievalPack _pack({
+  required String query,
+  required StoryMemoryChunk chunk,
+}) => StoryRetrievalPack(
+  query: StoryMemoryQuery(
+    projectId: chunk.projectId,
+    queryType: StoryMemoryQueryType.sceneContinuity,
+    text: query,
+  ),
+  hits: [StoryMemoryHit(chunk: chunk, score: 0.9)],
+);
+
+String _singleExcerpt(RagSceneContext context) {
+  final line = context.formattedContext.trimRight().split('\n').last;
+  return line.substring(line.indexOf(': ') + 2);
 }

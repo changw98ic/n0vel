@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/app_llm_prompt_release.dart';
 
 void main() {
   group('real IO app llm client', () {
@@ -61,10 +62,10 @@ void main() {
 
     test(
       'joins text segments from structured content without auth header',
-    () async {
-      late final String? authorization;
-      late final Map<String, Object?> requestJson;
-      final server = await _startServer((request) async {
+      () async {
+        late final String? authorization;
+        late final Map<String, Object?> requestJson;
+        final server = await _startServer((request) async {
           authorization = request.headers.value(
             HttpHeaders.authorizationHeader,
           );
@@ -149,9 +150,7 @@ void main() {
             jsonEncode({
               'choices': [
                 {
-                  'message': {
-                    'content': 'hello tokens',
-                  },
+                  'message': {'content': 'hello tokens'},
                 },
               ],
               'usage': {
@@ -442,6 +441,49 @@ void main() {
       },
     );
 
+    test('shares one timeout budget across stream fallback', () async {
+      var calls = 0;
+      final server = await _startServer((request) async {
+        calls += 1;
+        final body =
+            jsonDecode(await utf8.decoder.bind(request).join())
+                as Map<String, Object?>;
+        request.response.statusCode = HttpStatus.ok;
+        request.response.headers.contentType = ContentType.json;
+        if (body['stream'] == true) {
+          // Force the client to take its non-stream fallback path.
+          request.response.write(jsonEncode({'unexpected': 'stream body'}));
+        } else {
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+          request.response.write(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'too late'},
+                },
+              ],
+            }),
+          );
+        }
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await createDefaultAppLlmClient().chat(
+        AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(60),
+          messages: const [AppLlmChatMessage(role: 'user', content: '限时')],
+        ),
+      );
+
+      expect(calls, 2);
+      expect(result.succeeded, isFalse);
+      expect(result.failureKind, AppLlmFailureKind.timeout);
+    });
+
     test('maps 429 rate-limited responses to rateLimited failures', () async {
       final server = await _startServer((request) async {
         await utf8.decoder.bind(request).join();
@@ -563,9 +605,7 @@ void main() {
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
           timeoutMs: 1000,
-          messages: const [
-            AppLlmChatMessage(role: 'user', content: '容错测试'),
-          ],
+          messages: const [AppLlmChatMessage(role: 'user', content: '容错测试')],
         ),
       );
 
@@ -600,9 +640,7 @@ void main() {
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
           timeoutMs: 1000,
-          messages: const [
-            AppLlmChatMessage(role: 'user', content: '注释测试'),
-          ],
+          messages: const [AppLlmChatMessage(role: 'user', content: '注释测试')],
         ),
       );
 
@@ -632,9 +670,7 @@ void main() {
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
           timeoutMs: 1000,
-          messages: const [
-            AppLlmChatMessage(role: 'user', content: '结构化内容'),
-          ],
+          messages: const [AppLlmChatMessage(role: 'user', content: '结构化内容')],
         ),
       );
 
@@ -662,9 +698,7 @@ void main() {
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
           timeoutMs: 1000,
-          messages: const [
-            AppLlmChatMessage(role: 'user', content: '全部坏数据'),
-          ],
+          messages: const [AppLlmChatMessage(role: 'user', content: '全部坏数据')],
         ),
       );
 
@@ -707,6 +741,52 @@ void main() {
       expect(result.failureKind, AppLlmFailureKind.server);
       expect(result.detail, isNotNull);
     });
+  });
+
+  test('trace protects and serializes complete prompt identity', () {
+    final ref = PromptReleaseRef(
+      templateId: 'scene-review-judge',
+      semanticVersion: '1.0.0',
+      language: 'zh',
+      contentHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    );
+    final entry = AppLlmCallTraceEntry.fromRequestResult(
+      request: const AppLlmChatRequest(
+        baseUrl: 'https://example.test/v1',
+        apiKey: 'secret',
+        model: 'judge-model',
+        timeout: AppLlmTimeoutConfig.uniform(1000),
+        messages: [AppLlmChatMessage(role: 'user', content: 'review')],
+      ),
+      result: const AppLlmChatResult.success(text: 'PASS'),
+      traceName: 'scene_review',
+      promptReleaseRef: ref,
+      stageId: 'review',
+      callSiteId: 'judge',
+      variantId: 'zh',
+      generationBundleHash:
+          'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      metadata: const {
+        'stageId': 'spoofed',
+        'callSiteId': 'spoofed',
+        'variantId': 'spoofed',
+        'generationBundleHash': 'spoofed',
+        'promptReleaseRef': {'templateId': 'spoofed'},
+      },
+    );
+    final json = entry.toJson();
+    final metadata = json['metadata']! as Map<String, Object?>;
+
+    expect(json['promptReleaseRef'], ref.toJson());
+    expect(json['stageId'], 'review');
+    expect(json['callSiteId'], 'judge');
+    expect(json['variantId'], 'zh');
+    expect(metadata['stageId'], 'review');
+    expect(metadata['callSiteId'], 'judge');
+    expect(metadata['promptReleaseRef'], ref.toJson());
+    expect(entry.promptVersion?.templateId, ref.templateId);
+    expect(entry.promptVersion?.version, ref.semanticVersion);
   });
 }
 

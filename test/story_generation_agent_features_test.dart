@@ -1,20 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
+import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
+
+import 'test_support/fake_app_llm_client.dart';
 
 void main() {
   test(
     'orchestrator injects tracked narrative arc into the next scene',
     () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (request) {
+          final systemPrompt = request.messages.first.content;
+          if (systemPrompt.contains('scene judge review')) {
+            return const AppLlmChatResult.success(
+              text: '决定：PASS\n原因：剧情推进与角色选择成立。',
+            );
+          }
+          if (systemPrompt.contains('scene consistency review')) {
+            return const AppLlmChatResult.success(
+              text: '决定：PASS\n原因：连续性与设定一致。',
+            );
+          }
+          if (systemPrompt.contains(
+            'quality scorer for Chinese novel scenes',
+          )) {
+            return const AppLlmChatResult.success(
+              text: '文笔：96\n连贯：96\n角色：96\n完整：96\n综合：96\n总结：质量门通过。',
+            );
+          }
+          throw StateError('Unexpected prompt: $systemPrompt');
+        },
+      );
       final settingsStore = AppSettingsStore(
         storage: InMemoryAppSettingsStorage(),
         eventLog: AppEventLog(storage: _NoopEventLogStorage()),
+        llmClient: fakeClient,
       );
       addTearDown(settingsStore.dispose);
 
@@ -22,6 +50,7 @@ void main() {
       final orchestrator = PipelineStageRunnerImpl(
         settingsStore: settingsStore,
         directorOrchestrator: director,
+        pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
       );
 
       final firstOutput = await orchestrator.runScene(
@@ -81,7 +110,6 @@ SceneBrief _brief({required String sceneId, required String targetBeat}) {
       'localStructuredRoleplayOnly': true,
       'localEditorialOnly': true,
       'localPolishOnly': true,
-      'localReviewOnly': true,
     },
   );
 }

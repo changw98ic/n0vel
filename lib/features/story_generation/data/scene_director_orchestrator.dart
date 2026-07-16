@@ -1,20 +1,22 @@
 import 'dart:async';
 
-import 'package:novel_writer/app/llm/app_llm_client.dart';
 import '../domain/contracts/settings_contract.dart';
 
 import 'scene_pipeline_models.dart';
 import 'scene_type_classifier.dart';
 import 'scene_type_prompts.dart';
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
+import 'formal_evaluation_policy.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
 class SceneDirectorOrchestrator implements SceneDirectorService {
   static const Duration _requestTimeout = Duration(seconds: 60);
 
-  SceneDirectorOrchestrator({required StoryGenerationSettingsContract settingsStore})
-    : _settingsStore = settingsStore;
+  SceneDirectorOrchestrator({
+    required StoryGenerationSettingsContract settingsStore,
+  }) : _settingsStore = settingsStore;
 
   final StoryGenerationSettingsContract _settingsStore;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
@@ -26,6 +28,14 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
     required List<ResolvedSceneCastMember> cast,
     String? ragContext,
   }) async {
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     final localPlanText = _buildLocalPlan(brief: brief, cast: cast);
     final localPlan = _buildStructuredPlan(
       text: localPlanText,
@@ -38,27 +48,55 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
     }
 
     try {
-      final result = await requestStoryGenerationPassWithRetry(
+      final promptIdentity = StoryPromptRegistry.production.invocation(
+        stageId: 'director',
+        callSiteId: 'scene-director',
+      );
+      final sceneType = _typeClassifier.classify(brief);
+      final resolvedVariables = <String, Object?>{
+        'sceneTypeLabel': sceneType.label,
+        'confidencePercent': (sceneType.confidence * 100).toInt(),
+        'suggestedTone': sceneType.suggestedTone,
+        'suggestedPacing': sceneType.suggestedPacing,
+        'chapter': _compact(
+          '${brief.chapterTitle} ${brief.chapterId}',
+          maxChars: 40,
+        ),
+        'scene': _compact('${brief.sceneTitle} ${brief.sceneId}', maxChars: 40),
+        'targetBeat': _compact(brief.targetBeat, maxChars: 80),
+        'sceneSummary': _compact(brief.sceneSummary, maxChars: 80),
+        'castSummary': cast.isEmpty
+            ? '出场角色：无'
+            : '出场角色：${cast.map((m) => '${m.name}(${m.role})').join('、')}',
+        'revisionPrompt': _revisionRequestPrompt(brief),
+        'ragContext': ragContext ?? '',
+        'localPlanText': localPlanText,
+        'typeSupplement': _typePrompts.directorSupplement(sceneType),
+      };
+      final messages = promptIdentity.render(resolvedVariables).messages;
+      final result = await requestFormalStoryGenerationPassWithRetry(
         settingsStore: _settingsStore,
-        messages: [
-          const AppLlmChatMessage(role: 'system', content: _systemPrompt),
-          AppLlmChatMessage(
-            role: 'user',
-            content: _buildUserPrompt(
-              brief: brief,
-              cast: cast,
-              localPlanText: localPlanText,
-              ragContext: ragContext,
-            ),
-          ),
-        ],
+        promptInvocation: promptIdentity,
+        promptInvocationEvidence: promptIdentity.evidence(
+          messages,
+          resolvedVariables: resolvedVariables,
+        ),
+        messages: messages,
       ).timeout(_requestTimeout);
 
       if (!result.succeeded || result.text == null) {
+        if (formalEvaluation) {
+          throw StateError(
+            result.detail ?? 'formal scene director provider call failed',
+          );
+        }
         return SceneDirectorOutput(text: localPlanText, plan: localPlan);
       }
       final parsed = SceneDirectorPlan.tryParse(result.text!.trim());
       if (parsed == null) {
+        if (formalEvaluation) {
+          throw StateError('formal scene director output was malformed');
+        }
         return SceneDirectorOutput(text: localPlanText, plan: localPlan);
       }
       final polishedText = parsed.toText();
@@ -71,51 +109,17 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
         ),
       );
     } on TimeoutException {
+      if (formalEvaluation) {
+        throw StateError('formal scene director request timed out');
+      }
       return SceneDirectorOutput(text: localPlanText, plan: localPlan);
-    } catch (_) {
+    } catch (error) {
+      if (formalEvaluation) {
+        throw StateError('formal scene director failed: $error');
+      }
       return SceneDirectorOutput(text: localPlanText, plan: localPlan);
     }
   }
-
-  String _buildUserPrompt({
-    required SceneBrief brief,
-    required List<ResolvedSceneCastMember> cast,
-    required String localPlanText,
-    String? ragContext,
-  }) {
-    final castSummary = cast.isEmpty
-        ? '出场角色：无'
-        : '出场角色：${cast.map((m) => '${m.name}(${m.role})').join('、')}';
-    final revisionPrompt = _revisionRequestPrompt(brief);
-    final sceneType = _typeClassifier.classify(brief);
-    final typeSupplement = _typePrompts.directorSupplement(sceneType);
-    return [
-      '任务：scene_director_polish',
-      '场景类型：${sceneType.label} (置信度: ${(sceneType.confidence * 100).toInt()}%)',
-      '建议基调：${sceneType.suggestedTone}',
-      '建议节奏：${sceneType.suggestedPacing}',
-      '格式：目标/冲突/推进/约束',
-      '章：${_compact('${brief.chapterTitle} ${brief.chapterId}', maxChars: 40)}',
-      '场：${_compact('${brief.sceneTitle} ${brief.sceneId}', maxChars: 40)}',
-      '目标节拍：${_compact(brief.targetBeat, maxChars: 80)}',
-      '场景概要：${_compact(brief.sceneSummary, maxChars: 80)}',
-      castSummary,
-      if (revisionPrompt.isNotEmpty) '作者修订请求：\n$revisionPrompt',
-      if (ragContext != null && ragContext.isNotEmpty) ragContext,
-      '本地计划：',
-      localPlanText,
-      typeSupplement,
-    ].join('\n');
-  }
-
-  static const _systemPrompt =
-      'You are a scene plan polisher for a Chinese novel.\n'
-      'Polish the existing plan while preserving the current scene.\n'
-      'Use this 4-line Chinese plan shape:\n'
-      '目标：...\n'
-      '冲突：...\n'
-      '推进：...\n'
-      '约束：...';
 
   String _buildLocalPlan({
     required SceneBrief brief,

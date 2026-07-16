@@ -28,9 +28,12 @@ void _syncDraftScopeChange(
     state._activeDraftScopeId = draftStore.activeProjectId;
     state._orb.clearSelections();
     state._lastDraftText = draft.text;
-    state._lastEditorSelection = TextSelection.collapsed(offset: draft.text.length);
+    state._lastEditorSelection = TextSelection.collapsed(
+      offset: draft.text.length,
+    );
     if (state._pendingReturnAnchor != null &&
-        state._pendingReturnAnchor!.sceneId != workspace.currentProject.sceneId) {
+        state._pendingReturnAnchor!.sceneId !=
+            workspace.currentProject.sceneId) {
       state._pendingReturnAnchor = null;
     }
     if (state._draftController != null &&
@@ -49,7 +52,8 @@ void _applyDraftTextSync(
   AppDraftSnapshot draft,
   TextSelection selectionToRestore,
 ) {
-  if (state._draftController != null && state._draftController!.text != draft.text) {
+  if (state._draftController != null &&
+      state._draftController!.text != draft.text) {
     state._draftController!.value = TextEditingValue(
       text: draft.text,
       selection: clampWorkbenchEditorSelection(
@@ -67,9 +71,15 @@ TextSelection? _normalizedEditorSelection(
 ) {
   final controller = state._draftController;
   if (controller == null) return null;
-  final selection = clampWorkbenchEditorSelection(controller.selection, text.length);
+  final selection = clampWorkbenchEditorSelection(
+    controller.selection,
+    text.length,
+  );
   if (!selection.isValid || selection.isCollapsed) return null;
-  return TextSelection(baseOffset: selection.start, extentOffset: selection.end);
+  return TextSelection(
+    baseOffset: selection.start,
+    extentOffset: selection.end,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +224,8 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
   final hasSceneCharacterBinding = state._orb.sceneCharacterBinding;
   final hasSceneWorldReference = state._orb.sceneWorldReference;
   final statusBanner = _buildStatusBanner(state.widget.uiState);
-  final runRecoveryPrompt = state._orb.shouldPromptForRunRecovery(storyRunSnapshot)
+  final runRecoveryPrompt =
+      state._orb.shouldPromptForRunRecovery(storyRunSnapshot)
       ? _RunRecoveryPrompt(
           snapshot: storyRunSnapshot,
           onRetry: () => state._orb.retryRecoveredRun(),
@@ -290,7 +301,8 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
             focusNode: state._draftFocusNode,
             scrollController: state._editorScrollController,
             isToolPanelOpen: state._orb.activeToolPanel != null,
-            onToggleToolPanel: () => state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
+            onToggleToolPanel: () =>
+                state._orb.toggleToolPanel(WorkbenchToolPanel.ai),
             onCreateFirstChapter: () => state._showSceneDialog(
               context,
               title: '新建章节',
@@ -303,8 +315,7 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
               state._orb.isChapterListOpen && workspace.scenes.isNotEmpty
               ? _ChapterListPanel(
                   scenes: workspace.scenes,
-                  currentSceneId:
-                      workspace.currentProjectOrNull?.sceneId ?? '',
+                  currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
                   onSelectScene: (scene) {
                     workspace.updateCurrentScene(
                       sceneId: scene.id,
@@ -330,10 +341,7 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
           final workbenchBody = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (chapterListPanel != null) ...[
-                chapterListPanel,
-                panelDivider,
-              ],
+              if (chapterListPanel != null) ...[chapterListPanel, panelDivider],
               editorPane,
               if (toolWindow != null) ...[panelDivider, toolWindow],
             ],
@@ -402,40 +410,31 @@ Widget? _buildToolWindow(
           authorFeedbackStore: authorFeedbackStore,
           reviewTaskStore: reviewTaskStore,
           scenes: workspace.scenes,
-          currentSceneId:
-              workspace.currentProjectOrNull?.sceneId ?? '',
-          currentChapterId:
-              workspace.currentSceneOrNull?.chapterLabel ?? '',
+          currentSceneId: workspace.currentProjectOrNull?.sceneId ?? '',
+          currentChapterId: workspace.currentSceneOrNull?.chapterLabel ?? '',
           currentSceneLabel:
               workspace.currentSceneOrNull?.displayLocation ?? '',
           sourceRunId: state._orb.sourceRunId(
             workspace.currentProjectOrNull?.id ?? '',
           ),
           sourceRunLabel: state._orb.sourceRunLabel(),
-          sceneContext: state.ref
-              .watch(appSceneContextStoreProvider)
-              .snapshot,
+          sceneContext: state.ref.watch(appSceneContextStoreProvider).snapshot,
           uiState: state.widget.uiState,
           settings: settings,
           settingsFeedback: settingsFeedback,
-          settingsHasPersistenceIssue:
-              settingsStore.hasPersistenceIssue,
+          settingsHasPersistenceIssue: settingsStore.hasPersistenceIssue,
           canGenerateAi: state._orb.canGenerateAi,
           isGeneratingAi: state._orb.isGeneratingAi,
           diagnosticReport: diagnosticReport,
           aiToolMode: state._orb.aiToolMode,
-          historyEntries: state.ref
-              .watch(appAiHistoryStoreProvider)
-              .entries,
+          historyEntries: state.ref.watch(appAiHistoryStoreProvider).entries,
           aiPromptController: state._aiPromptController,
-          onRetrySecureStore:
-              settingsStore.retrySecureStoreAccess,
+          onRetrySecureStore: settingsStore.retrySecureStoreAccess,
           draftText: draft.text,
           currentSelectionPreview: currentSelectionPreview,
-          selectionDrafts:
-              List<WorkbenchAiSelectionDraft>.unmodifiable(
-                state._orb.aiSelections,
-              ),
+          selectionDrafts: List<WorkbenchAiSelectionDraft>.unmodifiable(
+            state._orb.aiSelections,
+          ),
           onSelectAiMode: (mode) {
             state._orb.selectAiMode(mode);
           },
@@ -467,18 +466,14 @@ Widget? _buildToolWindow(
           onRenameScene: () => state._showSceneDialog(
             context,
             title: '重命名章节',
-            initialValue:
-                workspace.currentSceneOrNull?.title ?? '',
+            initialValue: workspace.currentSceneOrNull?.title ?? '',
             onConfirm: workspace.renameCurrentScene,
           ),
-          onDeleteScene: () => state._confirmDeleteScene(
-            context,
-            workspace.deleteCurrentScene,
-          ),
+          onDeleteScene: () =>
+              state._confirmDeleteScene(context, workspace.deleteCurrentScene),
           canDeleteScene: workspace.canDeleteCurrentScene,
-          onOpenSettings: () => state._openSettingsAndRestoreAnchor(
-            closeToolPanel: true,
-          ),
+          onOpenSettings: () =>
+              state._openSettingsAndRestoreAnchor(closeToolPanel: true),
           onShowAiMetadata: () {
             final metadata = state._orb.buildRequestMetadata();
             showAppSheet(
@@ -506,6 +501,10 @@ Widget? _buildToolWindow(
               ),
             );
           },
+          candidatePresentation: storyRunSnapshot.candidatePresentation,
+          candidateActionFeedback: state._orb.candidateActionFeedback,
+          onAcceptCandidate: state._orb.acceptCurrentCandidate,
+          onRejectCandidate: state._orb.rejectCurrentCandidate,
           onAddCurrentSelection: state._addCurrentSelectionFromEditor,
           onEditSelectionPrompt: state._editSelectionPrompt,
           onRemoveSelection: state._removeSelection,
@@ -514,9 +513,7 @@ Widget? _buildToolWindow(
             currentStageIndex: guideStageIndex,
             hasCharacters: workspace.characters.isNotEmpty,
             hasWorldNodes: workspace.worldNodes.isNotEmpty,
-            hasSceneSummary: workspace.currentScene.summary
-                .trim()
-                .isNotEmpty,
+            hasSceneSummary: workspace.currentScene.summary.trim().isNotEmpty,
             hasDraft: draft.text.trim().isNotEmpty,
             hasSceneCharacterBinding: hasSceneCharacterBinding,
             hasSceneWorldReference: hasSceneWorldReference,

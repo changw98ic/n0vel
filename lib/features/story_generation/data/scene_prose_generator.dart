@@ -1,9 +1,9 @@
-import 'package:novel_writer/app/llm/app_llm_client.dart';
 import '../domain/contracts/settings_contract.dart';
 
 import 'scene_runtime_models.dart' show SceneTaskCard;
 import 'story_generation_pass_retry.dart';
-import 'story_prompt_templates.dart';
+import 'story_prompt_registry.dart';
+import 'formal_evaluation_policy.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
@@ -21,45 +21,61 @@ class SceneProseGenerator implements SceneProseService {
     required int attempt,
     String? reviewFeedback,
   }) async {
-    final l = StoryPromptTemplates.locale;
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     final isFirstScene = brief.sceneIndex == 0;
-    final isLastScene = brief.totalScenesInChapter > 0 &&
+    final isLastScene =
+        brief.totalScenesInChapter > 0 &&
         brief.sceneIndex == brief.totalScenesInChapter - 1;
 
-    final result = await requestStoryGenerationPassWithRetry(
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'prose',
+      callSiteId: 'scene-prose',
+    );
+    final resolvedVariables = <String, Object?>{
+      'chapterTitle': brief.chapterTitle,
+      'sceneTitle': brief.sceneTitle,
+      'targetLength': brief.targetLength,
+      'attempt': attempt,
+      'sceneNumber': brief.sceneIndex + 1,
+      'totalScenes': brief.totalScenesInChapter,
+      'openingBoundary': isFirstScene ? '⚠️ 这是本章首个场景，前50字必须包含悬念信号。' : '',
+      'closingBoundary': isLastScene ? '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。' : '',
+      'taskCard': director.taskCard == null
+          ? ''
+          : _taskCardSummary(director.taskCard!),
+      'director': _compact(director.text, maxChars: 300),
+      'roleOutputs': roleOutputs.isEmpty ? '' : _roleOutputSummary(roleOutputs),
+      'reviewFeedback':
+          reviewFeedback != null && reviewFeedback.trim().isNotEmpty
+          ? reviewFeedback.trim()
+          : '',
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
       initialMaxTokens: storyGenerationEditorialMaxTokens,
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content: l.sysSceneProse,
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：scene_prose_generation',
-            '章节：${brief.chapterTitle}',
-            '场景：${brief.sceneTitle}',
-            '目标字数：约${brief.targetLength}汉字',
-            '当前尝试：$attempt',
-            '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
-            if (isFirstScene) '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
-            if (isLastScene) '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
-            if (director.taskCard != null)
-              '任务卡：${_taskCardSummary(director.taskCard!)}',
-            '导演计划：${_compact(director.text, maxChars: 300)}',
-            if (roleOutputs.isNotEmpty)
-              '角色输出：\n${_roleOutputSummary(roleOutputs)}',
-            if (reviewFeedback != null && reviewFeedback.trim().isNotEmpty)
-              '复写反馈：${reviewFeedback.trim()}',
-          ].join('\n\n'),
-        ),
-      ],
+      messages: messages,
     );
     if (!result.succeeded) {
       throw StateError(result.detail ?? 'Scene prose generation failed.');
     }
-    return SceneProseDraft(text: result.text!.trim(), attempt: attempt);
+    final text = result.text!.trim();
+    if (text.isEmpty &&
+        FormalEvaluationPolicy.isActive(
+          brief.metadata,
+          formalExecution: brief.formalExecution,
+        )) {
+      throw StateError('formal scene prose generation returned empty text');
+    }
+    return SceneProseDraft(text: text, attempt: attempt);
   }
 
   String _taskCardSummary(SceneTaskCard taskCard) {

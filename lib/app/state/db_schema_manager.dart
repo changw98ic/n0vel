@@ -34,6 +34,22 @@ class DatabaseSchemaManager {
     final current = _readVersion(db);
     final sorted = List<SchemaMigration>.from(migrations)
       ..sort((a, b) => a.version.compareTo(b.version));
+    if (sorted.isEmpty) {
+      if (current != 0) {
+        throw UnsupportedDatabaseSchemaVersion(
+          databaseVersion: current,
+          maximumSupportedVersion: 0,
+        );
+      }
+      return;
+    }
+    final maximumSupported = sorted.last.version;
+    if (current > maximumSupported) {
+      throw UnsupportedDatabaseSchemaVersion(
+        databaseVersion: current,
+        maximumSupportedVersion: maximumSupported,
+      );
+    }
     final pending = sorted.where((m) => m.version > current).toList();
     if (pending.isEmpty) return;
 
@@ -52,4 +68,24 @@ class DatabaseSchemaManager {
 
   int _readVersion(Database db) =>
       db.select('PRAGMA user_version').first['user_version'] as int;
+}
+
+/// Raised before any write when an older binary opens a newer database.
+///
+/// Silently accepting this case lets an N-1 writer bypass schema-era fencing
+/// and corrupt data it cannot understand. Recovery is restore-from-backup or a
+/// newer binary; in-place downgrade is deliberately unsupported.
+class UnsupportedDatabaseSchemaVersion implements Exception {
+  const UnsupportedDatabaseSchemaVersion({
+    required this.databaseVersion,
+    required this.maximumSupportedVersion,
+  });
+
+  final int databaseVersion;
+  final int maximumSupportedVersion;
+
+  @override
+  String toString() =>
+      'UnsupportedDatabaseSchemaVersion: database v$databaseVersion is newer '
+      'than this binary\'s maximum v$maximumSupportedVersion';
 }

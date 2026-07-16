@@ -9,6 +9,7 @@ import '../domain/contracts/memory_policy.dart';
 import '../domain/contracts/stage_runner.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
+import 'formal_evaluation_policy.dart';
 
 class DynamicRoleAgentRunner implements DynamicRoleAgentService {
   DynamicRoleAgentRunner({
@@ -31,6 +32,16 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     SceneTaskCard? taskCard,
     String? ragContext,
   }) async {
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
+    if (taskCard != null) {
+      FormalEvaluationPolicy.rejectLocalFallbackRequest(
+        taskCard.metadata,
+        formalExecution: brief.formalExecution,
+      );
+    }
     if (brief.metadata['localStructuredRoleplayOnly'] == true) {
       return (
         outputs: [
@@ -50,17 +61,18 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
       brief: brief,
       cast: cast,
     );
-    final result = await SceneRoleplayRuntime(
-      settingsStore: _settingsStore,
-      eventLog: _eventLog,
-    ).runSession(
-      brief: brief,
-      cast: cast,
-      director: director,
-      taskCard: taskCard,
-      ragContext: ragContext,
-      memoryDeltasByCharacter: memoryDeltasByCharacter,
-    );
+    final result =
+        await SceneRoleplayRuntime(
+          settingsStore: _settingsStore,
+          eventLog: _eventLog,
+        ).runSession(
+          brief: brief,
+          cast: cast,
+          director: director,
+          taskCard: taskCard,
+          ragContext: ragContext,
+          memoryDeltasByCharacter: memoryDeltasByCharacter,
+        );
     return (outputs: result.outputs, session: result.session);
   }
 
@@ -93,15 +105,17 @@ class DynamicRoleAgentRunner implements DynamicRoleAgentService {
     required ResolvedSceneCastMember member,
     SceneTaskCard? taskCard,
   }) {
-    _eventLog?.emit(PipelineEvent(
-      timestampMs: DateTime.now().millisecondsSinceEpoch,
-      stageId: 'roleplay',
-      eventType: 'status',
-      metadata: {
-        'sceneId': '${brief.chapterId}/${brief.sceneId}',
-        'message': 'role ${member.name}',
-      },
-    ));
+    _eventLog?.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: 'roleplay',
+        eventType: 'status',
+        metadata: {
+          'sceneId': '${brief.chapterId}/${brief.sceneId}',
+          'message': 'role ${member.name}',
+        },
+      ),
+    );
     final note = director.plan?.noteFor(member.characterId);
     final target = _compact(
       brief.targetBeat.trim().isNotEmpty

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 
 import 'app/app.dart';
+import 'features/story_generation/data/evaluation/agent_evaluation_sandbox_seal_verifier.dart';
 
 export 'app/app.dart';
 export 'app/navigation/reading_route_data.dart';
@@ -21,6 +24,12 @@ export 'features/versions/presentation/version_history_page.dart';
 export 'features/workbench/presentation/workbench_shell_page.dart';
 export 'features/worldbuilding/presentation/worldbuilding_page.dart';
 
-void main() {
+Future<void> main(List<String> arguments) async {
+  final verifierExitCode = runAgentEvaluationSealVerifierCommand(arguments);
+  if (verifierExitCode != null) {
+    await stdout.flush();
+    await stderr.flush();
+    exit(verifierExitCode);
+  }
   runApp(const NovelWriterApp());
 }

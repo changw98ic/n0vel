@@ -1,4 +1,5 @@
-import 'package:novel_writer/app/rag/hybrid_retriever.dart' show RagSceneContext;
+import 'package:novel_writer/app/rag/hybrid_retriever.dart'
+    show RagSceneContext;
 
 import 'step_roleplay_io.dart';
 import 'step_scene_planning_io.dart';
@@ -40,8 +41,11 @@ class StageNarrationOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.stageNarration;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'capsuleCount': capsules.length};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'resumeSafe': capsules.isEmpty && stageCapsule == null,
+    'capsuleCount': capsules.length,
+  };
 
   @override
   int get tokenEstimate => 0;

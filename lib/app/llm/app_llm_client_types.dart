@@ -137,6 +137,23 @@ class AppLlmTimeoutConfig {
   }
 }
 
+/// Non-secret immutable call identity required by the formal evaluation cache.
+///
+/// Execution, slot, run, and model-route identity are owned by the active
+/// evaluation scope. This request-owned half binds the concrete generation
+/// stage and parser release to the actual rendered input.
+final class AppLlmFormalCacheRequestIdentity {
+  const AppLlmFormalCacheRequestIdentity({
+    required this.stageId,
+    required this.generationBundleHash,
+    required this.parserRelease,
+  });
+
+  final String stageId;
+  final String generationBundleHash;
+  final String parserRelease;
+}
+
 class AppLlmChatRequest {
   const AppLlmChatRequest({
     required this.baseUrl,
@@ -148,6 +165,8 @@ class AppLlmChatRequest {
     required this.messages,
     this.provider = AppLlmProvider.openaiCompatible,
     this.onPartialText,
+    this.formalCacheIdentity,
+    this.preferStreaming = true,
   }) : _timeout = timeout,
        _timeoutMs = timeoutMs;
 
@@ -164,6 +183,14 @@ class AppLlmChatRequest {
   final int maxTokens;
   final AppLlmProvider provider;
   final void Function(String chunk)? onPartialText;
+  final AppLlmFormalCacheRequestIdentity? formalCacheIdentity;
+
+  /// Whether [AppLlmClient.chat] may use a streaming transport internally.
+  ///
+  /// Formal meters can disable this to require one atomic response containing
+  /// exact usage and provider model identity. Direct [chatStream] calls are
+  /// unaffected.
+  final bool preferStreaming;
 
   AppLlmTimeoutConfig get timeout =>
       _timeout ?? AppLlmTimeoutConfig.uniform(_timeoutMs);
@@ -198,6 +225,7 @@ class AppLlmChatResult {
     this.completionTokens,
     this.totalTokens,
     this.tokenUsage,
+    this.providerModel,
   }) : failureKind = null,
        statusCode = null,
        detail = null;
@@ -211,7 +239,26 @@ class AppLlmChatResult {
        promptTokens = null,
        completionTokens = null,
        totalTokens = null,
-       tokenUsage = null;
+       tokenUsage = null,
+       providerModel = null;
+
+  /// A provider failure whose conservative usage was sealed by a formal
+  /// metering boundary. Ordinary transport failures must keep using
+  /// [AppLlmChatResult.failure], because only the meter can truthfully attach
+  /// these upper-bound token counts.
+  const AppLlmChatResult.meteredFailure({
+    required this.failureKind,
+    required int meteredPromptTokens,
+    required int meteredCompletionTokens,
+    this.statusCode,
+    this.detail,
+  }) : text = null,
+       latencyMs = null,
+       promptTokens = meteredPromptTokens,
+       completionTokens = meteredCompletionTokens,
+       totalTokens = meteredPromptTokens + meteredCompletionTokens,
+       tokenUsage = null,
+       providerModel = null;
 
   final String? text;
   final int? latencyMs;
@@ -222,6 +269,10 @@ class AppLlmChatResult {
   final int? completionTokens;
   final int? totalTokens;
   final Object? tokenUsage;
+
+  /// Exact model identity echoed by the provider response, when available.
+  /// This is deliberately distinct from the requested model.
+  final String? providerModel;
 
   bool get succeeded => failureKind == null && text != null;
 }

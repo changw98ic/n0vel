@@ -84,6 +84,39 @@ void main() {
       backupDb.dispose();
     });
 
+    test(
+      'online snapshot includes committed rows still present in WAL',
+      () async {
+        await writeSampleData();
+        final live = sqlite3.open(dbPath);
+        addTearDown(live.dispose);
+        live.execute('PRAGMA journal_mode = WAL');
+        live.execute('PRAGMA wal_autocheckpoint = 0');
+        live.execute(
+          '''INSERT INTO workspace_projects
+           (scope_key, position_no, id, title) VALUES (?, ?, ?, ?)''',
+          <Object?>['workspace-default', 1, 'wal-row', 'WAL 已提交'],
+        );
+        expect(File('$dbPath-wal').existsSync(), isTrue);
+
+        final service = FileAutoBackupService(dbPath: dbPath);
+        final entry = await service.createBackup();
+        final backup = sqlite3.open(
+          '${tempDir.path}/backups/authoring_${entry.id}.db',
+          mode: OpenMode.readOnly,
+        );
+        addTearDown(backup.dispose);
+        expect(
+          backup
+              .select(
+                "SELECT title FROM workspace_projects WHERE id = 'wal-row'",
+              )
+              .single['title'],
+          'WAL 已提交',
+        );
+      },
+    );
+
     test('listBackups returns empty list when no backups exist', () async {
       final service = FileAutoBackupService(dbPath: dbPath);
 
@@ -138,6 +171,26 @@ void main() {
       final service = FileAutoBackupService(dbPath: dbPath);
 
       expect(service.restoreBackup('nonexistent'), throwsA(isA<StateError>()));
+    });
+
+    test('corrupt backup cannot replace the live database', () async {
+      await writeSampleData();
+      final service = FileAutoBackupService(dbPath: dbPath);
+      final entry = await service.createBackup();
+      final backup = File('${tempDir.path}/backups/authoring_${entry.id}.db');
+      await backup.writeAsString('corrupt', flush: true);
+
+      await expectLater(service.restoreBackup(entry.id), throwsA(anything));
+      final live = sqlite3.open(dbPath, mode: OpenMode.readOnly);
+      addTearDown(live.dispose);
+      expect(
+        live
+            .select(
+              "SELECT title FROM workspace_projects WHERE id = 'project-1'",
+            )
+            .single['title'],
+        '月潮回声',
+      );
     });
 
     test('deleteBackup removes a specific backup file', () async {

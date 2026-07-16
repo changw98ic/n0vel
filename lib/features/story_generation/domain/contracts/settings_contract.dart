@@ -1,4 +1,7 @@
 import '../../../../app/llm/app_llm_client_types.dart';
+import '../../../../app/llm/app_llm_prompt_release.dart';
+import '../../../../app/llm/app_llm_prompt_invocation.dart';
+import '../../../../app/llm/app_llm_prompt_version.dart';
 import '../../../../domain/prompt_language.dart';
 
 /// Abstraction for LLM settings needed by the story generation pipeline.
@@ -16,5 +19,12 @@ abstract interface class StoryGenerationSettingsContract {
     int? maxTokens,
     String? traceName,
     Map<String, Object?> traceMetadata = const {},
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
+    PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
   });
 }

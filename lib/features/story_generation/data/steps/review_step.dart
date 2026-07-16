@@ -41,9 +41,12 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
     final prose = input.editorial.prose;
 
     SceneReviewResult? lengthReview;
+    SceneReviewResult? minimumLengthReview;
+    SceneReviewResult? truncationReview;
     SceneReviewResult? styleReview;
     SceneReviewResult? hookReview;
     SceneReviewResult? propReview;
+    SceneReviewResult? physicalReview;
 
     // 1. Check length first (always runs — mechanical check).
     lengthReview = _reviewOverlongProse(brief: brief, prose: prose);
@@ -54,6 +57,61 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
           wasLengthRetry: true,
           action: SceneReviewDecision.rewriteProse,
         );
+      }
+    }
+
+    if (hardGatesEnabled) {
+      final minimumLengthReason = sceneMinimumLengthViolationText(
+        brief: brief,
+        proseText: prose.text,
+      );
+      if (minimumLengthReason != null) {
+        minimumLengthReview = _buildRewriteReview(
+          reason: minimumLengthReason,
+          judgeCategories: const [SceneReviewCategory.prose],
+          consistencyPassReason: 'minimum-length gate 未进入一致性审查。',
+          consistencyCategories: const [
+            SceneReviewCategory.chapterPlan,
+            SceneReviewCategory.continuity,
+          ],
+        );
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'prose below minimum length -> rewrite',
+          );
+          return ReviewOutput(
+            review: minimumLengthReview,
+            wasLengthRetry: true,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
+      }
+
+      final truncationReason = sceneProseTruncationViolationText(prose.text);
+      if (truncationReason != null) {
+        truncationReview = _buildRewriteReview(
+          reason: truncationReason,
+          judgeCategories: const [SceneReviewCategory.prose],
+          consistencyPassReason: 'truncation gate 未进入一致性审查。',
+          consistencyCategories: const [
+            SceneReviewCategory.chapterPlan,
+            SceneReviewCategory.continuity,
+          ],
+        );
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'prose truncation -> rewrite',
+          );
+          return ReviewOutput(
+            review: truncationReview,
+            wasLengthRetry: false,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
       }
     }
 
@@ -110,14 +168,42 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
           );
         }
       }
+
+      final physicalReason = scenePhysicalContinuityViolationText(prose.text);
+      if (physicalReason != null) {
+        physicalReview = _buildRewriteReview(
+          reason: physicalReason,
+          judgeCategories: const [SceneReviewCategory.prose],
+          consistencyPassReason: 'physical continuity gate 未进入一致性审查。',
+          consistencyCategories: const [
+            SceneReviewCategory.chapterPlan,
+            SceneReviewCategory.continuity,
+          ],
+        );
+        if (input.softFailureCount + 1 <= maxProseRetries) {
+          _emitGateEvent(
+            brief: brief,
+            code: FailureCode.qualityFail,
+            message: 'physical continuity violation -> rewrite',
+          );
+          return ReviewOutput(
+            review: physicalReview,
+            wasLengthRetry: false,
+            action: SceneReviewDecision.rewriteProse,
+          );
+        }
+      }
     }
 
     // 2. Quality review (or reuse length/style/hook/prop review when retries exhausted).
     final review =
         lengthReview ??
+        minimumLengthReview ??
+        truncationReview ??
         styleReview ??
         hookReview ??
         propReview ??
+        physicalReview ??
         await _reviewCoordinator.review(
           brief: brief,
           director: input.plan.director,
@@ -126,6 +212,8 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
           roleplaySession: input.roleplay.session,
           retrievalPack: input.context.retrievalPack,
           canonFacts: _canonFactsFrom(input.context),
+          enableReaderFlowReview: brief.formalExecution,
+          enableLexiconReview: brief.formalExecution,
         );
 
     // 3. Post-generation consistency check (only when review passed).
@@ -262,6 +350,20 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
     '拽',
     '喊',
     '叫',
+    // Common decisive Chinese actions. The hook gate is meant to reject
+    // atmospheric openings, not a concrete action such as "拍上门禁终端".
+    '拍',
+    '按',
+    '推',
+    '拉',
+    '挥',
+    '砸',
+    '踢',
+    '扑',
+    '扯',
+    '扣',
+    '拔',
+    '压',
   ];
 
   static const _hookSuspenseWords = ['突然', '竟然', '意外', '发现', '秘密', '失踪'];
@@ -277,28 +379,6 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
     '楼道',
     '窗外',
   ];
-
-  static const _closingResolutionPatterns = [
-    '恢复了平静',
-    '回到了往日',
-    '都解决了',
-    '结束了',
-    '得到了应有的',
-    '安心回家',
-    '从此以后',
-    '一切都恢复',
-    '所有谜团都解开',
-  ];
-
-  static const _endingUnfinishedActions = [
-    '还没',
-    '来不及',
-    '正要',
-    '就要',
-    '差一点',
-    '眼看',
-  ];
-  static const _endingHookWords = ['真相', '秘密', '危险', '背后', '发现', '到底', '究竟'];
 
   /// Scene-type to forbidden-prop mapping.
   static const _scenePropConflicts = {
@@ -380,6 +460,7 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
 
     final first100 = text.length > 100 ? text.substring(0, 100) : text;
     final first20 = text.length > 20 ? text.substring(0, 20) : text;
+    final first50 = text.length > 50 ? text.substring(0, 50) : text;
 
     // Compute hook strength aligned with benchmark _computeHookStrength.
     var score = 0.0;
@@ -391,7 +472,7 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
       score += 0.2;
       hits.add('动作动词');
     } else {
-      missing.add('动作动词(冲/跑/抓/摔/撞/翻/喊)');
+      missing.add('动作动词(冲/跑/抓/摔/撞/翻/喊/拍/推/拉/砸/踢)');
     }
 
     // Question mark (+0.2)
@@ -408,10 +489,11 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
       hits.add('感叹句');
     }
 
-    // Dialogue opening (+0.15)
-    if (text.startsWith('「') || text.startsWith('"')) {
+    // Direct dialogue within the opening beat (+0.15). A decisive action
+    // followed immediately by speech is as much of a hook as speech at byte 0.
+    if (first50.contains('「') || first50.contains('"')) {
       score += 0.15;
-      hits.add('对话开头');
+      hits.add('前50字内对话');
     }
 
     // Short sentence opening (+0.15)
@@ -445,8 +527,9 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
     final reason =
         '开头钩子强度$pct%低于30%阈值。'
         '前50字「$opening」$forbiddenNote$hitsNote$missingNote'
+        '这是机械门：仅有动作动词只能得到20%，不得原样保留开头。'
         '请在重写时：1）用动作动词或角色对话开场，禁止环境白描；'
-        '2）前100字内加入悬念词(突然/竟然/意外/发现/秘密/失踪)；'
+        '2）前100字内必须加入悬念词(突然/竟然/意外/发现/秘密/失踪)或疑问句；'
         '3）用短句开头增加冲击力（前20字内出现句号或省略号）；'
         '4）参考好开头：角色直接行动+悬念，如「苏薇冲进办公室，手里攥着一份失踪报告」。';
     return _buildHookGateReview(reason: reason);
@@ -464,65 +547,13 @@ class ReviewStep implements PipelineStage<ReviewInput, ReviewOutput> {
     final text = prose.text.trim();
     if (text.isEmpty) return null;
 
-    // Check last 150 chars for neat resolution patterns (hard reject).
-    final tail = text.length > 150 ? text.substring(text.length - 150) : text;
-
-    final matchedPatterns = _closingResolutionPatterns
-        .where((pattern) => tail.contains(pattern))
-        .toList();
-    if (matchedPatterns.isNotEmpty) {
-      final reason =
-          '本章最后场景结尾命中圆满收尾模式「${matchedPatterns.join('、')}」，缺少悬念钩子。'
-          '请在重写时：1）最后一段留下未决冲突或紧急选择；'
-          '2）禁止使用"恢复平静/一切都解决了"式结局；'
-          '3）用悬念或威胁暗示引向下一章。';
-      return _buildHookGateReview(reason: reason);
-    }
-
-    // Positive scoring aligned with benchmark _computeChapterEndHook.
-    var score = 0.0;
-    if (tail.contains('…') || tail.contains('——')) score += 0.25;
-    if (tail.contains('？') || tail.contains('?')) score += 0.2;
-    if (tail.contains('！') || tail.contains('!')) score += 0.15;
-    for (final a in _endingUnfinishedActions) {
-      if (tail.contains(a)) {
-        score += 0.2;
-        break;
-      }
-    }
-    for (final w in _endingHookWords) {
-      if (tail.contains(w)) {
-        score += 0.2;
-        break;
-      }
-    }
-
-    if (score >= 0.30) return null; // Threshold aligned with benchmark.
-
-    final hits = <String>[];
-    if (tail.contains('…') || tail.contains('——')) hits.add('悬念标点');
-    if (tail.contains('？') || tail.contains('?')) hits.add('疑问');
-    if (tail.contains('！') || tail.contains('!')) hits.add('感叹');
-    for (final a in _endingUnfinishedActions) {
-      if (tail.contains(a)) {
-        hits.add('未完成动作($a)');
-        break;
-      }
-    }
-    for (final w in _endingHookWords) {
-      if (tail.contains(w)) {
-        hits.add('悬念词($w)');
-        break;
-      }
-    }
-
-    final reason =
-        '章末钩子评分${(score * 100).toStringAsFixed(0)}%低于阈值30%。'
-        '命中项：${hits.isEmpty ? "无" : hits.join("、")}。'
-        '请在重写时在最后150字内加入：1）未完成动作（来不及/正要/眼看）；'
-        '2）悬念词（真相/秘密/危险/背后）；'
-        '3）破折号——或省略号…制造未决感。';
-    return _buildHookGateReview(reason: reason);
+    final violation = sceneChapterEndingHookViolationText(text);
+    if (violation == null) return null;
+    return _buildHookGateReview(
+      reason:
+          '$violation。请在最后一段留下未回答问题、未完成动作或具体威胁，'
+          '并删除“恢复平静/已经解决”式收口。',
+    );
   }
 
   SceneReviewResult _buildRewriteReview({

@@ -19,6 +19,8 @@ export '../data/scene_review_models.dart'
         SceneReviewStatus,
         SceneReviewCategory,
         SceneReviewDecision,
+        SceneReviewPhase,
+        SceneReviewAttempt,
         SceneReviewPassResult,
         SceneReviewResult,
         SceneRuntimeOutput;
@@ -31,6 +33,10 @@ class SceneQualityScore {
     required this.coherence,
     required this.character,
     required this.completeness,
+    this.style,
+    this.imagery,
+    this.rhythm,
+    this.faithfulness,
     this.summary = '',
     this.warning,
   });
@@ -40,8 +46,26 @@ class SceneQualityScore {
   final double coherence;
   final double character;
   final double completeness;
+
+  /// Extended rubric dimensions used by formal production runs.
+  /// Legacy scorecards remain readable; formal runs require all four.
+  final double? style;
+  final double? imagery;
+  final double? rhythm;
+  final double? faithfulness;
   final String summary;
   final String? warning;
+
+  double get styleScore => style ?? prose;
+  double get imageryScore => imagery ?? prose;
+  double get rhythmScore => rhythm ?? prose;
+  double get faithfulnessScore => faithfulness ?? completeness;
+
+  bool get hasExtendedRubric =>
+      style != null &&
+      imagery != null &&
+      rhythm != null &&
+      faithfulness != null;
 
   Map<String, Object?> toJson() {
     return {
@@ -50,6 +74,10 @@ class SceneQualityScore {
       'coherence': coherence,
       'character': character,
       'completeness': completeness,
+      if (style != null) 'style': style,
+      if (imagery != null) 'imagery': imagery,
+      if (rhythm != null) 'rhythm': rhythm,
+      if (faithfulness != null) 'faithfulness': faithfulness,
       'summary': summary,
       if (warning != null && warning!.isNotEmpty) 'warning': warning,
     };
@@ -62,6 +90,10 @@ class SceneQualityScore {
       coherence: _parseDouble(json['coherence']),
       character: _parseDouble(json['character']),
       completeness: _parseDouble(json['completeness']),
+      style: _parseOptionalDouble(json['style']),
+      imagery: _parseOptionalDouble(json['imagery']),
+      rhythm: _parseOptionalDouble(json['rhythm']),
+      faithfulness: _parseOptionalDouble(json['faithfulness']),
       summary: json['summary']?.toString() ?? '',
       warning: json['warning']?.toString(),
     );
@@ -76,6 +108,10 @@ class SceneQualityScore {
         other.coherence == coherence &&
         other.character == character &&
         other.completeness == completeness &&
+        other.style == style &&
+        other.imagery == imagery &&
+        other.rhythm == rhythm &&
+        other.faithfulness == faithfulness &&
         other.summary == summary &&
         other.warning == warning;
   }
@@ -87,6 +123,10 @@ class SceneQualityScore {
     coherence,
     character,
     completeness,
+    style,
+    imagery,
+    rhythm,
+    faithfulness,
     summary,
     warning,
   );
@@ -95,6 +135,12 @@ class SceneQualityScore {
 double _parseDouble(Object? raw) {
   if (raw is num) return raw.toDouble();
   return double.tryParse(raw?.toString() ?? '') ?? 0.0;
+}
+
+double? _parseOptionalDouble(Object? raw) {
+  if (raw == null) return null;
+  final parsed = raw is num ? raw.toDouble() : double.tryParse(raw.toString());
+  return parsed?.isFinite == true ? parsed : null;
 }
 
 /// Raw project materials available for scene context assembly.

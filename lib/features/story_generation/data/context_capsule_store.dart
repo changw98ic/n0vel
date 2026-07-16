@@ -1,3 +1,4 @@
+import '../../../app/llm/app_llm_canonical_hash.dart';
 import '../domain/pipeline_models.dart';
 import '../domain/memory_models.dart';
 
@@ -54,6 +55,15 @@ class ContextCapsuleStore {
   final int defaultTtlMs;
   final int maxCapsulesPerScope;
 
+  static final String releaseHash = AppLlmCanonicalHash.domainHash(
+    'context-capsule-store-release-v1',
+    const <String, Object?>{
+      'visibility': 'public-or-exact-private-viewer',
+      'expiry': 'inserted-at-plus-ttl',
+      'capacity': 'priority-then-oldest',
+    },
+  );
+
   final List<CapsuleEntry> _entries = [];
 
   /// Inserts a capsule into the given scope.
@@ -75,24 +85,22 @@ class ContextCapsuleStore {
     _evictExpired(effectiveNow);
     _evictToCapacity(scopeId);
 
-    _entries.add(CapsuleEntry(
-      capsule: capsule,
-      scopeId: scopeId,
-      insertedAtMs: effectiveNow,
-      ttlMs: ttlMs ?? defaultTtlMs,
-      visibility: visibility,
-      viewerId: viewerId,
-      sourceRefs: sourceRefs,
-      thoughtPriority: thoughtPriority,
-    ));
+    _entries.add(
+      CapsuleEntry(
+        capsule: capsule,
+        scopeId: scopeId,
+        insertedAtMs: effectiveNow,
+        ttlMs: ttlMs ?? defaultTtlMs,
+        visibility: visibility,
+        viewerId: viewerId,
+        sourceRefs: sourceRefs,
+        thoughtPriority: thoughtPriority,
+      ),
+    );
   }
 
   /// Returns all non-expired capsules visible to [viewerId] in [scopeId].
-  List<ContextCapsule> query(
-    String scopeId,
-    String? viewerId, {
-    int? nowMs,
-  }) {
+  List<ContextCapsule> query(String scopeId, String? viewerId, {int? nowMs}) {
     final effectiveNow = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     _evictExpired(effectiveNow);
 
@@ -152,8 +160,7 @@ class ContextCapsuleStore {
   }
 
   void _evictToCapacity(String scopeId) {
-    final scopeEntries =
-        _entries.where((e) => e.scopeId == scopeId).toList();
+    final scopeEntries = _entries.where((e) => e.scopeId == scopeId).toList();
     if (scopeEntries.length < maxCapsulesPerScope) return;
 
     // Evict lowest priority first, then oldest

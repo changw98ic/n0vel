@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 2,
+  "auditDate": "2026-07-16",
+  "artifactStatus": "unscored_unreleased",
+  "quality": {
+    "repairedTextScore": null,
+    "scoreStatus": "not_run",
+    "historicalScoreRange": {
+      "minimum": 88,
+      "maximum": 94,
+      "scope": "historical source chapters only"
+    },
+    "historicalScoresTransferred": false,
+    "productionReleaseRequirements": {
+      "overallMinimum": 95,
+      "allCriticalDimensionsMinimum": 90,
+      "sceneHardGateReleaseHash": "sha256:24af7a88c1a1b4e6bfab417c5f0a795af8eb6bb3cd89bee9c5d23ae44be72074",
+      "sceneHardGateReleaseHashStatus": "verified_by_production_deterministic_gate"
+    }
+  },
+  "chapterMetrics": [
+    {
+      "chapterId": "chapter-01",
+      "unicodeCharactersIncludingMarkdown": 2760,
+      "hanCharactersIncludingMarkdown": 2249,
+      "proseUnicodeCharacters": 2711,
+      "proseHanCharacters": 2221,
+      "sceneCount": 4,
+      "firstLiuxiOffsetInProse": 18
+    },
+    {
+      "chapterId": "chapter-02",
+      "unicodeCharactersIncludingMarkdown": 2984,
+      "hanCharactersIncludingMarkdown": 2421,
+      "proseUnicodeCharacters": 2932,
+      "proseHanCharacters": 2390,
+      "sceneCount": 4,
+      "firstLiuxiOffsetInProse": 19
+    },
+    {
+      "chapterId": "chapter-03",
+      "unicodeCharactersIncludingMarkdown": 3226,
+      "hanCharactersIncludingMarkdown": 2612,
+      "proseUnicodeCharacters": 3178,
+      "proseHanCharacters": 2585,
+      "sceneCount": 4,
+      "firstLiuxiOffsetInProse": 27
+    }
+  ],
+  "outlineBeatAudit": {
+    "status": "passed",
+    "chapter01": [
+      "button micro-tracker discovered",
+      "tracker makes cooperation necessary",
+      "container alley escape",
+      "exact archive-door warning retained"
+    ],
+    "chapter02": [
+      "three key pages torn",
+      "phone ultraviolet pressure-mark recovery",
+      "fund-flow code reconstructed",
+      "cleaners weld lower entrances",
+      "rooftop is the only exit"
+    ],
+    "chapter03": [
+      "both characters draw guns over disclosure versus survival",
+      "cleaners deploy heavy gunfire",
+      "Shen Du unloads and lowers his gun",
+      "the same phone is returned to Liu Xi",
+      "Shen Du retrieves and reloads his own gun",
+      "Shen Du covers the upload",
+      "Shen Du is shot and falls over the edge",
+      "Liu Xi catches him",
+      "upload succeeds while the wider network remains active"
+    ]
+  },
+  "evidenceObjectLedger": [
+    {
+      "eventId": "evidence-phone-introduced",
+      "scene": "chapter-01/scene-02",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "沈渡面前",
+      "statusAfterScene": "held",
+      "event": "Exact prose introduces Liu Xi's phone in front of Shen Du."
+    },
+    {
+      "eventId": "evidence-phone-moved-to-table",
+      "scene": "chapter-01/scene-03",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "桌面",
+      "statusAfterScene": "held",
+      "event": "Exact prose relocates the phone to the table."
+    },
+    {
+      "eventId": "evidence-phone-returned-to-inner-pocket",
+      "scene": "chapter-01/scene-03",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "内袋",
+      "statusAfterScene": "held",
+      "event": "Exact prose returns the phone to Liu Xi's inner pocket."
+    },
+    {
+      "eventId": "evidence-phone-observed-before-escape",
+      "scene": "chapter-01/scene-04",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "内袋",
+      "statusAfterScene": "held",
+      "event": "Exact prose observes the phone in Liu Xi's inner pocket before escape."
+    },
+    {
+      "eventId": "evidence-phone-observed-in-inner-pocket",
+      "scene": "chapter-02/scene-01",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "内袋",
+      "statusAfterScene": "held",
+      "event": "Exact prose observes the same phone in Liu Xi's inner pocket."
+    },
+    {
+      "eventId": "evidence-phone-moved-to-cover",
+      "scene": "chapter-02/scene-02",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "封皮前",
+      "statusAfterScene": "held",
+      "event": "Exact prose relocates the phone lens in front of the ledger cover."
+    },
+    {
+      "eventId": "evidence-phone-moved-to-backlight",
+      "scene": "chapter-02/scene-03",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "柜架背光处",
+      "statusAfterScene": "held",
+      "event": "Exact prose relocates the phone to the backlit shelf area for pressure-mark capture."
+    },
+    {
+      "eventId": "evidence-phone-liuxi-to-shendu",
+      "scene": "chapter-02/scene-04",
+      "holderBefore": "liuxi",
+      "holderAfter": "shendu",
+      "locationAfterScene": "沈渡手中",
+      "statusAfterScene": "held",
+      "event": "Exact prose transfers the evidence phone from Liu Xi to Shen Du."
+    },
+    {
+      "eventId": "evidence-phone-moved-to-waterproof-bag",
+      "scene": "chapter-03/scene-01",
+      "holderAfterScene": "shendu",
+      "locationAfterScene": "胸前防水袋",
+      "statusAfterScene": "held",
+      "event": "Exact prose relocates the phone into Shen Du's chest waterproof bag."
+    },
+    {
+      "eventId": "evidence-phone-drawn-in-hand",
+      "scene": "chapter-03/scene-02",
+      "holderAfterScene": "shendu",
+      "locationAfterScene": "手中",
+      "statusAfterScene": "held",
+      "event": "Exact prose relocates the phone from the bag into Shen Du's hand."
+    },
+    {
+      "eventId": "evidence-phone-shendu-to-liuxi",
+      "scene": "chapter-03/scene-03",
+      "holderBefore": "shendu",
+      "holderAfter": "liuxi",
+      "locationAfterScene": "手中",
+      "statusAfterScene": "held",
+      "event": "Exact prose transfers the phone from Shen Du back to Liu Xi."
+    },
+    {
+      "eventId": "evidence-phone-upload-observed",
+      "scene": "chapter-03/scene-04",
+      "holderAfterScene": "liuxi",
+      "locationAfterScene": "手中",
+      "statusAfterScene": "held",
+      "event": "Exact prose observes Liu Xi holding the phone during upload."
+    }
+  ],
+  "productionPreQualityPath": {
+    "status": "passed",
+    "boundary": "ProductionPreQualityGate used by PipelineStageRunnerImpl",
+    "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+    "sceneCount": 12,
+    "chapterCrossSceneGateCount": 3,
+    "continuityDeclarationCount": 11,
+    "continuityEventCount": 12,
+    "evidenceFile": "production-pre-quality-evidence.json",
+    "evidenceFileSha256": "ca04e8da42902e03a546a76e828b9911bced4942684976422051d7c8a028d758",
+    "qualityScore": null,
+    "candidateFinalizationEligible": false,
+    "candidateProof": null,
+    "commitReceipt": null,
+    "releaseEligible": false,
+    "nextRequiredStage": "pipeline_polish_revalidation"
+  },
+  "deterministicChecks": {
+    "productionGateTest": {
+      "command": "flutter test --no-pub test/repaired_three_chapter_artifact_test.dart",
+      "status": "passed",
+      "testCount": 3
+    },
+    "productionPipelineWiringTest": {
+      "command": "flutter test --no-pub test/polish_canon_production_pipeline_test.dart --plain-name 'post-polish hard-gate regression retries then typed-blocks before quality'",
+      "status": "passed",
+      "testCount": 1
+    },
+    "sceneHeadingsPreserved": true,
+    "minimumProseCharactersPerChapter": 1800,
+    "allChaptersMeetMinimum": true,
+    "forbiddenUDiskMentions": 0,
+    "forbiddenMemoryCardMentions": 0,
+    "selfRepeatBlockingFindings": 0,
+    "crossSceneRepeatedFragmentBlockingFindings": 0,
+    "outlineHardGateViolations": 0,
+    "continuityFindings": 0,
+    "openingHookViolations": 0,
+    "endingHookViolations": 0
+  }
+}

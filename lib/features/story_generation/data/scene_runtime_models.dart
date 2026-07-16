@@ -26,6 +26,7 @@ class SceneBrief {
     List<ContextPresentationState> presentationStates = const [],
     List<KnowledgeAtom> knowledgeAtoms = const [],
     this.narrativeArc,
+    this.formalExecution = false,
     Map<String, Object?> metadata = const {},
   }) : worldNodeIds = immutableList(worldNodeIds),
        cast = immutableList(cast),
@@ -56,6 +57,13 @@ class SceneBrief {
   final List<ContextPresentationState> presentationStates;
   final List<KnowledgeAtom> knowledgeAtoms;
   final NarrativeArcState? narrativeArc;
+
+  /// Runtime-owned, one-way latch for a formal release execution.
+  ///
+  /// Unlike metadata this value cannot be replaced by outline or fixture
+  /// merges. [copyWith] deliberately permits only false -> true so every
+  /// derived brief remains fail-closed for the complete pipeline lifetime.
+  final bool formalExecution;
   final Map<String, Object?> metadata;
 
   SceneBrief copyWith({
@@ -78,6 +86,7 @@ class SceneBrief {
     List<ContextPresentationState>? presentationStates,
     List<KnowledgeAtom>? knowledgeAtoms,
     NarrativeArcState? narrativeArc,
+    bool? formalExecution,
     Map<String, Object?>? metadata,
   }) {
     return SceneBrief(
@@ -100,6 +109,7 @@ class SceneBrief {
       presentationStates: presentationStates ?? this.presentationStates,
       knowledgeAtoms: knowledgeAtoms ?? this.knowledgeAtoms,
       narrativeArc: narrativeArc ?? this.narrativeArc,
+      formalExecution: this.formalExecution || formalExecution == true,
       metadata: metadata ?? this.metadata,
     );
   }

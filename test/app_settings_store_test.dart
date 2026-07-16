@@ -10,6 +10,7 @@ import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/domain/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/story_prompt_templates.dart';
+import 'test_support/app_llm_authorized_request.dart';
 import 'test_support/app_settings_fake_storages.dart';
 
 void main() {
@@ -382,7 +383,8 @@ void main() {
       apiKey: 'zhipu-key',
       timeoutMs: 30000,
     );
-    await store.requestAiCompletion(
+    await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'hi')],
     );
 
@@ -431,7 +433,8 @@ void main() {
       ],
     );
 
-    await store.requestAiCompletion(
+    await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
       traceName: 'scene_review_plot',
     );
@@ -440,7 +443,8 @@ void main() {
     expect(llmClient.requests.last.model, 'kimi-k2.6');
     expect(llmClient.requests.last.apiKey, 'ollama-key');
 
-    await store.requestAiCompletion(
+    await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'score')],
       traceName: 'scene_quality_scoring',
     );
@@ -452,7 +456,8 @@ void main() {
     expect(llmClient.requests.last.model, 'mimo-v2.5-pro');
     expect(llmClient.requests.last.apiKey, 'mimo-key');
 
-    await store.requestAiCompletion(
+    await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'draft')],
       traceName: 'scene_prose_generation',
     );
@@ -512,7 +517,8 @@ void main() {
         ],
       );
 
-      await store.requestAiCompletion(
+      await requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
         traceName: 'scene_review_plot',
       );
@@ -571,7 +577,8 @@ void main() {
         ],
       );
 
-      await store.requestAiCompletion(
+      await requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'review')],
         traceName: 'scene_review_plot',
       );
@@ -655,7 +662,8 @@ void main() {
       );
       addTearDown(store.dispose);
 
-      final result = await store.requestAiCompletion(
+      final result = await requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [
           AppLlmChatMessage(role: 'system', content: 'system prompt'),
           AppLlmChatMessage(
@@ -700,7 +708,8 @@ void main() {
     );
     addTearDown(store.dispose);
 
-    final result = await store.requestAiCompletion(
+    final result = await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'hello')],
     );
 
@@ -759,7 +768,8 @@ void main() {
         apiKey: 'sk-test',
         maxConcurrentRequests: 2,
       );
-      await store.requestAiCompletion(
+      await requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'hi')],
       );
 
@@ -814,17 +824,20 @@ void main() {
 
       final futures = <Future<AppLlmChatResult>>[
         for (var index = 0; index < 3; index += 1)
-          store.requestAiCompletion(
+          requestAuthorizedAiCompletionForTest(
+            store,
             messages: [
               AppLlmChatMessage(role: 'user', content: 'review $index'),
             ],
             traceName: 'scene_review_$index',
           ),
-        store.requestAiCompletion(
+        requestAuthorizedAiCompletionForTest(
+          store,
           messages: const [AppLlmChatMessage(role: 'user', content: 'score')],
           traceName: 'scene_quality_scoring',
         ),
-        store.requestAiCompletion(
+        requestAuthorizedAiCompletionForTest(
+          store,
           messages: const [AppLlmChatMessage(role: 'user', content: 'draft')],
           traceName: 'scene_prose_generation',
         ),
@@ -869,10 +882,12 @@ void main() {
     );
 
     final futures = [
-      store.requestAiCompletion(
+      requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'first')],
       ),
-      store.requestAiCompletion(
+      requestAuthorizedAiCompletionForTest(
+        store,
         messages: const [AppLlmChatMessage(role: 'user', content: 'second')],
       ),
     ];
@@ -918,7 +933,8 @@ void main() {
       ],
     );
 
-    final result = await store.requestAiCompletion(
+    final result = await requestAuthorizedAiCompletionForTest(
+      store,
       messages: const [AppLlmChatMessage(role: 'user', content: 'order')],
     );
 

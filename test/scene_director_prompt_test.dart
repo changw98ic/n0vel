@@ -217,6 +217,8 @@ void main() {
       expect(systemPrompt, contains('推进：'));
       expect(systemPrompt, contains('约束：'));
       expect(systemPrompt, contains('preserving the current scene'));
+      expect(systemPrompt, contains('Physical continuity is mandatory'));
+      expect(systemPrompt, contains('two locations in the same minute'));
     });
 
     test(

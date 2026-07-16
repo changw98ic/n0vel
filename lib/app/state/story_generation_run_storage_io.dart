@@ -8,10 +8,37 @@ import 'story_generation_run_storage.dart';
 
 class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
   SqliteStoryGenerationRunStorage({String? dbPath})
-    : _dbPath = dbPath ?? resolveAuthoringDbPath();
+    : _dbPath = dbPath ?? resolveAuthoringDbPath(),
+      _ownsDatabase = true;
 
-  final String _dbPath;
+  /// Uses the caller's authoritative connection without taking ownership.
+  ///
+  /// Formal evaluation uses this constructor so run-state, ledger, receipts,
+  /// and the final seal all share one SQLite pager and one close/checkpoint
+  /// lifecycle.
+  SqliteStoryGenerationRunStorage.borrowed(sqlite3.Database database)
+    : _dbPath = null,
+      _ownsDatabase = false,
+      _database = database {
+    _ensureTable(database);
+  }
+
+  final String? _dbPath;
+  final bool _ownsDatabase;
   sqlite3.Database? _database;
+
+  bool usesDatabase(sqlite3.Database database) =>
+      identical(_database, database);
+
+  static void _ensureTable(sqlite3.Database database) {
+    database.execute('''
+      CREATE TABLE IF NOT EXISTS story_generation_run_state (
+        scene_scope_id TEXT PRIMARY KEY,
+        payload_json TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL
+      )
+    ''');
+  }
 
   sqlite3.Database _getDatabase() {
     final existing = _database;
@@ -20,6 +47,12 @@ class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
         existing.select('SELECT 1');
         return existing;
       } catch (error) {
+        if (!_ownsDatabase) {
+          throw StateError(
+            'borrowed story generation run database is no longer usable: '
+            '$error',
+          );
+        }
         AppLog.w(
           'Reopening stale story generation run database after health check failure: $error',
           tag: 'StoryGenerationRunStorage',
@@ -35,14 +68,12 @@ class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
         }
       }
     }
-    final database = openAuthoringDatabase(_dbPath);
-    database.execute('''
-      CREATE TABLE IF NOT EXISTS story_generation_run_state (
-        scene_scope_id TEXT PRIMARY KEY,
-        payload_json TEXT NOT NULL,
-        updated_at_ms INTEGER NOT NULL
-      )
-    ''');
+    final path = _dbPath;
+    if (path == null) {
+      throw StateError('borrowed story generation run database was detached');
+    }
+    final database = openAuthoringDatabase(path);
+    _ensureTable(database);
     _database = database;
     return database;
   }
@@ -124,7 +155,9 @@ class SqliteStoryGenerationRunStorage implements StoryGenerationRunStorage {
   }
 
   void dispose() {
-    _database?.dispose();
+    if (_ownsDatabase) {
+      _database?.dispose();
+    }
     _database = null;
   }
 }

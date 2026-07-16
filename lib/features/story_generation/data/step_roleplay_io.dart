@@ -1,4 +1,5 @@
-import 'package:novel_writer/app/rag/hybrid_retriever.dart' show RagSceneContext;
+import 'package:novel_writer/app/rag/hybrid_retriever.dart'
+    show RagSceneContext;
 
 import 'step_scene_planning_io.dart';
 import 'scene_pipeline_models.dart' as pipeline show RolePlayTurnOutput;
@@ -48,6 +49,15 @@ class RoleplayOutput extends TypedArtifact {
   @override
   Map<String, Object?> toJson() => {
     'type': type.name,
+    'resumeSafe': session == null && roleTurns.isEmpty,
+    'roleOutputs': [
+      for (final output in roleOutputs)
+        {
+          'characterId': output.characterId,
+          'name': output.name,
+          'text': output.text,
+        },
+    ],
     'roleOutputCount': roleOutputs.length,
     'roleTurnCount': roleTurns.length,
   };

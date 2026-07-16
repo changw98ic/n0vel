@@ -1,9 +1,10 @@
-import 'package:novel_writer/app/llm/app_llm_client.dart';
 import '../domain/contracts/settings_contract.dart';
 
 import '../domain/roleplay_models.dart';
 import '../domain/scene_models.dart';
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
+import 'formal_evaluation_policy.dart';
 
 /// Draft prose from resolved beats with fact discipline.
 ///
@@ -22,44 +23,50 @@ class SceneEditor {
     required SceneStateDelta delta,
     String? allowedNarrationContext,
   }) async {
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     final acceptedBeats = delta.acceptedBeats;
-    final result = await requestStoryGenerationPassWithRetry(
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'editorial',
+      callSiteId: 'scene-editor',
+    );
+    final resolvedVariables = <String, Object?>{
+      'sceneTitle': brief.sceneTitle,
+      'targetLength': brief.targetLength,
+      'sceneSummary': brief.sceneSummary,
+      'acceptedBeats': acceptedBeats
+          .map((rb) => '- ${rb.beat.characterId}: ${rb.beat.action}')
+          .join('\n'),
+      'allowedNarrationContext': allowedNarrationContext?.trim() ?? '',
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
       initialMaxTokens: storyGenerationEditorialMaxTokens,
-      messages: [
-        const AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a scene editor for a Chinese novel. '
-              'Draft scene prose from the accepted beats below. '
-              'Ground the prose in the accepted beats and allowed narration '
-              'context. Keep facts, events, and character knowledge aligned '
-              'with those materials. Return the finished prose.',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：scene_editorial',
-            '场景：${brief.sceneTitle}',
-            '目标字数：约${brief.targetLength}汉字',
-            '摘要：${brief.sceneSummary}',
-            '已接受节奏：',
-            for (final rb in acceptedBeats)
-              '  - ${rb.beat.characterId}: ${rb.beat.action}',
-            if (allowedNarrationContext != null &&
-                allowedNarrationContext.trim().isNotEmpty)
-              '允许的叙述上下文：$allowedNarrationContext',
-          ].join('\n'),
-        ),
-      ],
+      messages: messages,
     );
 
     if (!result.succeeded) {
       throw StateError(result.detail ?? 'Scene editorial pass failed.');
     }
 
+    final text = result.text!.trim();
+    if (text.isEmpty &&
+        FormalEvaluationPolicy.isActive(
+          brief.metadata,
+          formalExecution: brief.formalExecution,
+        )) {
+      throw StateError('formal scene editor returned empty text');
+    }
     return EditorialDraft(
-      text: result.text!.trim(),
+      text: text,
       acceptedBeats: acceptedBeats,
       allowedNarrationContext: allowedNarrationContext,
     );

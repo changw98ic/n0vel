@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
 import 'package:novel_writer/features/story_generation/data/canon_keeper.dart';
 import 'package:novel_writer/features/story_generation/data/soul_contract_validator.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
@@ -13,13 +14,16 @@ import 'package:novel_writer/features/story_generation/domain/contracts/soul_con
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 
 void main() {
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/pipeline/pipeline_smoke_test.dart',
+        environment: Platform.environment,
+      );
   test(
     'real 3-scene smoke delegates to existing real validation suite',
     () async {
-      if (Platform.environment['RUN_REAL_STORY_VALIDATION'] != '1') {
-        markTestSkipped(
-          'Set RUN_REAL_STORY_VALIDATION=1 to run real provider smoke.',
-        );
+      if (!legacyRealProviderDecision.authorized) {
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 

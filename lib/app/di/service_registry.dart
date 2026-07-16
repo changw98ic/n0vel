@@ -18,6 +18,7 @@ class ServiceRegistry {
   final Map<Type, _ServiceRegistration> _registrations = {};
   final Map<Type, dynamic> _instances = {};
   final Set<Type> _resolving = {};
+  final Set<Type> _borrowedInstances = {};
   final List<Type> _creationOrder = [];
 
   /// Register a factory that creates [T] on first [resolve].
@@ -26,8 +27,21 @@ class ServiceRegistry {
   }
 
   /// Register an already-created instance as [T].
-  void registerSingleton<T>(T instance) {
+  ///
+  /// Borrowed instances remain owned by their caller and are not disposed by
+  /// [disposeAll]. Factory-created services are always registry-owned.
+  void registerSingleton<T>(T instance, {bool owned = true}) {
+    if (_instances.containsKey(T)) {
+      throw StateError(
+        'ServiceRegistry: an instance for $T has already been created.',
+      );
+    }
     _instances[T] = instance;
+    if (owned) {
+      _borrowedInstances.remove(T);
+    } else {
+      _borrowedInstances.add(T);
+    }
     _creationOrder.add(T);
   }
 
@@ -71,6 +85,9 @@ class ServiceRegistry {
   @mustCallSuper
   void disposeAll() {
     for (final type in _creationOrder.reversed) {
+      if (_borrowedInstances.contains(type)) {
+        continue;
+      }
       final instance = _instances[type];
       if (instance is AppStoreListenable) {
         instance.dispose();
@@ -84,5 +101,6 @@ class ServiceRegistry {
     _registrations.clear();
     _creationOrder.clear();
     _resolving.clear();
+    _borrowedInstances.clear();
   }
 }

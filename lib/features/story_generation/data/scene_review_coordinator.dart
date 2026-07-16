@@ -1,7 +1,7 @@
-import 'package:novel_writer/app/llm/app_llm_client.dart';
 import '../domain/contracts/settings_contract.dart';
 
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
 import '../domain/contracts/memory_policy.dart';
 import '../domain/contracts/memory_writeback_gate.dart' as gate;
 import '../domain/scene_models.dart';
@@ -14,6 +14,7 @@ import 'scene_hard_gates.dart';
 import 'scene_type_classifier.dart';
 import 'scene_type_prompts.dart';
 import 'story_generation_formatter_trace.dart';
+import 'formal_evaluation_policy.dart';
 
 class SceneReviewCoordinator implements SceneReviewService {
   SceneReviewCoordinator({
@@ -32,13 +33,9 @@ class SceneReviewCoordinator implements SceneReviewService {
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
   final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
-  static const List<SceneReviewCategory> _baseCombinedCategories = [
+  static const List<SceneReviewCategory> _judgeCategories = [
     SceneReviewCategory.prose,
     SceneReviewCategory.scenePlan,
-    SceneReviewCategory.chapterPlan,
-    SceneReviewCategory.continuity,
-    SceneReviewCategory.characterState,
-    SceneReviewCategory.worldState,
   ];
 
   static const List<SceneReviewCategory> _consistencyCategories = [
@@ -60,6 +57,10 @@ class SceneReviewCoordinator implements SceneReviewService {
     bool enableLexiconReview = false,
     List<StoryMemoryChunk> canonFacts = const [],
   }) async {
+    FormalEvaluationPolicy.rejectLocalFallbackRequest(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     if (brief.metadata['localReviewOnly'] == true) {
       return _localReviewResult(
         brief: brief,
@@ -68,17 +69,19 @@ class SceneReviewCoordinator implements SceneReviewService {
       );
     }
 
-    final combinedCategories = [
-      ..._baseCombinedCategories,
+    final judgeCategories = [
+      ..._judgeCategories,
       if (roleplaySession != null && !roleplaySession.isEmpty)
         SceneReviewCategory.roleplayFidelity,
     ];
-    final combined = await _runReviewPass(
-      passName:
-          'scene combined review (scene judge review / scene consistency review / scene roleplay fidelity review)',
-      taskType: 'scene_combined_review',
-      passLabel: 'combined',
-      categories: combinedCategories,
+    // Each reviewer below is a distinct provider request. Do not derive a
+    // nominally independent council member from another member's response:
+    // that would certify correlated evidence as if it were independent.
+    final judge = await _runReviewPass(
+      passName: 'scene judge review',
+      taskType: 'scene_judge_review',
+      passLabel: 'judge',
+      categories: judgeCategories,
       brief: brief,
       director: director,
       roleOutputs: roleOutputs,
@@ -87,33 +90,72 @@ class SceneReviewCoordinator implements SceneReviewService {
       retrievalPack: retrievalPack,
       canonFacts: canonFacts,
     );
-    final consistency = _coveredReviewPass(
-      source: combined,
+    final consistency = await _runReviewPass(
+      passName: 'scene consistency review',
+      taskType: 'scene_consistency_review',
+      passLabel: 'consistency',
       categories: _consistencyCategories,
-      passReason: '合并审查已覆盖一致性检查。',
+      brief: brief,
+      director: director,
+      roleOutputs: roleOutputs,
+      prose: prose,
+      roleplaySession: roleplaySession,
+      retrievalPack: retrievalPack,
+      canonFacts: canonFacts,
     );
     final readerFlow = enableReaderFlowReview
-        ? _coveredReviewPass(
-            source: combined,
+        ? await _runReviewPass(
+            passName: 'scene reader-flow review',
+            taskType: 'scene_reader_flow_review',
+            passLabel: 'reader_flow',
             categories: const [SceneReviewCategory.prose],
-            passReason: '合并审查已覆盖读者流畅度检查。',
+            brief: brief,
+            director: director,
+            roleOutputs: roleOutputs,
+            prose: prose,
+            roleplaySession: roleplaySession,
+            retrievalPack: retrievalPack,
+            canonFacts: canonFacts,
           )
         : null;
     final lexicon = enableLexiconReview
-        ? _coveredReviewPass(
-            source: combined,
+        ? await _runReviewPass(
+            passName: 'scene lexicon review',
+            taskType: 'scene_lexicon_review',
+            passLabel: 'lexicon',
             categories: const [SceneReviewCategory.prose],
-            passReason: '合并审查已覆盖词汇检查。',
+            brief: brief,
+            director: director,
+            roleOutputs: roleOutputs,
+            prose: prose,
+            roleplaySession: roleplaySession,
+            retrievalPack: retrievalPack,
+            canonFacts: canonFacts,
+          )
+        : null;
+    final adjudication = _needsReplanAdjudication(judge, consistency)
+        ? await _runReplanAdjudication(
+            brief: brief,
+            director: director,
+            roleOutputs: roleOutputs,
+            prose: prose,
+            roleplaySession: roleplaySession,
+            retrievalPack: retrievalPack,
+            canonFacts: canonFacts,
+            judge: judge,
+            consistency: consistency,
           )
         : null;
     final reviewResult = SceneReviewResult(
-      judge: combined,
+      judge: judge,
       consistency: consistency,
+      adjudication: adjudication,
       readerFlow: readerFlow,
       lexicon: lexicon,
       decision: _deriveDecision(
-        judge: combined,
+        judge: judge,
         consistency: consistency,
+        adjudication: adjudication,
         readerFlow: readerFlow,
         lexicon: lexicon,
       ),
@@ -121,10 +163,59 @@ class SceneReviewCoordinator implements SceneReviewService {
     return SceneReviewResult(
       judge: reviewResult.judge,
       consistency: reviewResult.consistency,
+      adjudication: reviewResult.adjudication,
       readerFlow: reviewResult.readerFlow,
       lexicon: reviewResult.lexicon,
       decision: reviewResult.decision,
       refinementGuidance: reviewResult.synthesizeGuidance(),
+    );
+  }
+
+  bool _needsReplanAdjudication(
+    SceneReviewPassResult judge,
+    SceneReviewPassResult consistency,
+  ) {
+    return (judge.status == SceneReviewStatus.replanScene &&
+            consistency.status == SceneReviewStatus.pass) ||
+        (consistency.status == SceneReviewStatus.replanScene &&
+            judge.status == SceneReviewStatus.pass);
+  }
+
+  Future<SceneReviewPassResult> _runReplanAdjudication({
+    required SceneBrief brief,
+    required SceneDirectorOutput director,
+    required List<DynamicRoleAgentOutput> roleOutputs,
+    required SceneProseDraft prose,
+    required SceneReviewPassResult judge,
+    required SceneReviewPassResult consistency,
+    SceneRoleplaySession? roleplaySession,
+    StoryRetrievalPack? retrievalPack,
+    List<StoryMemoryChunk> canonFacts = const [],
+  }) {
+    return _runReviewPass(
+      passName: 'scene review adjudication',
+      taskType: 'scene_review_adjudication',
+      passLabel: 'adjudication',
+      categories: const [
+        SceneReviewCategory.prose,
+        SceneReviewCategory.scenePlan,
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+      ],
+      brief: brief,
+      director: director,
+      roleOutputs: roleOutputs,
+      prose: prose,
+      roleplaySession: roleplaySession,
+      retrievalPack: retrievalPack,
+      canonFacts: canonFacts,
+      adjudicationContext:
+          '裁决任务：Judge 与 Consistency 对是否必须重规划存在分歧。'
+          '只根据正文、导演要求和下列已记录意见裁决。\n'
+          'Judge：${judge.rawText}\n'
+          'Consistency：${consistency.rawText}\n'
+          '只有在正文缺失不可由一次改写修复的核心剧情功能，或与导演/既有事实直接矛盾时，才可选 REPLAN_SCENE。'
+          '若正文已呈现具体目标、阻碍及局面变化/下一压力，不得仅以“压力不够”“威胁悬浮”等主观措辞否决；此时应选 PASS 或针对可定位文本问题选 REWRITE_PROSE。',
     );
   }
 
@@ -201,20 +292,6 @@ class SceneReviewCoordinator implements SceneReviewService {
     );
   }
 
-  SceneReviewPassResult _coveredReviewPass({
-    required SceneReviewPassResult source,
-    required List<SceneReviewCategory> categories,
-    required String passReason,
-  }) {
-    final reason = source.status == SceneReviewStatus.pass ? passReason : '';
-    return SceneReviewPassResult(
-      status: source.status,
-      reason: reason,
-      rawText: reason.isEmpty ? source.rawText : '决定：PASS\n原因：$reason',
-      categories: categories,
-    );
-  }
-
   Future<SceneReviewPassResult> _runReviewPass({
     required String passName,
     required String taskType,
@@ -227,57 +304,65 @@ class SceneReviewCoordinator implements SceneReviewService {
     SceneRoleplaySession? roleplaySession,
     StoryRetrievalPack? retrievalPack,
     List<StoryMemoryChunk> canonFacts = const [],
+    String? adjudicationContext,
   }) async {
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
     final evidenceSection = _buildEvidenceSection(retrievalPack);
     final noninteractiveCastBoundary = noninteractiveCastBoundaryText(brief);
-    final result = await requestStoryGenerationPassWithRetry(
+    final reviewCallSite = switch (passLabel) {
+      'judge' => 'judge',
+      'consistency' => 'consistency',
+      'reader_flow' => 'reader-flow',
+      'lexicon' => 'lexicon',
+      'adjudication' => 'adjudication',
+      _ => throw StateError('Unknown formal review pass: $passLabel'),
+    };
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'review',
+      callSiteId: reviewCallSite,
+    );
+    final hasRoleplay = roleplaySession != null && !roleplaySession.isEmpty;
+    final resolvedVariables = <String, Object?>{
+      'taskType': taskType,
+      'passLabel': passLabel,
+      'categories': _categoryList(categories),
+      'sceneNumber': brief.sceneIndex + 1,
+      'totalScenes': brief.totalScenesInChapter,
+      'openingBoundary': brief.sceneIndex == 0
+          ? '⚠️ 这是本章首个场景，前50字必须包含悬念信号。'
+          : '',
+      'closingBoundary':
+          brief.totalScenesInChapter > 0 &&
+              brief.sceneIndex == brief.totalScenesInChapter - 1
+          ? '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。'
+          : '',
+      'sceneTitle': _compact(brief.sceneTitle, maxChars: 40),
+      'director': _compact(director.text, maxChars: 120),
+      'noninteractiveBoundary': noninteractiveCastBoundary,
+      'roleSummary': _roleSummary(roleOutputs),
+      'roleplayProcess': hasRoleplay ? roleplaySession.toPromptText() : '',
+      'roleplayGuidance': hasRoleplay
+          ? '忠实性指引：正文围绕角色扮演过程中的可见动作、对白、裁决事实和局面推进展开；关键互动、裁决事实、角色可见信息共同决定评审结果。'
+          : '',
+      'prose': prose.text,
+      'adjudicationContext': adjudicationContext ?? '',
+      'evidenceSection': evidenceSection,
+      'reviewCriteria': _typePrompts.reviewCriteria(
+        _typeClassifier.classify(brief),
+      ),
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a $passName for a Chinese novel. '
-              'Use a 2-line review format. Choose the first line from:\n'
-              '决定：PASS\n'
-              '决定：REWRITE_PROSE\n'
-              '决定：REPLAN_SCENE\n'
-              'For uncertainty, choose 决定：REWRITE_PROSE.\n'
-              'Use 原因： for the second line and keep it brief. Focus on blocking issues. '
-              'If character choices replace a director beat but complete 同等剧情功能, choose PASS; '
-              'if they only provide emotion or clue recognition while the required story function is missing, choose REPLAN_SCENE. '
-              'If prose makes a noninteractive/dead/evidence-only cast member act, speak, think, or makes their body/remains/attached evidence actively move, emit, attack, or open in the moment, choose REWRITE_PROSE.\n'
-              '硬约束（任一违反则必须选择 REWRITE_PROSE）：\n'
-              '- 对话占比：正文中直接对话（「」""中的内容）字符比例不得低于25%\n'
-              '- 章首钩子：如果标注为本章首个场景，正文前50字必须包含悬念信号（对话/疑问/威胁/反常）\n'
-              '- 章尾钩子：如果标注为本章最后场景，结尾不得使用收口句式，必须留下未决冲突或悬念',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：$taskType',
-            '评审：$passLabel',
-            '评审类别：${_categoryList(categories)}',
-            '规则：聚焦阻塞问题，正文改写交给后续步骤；读者会出戏的角色越权、测试说明、明显 AI 套话均视为阻塞问题',
-            '本章场景位置：第${brief.sceneIndex + 1}个场景（共${brief.totalScenesInChapter}个）',
-            if (brief.sceneIndex == 0) '⚠️ 这是本章首个场景，前50字必须包含悬念信号。',
-            if (brief.totalScenesInChapter > 0 &&
-                brief.sceneIndex == brief.totalScenesInChapter - 1)
-              '⚠️ 这是本章最后场景，结尾必须留下未决冲突或悬念钩子。',
-            '场：${_compact(brief.sceneTitle, maxChars: 40)}',
-            '导演：${_compact(director.text, maxChars: 120)}',
-            if (noninteractiveCastBoundary.isNotEmpty)
-              noninteractiveCastBoundary,
-            '角色输入：${_roleSummary(roleOutputs)}',
-            if (roleplaySession != null && !roleplaySession.isEmpty)
-              '角色扮演过程：${roleplaySession.toPromptText()}',
-            if (roleplaySession != null && !roleplaySession.isEmpty)
-              '忠实性指引：正文围绕角色扮演过程中的可见动作、对白、裁决事实和局面推进展开；关键互动、裁决事实、角色可见信息共同决定评审结果。',
-            '正文：${prose.text}',
-            if (evidenceSection.isNotEmpty) evidenceSection,
-            _typePrompts.reviewCriteria(_typeClassifier.classify(brief)),
-          ].join('\n'),
-        ),
-      ],
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      messages: messages,
       traceName: taskType,
       traceMetadata: {
         'chapterId': brief.chapterId,
@@ -312,7 +397,12 @@ class SceneReviewCoordinator implements SceneReviewService {
       }
     }
     if (parsed.usedFallback) {
-      // Format fallback occurred — no status callback needed.
+      if (formalEvaluation) {
+        throw StateError(
+          'formal scene $passLabel review output remained malformed after '
+          'format repair',
+        );
+      }
     }
     final noninteractiveViolation = noninteractiveCastViolationText(
       brief,
@@ -416,27 +506,28 @@ class SceneReviewCoordinator implements SceneReviewService {
     required String passLabel,
     required String rawText,
   }) async {
-    final result = await requestStoryGenerationPassWithRetry(
+    final repairCallSite = switch (passLabel) {
+      'judge' => 'format-repair-judge',
+      'consistency' => 'format-repair-consistency',
+      'reader_flow' => 'format-repair-reader-flow',
+      'lexicon' => 'format-repair-lexicon',
+      'adjudication' => 'format-repair-adjudication',
+      _ => throw StateError('Unknown formal review repair pass: $passLabel'),
+    };
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'review',
+      callSiteId: repairCallSite,
+    );
+    final resolvedVariables = <String, Object?>{'rawText': rawText};
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a $passName format repair pass. '
-              'Normalize malformed review output into a 2-line format. '
-              'Choose the first line from:\n'
-              '决定：PASS\n'
-              '决定：REWRITE_PROSE\n'
-              '决定：REPLAN_SCENE\n'
-              'For missing or ambiguous decisions, choose 决定：REWRITE_PROSE.\n'
-              'Use 原因： for the second line and briefly preserve the '
-              'original reason.',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: ['原始评审输出：', rawText].join('\n'),
-        ),
-      ],
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      messages: messages,
       maxTransientRetries: 1,
       traceName: 'scene_review_format_repair',
       traceMetadata: {'passLabel': passLabel, 'passName': passName},
@@ -504,10 +595,18 @@ class SceneReviewCoordinator implements SceneReviewService {
   SceneReviewDecision _deriveDecision({
     required SceneReviewPassResult judge,
     required SceneReviewPassResult consistency,
+    SceneReviewPassResult? adjudication,
     SceneReviewPassResult? readerFlow,
     SceneReviewPassResult? lexicon,
     SceneReviewPassResult? roleplayFidelity,
   }) {
+    if (adjudication != null) {
+      return switch (adjudication.status) {
+        SceneReviewStatus.pass => SceneReviewDecision.pass,
+        SceneReviewStatus.rewriteProse => SceneReviewDecision.rewriteProse,
+        SceneReviewStatus.replanScene => SceneReviewDecision.replanScene,
+      };
+    }
     final allPasses = [
       judge,
       consistency,

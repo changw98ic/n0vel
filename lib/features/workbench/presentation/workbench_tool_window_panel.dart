@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_settings_store.dart';
+import '../../../app/state/story_generation_run_store.dart';
 import '../../../domain/workspace_models.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
 import '../../review_tasks/data/review_task_store.dart';
+import '../domain/workbench_orchestrator.dart';
 import 'workbench_ai_revision_helpers.dart';
+import 'workbench_candidate_panel.dart';
 import 'workbench_shell_page.dart';
 
 part 'workbench_tool_window_ai_panel.dart';
@@ -55,6 +58,10 @@ class ToolWindowPanel extends StatelessWidget {
     required this.canDeleteScene,
     required this.onOpenSettings,
     required this.onShowAiMetadata,
+    required this.candidatePresentation,
+    required this.candidateActionFeedback,
+    required this.onAcceptCandidate,
+    required this.onRejectCandidate,
     this.statusBanner,
     this.creationGuide,
     super.key,
@@ -100,6 +107,10 @@ class ToolWindowPanel extends StatelessWidget {
   final bool canDeleteScene;
   final VoidCallback onOpenSettings;
   final VoidCallback onShowAiMetadata;
+  final StoryGenerationCandidatePresentation candidatePresentation;
+  final WorkbenchCandidateActionFeedback candidateActionFeedback;
+  final Future<void> Function() onAcceptCandidate;
+  final Future<void> Function() onRejectCandidate;
   final Widget? statusBanner;
   final Widget? creationGuide;
 
@@ -163,19 +174,15 @@ class ToolWindowPanel extends StatelessWidget {
                       child: const Text('打开完整设置'),
                     ),
                     TextButton(
-                      key: WorkbenchShellPage
-                          .settingsRetrySecureStoreButtonKey,
+                      key: WorkbenchShellPage.settingsRetrySecureStoreButtonKey,
                       onPressed: () => onRetrySecureStore(),
                       child: const Text('重试配置'),
                     ),
                     if (diagnosticText != null)
                       TextButton(
-                        key: WorkbenchShellPage
-                            .settingsCopyDiagnosticButtonKey,
-                        onPressed: () => copyDiagnosticToClipboard(
-                          context,
-                          diagnosticText,
-                        ),
+                        key: WorkbenchShellPage.settingsCopyDiagnosticButtonKey,
+                        onPressed: () =>
+                            copyDiagnosticToClipboard(context, diagnosticText),
                         child: const Text('复制诊断'),
                       ),
                   ],
@@ -236,7 +243,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.characterSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.people_outline, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.people_outline,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('出场人物', style: theme.textTheme.titleSmall),
                       ],
@@ -262,7 +273,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.worldSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.public_outlined, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.public_outlined,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('世界观', style: theme.textTheme.titleSmall),
                       ],
@@ -288,7 +303,11 @@ class ToolWindowPanel extends StatelessWidget {
                   if (sceneContext.sceneSummary.trim().isNotEmpty) ...[
                     Row(
                       children: [
-                        Icon(Icons.summarize_outlined, size: 16, color: palette.primary),
+                        Icon(
+                          Icons.summarize_outlined,
+                          size: 16,
+                          color: palette.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text('章节目标', style: theme.textTheme.titleSmall),
                       ],
@@ -334,4 +353,3 @@ class ToolWindowPanel extends StatelessWidget {
     );
   }
 }
-

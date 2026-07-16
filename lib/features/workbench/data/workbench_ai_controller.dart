@@ -1,5 +1,6 @@
 import '../../../app/logging/app_event_log.dart';
 import '../../../app/llm/app_llm_client.dart';
+import '../../../app/llm/app_product_prompt_registry.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_settings_store.dart';
 import '../../../app/state/app_simulation_store.dart';
@@ -51,8 +52,8 @@ class WorkbenchAiController {
   }) {
     final endpoint =
         Uri.tryParse(settings.baseUrl.trim())?.host.isNotEmpty == true
-            ? Uri.tryParse(settings.baseUrl.trim())!.host
-            : settings.baseUrl.trim();
+        ? Uri.tryParse(settings.baseUrl.trim())!.host
+        : settings.baseUrl.trim();
     final simulationSummary = switch (simulation.status) {
       SimulationStatus.none => '还没有 AI 试写记录',
       SimulationStatus.running =>
@@ -109,32 +110,37 @@ class WorkbenchAiController {
         taskType: taskType,
       ),
     );
+    final promptInvocation = AppProductPromptRegistry.current.invocation(
+      stageId: 'workbench',
+      callSiteId: continueMode ? 'continue' : 'rewrite',
+    );
+    final resolvedVariables = <String, Object?>{
+      'taskType': taskType,
+      'effectivePrompt': effectivePrompt,
+      'providerSummary': metadata.providerSummary,
+      'endpointLabel': metadata.endpointLabel,
+      'styleSummary': metadata.styleSummary,
+      'sceneSummary': metadata.sceneSummary,
+      'characterSummary': metadata.characterSummary,
+      'worldSummary': metadata.worldSummary,
+      'simulationSummary': metadata.simulationSummary,
+      'previousText': previousText,
+      'originalText': originalText,
+      'nextText': nextText,
+    };
+    final messages = promptInvocation.render(resolvedVariables).messages;
+    // llm-call-site: boundary.workbench.product-request
     final result = await settingsStore.requestAiCompletion(
-      messages: [
-        AppLlmChatMessage(
-          role: 'system',
-          content: continueMode
-              ? '你是中文小说续写助手。只输出需要追加的新内容，不要解释，不要重复原文，不要使用 Markdown、标题、编号或引号。'
-              : '你是中文小说改写助手。只输出最终改写结果，不要解释，不要使用 Markdown、标题、编号或引号。',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务类型：$taskType',
-            '作者意图：$effectivePrompt',
-            '请求配置：${metadata.providerSummary}',
-            '接口：${metadata.endpointLabel}',
-            '风格约束：${metadata.styleSummary}',
-            '章节上下文：${metadata.sceneSummary}',
-            metadata.characterSummary,
-            metadata.worldSummary,
-            '模拟摘要：${metadata.simulationSummary}',
-            '上一段：$previousText',
-            '原文：\n$originalText',
-            '下一段：$nextText',
-          ].join('\n\n'),
-        ),
-      ],
+      messages: messages,
+      promptReleaseRef: promptInvocation.promptReleaseRef,
+      promptInvocationEvidence: promptInvocation.evidence(
+        messages: messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      stageId: promptInvocation.stageId,
+      callSiteId: promptInvocation.callSiteId,
+      variantId: promptInvocation.variantId,
+      generationBundleHash: promptInvocation.generationBundleHash,
     );
     if (result.succeeded) {
       final text = result.text!.trim();
@@ -283,46 +289,46 @@ class WorkbenchAiController {
   AiRequestException buildRequestException(AppLlmChatResult result) {
     return switch (result.failureKind) {
       AppLlmFailureKind.unauthorized => const AiRequestException(
-          title: 'AI 请求失败：鉴权失败',
-          message: '401 / 403：请检查密钥、账号权限或服务端授权状态。',
-        ),
+        title: 'AI 请求失败：鉴权失败',
+        message: '401 / 403：请检查密钥、账号权限或服务端授权状态。',
+      ),
       AppLlmFailureKind.timeout => const AiRequestException(
-          title: 'AI 请求失败：连接超时',
-          message: '模型服务在超时时间内未返回结果，请稍后重试或调大等待时间。',
-        ),
+        title: 'AI 请求失败：连接超时',
+        message: '模型服务在超时时间内未返回结果，请稍后重试或调大等待时间。',
+      ),
       AppLlmFailureKind.modelNotFound => AiRequestException(
-          title: 'AI 请求失败：模型不存在',
-          message: result.detail?.trim().isNotEmpty == true
-              ? result.detail!
-              : '当前模型不可用，请检查 model 配置。',
-        ),
+        title: 'AI 请求失败：模型不存在',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '当前模型不可用，请检查 model 配置。',
+      ),
       AppLlmFailureKind.network => AiRequestException(
-          title: 'AI 请求失败：网络错误',
-          message: result.detail?.trim().isNotEmpty == true
-              ? result.detail!
-              : '无法连接到模型服务，请检查网络环境与接口地址。',
-        ),
+        title: 'AI 请求失败：网络错误',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '无法连接到模型服务，请检查网络环境与接口地址。',
+      ),
       AppLlmFailureKind.insecureScheme => AiRequestException(
-          title: 'AI 请求失败：接口地址不安全',
-          message: result.detail?.trim().isNotEmpty == true
-              ? result.detail!
-              : '请使用 https:// 地址；本地调试仅允许 localhost 或 127.0.0.1 使用 http://。',
-        ),
+        title: 'AI 请求失败：接口地址不安全',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '请使用 https:// 地址；本地调试仅允许 localhost 或 127.0.0.1 使用 http://。',
+      ),
       AppLlmFailureKind.rateLimited => AiRequestException(
-          title: 'AI 请求失败：请求受限',
-          message: result.detail?.trim().isNotEmpty == true
-              ? result.detail!
-              : '模型服务暂时限制请求，请稍后重试或降低请求频率。',
-        ),
+        title: 'AI 请求失败：请求受限',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '模型服务暂时限制请求，请稍后重试或降低请求频率。',
+      ),
       AppLlmFailureKind.invalidResponse ||
       AppLlmFailureKind.server ||
       AppLlmFailureKind.unsupportedPlatform ||
       null => AiRequestException(
-          title: 'AI 请求失败：服务异常',
-          message: result.detail?.trim().isNotEmpty == true
-              ? result.detail!
-              : '模型服务返回了无法解析的响应。',
-        ),
+        title: 'AI 请求失败：服务异常',
+        message: result.detail?.trim().isNotEmpty == true
+            ? result.detail!
+            : '模型服务返回了无法解析的响应。',
+      ),
     };
   }
 

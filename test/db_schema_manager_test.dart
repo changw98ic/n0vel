@@ -173,11 +173,15 @@ void main() {
           'story_memory_sources',
           'story_memory_chunks',
           'story_thought_atoms',
+          'vector_embeddings',
+          'vector_lsh_buckets',
           'character_relations',
         ]),
       );
-      expect(db.select('PRAGMA user_version').first['user_version'],
-          authoringSchemaMigrations.length);
+      expect(
+        db.select('PRAGMA user_version').first['user_version'],
+        authoringSchemaMigrations.length,
+      );
     });
 
     test('creates story memory indexes', () {
@@ -200,8 +204,116 @@ void main() {
         containsAll([
           'idx_memory_sources_project',
           'idx_memory_chunks_project',
+          'idx_memory_tier',
           'idx_thought_atoms_project',
+          'idx_vector_embeddings_scope',
+          'idx_vector_lsh_lookup',
         ]),
+      );
+    });
+
+    test('central story memory schema includes runtime authority fields', () {
+      final db = sqlite3.openInMemory();
+      addTearDown(db.dispose);
+
+      DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      ).ensureSchema(db);
+
+      final chunkColumns = db
+          .select("SELECT name FROM pragma_table_info('story_memory_chunks')")
+          .map((row) => row['name'] as String)
+          .toSet();
+      final thoughtColumns = db
+          .select("SELECT name FROM pragma_table_info('story_thought_atoms')")
+          .map((row) => row['name'] as String)
+          .toSet();
+
+      expect(chunkColumns, containsAll(['tier', 'producer', 'owner_id']));
+      expect(thoughtColumns, contains('tier'));
+    });
+
+    test('V27 additively preserves V26 memory rows and is idempotent', () {
+      final db = sqlite3.openInMemory();
+      addTearDown(db.dispose);
+      db.execute('''
+        CREATE TABLE story_memory_chunks (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          scope_id TEXT NOT NULL,
+          chunk_kind TEXT NOT NULL,
+          content TEXT NOT NULL,
+          tier TEXT NOT NULL DEFAULT 'scene',
+          producer TEXT NOT NULL DEFAULT '',
+          source_refs_json TEXT NOT NULL DEFAULT '[]',
+          root_source_ids_json TEXT NOT NULL DEFAULT '[]',
+          visibility TEXT NOT NULL DEFAULT 'publicObservable',
+          tags_json TEXT NOT NULL DEFAULT '[]',
+          priority INTEGER NOT NULL DEFAULT 0,
+          token_cost_estimate INTEGER NOT NULL DEFAULT 0,
+          created_at_ms INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      db.execute('''
+        CREATE TABLE schema_compatibility_contracts (
+          schema_version INTEGER PRIMARY KEY,
+          min_reader_version INTEGER NOT NULL,
+          min_writer_version INTEGER NOT NULL,
+          upgrade_policy_json TEXT NOT NULL,
+          rollback_policy_json TEXT NOT NULL,
+          created_at_ms INTEGER NOT NULL
+        )
+      ''');
+      db.execute('''
+        INSERT INTO story_memory_chunks (
+          id, project_id, scope_id, chunk_kind, content, visibility
+        ) VALUES (
+          'legacy-private', 'project', 'scene', 'characterProfile',
+          'legacy secret', 'agentPrivate'
+        )
+      ''');
+      db.execute('PRAGMA user_version = 26');
+
+      final manager = DatabaseSchemaManager(
+        migrations: authoringSchemaMigrations,
+      );
+      manager.ensureSchema(db);
+      final firstSchema = db
+          .select(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' ORDER BY name",
+          )
+          .map((row) => row['sql']?.toString() ?? '')
+          .join('\n');
+      manager.ensureSchema(db);
+
+      expect(db.select('PRAGMA user_version').single['user_version'], 27);
+      final row = db.select(
+        'SELECT content, visibility, owner_id '
+        'FROM story_memory_chunks WHERE id = ?',
+        ['legacy-private'],
+      ).single;
+      expect(row['content'], 'legacy secret');
+      expect(row['visibility'], 'agentPrivate');
+      expect(row['owner_id'], '');
+      expect(
+        db
+            .select(
+              "SELECT sql FROM sqlite_master WHERE type = 'table' ORDER BY name",
+            )
+            .map((row) => row['sql']?.toString() ?? '')
+            .join('\n'),
+        firstSchema,
+      );
+      expect(
+        db
+            .select(
+              'SELECT min_reader_version, min_writer_version '
+              'FROM schema_compatibility_contracts '
+              'WHERE schema_version = 27',
+            )
+            .single
+            .values,
+        [27, 27],
       );
     });
 

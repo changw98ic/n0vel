@@ -142,12 +142,22 @@ flowchart LR
 
 ### 3.3 AI 生成数据流
 
-1. 工作台与场景上下文把当前写作状态交给 `PipelineStageRunnerImpl`。
-2. 编排器调用 `SceneRoleplayRuntime`、`SceneStateResolver`、`SceneReviewCoordinator` 和记忆层。
-3. 外部模型通信统一经 `AppLlmClient + provider adapters` 发出。
-4. 运行状态、阶段消息、失败摘要和完成快照通过 `StoryGenerationRunStore` 与事件日志回流到 UI。
+1. 普通续写/改写由工作台经 `WorkbenchAiController` 发起单次模型请求，结果先进入作者审阅，不直接写正文。
+2. 完整场景生成由 `StoryGenerationRunStore` 构建不可变 `ProjectMaterialSnapshot`，再通过 `StoryPipelineFactory` 为本次运行创建新的 `PipelineStageRunnerImpl`。
+3. 编排器调用 `SceneRoleplayRuntime`、`SceneStateResolver`、`SceneReviewCoordinator` 和记忆/RAG 层。
+4. 外部模型通信统一经 `AppLlmClient + provider adapters` 发出。
+5. 运行状态、阶段消息、失败摘要和完成快照通过 `StoryGenerationRunStore` 与事件日志回流到 UI。
 
-### 3.4 配置与导出数据流
+### 3.4 本地 Hybrid RAG
+
+1. `StoryMemoryStorageIO` 与 `HybridRetriever` 共用 `authoring.db`；完整场景生成的上下文增强阶段会持久化材料分块并执行检索。
+2. 关键词召回使用 FTS5。中文文本按单篇文档完整写入稳定的 unigram/bigram FTS5 side index（查询 token 数仍有界），避免长章节尾部漏召回，也避免以 `%LIKE%` 扫描正文表。
+3. 向量以 little-endian Float32 BLOB 保存；`project_id`、`tier`、`dimension` 是可索引列，不再藏在 metadata JSON 中。
+4. 语义候选由 16 组 14-bit 随机超平面 LSH 签名生成，SQLite B-tree 桶索引负责候选召回。查询先使用 Hamming radius 1，候选不足时扩展到 radius 2；碰撞聚合、确定性排序和候选上限在 SQLite 内完成，Dart 只物化有界候选，再做精确 cosine top-k 重排。
+5. 单一过滤作用域不超过 2048 条时保留精确检索；大作用域禁止全表向量解码。项目替换同步在同一 SQLite 数据库中原子更新 FTS、向量主表和 LSH 桶，embedding 以每批 128 条生成并写入，不再把整个项目的向量副本同时留在 Dart 内存中。
+6. 旧 JSON embedding 由 authoring schema migration 转换为 Float32 BLOB 并重建 LSH；admission/tag、FTS 与 CJK side index 也使用持久化 migration marker，只在版本变化时回填，Dart 侧回填按 rowid 每批 256 条读取。已填充数据库的正常重开不得重写 document/vector/tag/FTS/LSH 行；旧版本、丢失或显式失效的 side index，以及部分缺失/旧版本的 LSH 桶仍会触发自修复。`make rag-vector-eval` 使用 10 万条确定性语料验证召回率、候选边界、p95、重开耗时、零写入 churn 和行数守恒；2026-07-14 的独占 100k×64 归档为 1,600,000 条 LSH 行、177,926,144 bytes、首次构建 40.418 秒、正常重开 135.329 ms 且 0 次 SQLite 写入、recall@10=1.0、查询 p95=171.481 ms，单次最多物化 4,149 个候选。10 万条规模先受首次构建、全项目重新 embedding 和约 1.6M 桶行磁盘写入影响；百万级以上还应转向专用 ANN、分片或离线增量索引。
+
+### 3.5 配置与导出数据流
 
 1. `AppSettingsStore` 管理 provider、模型、密钥、主题和超时。
 2. 设置数据写入本地设置文件，不混入项目正文数据。
