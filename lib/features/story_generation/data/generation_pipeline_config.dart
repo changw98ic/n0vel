@@ -3,17 +3,27 @@ import 'style_reference_config.dart';
 
 class GenerationPipelineConfig {
   const GenerationPipelineConfig({
-    this.maxProseRetries = 1,
+    // Two bounded rewrites let an independently reviewed polished draft
+    // address a deterministic hard-gate finding without weakening the gate.
+    // The review stage itself still limits any one provider call to two tries.
+    this.maxProseRetries = 2,
+    // Quality failure is judged after an independently reviewed polished
+    // draft. Keep two bounded repair chances so a one-point miss can receive
+    // a substantive revision without lowering the 95/90 admission gate.
+    this.maxQualityRepairRetries = 2,
     this.maxSceneReplanRetries = 1,
     this.enableWritingReference = true,
-    this.styleReferenceConfig =
-        const StyleReferenceConfig.defaultEnabled(),
+    this.styleReferenceConfig = const StyleReferenceConfig.defaultEnabled(),
     this.maxConcurrentScenes = 2,
     this.maxSceneRetries = 2,
     this.hardGatesEnabled = true,
   });
 
   final int maxProseRetries;
+
+  /// A failed independent quality score may request one fresh prose revision;
+  /// it never permits finalization of the failed revision.
+  final int maxQualityRepairRetries;
   final int maxSceneReplanRetries;
   final bool enableWritingReference;
   final StyleReferenceConfig styleReferenceConfig;

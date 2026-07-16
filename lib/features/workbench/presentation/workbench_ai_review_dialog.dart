@@ -5,7 +5,7 @@ import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_version_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
-import 'workbench_ai_controller.dart';
+import '../data/workbench_ai_controller.dart';
 import 'workbench_ai_revision_helpers.dart';
 
 class WorkbenchAiReviewDialog extends StatefulWidget {

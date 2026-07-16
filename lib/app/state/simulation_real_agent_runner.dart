@@ -1,4 +1,5 @@
 import '../llm/app_llm_client.dart';
+import '../llm/app_product_prompt_registry.dart';
 import '../state/app_settings_store.dart';
 import 'simulation_models.dart';
 import 'simulation_snapshot_builder.dart';
@@ -37,14 +38,12 @@ class SimulationRealAgentRunner {
           agents.map(
             (agent) => _requestAgentWithRetry(
               settingsStore: settingsStore,
-              messages: _messagesForRealAgent(
-                agent: agent,
-                round: round,
-                rounds: rounds,
-                sceneContext: normalizedContext,
-                authorGoal: authorGoal.trim(),
-                priorOutputs: priorOutputs,
-              ),
+              agent: agent,
+              round: round,
+              rounds: rounds,
+              sceneContext: normalizedContext,
+              authorGoal: authorGoal.trim(),
+              priorOutputs: priorOutputs,
             ),
           ),
         );
@@ -118,13 +117,54 @@ class SimulationRealAgentRunner {
 
   Future<AppLlmChatResult> _requestAgentWithRetry({
     required AppSettingsStore settingsStore,
-    required List<AppLlmChatMessage> messages,
+    required RealAgentConfig agent,
+    required int round,
+    required int rounds,
+    required String sceneContext,
+    required String authorGoal,
+    required List<String> priorOutputs,
     int maxRetries = 3,
   }) async {
+    final promptInvocation = AppProductPromptRegistry.current.invocation(
+      stageId: 'simulation',
+      callSiteId: 'real-agent-turn',
+    );
+    final resolvedVariables = <String, Object?>{
+      'label': agent.label,
+      'goal': agent.goal,
+      'agentPrompt': agent.prompt,
+      'round': round,
+      'rounds': rounds,
+      'sceneContext': sceneContext,
+      'authorGoal': authorGoal.isEmpty ? '推进当前场景' : authorGoal,
+      'priorOutputs': priorOutputs.isEmpty ? '无' : priorOutputs.join('\n'),
+    };
+    final messages = promptInvocation.render(resolvedVariables).messages;
+    final promptEvidence = promptInvocation.evidence(
+      messages: messages,
+      resolvedVariables: resolvedVariables,
+    );
     var retries = 0;
     while (true) {
+      // llm-call-site: boundary.simulation.product-request
       final result = await settingsStore.requestAiCompletion(
         messages: messages,
+        promptReleaseRef: promptInvocation.promptReleaseRef,
+        promptInvocationEvidence: promptEvidence,
+        stageId: promptInvocation.stageId,
+        callSiteId: promptInvocation.callSiteId,
+        variantId: promptInvocation.variantId,
+        generationBundleHash: promptInvocation.generationBundleHash,
+        traceName: 'simulation_real_agent_turn',
+        traceMetadata: <String, Object?>{
+          'agentId': agent.key,
+          'agentRole': agent.key,
+          'agentName': agent.label,
+          'round': round,
+          'roundCount': rounds,
+          'attempt': retries,
+          'transientRetryCount': retries,
+        },
       );
       if (result.succeeded || retries >= maxRetries) {
         return result;
@@ -140,38 +180,5 @@ class SimulationRealAgentRunner {
         Duration(milliseconds: 500 * (1 << (retries - 1))),
       );
     }
-  }
-
-  List<AppLlmChatMessage> _messagesForRealAgent({
-    required RealAgentConfig agent,
-    required int round,
-    required int rounds,
-    required String sceneContext,
-    required String authorGoal,
-    required List<String> priorOutputs,
-  }) {
-    return [
-      AppLlmChatMessage(
-        role: 'system',
-        content: [
-          '你是小说场景模拟中的真实多 Agent 角色：${agent.label}。',
-          '你的目标：${agent.goal}。',
-          '你的固定 prompt：${agent.prompt}',
-          '输出本回合可被正文生成引用的中文内容，保持角色现场判断口吻。',
-        ].join('\n'),
-      ),
-      AppLlmChatMessage(
-        role: 'user',
-        content: [
-          '任务：真实多 Agent 场景模拟',
-          '回合：$round/$rounds',
-          if (authorGoal.isNotEmpty) '作者目标：$authorGoal',
-          '场景上下文：$sceneContext',
-          if (priorOutputs.isNotEmpty)
-            '此前回合输出：\n${priorOutputs.join('\n')}',
-          '请给出 ${agent.label} 本回合的判断、行动/阻力、以及对正文生成的约束。',
-        ].join('\n\n'),
-      ),
-    ];
   }
 }

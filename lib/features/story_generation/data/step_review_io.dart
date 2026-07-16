@@ -3,7 +3,7 @@ import 'step_editorial_io.dart';
 import 'step_roleplay_io.dart';
 import 'step_scene_planning_io.dart';
 import 'scene_review_models.dart'
-    show SceneReviewResult, SceneReviewDecision;
+    show SceneReviewResult, SceneReviewDecision, SceneReviewPassResult;
 import 'scene_runtime_models.dart' show SceneBrief;
 import '../domain/contracts/typed_artifact.dart';
 
@@ -59,9 +59,21 @@ class ReviewOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.reviewResult;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'wasLengthRetry': wasLengthRetry};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'wasLengthRetry': wasLengthRetry,
+    'action': action.name,
+    'decision': review.decision.name,
+    'judge': _passJson(review.judge),
+    'consistency': _passJson(review.consistency),
+  };
 
   @override
   int get tokenEstimate => 0;
 }
+
+Map<String, Object?> _passJson(SceneReviewPassResult value) => {
+  'status': value.status.name,
+  'reason': value.reason,
+  'categories': [for (final category in value.categories) category.name],
+};

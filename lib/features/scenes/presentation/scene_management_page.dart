@@ -5,6 +5,7 @@ import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_empty_state.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'scene_management_dialogs.dart';
 import 'scene_management_widgets.dart';
@@ -55,10 +56,16 @@ class SceneManagementPage extends ConsumerStatefulWidget {
 
 class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _listScrollController = ScrollController();
+  final ScrollController _detailScrollController = ScrollController();
+  final ScrollController _actionsScrollController = ScrollController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _listScrollController.dispose();
+    _detailScrollController.dispose();
+    _actionsScrollController.dispose();
     super.dispose();
   }
 
@@ -114,49 +121,54 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                             title: '没有匹配章节',
                             message: '换个关键词，或新建一个章节。',
                           )
-                        : ListView.separated(
-                            itemCount: groupedScenes.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              final group = groupedScenes[index];
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    group.chapterLabel,
-                                    key: index == 0
-                                        ? SceneManagementPage.chapterHeaderKey
-                                        : null,
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '共 ${group.scenes.length} 个章节',
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  for (final scene in group.scenes) ...[
-                                    SceneListButton(
-                                      key: scene.id == 'scene-03-rainy-dock'
-                                          ? SceneManagementPage.rainyDockKey
+                        : AppPremiumScrollbar(
+                            controller: _listScrollController,
+                            child: ListView.separated(
+                              controller: _listScrollController,
+                              itemCount: groupedScenes.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                final group = groupedScenes[index];
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      group.chapterLabel,
+                                      key: index == 0
+                                          ? SceneManagementPage.chapterHeaderKey
                                           : null,
-                                      label: chapterLocationLabel(
-                                        scene.displayLocation,
-                                      ),
-                                      selected: scene.id == currentScene.id,
-                                      onPressed: () {
-                                        store.updateCurrentScene(
-                                          sceneId: scene.id,
-                                          recentLocation: scene.displayLocation,
-                                        );
-                                      },
+                                      style: theme.textTheme.titleMedium,
                                     ),
                                     const SizedBox(height: 8),
+                                    Text(
+                                      '共 ${group.scenes.length} 个章节',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    for (final scene in group.scenes) ...[
+                                      SceneListButton(
+                                        key: scene.id == 'scene-03-rainy-dock'
+                                            ? SceneManagementPage.rainyDockKey
+                                            : null,
+                                        label: chapterLocationLabel(
+                                          scene.displayLocation,
+                                        ),
+                                        selected: scene.id == currentScene.id,
+                                        onPressed: () {
+                                          store.updateCurrentScene(
+                                            sceneId: scene.id,
+                                            recentLocation:
+                                                scene.displayLocation,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
                                   ],
-                                ],
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                   ),
                 ],
@@ -168,25 +180,32 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
             child: Container(
               decoration: appPanelDecoration(context),
               padding: const EdgeInsets.all(16),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('章节详情', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    SceneDetailField(label: '章节标题', value: currentScene.title),
-                    const SizedBox(height: 12),
-                    SceneDetailField(
-                      label: '章节标签',
-                      value: chapterLabelOnly(currentScene.chapterLabel),
-                    ),
-                    const SizedBox(height: 12),
-                    SceneDetailField(
-                      label: '章节摘要',
-                      value: currentScene.summary,
-                      multiline: true,
-                    ),
-                  ],
+              child: AppPremiumScrollbar(
+                controller: _detailScrollController,
+                child: SingleChildScrollView(
+                  controller: _detailScrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('章节详情', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      SceneDetailField(
+                        label: '章节标题',
+                        value: currentScene.title,
+                      ),
+                      const SizedBox(height: 12),
+                      SceneDetailField(
+                        label: '章节标签',
+                        value: chapterLabelOnly(currentScene.chapterLabel),
+                      ),
+                      const SizedBox(height: 12),
+                      SceneDetailField(
+                        label: '章节摘要',
+                        value: currentScene.summary,
+                        multiline: true,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -197,116 +216,120 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
             child: Container(
               decoration: appPanelDecoration(context),
               padding: const EdgeInsets.all(16),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('章节操作', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: Text(
-                        '新建、重命名、编辑章节标签、编辑摘要、调整顺序与删除都集中在这里。',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const SceneActionRow(label: '打开位置', value: '写作工作台'),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
-                      ),
-                      onPressed: () {
-                        AppNavigator.push(context, AppRoutes.workbench);
-                      },
-                      child: const Text('打开工作台'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
-                      ),
-                      key: SceneManagementPage.renameSceneButtonKey,
-                      onPressed: () => showSceneDialog(
-                        context,
-                        title: '重命名章节',
-                        initialValue: currentScene.title,
-                        onConfirm: store.renameCurrentScene,
-                        fieldKey: SceneManagementPage.sceneTitleFieldKey,
-                      ),
-                      child: const Text('重命名章节'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
-                      ),
-                      key: SceneManagementPage.chapterLabelButtonKey,
-                      onPressed: () => showChapterDialog(
-                        context,
-                        initialValue: chapterLabelOnly(
-                          currentScene.chapterLabel,
+              child: AppPremiumScrollbar(
+                controller: _actionsScrollController,
+                child: SingleChildScrollView(
+                  controller: _actionsScrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('章节操作', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: palette.border),
                         ),
-                        onConfirm: store.updateCurrentSceneChapterLabel,
-                        fieldKey: SceneManagementPage.chapterLabelFieldKey,
+                        child: Text(
+                          '新建、重命名、编辑章节标签、编辑摘要、调整顺序与删除都集中在这里。',
+                          style: theme.textTheme.bodySmall,
+                        ),
                       ),
-                      child: const Text('编辑章节标签'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
+                      const SizedBox(height: 12),
+                      const SceneActionRow(label: '打开位置', value: '写作工作台'),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        onPressed: () {
+                          AppNavigator.push(context, AppRoutes.workbench);
+                        },
+                        child: const Text('打开工作台'),
                       ),
-                      key: SceneManagementPage.sceneSummaryButtonKey,
-                      onPressed: () => showSummaryDialog(
-                        context,
-                        initialValue: currentScene.summary,
-                        onConfirm: store.updateCurrentSceneSummary,
-                        fieldKey: SceneManagementPage.sceneSummaryFieldKey,
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.renameSceneButtonKey,
+                        onPressed: () => showSceneDialog(
+                          context,
+                          title: '重命名章节',
+                          initialValue: currentScene.title,
+                          onConfirm: store.renameCurrentScene,
+                          fieldKey: SceneManagementPage.sceneTitleFieldKey,
+                        ),
+                        child: const Text('重命名章节'),
                       ),
-                      child: const Text('编辑章节摘要'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.chapterLabelButtonKey,
+                        onPressed: () => showChapterDialog(
+                          context,
+                          initialValue: chapterLabelOnly(
+                            currentScene.chapterLabel,
+                          ),
+                          onConfirm: store.updateCurrentSceneChapterLabel,
+                          fieldKey: SceneManagementPage.chapterLabelFieldKey,
+                        ),
+                        child: const Text('编辑章节标签'),
                       ),
-                      key: SceneManagementPage.moveSceneUpButtonKey,
-                      onPressed: store.moveCurrentSceneUp,
-                      child: const Text('上移章节'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.sceneSummaryButtonKey,
+                        onPressed: () => showSummaryDialog(
+                          context,
+                          initialValue: currentScene.summary,
+                          onConfirm: store.updateCurrentSceneSummary,
+                          fieldKey: SceneManagementPage.sceneSummaryFieldKey,
+                        ),
+                        child: const Text('编辑章节摘要'),
                       ),
-                      key: SceneManagementPage.moveSceneDownButtonKey,
-                      onPressed: store.moveCurrentSceneDown,
-                      child: const Text('下移章节'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.moveSceneUpButtonKey,
+                        onPressed: store.moveCurrentSceneUp,
+                        child: const Text('上移章节'),
                       ),
-                      key: SceneManagementPage.deleteSceneButtonKey,
-                      onPressed: store.canDeleteCurrentScene
-                          ? () => confirmDeleteScene(
-                              context,
-                              sceneTitle: currentScene.title,
-                              onConfirm: store.deleteCurrentScene,
-                            )
-                          : null,
-                      child: const Text('删除章节'),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.moveSceneDownButtonKey,
+                        onPressed: store.moveCurrentSceneDown,
+                        child: const Text('下移章节'),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                        ),
+                        key: SceneManagementPage.deleteSceneButtonKey,
+                        onPressed: store.canDeleteCurrentScene
+                            ? () => confirmDeleteScene(
+                                context,
+                                sceneTitle: currentScene.title,
+                                onConfirm: store.deleteCurrentScene,
+                              )
+                            : null,
+                        child: const Text('删除章节'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -11,14 +11,16 @@ class AiHistoryEntry {
     required this.sequence,
     required this.mode,
     required this.prompt,
+    this.response,
   });
 
   final int sequence;
   final String mode;
   final String prompt;
+  final String? response;
 
   Map<String, Object?> toJson() {
-    return {'sequence': sequence, 'mode': mode, 'prompt': prompt};
+    return {'sequence': sequence, 'mode': mode, 'prompt': prompt, 'response': response};
   }
 
   static AiHistoryEntry fromJson(Map<Object?, Object?> json) {
@@ -26,6 +28,7 @@ class AiHistoryEntry {
       sequence: int.tryParse(json['sequence']?.toString() ?? '') ?? 0,
       mode: json['mode']?.toString() ?? '',
       prompt: json['prompt']?.toString() ?? '',
+      response: json['response']?.toString(),
     );
   }
 }
@@ -46,12 +49,12 @@ class AppAiHistoryStore extends AppProjectScopedStore {
   List<AiHistoryEntry> get entries =>
       List.unmodifiable(_entriesByProjectId[activeProjectId] ?? const []);
 
-  void addEntry({required String mode, required String prompt}) {
+  void addEntry({required String mode, required String prompt, String? response}) {
     markMutated();
     final currentEntries = _entriesByProjectId[activeProjectId] ?? const [];
     final nextSequence = _nextSequenceByProjectId[activeProjectId] ?? 1;
     _entriesByProjectId[activeProjectId] = [
-      AiHistoryEntry(sequence: nextSequence, mode: mode, prompt: prompt),
+      AiHistoryEntry(sequence: nextSequence, mode: mode, prompt: prompt, response: response),
       ...currentEntries,
     ].take(5).toList();
     _nextSequenceByProjectId[activeProjectId] = nextSequence + 1;

@@ -160,6 +160,16 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                 ],
               ),
             ),
+            if (panel.candidatePresentation.state !=
+                StoryGenerationCandidatePresentationState.none) ...[
+              const SizedBox(height: 12),
+              WorkbenchCandidatePanel(
+                presentation: panel.candidatePresentation,
+                actionFeedback: panel.candidateActionFeedback,
+                onAccept: panel.onAcceptCandidate,
+                onReject: panel.onRejectCandidate,
+              ),
+            ],
             if (panel.canGenerateAi) ...[
               const SizedBox(height: 12),
               if (panel.selectionDrafts.isNotEmpty)

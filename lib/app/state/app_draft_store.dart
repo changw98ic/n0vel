@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
-
 import '../events/app_domain_events.dart';
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
@@ -31,15 +29,16 @@ class AppDraftSnapshot {
 }
 
 class AppDraftStore extends AppProjectScopedStore {
-  AppDraftStore({AppDraftStorage? storage, super.workspaceStore, super.eventBus})
-    : _storage =
-          storage ?? createDefaultAppDraftStorage(),
-      _snapshot = const AppDraftSnapshot(text: _defaultDraftText),
-      super(fallbackProjectId: _fallbackDraftProjectId) {
+  AppDraftStore({
+    AppDraftStorage? storage,
+    super.workspaceStore,
+    super.eventBus,
+  }) : _storage = storage ?? createDefaultAppDraftStorage(),
+       _snapshot = const AppDraftSnapshot(text: _defaultDraftText),
+       super(fallbackProjectId: _fallbackDraftProjectId) {
     onRestore();
   }
 
-  
   final AppDraftStorage _storage;
   AppDraftSnapshot _snapshot;
   bool _isRestoring = false;
@@ -84,6 +83,25 @@ class AppDraftStore extends AppProjectScopedStore {
     }
   }
 
+  /// Mirrors a draft already committed by the shared authoring-db
+  /// transaction.  It deliberately does not persist: persisting here would
+  /// open a second connection and turn an atomic accept into a best-effort
+  /// pair of writes.
+  void applyCommittedTextFromAuthoringTransaction({
+    required String sceneScopeId,
+    required String text,
+  }) {
+    if (sceneScopeId != activeProjectId) {
+      return;
+    }
+    final previousText = _snapshot.text;
+    markMutated();
+    _isRestoring = false;
+    _snapshot = _snapshot.copyWith(text: text);
+    _publishDraftUpdated(previousText, text);
+    notifyListeners();
+  }
+
   void importJson(Map<String, Object?> data) {
     markMutated();
     _isRestoring = false;
@@ -116,12 +134,14 @@ class AppDraftStore extends AppProjectScopedStore {
 
   void _publishDraftUpdated(String previousText, String currentText) {
     try {
-      eventBus?.publish(DraftUpdatedEvent(
-        projectId: activeProjectId.split('::').first,
-        sceneScopeId: activeProjectId,
-        previousText: previousText,
-        currentText: currentText,
-      ));
+      eventBus?.publish(
+        DraftUpdatedEvent(
+          projectId: activeProjectId.split('::').first,
+          sceneScopeId: activeProjectId,
+          previousText: previousText,
+          currentText: currentText,
+        ),
+      );
     } on StateError {
       // eventBus 可能已 disposed
     }
@@ -133,18 +153,4 @@ class AppDraftStore extends AppProjectScopedStore {
   @override
   Future<void> clearDeletedProjectScope(String projectId) =>
       _storage.clearProject(projectId);
-}
-
-class AppDraftScope extends InheritedNotifier<AppDraftStore> {
-  const AppDraftScope({
-    super.key,
-    required AppDraftStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static AppDraftStore of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<AppDraftScope>();
-    assert(scope != null, 'AppDraftScope is missing in the widget tree.');
-    return scope!.notifier!;
-  }
 }

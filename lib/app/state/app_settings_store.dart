@@ -15,6 +15,7 @@ import 'app_store_listenable.dart';
 import 'app_settings_storage.dart';
 import 'llm_provider_service.dart';
 import '../../domain/prompt_language.dart';
+import '../../features/story_generation/domain/contracts/settings_contract.dart';
 import 'settings/settings_models.dart';
 
 export 'settings/default_provider_config.dart';
@@ -26,7 +27,8 @@ class AppSettingsStore extends AppStoreListenable
         AppSettingsStoreLogging,
         AppSettingsStoreSave,
         AppSettingsStoreRetry,
-        AppSettingsStoreAiRouting {
+        AppSettingsStoreAiRouting
+    implements StoryGenerationSettingsContract {
   AppSettingsStore({
     AppSettingsStorage? storage,
     AppLlmClient? llmClient,
@@ -166,6 +168,9 @@ class AppSettingsStore extends AppStoreListenable
   }
 
   // --- 公开 getters ---
+
+  @override
+  PromptLanguage get promptLanguage => _snapshot.promptLanguage;
 
   AppSettingsSnapshot get snapshot => _snapshot;
   AppSettingsFeedback get feedback => _feedback;

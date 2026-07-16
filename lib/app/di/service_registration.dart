@@ -2,6 +2,7 @@ import 'service_registry.dart';
 import 'infrastructure_registrations.dart';
 import 'core_registrations.dart';
 import 'feature_registrations.dart';
+import '../../features/story_generation/data/story_pipeline_registration.dart';
 
 /// Register all application-level services into [registry].
 ///
@@ -11,5 +12,6 @@ import 'feature_registrations.dart';
 void registerAppServices(ServiceRegistry registry) {
   registerInfrastructureServices(registry);
   registerCoreServices(registry);
+  registerStoryGenerationServices(registry);
   registerFeatureServices(registry);
 }

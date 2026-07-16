@@ -1,0 +1,645 @@
+{
+  "schemaVersion": "production-pre-quality-artifact-evidence-v3",
+  "artifactStatus": "unscored_unreleased",
+  "boundary": {
+    "name": "ProductionPreQualityGate",
+    "entryPoint": "PipelineStageRunnerImpl.runAuthorRevisionPreQuality",
+    "releaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+    "evidenceRootHash": "sha256:990e085c05ff0903a792523228f606101697057ac556673e31a2f95c594be909",
+    "artifactSetHash": "sha256:63dde3c457779a112e003e7b1d2011ba3e7c3ad0bc05bee9c47619fa8f1c8274"
+  },
+  "source": {
+    "outline": {
+      "path": "artifacts/real_validation/three_chapter_repaired/outline/three_chapter_outline.md",
+      "sha256": "d25deca868c5433ea1ec28f533dd0943b486808076348fdc9bc2612734579338",
+      "contentRelation": "source content copied; terminal newline normalized"
+    },
+    "chapters": [
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-01.md",
+        "sha256": "a689e51ff833f17710030e8822b6126bc0e2ad6324da74047b9a5ede627e1a25"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-02.md",
+        "sha256": "07373cd8f110d5249a76de7075a95706b31a749f8b27b5b9a1687b563b2b933e"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_repaired/chapters/chapter-03.md",
+        "sha256": "ba279eb51f4c45a233cc9e06ebdc593987e864f00fb822b1ade3f79ca40f30f6"
+      }
+    ],
+    "predecessors": [
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-01.md",
+        "sha256": "ad4e434c896a99eca1abf43e6db15677c53f0dac23b9c3447befec4e9a2cdc09"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-02.md",
+        "sha256": "6901a81d0aa2704b2e5950b89176b30988dd25eacbc853ee9aebe8db4c1bbb7a"
+      },
+      {
+        "path": "artifacts/real_validation/three_chapter_run/chapters/chapter-03.md",
+        "sha256": "c6e54e629942957cd209f6016d3b0a221e949e7a879272c2ec8760cf197ca130"
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "sceneId": "chapter-01/scene-01",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:da653c7324b3fefd580c360371b21bca490109f29dc162ff3d48fa4587acc929",
+      "finalProseHash": "sha256:c04e43002777fabe776735351aea52e02643164b0d07a04157af1f524ba11ceb",
+      "evidenceHash": "sha256:e9639813a03dfc1375304dd044cbaaa894795f16b5cd7783554cf143087863c5",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:6635e4e8d085f11a34a017a015916a1eabc4730c7311302d66347fd0e47a822a",
+      "checkpointArtifactDigest": "4a1c06929ca9e1b906aa0bef42bc41c921da488473426ce58d5003df1e753505",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-01/scene-02",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:88e4ec47f952ca1cf22574bed1c643a9f92ff891ac55cba87a09c76430e0323d",
+      "finalProseHash": "sha256:b8ae2c8bc19e838621ca264021ccb9d872667028895ef1a2dd15096fefbb2fdf",
+      "evidenceHash": "sha256:07a07726febae861ef9d3d6d7a15072c7d1962226b037c7b49e2e499b3d2cb36",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:0b766df161e44f3a3df3bc90ad46e37677d48b409a4aeca430cd9796d56a4ec2",
+      "checkpointArtifactDigest": "2d24d098d61df174d2854fbb5d7600f957667a334f0910fc8c0693e7f422bd00",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-01/scene-03",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:e0af07f56129e5b0bd5544bf387d229b4d2881d65edafe39f2c1e6fc5db5e71b",
+      "finalProseHash": "sha256:77b621b01960ed1e7a5b261115cae36cee3e524fce69eb377de7f09aac9913d2",
+      "evidenceHash": "sha256:231fdfacec229de66bda46c0010a3f7cb52da0af0f20e33867dacfbc34e12057",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:0b3d397535d7a90d5a2202ea7b5d5f62d24c16f0171558dbd4166a60b86e3ac4",
+      "checkpointArtifactDigest": "7cc44f0406f40831867213dfa2c9e916db3a30ddb65479cf2e2ba580eec9edf3",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-01/scene-04",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:3ca6be1ecaa2cff51b16cf84461f204cf4d934c62e38449b6d394b2291a0b29f",
+      "finalProseHash": "sha256:9ee84bbd38973702dbd2ca8596d54e523426ad9cdce3570535002d4995213596",
+      "evidenceHash": "sha256:90d81bb6bb116b34ab57b51697d0af4e5a5cdab6df2a50e3ae921f73edd73d87",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:3155c85f811f9a819c4586006b797eac5e40adc26c4e7ba717c211973976dc40",
+      "checkpointArtifactDigest": "fb497530a3287cb5e1ca81b3d5a455180b3abbda517dd8ebb32427e236c8ed9e",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-02/scene-01",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:015a3dc018e69b62a1773c85329ceeb577d3a2abbf10a77d85674f0793992468",
+      "finalProseHash": "sha256:8cd6100ff27b392c837ee1186b17517636324065000da72a0ed08d9978212617",
+      "evidenceHash": "sha256:17c8c5f813b9858e6b42e4f9e34fb9aabe4f4666885009b24c1bc6dc6710e8db",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:3727ac835646fc3fbe09013934f1400bc3601a18c27dfdcf95f138b7cc6c59b6",
+      "checkpointArtifactDigest": "4f59ad6b12c37230d9d36d20419c5a748c9a957e6c508e1427638f7a3f11b826",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-02/scene-02",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:d8ea462fb52ba8695ceaf2026d696dda3ea11ca38d6f76f0f56e6bfb61a2bd0a",
+      "finalProseHash": "sha256:7179a4e886e9c5d63a727ab2ff1ef0aae94fb9ac430efc7f0f5915c9aabedeef",
+      "evidenceHash": "sha256:7e45fb1bbd7dd92a549eb20a17fc1ab7f8ad7f737ceabb206d98257d37ce179d",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:64e0b68f46b9cfbd49d44cbabe4325b055bbaca75e3c4b83feed6186da2ff68a",
+      "checkpointArtifactDigest": "aba7a35703e63f4ebea9f5e50b6222d4b9ca2525e941543b60e0caaf2f302f94",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-02/scene-03",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:3ee44094dd92f0fe05b5ecd087b4ac47bdd1f27a4bdc0750ab54e75dc3937fb2",
+      "finalProseHash": "sha256:7d7f7d7c936fa495d4f1dc97b90542e6a2cf582d1af0877e511e01abfe3c3a4d",
+      "evidenceHash": "sha256:b9e77a75547b7cf62ffb46c5576075add3c0393e5438443e24d7eef7c0191eb4",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:d4257cadaeb130b341c376f56b6f9b3ca83b37f333f80ca31e148f9dc84a62a8",
+      "checkpointArtifactDigest": "2d885b22356b49c70635c37b7788ec5168f6771782d939fec3ded4931866dd72",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-02/scene-04",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:79d221ab3c3404bad73bd9af9f51deee12b7bb4a3ef831117f420714e8c8d69d",
+      "finalProseHash": "sha256:9bf58bbf9e4905c1a91e44f4ddf4491c58594674b7e7017cbbc85a72d43a1357",
+      "evidenceHash": "sha256:e4de78129d13c454b178e604e7229ec2657a2a50f3456c1e2b2b9ba6dd17f225",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:1a8b0e258f2f35f37ea750d1f642c5b16f83556ec2ec7ebca184b75c71d99e24",
+      "checkpointArtifactDigest": "370eeefc505ff2accfbaf39791df55334ddd89125ea24aaa6594a75ee6fe8ad5",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-03/scene-01",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:820824a16a5dbdb0d0d2158bc569160e824e9c68fde6ef7d71e7828bbb654dfe",
+      "finalProseHash": "sha256:ec9a2e144b831bb4495789a90af4a913d5a85423f76cebdcf42a0f86eff1a98f",
+      "evidenceHash": "sha256:8a09ecbc8397d5403232cc85bf7751173289224ba9fcbf3096befbf8a3001629",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:1bf1d148a90b0d7938fb952a6397245f8afcd5c962ca4a4f1fc0d4dc35ee3495",
+      "checkpointArtifactDigest": "d6881aba299e342f8da74f7eb17629ab01ebd22ff4f70d068de0814744afb23c",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-03/scene-02",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:1e230be8e706309f76213ec476c675fbab56ea6ddf0549af19e1ff75dce408e3",
+      "finalProseHash": "sha256:21cdacbd7b74101295f5576d014de57b1fdbb44dd4881ad697fb6816e1ef63fa",
+      "evidenceHash": "sha256:f8096a2a0e3efe3f0213c359834692f57cc810d58b97425a55e6aa61512ff4cb",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:4054bec2a2940b188490a3ed873ef947e403cdcf8f091920db9d76907e5c93cd",
+      "checkpointArtifactDigest": "9380bf23516143298cc1307025e5415a79bd1ad5d7d6f0d81778b6a220b30926",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-03/scene-03",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:1c2002ac33d68538aa811928878d75cd60ca316f541adeea7649523f191f9acb",
+      "finalProseHash": "sha256:721768c2b0bae20ba1feb0b73778b8c7210c6b4fa727d2a3174be09645cbd37d",
+      "evidenceHash": "sha256:052d0301cc1e7c8abb11bec69c20c337fb3b3aac9f08fe423d832e62eca3b4ed",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:272348ab4a107d13ba3b6d29e53455ebab6fe5ffaf9ac41d28b424a01d3331f1",
+      "checkpointArtifactDigest": "59aeb2c8aebd9b8ad1051953a58563541fdaf9253c684e599cbd830d16451c63",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    },
+    {
+      "sceneId": "chapter-03/scene-04",
+      "sourceMode": "authorRevision",
+      "candidateFinalizationEligible": false,
+      "sourceProseHash": "sha256:f2054f9c9fde0f67de54b6cdcda721d9c86964dddca674307465bfb9144a8d07",
+      "finalProseHash": "sha256:94dd0ac0e46547efa0c72709eac383400d71ddb30e106afcb1f4ac85fa8a202c",
+      "evidenceHash": "sha256:b1929da54131cc57c79ecb5baad815722dfd7592b1ade8a6f9977c0ab04dd32a",
+      "boundaryReleaseHash": "sha256:e5906595a65f620c2411dbffcbb8b8030bc93959cf15439a7eb4bfe769edbe1f",
+      "hardGatesEnabled": true,
+      "briefRequirementsHash": "sha256:a61d5971a6016d687247485de25cb07f0fe857b863c06e94f6210e3ff1873a0f",
+      "checkpointArtifactDigest": "9319992a014e6c65ea5a8f6ebeb187e92d815f0c83d778cd7554db6eb9ff84f2",
+      "passed": true,
+      "nextRequiredStage": "pipeline_polish_revalidation",
+      "releaseEligible": false
+    }
+  ],
+  "chapterCrossSceneGates": [
+    {
+      "chapterId": "chapter-01",
+      "sceneIds": [
+        "chapter-01/scene-01",
+        "chapter-01/scene-02",
+        "chapter-01/scene-03",
+        "chapter-01/scene-04"
+      ],
+      "passed": true,
+      "findingCount": 0,
+      "evidenceHash": "sha256:0be945c77202bc4c719a407e5011ca57b1d22a76859a96f5e1b0e34fdd119158"
+    },
+    {
+      "chapterId": "chapter-02",
+      "sceneIds": [
+        "chapter-02/scene-01",
+        "chapter-02/scene-02",
+        "chapter-02/scene-03",
+        "chapter-02/scene-04"
+      ],
+      "passed": true,
+      "findingCount": 0,
+      "evidenceHash": "sha256:d7129bdb93a8441f28af016e3afb8638eabfc3b94908895c5b29f6519000ec84"
+    },
+    {
+      "chapterId": "chapter-03",
+      "sceneIds": [
+        "chapter-03/scene-01",
+        "chapter-03/scene-02",
+        "chapter-03/scene-03",
+        "chapter-03/scene-04"
+      ],
+      "passed": true,
+      "findingCount": 0,
+      "evidenceHash": "sha256:38e2e01da4b821138b80c1ae7d3ce963ba7588f0fd7b40a61f543e1f389eff4c"
+    }
+  ],
+  "continuityEvents": [
+    {
+      "sceneId": "chapter-01/scene-02",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-introduced",
+            "kind": "introduce",
+            "evidence": "柳溪解锁手机后，把它举到沈渡面前",
+            "alias": "手机",
+            "holder": "liuxi",
+            "location": "沈渡面前",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "沈渡面前",
+        "status": "held",
+        "sourceSceneId": "chapter-01/scene-02"
+      }
+    },
+    {
+      "sceneId": "chapter-01/scene-03",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-moved-to-table",
+            "kind": "relocate",
+            "evidence": "柳溪把手机放到桌面",
+            "alias": "手机",
+            "fromHolder": "liuxi",
+            "holder": "liuxi",
+            "location": "桌面",
+            "status": "held"
+          },
+          {
+            "eventId": "evidence-phone-returned-to-inner-pocket",
+            "kind": "relocate",
+            "evidence": "柳溪也没去碰那只手。她关掉延迟邮件，把手机重新扣回内袋",
+            "alias": "手机",
+            "fromHolder": "liuxi",
+            "holder": "liuxi",
+            "location": "内袋",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "内袋",
+        "status": "held",
+        "sourceSceneId": "chapter-01/scene-03"
+      }
+    },
+    {
+      "sceneId": "chapter-01/scene-04",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-observed-before-escape",
+            "kind": "observe",
+            "evidence": "柳溪按住内袋里的手机",
+            "alias": "手机",
+            "holder": "liuxi",
+            "location": "内袋",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "内袋",
+        "status": "held",
+        "sourceSceneId": "chapter-01/scene-03"
+      }
+    },
+    {
+      "sceneId": "chapter-02/scene-01",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-observed-in-inner-pocket",
+            "kind": "observe",
+            "evidence": "柳溪摸了摸内袋里的手机",
+            "alias": "手机",
+            "holder": "liuxi",
+            "location": "内袋",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "内袋",
+        "status": "held",
+        "sourceSceneId": "chapter-01/scene-03"
+      }
+    },
+    {
+      "sceneId": "chapter-02/scene-02",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-moved-to-cover",
+            "kind": "relocate",
+            "evidence": "柳溪刚把手机镜头移到封皮前",
+            "alias": "手机",
+            "fromHolder": "liuxi",
+            "holder": "liuxi",
+            "location": "封皮前",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "封皮前",
+        "status": "held",
+        "sourceSceneId": "chapter-02/scene-02"
+      }
+    },
+    {
+      "sceneId": "chapter-02/scene-03",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-moved-to-backlight",
+            "kind": "relocate",
+            "evidence": "柳溪在柜架背光处取出那部手机",
+            "alias": "手机",
+            "fromHolder": "liuxi",
+            "holder": "liuxi",
+            "location": "柜架背光处",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "柜架背光处",
+        "status": "held",
+        "sourceSceneId": "chapter-02/scene-03"
+      }
+    },
+    {
+      "sceneId": "chapter-02/scene-04",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-liuxi-to-shendu",
+            "kind": "transfer",
+            "evidence": "柳溪没有迟疑，把证据手机递到沈渡手中",
+            "alias": "证据手机",
+            "fromHolder": "liuxi",
+            "holder": "shendu",
+            "location": "沈渡手中",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "shendu",
+        "location": "沈渡手中",
+        "status": "held",
+        "sourceSceneId": "chapter-02/scene-04"
+      }
+    },
+    {
+      "sceneId": "chapter-03/scene-01",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-moved-to-waterproof-bag",
+            "kind": "relocate",
+            "evidence": "沈渡把手机按在胸前防水袋里",
+            "alias": "手机",
+            "fromHolder": "shendu",
+            "holder": "shendu",
+            "location": "胸前防水袋",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "shendu",
+        "location": "胸前防水袋",
+        "status": "held",
+        "sourceSceneId": "chapter-03/scene-01"
+      }
+    },
+    {
+      "sceneId": "chapter-03/scene-02",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-drawn-in-hand",
+            "kind": "relocate",
+            "evidence": "沈渡从防水袋中取出手机，握在手中",
+            "alias": "手机",
+            "fromHolder": "shendu",
+            "holder": "shendu",
+            "location": "手中",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "shendu",
+        "location": "手中",
+        "status": "held",
+        "sourceSceneId": "chapter-03/scene-02"
+      }
+    },
+    {
+      "sceneId": "chapter-03/scene-03",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-shendu-to-liuxi",
+            "kind": "transfer",
+            "evidence": "沈渡把手机交还给柳溪，送到她手中",
+            "alias": "手机",
+            "fromHolder": "shendu",
+            "holder": "liuxi",
+            "location": "手中",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "手中",
+        "status": "held",
+        "sourceSceneId": "chapter-03/scene-03"
+      }
+    },
+    {
+      "sceneId": "chapter-03/scene-04",
+      "declaration": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "events": [
+          {
+            "eventId": "evidence-phone-upload-observed",
+            "kind": "observe",
+            "evidence": "柳溪把手机举在手中",
+            "alias": "手机",
+            "holder": "liuxi",
+            "location": "手中",
+            "status": "held"
+          }
+        ]
+      },
+      "resultingEntity": {
+        "entityId": "evidence-phone",
+        "aliases": [
+          "证据手机",
+          "手机"
+        ],
+        "holder": "liuxi",
+        "location": "手中",
+        "status": "held",
+        "sourceSceneId": "chapter-03/scene-03"
+      }
+    }
+  ],
+  "qualityScore": null,
+  "candidateFinalizationEligible": false,
+  "releaseEligible": false,
+  "nextRequiredStage": "pipeline_polish_revalidation",
+  "downstreamArtifacts": {
+    "candidateProof": null,
+    "commitReceipt": null
+  }
+}

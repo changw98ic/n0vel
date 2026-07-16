@@ -11,11 +11,34 @@ import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import 'work_settings_hub_components.dart';
 
-class WorkSettingsHubPage extends ConsumerWidget {
+class WorkSettingsHubPage extends ConsumerStatefulWidget {
   const WorkSettingsHubPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkSettingsHubPage> createState() =>
+      _WorkSettingsHubPageState();
+}
+
+class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
+  late ScrollController _sidebarScrollController;
+  late ScrollController _mainScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _sidebarScrollController = ScrollController();
+    _mainScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _sidebarScrollController.dispose();
+    _mainScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final workspaceStore = ref.watch(appWorkspaceStoreProvider);
     final sceneContextStore = ref.watch(appSceneContextStoreProvider);
     final draftStore = ref.watch(appDraftStoreProvider);
@@ -41,7 +64,7 @@ class WorkSettingsHubPage extends ConsumerWidget {
             onTabChanged: (i) async {
               if (i == 0) {
                 final canNavigate = await AppNavTabs.confirmIfBlocked(context);
-                if (!canNavigate) return;
+                if (!context.mounted || !canNavigate) return;
                 Navigator.of(context).popUntil((route) => route.isFirst);
               } else if (i == 2) {
                 AppNavigator.push(context, AppRoutes.workbench);
@@ -51,7 +74,8 @@ class WorkSettingsHubPage extends ConsumerWidget {
               DesignActionButton(
                 icon: Icons.edit_note,
                 label: '进入编辑',
-                onPressed: () => AppNavigator.push(context, AppRoutes.workbench),
+                onPressed: () =>
+                    AppNavigator.push(context, AppRoutes.workbench),
               ),
             ],
           ),
@@ -72,7 +96,9 @@ class WorkSettingsHubPage extends ConsumerWidget {
                     SizedBox(
                       width: 330,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusXLarge,
+                        ),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(
                             sigmaX: AppDesignTokens.glassBlurRadius,
@@ -81,70 +107,94 @@ class WorkSettingsHubPage extends ConsumerWidget {
                           child: Container(
                             padding: const EdgeInsets.all(18),
                             decoration: frostedSidebarDecoration(context),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Project title
-                                  Text(
-                                    summary.headerSubtitle,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: palette.primary,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
                                   ),
-                                  const SizedBox(height: 20),
-                                  // Stat chips
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: palette.subtle.withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
-                                    ),
-                                    child: Wrap(
-                                      spacing: 24,
-                                      runSpacing: 6,
-                                      children: [
-                                        WorkSettingsStatChip(
-                                          icon: Icons.edit_note_outlined,
-                                          label: '进度',
-                                          value: summary.writingSummary,
+                              child: Scrollbar(
+                                controller: _sidebarScrollController,
+                                thumbVisibility: true,
+                                child: SingleChildScrollView(
+                                  controller: _sidebarScrollController,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Project title
+                                      Text(
+                                        summary.headerSubtitle,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: palette.primary,
+                                            ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      // Stat chips
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 10,
                                         ),
-                                        WorkSettingsStatChip(
-                                          icon: Icons.history_edu_outlined,
-                                          label: '设定',
-                                          value: summary.recentSettings,
+                                        decoration: BoxDecoration(
+                                          color: palette.subtle.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            AppDesignTokens.radiusMedium,
+                                          ),
                                         ),
-                                        WorkSettingsStatChip(
-                                          icon: Icons.playlist_add_check_outlined,
-                                          label: '下一步',
-                                          value: summary.nextStep,
+                                        child: Wrap(
+                                          spacing: 24,
+                                          runSpacing: 6,
+                                          children: [
+                                            WorkSettingsStatChip(
+                                              icon: Icons.edit_note_outlined,
+                                              label: '进度',
+                                              value: summary.writingSummary,
+                                            ),
+                                            WorkSettingsStatChip(
+                                              icon: Icons.history_edu_outlined,
+                                              label: '设定',
+                                              value: summary.recentSettings,
+                                            ),
+                                            WorkSettingsStatChip(
+                                              icon: Icons
+                                                  .playlist_add_check_outlined,
+                                              label: '下一步',
+                                              value: summary.nextStep,
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        '下一步建议',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: palette.secondaryText,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        summary.nextStep,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: palette.tertiaryText,
+                                            ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    '下一步建议',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: palette.secondaryText,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    summary.nextStep,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: palette.tertiaryText,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -155,7 +205,9 @@ class WorkSettingsHubPage extends ConsumerWidget {
                     // Right: Main content (fill)
                     Expanded(
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusXLarge,
+                        ),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(
                             sigmaX: AppDesignTokens.glassBlurRadius,
@@ -164,44 +216,257 @@ class WorkSettingsHubPage extends ConsumerWidget {
                           child: Container(
                             padding: const EdgeInsets.all(24),
                             decoration: glassCardDecoration(context),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '作品资料',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: palette.primary,
-                                    ),
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
                                   ),
-                                  const SizedBox(height: 20),
-                                  WorkSettingsNavItem(
-                                    icon: Icons.people_outline,
-                                    title: '角色库',
-                                    subtitle: summary.characterSubtitle,
-                                    onTap: () => AppNavigator.push(
-                                      context,
-                                      AppRoutes.characters,
-                                    ),
+                              child: Scrollbar(
+                                controller: _mainScrollController,
+                                thumbVisibility: true,
+                                child: SingleChildScrollView(
+                                  controller: _mainScrollController,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '核心设定与大纲',
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: palette.primary,
+                                                ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              TextButton.icon(
+                                                icon: const Icon(
+                                                  Icons.people_outline,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '人物库',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.characters,
+                                                    ),
+                                              ),
+                                              TextButton.icon(
+                                                icon: const Icon(
+                                                  Icons.public_outlined,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '世界观',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.worldbuilding,
+                                                    ),
+                                              ),
+                                              TextButton.icon(
+                                                icon: const Icon(
+                                                  Icons.auto_stories_outlined,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '参考资料',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.style,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.group_outlined,
+                                            size: 18,
+                                            color: Color(0xFFB6813B),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '核心出场角色',
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: palette.primary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      workspaceStore.characters.isEmpty
+                                          ? Container(
+                                              height: 100,
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                '角色库暂无角色，点击右上角人物库添加',
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color:
+                                                          palette.tertiaryText,
+                                                    ),
+                                              ),
+                                            )
+                                          : SizedBox(
+                                              height: 140,
+                                              child: PremiumHorizontalScrollView(
+                                                builder:
+                                                    (
+                                                      context,
+                                                      controller,
+                                                    ) => ListView.separated(
+                                                      controller: controller,
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      itemCount: workspaceStore
+                                                          .characters
+                                                          .length,
+                                                      separatorBuilder:
+                                                          (context, index) =>
+                                                              const SizedBox(
+                                                                width: 12,
+                                                              ),
+                                                      itemBuilder: (context, index) {
+                                                        final char = workspaceStore
+                                                            .characters[index];
+                                                        final initial =
+                                                            char.name.isNotEmpty
+                                                            ? char.name
+                                                                  .substring(
+                                                                    0,
+                                                                    1,
+                                                                  )
+                                                            : '?';
+                                                        return FrostedCharacterCard(
+                                                          name: char.name,
+                                                          role: char.role,
+                                                          avatarInitial:
+                                                              initial,
+                                                          onTap: () =>
+                                                              AppNavigator.push(
+                                                                context,
+                                                                AppRoutes
+                                                                    .characters,
+                                                              ),
+                                                        );
+                                                      },
+                                                    ),
+                                              ),
+                                            ),
+                                      const SizedBox(height: 24),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.auto_stories_outlined,
+                                            size: 18,
+                                            color: Color(0xFFB6813B),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '正文章节预览',
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: palette.primary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      workspaceStore.scenes.isEmpty
+                                          ? Container(
+                                              height: 160,
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                '正文暂无章节，请前往编辑新建第一章',
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color:
+                                                          palette.tertiaryText,
+                                                    ),
+                                              ),
+                                            )
+                                          : SizedBox(
+                                              height: 190,
+                                              child: PremiumHorizontalScrollView(
+                                                builder:
+                                                    (
+                                                      context,
+                                                      controller,
+                                                    ) => ListView.separated(
+                                                      controller: controller,
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      itemCount: workspaceStore
+                                                          .scenes
+                                                          .length,
+                                                      separatorBuilder:
+                                                          (context, index) =>
+                                                              const SizedBox(
+                                                                width: 12,
+                                                              ),
+                                                      itemBuilder: (context, index) {
+                                                        final scene =
+                                                            workspaceStore
+                                                                .scenes[index];
+                                                        return FrostedChapterCard(
+                                                          title: scene.title,
+                                                          location: scene
+                                                              .displayChapterLabel,
+                                                          summary:
+                                                              scene.summary,
+                                                          onTap: () {
+                                                            workspaceStore
+                                                                .updateCurrentScene(
+                                                                  sceneId:
+                                                                      scene.id,
+                                                                  recentLocation:
+                                                                      scene
+                                                                          .displayLocation,
+                                                                );
+                                                            AppNavigator.push(
+                                                              context,
+                                                              AppRoutes
+                                                                  .workbench,
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                    ),
+                                              ),
+                                            ),
+                                    ],
                                   ),
-                                  WorkSettingsNavItem(
-                                    icon: Icons.public_outlined,
-                                    title: '世界观',
-                                    subtitle: summary.worldSubtitle,
-                                    onTap: () => AppNavigator.push(
-                                      context,
-                                      AppRoutes.worldbuilding,
-                                    ),
-                                  ),
-                                  WorkSettingsNavItem(
-                                    icon: Icons.auto_stories_outlined,
-                                    title: '参考资料',
-                                    subtitle: summary.styleSubtitle,
-                                    onTap: () =>
-                                        AppNavigator.push(context, AppRoutes.style),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -442,4 +707,3 @@ bool _isWhitespace(int codeUnit) {
       codeUnit == 0x0d ||
       codeUnit == 0x20;
 }
-

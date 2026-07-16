@@ -47,8 +47,17 @@ class BeatResolutionOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.beatResolution;
 
   @override
-  Map<String, Object?> toJson() =>
-      {'type': type.name, 'beatCount': runtimeBeats.length};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'resumeSafe':
+        runtimeBeats.isEmpty &&
+        resolvedBeats.isEmpty &&
+        sceneState.turnIndex == 0 &&
+        sceneState.beatIndex == 0 &&
+        sceneState.locationState.isEmpty &&
+        sceneState.openThreats.isEmpty,
+    'beatCount': runtimeBeats.length,
+  };
 
   @override
   int get tokenEstimate => 0;

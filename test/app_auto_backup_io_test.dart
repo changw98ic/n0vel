@@ -84,6 +84,39 @@ void main() {
       backupDb.dispose();
     });
 
+    test(
+      'online snapshot includes committed rows still present in WAL',
+      () async {
+        await writeSampleData();
+        final live = sqlite3.open(dbPath);
+        addTearDown(live.dispose);
+        live.execute('PRAGMA journal_mode = WAL');
+        live.execute('PRAGMA wal_autocheckpoint = 0');
+        live.execute(
+          '''INSERT INTO workspace_projects
+           (scope_key, position_no, id, title) VALUES (?, ?, ?, ?)''',
+          <Object?>['workspace-default', 1, 'wal-row', 'WAL 已提交'],
+        );
+        expect(File('$dbPath-wal').existsSync(), isTrue);
+
+        final service = FileAutoBackupService(dbPath: dbPath);
+        final entry = await service.createBackup();
+        final backup = sqlite3.open(
+          '${tempDir.path}/backups/authoring_${entry.id}.db',
+          mode: OpenMode.readOnly,
+        );
+        addTearDown(backup.dispose);
+        expect(
+          backup
+              .select(
+                "SELECT title FROM workspace_projects WHERE id = 'wal-row'",
+              )
+              .single['title'],
+          'WAL 已提交',
+        );
+      },
+    );
+
     test('listBackups returns empty list when no backups exist', () async {
       final service = FileAutoBackupService(dbPath: dbPath);
 
@@ -134,10 +167,94 @@ void main() {
       restoredDb.dispose();
     });
 
+    test('healthy backup replaces a corrupt current database', () async {
+      await writeSampleData();
+      final service = FileAutoBackupService(dbPath: dbPath);
+      final entry = await service.createBackup();
+
+      await File(dbPath).writeAsString('not a sqlite database', flush: true);
+
+      await service.restoreBackup(entry.id);
+
+      final restoredDb = sqlite3.open(dbPath, mode: OpenMode.readOnly);
+      addTearDown(restoredDb.dispose);
+      expect(
+        restoredDb
+            .select(
+              "SELECT title FROM workspace_projects WHERE id = 'project-1'",
+            )
+            .single['title'],
+        '月潮回声',
+      );
+    });
+
+    test('busy current database is not replaced', () async {
+      await writeSampleData();
+      final service = FileAutoBackupService(dbPath: dbPath);
+      final entry = await service.createBackup();
+      final live = sqlite3.open(dbPath);
+      live.execute('UPDATE workspace_projects SET title = ? WHERE id = ?', [
+        '当前库值',
+        'project-1',
+      ]);
+      live.execute('BEGIN EXCLUSIVE');
+
+      try {
+        await expectLater(
+          service.restoreBackup(entry.id),
+          throwsA(
+            isA<SqliteException>().having(
+              (error) => error.resultCode,
+              'resultCode',
+              anyOf(SqlError.SQLITE_BUSY, SqlError.SQLITE_LOCKED),
+            ),
+          ),
+        );
+      } finally {
+        live.execute('ROLLBACK');
+        live.dispose();
+      }
+
+      final currentDb = sqlite3.open(dbPath, mode: OpenMode.readOnly);
+      addTearDown(currentDb.dispose);
+      expect(
+        currentDb
+            .select(
+              "SELECT title FROM workspace_projects WHERE id = 'project-1'",
+            )
+            .single['title'],
+        '当前库值',
+      );
+      expect(
+        tempDir.listSync().where((entry) => entry.path.contains('.restore-')),
+        isEmpty,
+      );
+    });
+
     test('restoreBackup throws when backup id does not exist', () async {
       final service = FileAutoBackupService(dbPath: dbPath);
 
       expect(service.restoreBackup('nonexistent'), throwsA(isA<StateError>()));
+    });
+
+    test('corrupt backup cannot replace the live database', () async {
+      await writeSampleData();
+      final service = FileAutoBackupService(dbPath: dbPath);
+      final entry = await service.createBackup();
+      final backup = File('${tempDir.path}/backups/authoring_${entry.id}.db');
+      await backup.writeAsString('corrupt', flush: true);
+
+      await expectLater(service.restoreBackup(entry.id), throwsA(anything));
+      final live = sqlite3.open(dbPath, mode: OpenMode.readOnly);
+      addTearDown(live.dispose);
+      expect(
+        live
+            .select(
+              "SELECT title FROM workspace_projects WHERE id = 'project-1'",
+            )
+            .single['title'],
+        '月潮回声',
+      );
     });
 
     test('deleteBackup removes a specific backup file', () async {

@@ -50,7 +50,7 @@ class StoryPromptTemplates {
 
   static const PromptVersion versionSceneEditorial = PromptVersion(
     templateId: 'scene_editorial',
-    version: '1.0.0',
+    version: '1.1.0',
   );
 
   static const PromptVersion versionSceneReview = PromptVersion(
@@ -72,6 +72,29 @@ class StoryPromptTemplates {
     templateId: 'thought_extraction',
     version: '1.0.0',
   );
+
+  static const PromptVersion versionSceneQuality = PromptVersion(
+    templateId: 'scene_quality',
+    version: '1.0.0',
+  );
+
+  /// Central task-to-template mapping used by story-generation trace records.
+  /// Unknown tasks intentionally remain unversioned rather than being assigned
+  /// a misleading template version.
+  static PromptVersion? versionForTraceName(String traceName) {
+    final task = traceName.trim().toLowerCase();
+    if (task.contains('editorial') || task.contains('scene_editor')) {
+      return versionSceneEditorial;
+    }
+    if (task.contains('director')) return versionSceneDirector;
+    if (task.contains('review')) return versionSceneReview;
+    if (task.contains('quality')) return versionSceneQuality;
+    if (task.contains('beat')) return versionSceneBeatResolve;
+    if (task.contains('role')) return versionDynamicRoleAgent;
+    if (task.contains('thought')) return versionThoughtExtraction;
+    if (task.contains('prose')) return versionSceneProse;
+    return null;
+  }
 
   // ---------------------------------------------------------------------------
   // Language switch

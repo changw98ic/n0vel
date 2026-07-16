@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import '../domain/scene_models.dart';
 import 'role_skill_descriptor.dart';
@@ -6,7 +6,7 @@ import 'role_turn_skill.dart';
 
 class RoleSkillRegistry {
   RoleSkillRegistry({
-    required AppSettingsStore settingsStore,
+    required StoryGenerationSettingsContract settingsStore,
     List<RoleTurnSkill> externalSkills = const [],
     List<RoleSkillDescriptor> externalDescriptors = const [],
   }) : _basic = BasicRoleTurnSkill(settingsStore: settingsStore) {

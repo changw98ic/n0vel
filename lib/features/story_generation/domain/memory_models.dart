@@ -7,7 +7,13 @@ enum MemoryVisibility {
 
   /// Visible only to the agent that created it.
   agentPrivate,
+
+  /// Visible to editors but not to ordinary readers/agents.
+  editorOnly,
 }
+
+/// Access level of the caller requesting story memory.
+enum MemoryViewerRole { reader, editor }
 
 /// Kind of source material a memory record was derived from.
 enum MemorySourceKind {
@@ -22,13 +28,7 @@ enum MemorySourceKind {
 }
 
 /// Types of thought atoms extracted after scene acceptance.
-enum ThoughtType {
-  persona,
-  plotCausality,
-  state,
-  foreshadowing,
-  style,
-}
+enum ThoughtType { persona, plotCausality, state, foreshadowing, style }
 
 /// Query types that control retrieval ranking behavior.
 enum StoryMemoryQueryType {
@@ -42,10 +42,7 @@ enum StoryMemoryQueryType {
 
 /// A reference back to the source material that produced a memory record.
 class MemorySourceRef {
-  const MemorySourceRef({
-    required this.sourceId,
-    required this.sourceType,
-  });
+  const MemorySourceRef({required this.sourceId, required this.sourceType});
 
   final String sourceId;
   final MemorySourceKind sourceType;
@@ -84,6 +81,7 @@ class StoryMemorySource {
     this.sourceRefs = const [],
     this.rootSourceIds = const [],
     this.visibility = MemoryVisibility.publicObservable,
+    this.ownerId = '',
     this.tags = const [],
     this.priority = 0,
     this.tokenCostEstimate = 0,
@@ -98,6 +96,9 @@ class StoryMemorySource {
   final List<MemorySourceRef> sourceRefs;
   final List<String> rootSourceIds;
   final MemoryVisibility visibility;
+
+  /// Required for [MemoryVisibility.agentPrivate].
+  final String ownerId;
   final List<String> tags;
   final int priority;
   final int tokenCostEstimate;
@@ -112,6 +113,7 @@ class StoryMemorySource {
     'sourceRefs': [for (final r in sourceRefs) r.toJson()],
     'rootSourceIds': rootSourceIds,
     'visibility': visibility.name,
+    'ownerId': ownerId,
     'tags': tags,
     'priority': priority,
     'tokenCostEstimate': tokenCostEstimate,
@@ -128,6 +130,7 @@ class StoryMemorySource {
       sourceRefs: _parseSourceRefs(json['sourceRefs']),
       rootSourceIds: _parseStringList(json['rootSourceIds']),
       visibility: _parseVisibility(json['visibility']),
+      ownerId: json['ownerId']?.toString() ?? '',
       tags: _parseStringList(json['tags']),
       priority: _parseInt(json['priority']),
       tokenCostEstimate: _parseInt(json['tokenCostEstimate']),
@@ -149,6 +152,7 @@ class StoryMemoryChunk {
     this.sourceRefs = const [],
     this.rootSourceIds = const [],
     this.visibility = MemoryVisibility.publicObservable,
+    this.ownerId = '',
     this.tags = const [],
     this.priority = 0,
     this.tokenCostEstimate = 0,
@@ -165,6 +169,9 @@ class StoryMemoryChunk {
   final List<MemorySourceRef> sourceRefs;
   final List<String> rootSourceIds;
   final MemoryVisibility visibility;
+
+  /// Principal allowed to retrieve an agent-private chunk.
+  final String ownerId;
   final List<String> tags;
   final int priority;
   final int tokenCostEstimate;
@@ -181,6 +188,7 @@ class StoryMemoryChunk {
     'sourceRefs': [for (final r in sourceRefs) r.toJson()],
     'rootSourceIds': rootSourceIds,
     'visibility': visibility.name,
+    'ownerId': ownerId,
     'tags': tags,
     'priority': priority,
     'tokenCostEstimate': tokenCostEstimate,
@@ -199,6 +207,7 @@ class StoryMemoryChunk {
       sourceRefs: _parseSourceRefs(json['sourceRefs']),
       rootSourceIds: _parseStringList(json['rootSourceIds']),
       visibility: _parseVisibility(json['visibility']),
+      ownerId: json['ownerId']?.toString() ?? '',
       tags: _parseStringList(json['tags']),
       priority: _parseInt(json['priority']),
       tokenCostEstimate: _parseInt(json['tokenCostEstimate']),
@@ -288,7 +297,12 @@ class StoryMemoryQuery {
     required this.queryType,
     required this.text,
     this.tags = const [],
+    this.requiredTagGroups = const [],
+    this.boostTags = const [],
+    this.mustIncludeCanon = false,
+    this.allowedAncestorScopeIds = const [],
     this.viewerId,
+    this.viewerRole = MemoryViewerRole.reader,
     this.maxResults = 10,
     this.tokenBudget = 500,
     this.scopeId,
@@ -297,8 +311,25 @@ class StoryMemoryQuery {
   final String projectId;
   final StoryMemoryQueryType queryType;
   final String text;
+
+  /// Legacy query-time ranking preferences. These never admit or reject a
+  /// document; use [requiredTagGroups] for hard tag constraints.
   final List<String> tags;
+
+  /// Every group must match at least one persisted document tag. This is an
+  /// admission constraint, not a document annotation.
+  final List<List<String>> requiredTagGroups;
+
+  /// Query-time ranking preferences applied only after admission succeeds.
+  final List<String> boostTags;
+
+  /// Reserves one eligible Canon hit without changing document metadata.
+  final bool mustIncludeCanon;
+
+  /// Explicit scopes that the caller may inherit from; no implicit ancestry.
+  final List<String> allowedAncestorScopeIds;
   final String? viewerId;
+  final MemoryViewerRole viewerRole;
   final int maxResults;
   final int tokenBudget;
   final String? scopeId;
@@ -338,6 +369,8 @@ class StoryRetrievalPack {
     this.tokenBudget = 0,
     this.spentTokenEstimate = 0,
     this.deferredHitCount = 0,
+    this.canonRequired = false,
+    this.canonAvailable = false,
   });
 
   final StoryMemoryQuery query;
@@ -347,6 +380,12 @@ class StoryRetrievalPack {
   final int tokenBudget;
   final int spentTokenEstimate;
   final int deferredHitCount;
+  final bool canonRequired;
+  final bool canonAvailable;
+
+  /// Whether the final, budgeted pack actually contains a Canon memory.
+  bool get canonIncluded =>
+      hits.any((hit) => hit.chunk.tier == MemoryTier.canon);
 }
 
 /// Trace record for retrieval audit.
@@ -383,10 +422,7 @@ class RetrievalTrace {
 
 /// Result of thought extraction after scene acceptance.
 class ThoughtUpdateResult {
-  const ThoughtUpdateResult({
-    required this.accepted,
-    required this.rejected,
-  });
+  const ThoughtUpdateResult({required this.accepted, required this.rejected});
 
   final List<ThoughtAtom> accepted;
   final List<ThoughtAtom> rejected;
@@ -476,49 +512,37 @@ class CrossChapterContext {
   final List<ChapterSummary> previousSummaries;
   final List<ThoughtAtom> carryOverThoughts;
 
-  bool get isEmpty =>
-      previousSummaries.isEmpty && carryOverThoughts.isEmpty;
+  bool get isEmpty => previousSummaries.isEmpty && carryOverThoughts.isEmpty;
 }
 
 // -- Parse helpers ------------------------------------------------------------
 
-final _memoryTierByName = {
-  for (final v in MemoryTier.values) v.name: v,
-};
+final _memoryTierByName = {for (final v in MemoryTier.values) v.name: v};
 
 MemoryTier _parseMemoryTier(Object? raw) =>
     _memoryTierByName[raw?.toString()] ?? MemoryTier.scene;
 
-final _sourceKindByName = {
-  for (final v in MemorySourceKind.values) v.name: v,
-};
+final _sourceKindByName = {for (final v in MemorySourceKind.values) v.name: v};
 
 MemorySourceKind _parseSourceKind(Object? raw) =>
     _sourceKindByName[raw?.toString()] ?? MemorySourceKind.worldFact;
 
-final _thoughtTypeByName = {
-  for (final v in ThoughtType.values) v.name: v,
-};
+final _thoughtTypeByName = {for (final v in ThoughtType.values) v.name: v};
 
 ThoughtType _parseThoughtType(Object? raw) =>
     _thoughtTypeByName[raw?.toString()] ?? ThoughtType.persona;
 
-final _visibilityByName = {
-  for (final v in MemoryVisibility.values) v.name: v,
-};
+final _visibilityByName = {for (final v in MemoryVisibility.values) v.name: v};
 
 MemoryVisibility _parseVisibility(Object? raw) =>
-    _visibilityByName[raw?.toString()] ??
-    MemoryVisibility.publicObservable;
+    _visibilityByName[raw?.toString()] ?? MemoryVisibility.publicObservable;
 
 List<MemorySourceRef> _parseSourceRefs(Object? raw) {
   if (raw is! List) return const [];
   return [
     for (final item in raw)
       if (item is Map)
-        MemorySourceRef.fromJson(
-          Map<String, Object?>.from(item),
-        ),
+        MemorySourceRef.fromJson(Map<String, Object?>.from(item)),
   ];
 }
 

@@ -29,11 +29,13 @@ Future<void> safePersist(
 
 void _notifyFailure(AppEventBus? eventBus) {
   try {
-    eventBus?.publish(const NotificationRequestedEvent(
-      title: '数据保存失败',
-      message: '部分更改未能保存，请尝试重新操作。',
-      severity: AppNoticeSeverity.error,
-    ));
+    eventBus?.publish(
+      const NotificationRequestedEvent(
+        title: '数据保存失败',
+        message: '部分更改未能保存，请尝试重新操作。',
+        severity: AppNoticeSeverity.error,
+      ),
+    );
   } on StateError {
     // Event bus may be disposed.
   }

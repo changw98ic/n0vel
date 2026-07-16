@@ -333,6 +333,16 @@ extension _WorkbenchShellActions on _WorkbenchShellPageState {
           );
         case ShowAiOverlappingSelections():
           await _showOverlappingSelectionsDialog();
+        case ShowAiSceneRunResult(:final snapshot):
+          final presentation = snapshot.candidatePresentation;
+          await _showMessageDialog(
+            title: presentation.headline.isEmpty
+                ? '本场生成未完成'
+                : presentation.headline,
+            message: presentation.message.isEmpty
+                ? '章节生成流水线没有产出可验证候选，请在运行记录中查看详情后重试。'
+                : presentation.message,
+          );
         case ShowAiReview():
           await showAiReviewDialog(
             context: context,

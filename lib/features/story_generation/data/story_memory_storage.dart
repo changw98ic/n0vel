@@ -10,3 +10,18 @@ abstract interface class StoryMemoryStorage {
   Future<List<ThoughtAtom>> loadThoughts(String projectId);
   Future<void> clearProject(String projectId);
 }
+
+/// Storage capability for replacing one producer-owned scene generation.
+///
+/// Implementations must preserve chunks owned by every other scope or
+/// producer. [includeLegacyContextRows] is a one-way compatibility cleanup for
+/// the historical context-enrichment ID format and must remain fail-closed.
+abstract interface class OwnedGenerationMemoryStorage {
+  Future<void> replaceOwnedGeneration({
+    required String projectId,
+    required String scopeId,
+    required String producer,
+    required List<StoryMemoryChunk> chunks,
+    bool includeLegacyContextRows = false,
+  });
+}

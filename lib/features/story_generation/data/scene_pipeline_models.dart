@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_storage_clone.dart';
+import 'package:novel_writer/domain/storage_utils.dart';
 import 'story_generation_models.dart';
 import 'story_prompt_templates.dart';
 import '../domain/character_cognition_models.dart' show CharacterBelief, RelationshipSlice, SocialPositionSlice, PresentationState;

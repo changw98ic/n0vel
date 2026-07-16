@@ -114,7 +114,8 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                   StyleModeButton(
                     buttonKey: StylePanelPage.questionnaireModeButtonKey,
                     label: '问卷',
-                    selected: store.styleInputMode == StyleInputMode.questionnaire,
+                    selected:
+                        store.styleInputMode == StyleInputMode.questionnaire,
                     onPressed: () =>
                         store.setStyleInputMode(StyleInputMode.questionnaire),
                   ),
@@ -122,7 +123,8 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                     buttonKey: StylePanelPage.jsonModeButtonKey,
                     label: 'JSON',
                     selected: store.styleInputMode == StyleInputMode.json,
-                    onPressed: () => store.setStyleInputMode(StyleInputMode.json),
+                    onPressed: () =>
+                        store.setStyleInputMode(StyleInputMode.json),
                   ),
                 ],
               ),
@@ -141,8 +143,10 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                   fieldKey: StylePanelPage.profileNameFieldKey,
                   label: '风格名称',
                   initialValue: draft['profile_name']?.toString() ?? '',
-                  onChanged: (value) =>
-                      store.updateStyleQuestionnaireField('profile_name', value),
+                  onChanged: (value) => store.updateStyleQuestionnaireField(
+                    'profile_name',
+                    value,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 StyleQuestionnaireChoiceGroup(
@@ -161,8 +165,10 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                   label: '对白比例',
                   currentValue: draft['dialogue_ratio']?.toString() ?? '',
                   values: const {'low': '低', 'medium': '中', 'high': '高'},
-                  onSelected: (value) =>
-                      store.updateStyleQuestionnaireField('dialogue_ratio', value),
+                  onSelected: (value) => store.updateStyleQuestionnaireField(
+                    'dialogue_ratio',
+                    value,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 StyleQuestionnaireChoiceGroup(
@@ -189,8 +195,10 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                     'balanced': '均衡',
                     'slow_burn': '慢燃',
                   },
-                  onSelected: (value) =>
-                      store.updateStyleQuestionnaireField('rhythm_profile', value),
+                  onSelected: (value) => store.updateStyleQuestionnaireField(
+                    'rhythm_profile',
+                    value,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 StyleQuestionnaireChoiceGroup(
@@ -228,13 +236,20 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
                 const SizedBox(height: 12),
                 StyleQuestionnaireTagGroup(
                   label: '禁忌表达',
-                  selectedValues: styleStringListFromRaw(draft['taboo_patterns']),
+                  selectedValues: styleStringListFromRaw(
+                    draft['taboo_patterns'],
+                  ),
                   values: const ['过度抒情', '全知解释', '空泛形容词'],
-                  onToggle: (value) =>
-                      store.toggleStyleQuestionnaireTag('taboo_patterns', value),
+                  onToggle: (value) => store.toggleStyleQuestionnaireTag(
+                    'taboo_patterns',
+                    value,
+                  ),
                 ),
               ] else ...[
-                Text('style_profile.schema.json', style: theme.textTheme.bodySmall),
+                Text(
+                  'style_profile.schema.json',
+                  style: theme.textTheme.bodySmall,
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
@@ -342,7 +357,10 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                decoration: glassCardDecoration(context, color: palette.elevated.withValues(alpha: 0.7)),
+                decoration: glassCardDecoration(
+                  context,
+                  color: palette.elevated.withValues(alpha: 0.7),
+                ),
                 child: Text(
                   store.styleBindingFeedback,
                   style: theme.textTheme.bodySmall,
@@ -361,12 +379,12 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
         onTabChanged: (i) async {
           if (i == 0) {
             final canNavigate = await AppNavTabs.confirmIfBlocked(context);
-            if (!canNavigate) return;
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
             final canNavigate = await AppNavTabs.confirmIfBlocked(context);
-            if (!canNavigate) return;
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }
@@ -388,23 +406,15 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              width: 260,
-              child: inputPanel,
-            ),
+            SizedBox(width: 260, child: inputPanel),
             const SizedBox(width: 24),
             Expanded(child: summaryPanel),
             const SizedBox(width: 24),
-            SizedBox(
-              width: 280,
-              child: bindingPanel,
-            ),
+            SizedBox(width: 280, child: bindingPanel),
           ],
         ),
       ),
-      statusBar: BottomSpecBar(
-        description: _footerMessage(effectiveUiState),
-      ),
+      statusBar: BottomSpecBar(description: _footerMessage(effectiveUiState)),
     );
   }
 
@@ -452,5 +462,4 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
         return '当前章节级绑定优先于项目级默认风格。';
     }
   }
-
 }

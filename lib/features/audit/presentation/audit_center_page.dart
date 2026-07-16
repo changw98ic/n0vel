@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'audit_center_components.dart';
 
@@ -34,6 +35,18 @@ class AuditCenterPage extends ConsumerStatefulWidget {
 }
 
 class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
+  final ScrollController _listScrollController = ScrollController();
+  final ScrollController _evidenceScrollController = ScrollController();
+  final ScrollController _actionsScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _listScrollController.dispose();
+    _evidenceScrollController.dispose();
+    _actionsScrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -166,23 +179,41 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
               '${_filterLabel(store.auditIssueFilter)} · 共 ${issues.length} 个问题\n待处理 ${_countByStatus(store, AuditIssueStatus.open)} · 已处理 ${_countByStatus(store, AuditIssueStatus.resolved)} · 已忽略 ${_countByStatus(store, AuditIssueStatus.ignored)}',
         ),
         const SizedBox(height: 12),
-        for (var index = 0; index < issues.length; index++) ...[
-          AuditListButton(
-            buttonKey: issues[index].title == '误把仓库当一层'
-                ? AuditCenterPage.warehouseIssueKey
-                : null,
-            label:
-                '${issues[index].title} · ${_statusLabel(issues[index].status)}',
-            selected: store.selectedAuditIssue.id == issues[index].id,
-            onPressed: () => store.selectAuditIssueById(issues[index].id),
+        Expanded(
+          child: AppPremiumScrollbar(
+            controller: _listScrollController,
+            child: SingleChildScrollView(
+              controller: _listScrollController,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var index = 0; index < issues.length; index++) ...[
+                    AuditListButton(
+                      buttonKey: issues[index].title == '误把仓库当一层'
+                          ? AuditCenterPage.warehouseIssueKey
+                          : null,
+                      label:
+                          '${issues[index].title} · ${_statusLabel(issues[index].status)}',
+                      selected: store.selectedAuditIssue.id == issues[index].id,
+                      onPressed: () =>
+                          store.selectAuditIssueById(issues[index].id),
+                    ),
+                    if (index < issues.length - 1) const SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            ),
           ),
-          if (index < issues.length - 1) const SizedBox(height: 8),
-        ],
+        ),
       ],
     );
   }
 
-  Widget _buildEvidence(ThemeData theme, List<AuditIssueRecord> issues, AuditIssueRecord? currentIssue) {
+  Widget _buildEvidence(
+    ThemeData theme,
+    List<AuditIssueRecord> issues,
+    AuditIssueRecord? currentIssue,
+  ) {
     if (widget.uiState == AuditCenterUiState.empty) {
       return const AuditCallToActionState(
         title: '暂无一致性问题',
@@ -205,52 +236,60 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
       );
     }
     if (widget.uiState == AuditCenterUiState.relatedDraftMissing) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('证据详情', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            AuditInfoBlock(
-              title: '问题摘要',
-              message: currentIssue?.title ?? '角色称谓冲突',
-            ),
-            const SizedBox(height: 8),
-            const AuditInfoBlock(
-              title: '无法定位关联草稿',
-              message: '原始场景草稿已被删除或位置失效，因此这里暂时无法展示对应文本片段。',
-            ),
-            const SizedBox(height: 8),
-            const AuditInfoBlock(
-              title: '建议动作',
-              message: '可返回工作台检查当前场景正文，或重新检查以刷新最新依据。',
-            ),
-          ],
+      return AppPremiumScrollbar(
+        controller: _evidenceScrollController,
+        child: SingleChildScrollView(
+          controller: _evidenceScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('证据详情', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 12),
+              AuditInfoBlock(
+                title: '问题摘要',
+                message: currentIssue?.title ?? '角色称谓冲突',
+              ),
+              const SizedBox(height: 8),
+              const AuditInfoBlock(
+                title: '无法定位关联草稿',
+                message: '原始场景草稿已被删除或位置失效，因此这里暂时无法展示对应文本片段。',
+              ),
+              const SizedBox(height: 8),
+              const AuditInfoBlock(
+                title: '建议动作',
+                message: '可返回工作台检查当前场景正文，或重新检查以刷新最新依据。',
+              ),
+            ],
+          ),
         ),
       );
     }
     if (widget.uiState == AuditCenterUiState.jumpFailed) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('证据详情', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            AuditInfoBlock(
-              title: '问题摘要',
-              message: currentIssue?.title ?? '时间线冲突',
-            ),
-            const SizedBox(height: 8),
-            const AuditInfoBlock(
-              title: '跳转失败',
-              message: '目标场景已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。',
-            ),
-            const SizedBox(height: 8),
-            const AuditInfoBlock(
-              title: '建议动作',
-              message: '可返回工作台手动定位当前场景，或重新检查以刷新最新场景位置。',
-            ),
-          ],
+      return AppPremiumScrollbar(
+        controller: _evidenceScrollController,
+        child: SingleChildScrollView(
+          controller: _evidenceScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('证据详情', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 12),
+              AuditInfoBlock(
+                title: '问题摘要',
+                message: currentIssue?.title ?? '时间线冲突',
+              ),
+              const SizedBox(height: 8),
+              const AuditInfoBlock(
+                title: '跳转失败',
+                message: '目标场景已被删除、重命名，或当前索引已失效，因此无法从一致性检查直接跳回原位置。',
+              ),
+              const SizedBox(height: 8),
+              const AuditInfoBlock(
+                title: '建议动作',
+                message: '可返回工作台手动定位当前场景，或重新检查以刷新最新场景位置。',
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -269,15 +308,21 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
         ],
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('证据详情', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 12),
-        AuditInfoBlock(title: '证据详情', message: currentIssue.evidence),
-        const SizedBox(height: 8),
-        AuditInfoRow(label: '引用目标', value: currentIssue.target),
-      ],
+    return AppPremiumScrollbar(
+      controller: _evidenceScrollController,
+      child: SingleChildScrollView(
+        controller: _evidenceScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('证据详情', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            AuditInfoBlock(title: '证据详情', message: currentIssue.evidence),
+            const SizedBox(height: 8),
+            AuditInfoRow(label: '引用目标', value: currentIssue.target),
+          ],
+        ),
+      ),
     );
   }
 
@@ -329,9 +374,9 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          const SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: null, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(
@@ -357,88 +402,92 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          const SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: null, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(title: '当前限制', message: '当前无法直接跳转到原证据位置。'),
         ],
       );
     }
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            store.auditActionFeedback.isEmpty ? '处理动作' : '处理结果',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          ...[
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: currentIssue == null
-                    ? null
-                    : () {
-                        store.jumpToSelectedAuditScene();
-                        AppNavigator.push(context, AppRoutes.workbench);
-                      },
-                child: const Text('跳转到场景'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              key: currentIssue == null
-                  ? null
-                  : ValueKey<String>(
-                      '${AuditCenterPage.ignoreReasonFieldKey.value}-${currentIssue.id}',
-                    ),
-              initialValue: currentIssue?.ignoreReason ?? '',
-              onChanged: currentIssue == null
-                  ? null
-                  : store.updateSelectedAuditIgnoreReason,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: '忽略原因',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                key: AuditCenterPage.markResolvedKey,
-                onPressed: currentIssue == null
-                    ? null
-                    : store.markSelectedAuditIssueResolved,
-                child: const Text('标记已处理'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                key: AuditCenterPage.ignoreIssueKey,
-                onPressed: currentIssue == null
-                    ? null
-                    : store.ignoreSelectedAuditIssue,
-                child: const Text('忽略'),
-              ),
+    return AppPremiumScrollbar(
+      controller: _actionsScrollController,
+      child: SingleChildScrollView(
+        controller: _actionsScrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              store.auditActionFeedback.isEmpty ? '处理动作' : '处理结果',
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            AuditInfoBlock(title: '处理反馈', message: store.auditActionFeedback),
-            if (currentIssue != null) ...[
-              const SizedBox(height: 8),
-              AuditInfoBlock(
-                title: '当前状态',
-                message:
-                    '${_statusLabel(currentIssue.status)} · ${currentIssue.lastAction}',
+            ...[
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: currentIssue == null
+                      ? null
+                      : () {
+                          store.jumpToSelectedAuditScene();
+                          AppNavigator.push(context, AppRoutes.workbench);
+                        },
+                  child: const Text('跳转到场景'),
+                ),
               ),
+              const SizedBox(height: 8),
+              TextFormField(
+                key: currentIssue == null
+                    ? null
+                    : ValueKey<String>(
+                        '${AuditCenterPage.ignoreReasonFieldKey.value}-${currentIssue.id}',
+                      ),
+                initialValue: currentIssue?.ignoreReason ?? '',
+                onChanged: currentIssue == null
+                    ? null
+                    : store.updateSelectedAuditIgnoreReason,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: '忽略原因',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  key: AuditCenterPage.markResolvedKey,
+                  onPressed: currentIssue == null
+                      ? null
+                      : store.markSelectedAuditIssueResolved,
+                  child: const Text('标记已处理'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  key: AuditCenterPage.ignoreIssueKey,
+                  onPressed: currentIssue == null
+                      ? null
+                      : store.ignoreSelectedAuditIssue,
+                  child: const Text('忽略'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              AuditInfoBlock(title: '处理反馈', message: store.auditActionFeedback),
+              if (currentIssue != null) ...[
+                const SizedBox(height: 8),
+                AuditInfoBlock(
+                  title: '当前状态',
+                  message:
+                      '${_statusLabel(currentIssue.status)} · ${currentIssue.lastAction}',
+                ),
+              ],
             ],
           ],
-        ],
+        ),
       ),
     );
   }

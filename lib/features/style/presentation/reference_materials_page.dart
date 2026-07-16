@@ -38,12 +38,12 @@ class _ReferenceMaterialsPageState
         onTabChanged: (i) async {
           if (i == 0) {
             final canNavigate = await AppNavTabs.confirmIfBlocked(context);
-            if (!canNavigate) return;
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
             final canNavigate = await AppNavTabs.confirmIfBlocked(context);
-            if (!canNavigate) return;
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }

@@ -1,4 +1,4 @@
-import 'package:novel_writer/app/state/app_workspace_store.dart';
+import 'package:novel_writer/domain/workspace_models.dart';
 
 import '../domain/character_cognition_models.dart';
 

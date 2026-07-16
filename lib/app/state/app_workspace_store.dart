@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/widgets.dart';
-
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
@@ -514,23 +512,4 @@ class AppWorkspaceStore extends AppStoreListenable
 
   @override
   bool _hasLocalMutations = false;
-}
-
-// ============================================================================
-// Inherited Widget
-// ============================================================================
-
-class AppWorkspaceScope extends InheritedNotifier<AppWorkspaceStore> {
-  const AppWorkspaceScope({
-    super.key,
-    required AppWorkspaceStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static AppWorkspaceStore of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<AppWorkspaceScope>();
-    assert(scope != null, 'AppWorkspaceScope is missing in the widget tree.');
-    return scope!.notifier!;
-  }
 }

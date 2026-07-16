@@ -1,0 +1,71 @@
+{
+  "schema": "authoring-schema-compatibility-matrix-v1",
+  "currentVersion": 27,
+  "releases": [
+    {"version": 16, "minReaderVersion": 15, "minWriterVersion": 16},
+    {"version": 17, "minReaderVersion": 16, "minWriterVersion": 17},
+    {"version": 18, "minReaderVersion": 17, "minWriterVersion": 18},
+    {"version": 19, "minReaderVersion": 18, "minWriterVersion": 19},
+    {"version": 20, "minReaderVersion": 19, "minWriterVersion": 20},
+    {"version": 21, "minReaderVersion": 20, "minWriterVersion": 21},
+    {
+      "version": 22,
+      "minReaderVersion": 21,
+      "minWriterVersion": 22,
+      "upgrade": "forward-only-v22",
+      "rollback": "restore-v21-backup",
+      "inPlaceDowngrade": false,
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    },
+    {
+      "version": 23,
+      "minReaderVersion": 22,
+      "minWriterVersion": 23,
+      "upgrade": "forward-only-v23",
+      "rollback": "restore-v22-backup",
+      "inPlaceDowngrade": false,
+      "productionHoldout": "signed-redacted-v2",
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    },
+    {
+      "version": 24,
+      "minReaderVersion": 23,
+      "minWriterVersion": 24,
+      "upgrade": "forward-only-v24",
+      "rollback": "restore-v23-backup",
+      "inPlaceDowngrade": false,
+      "productionHoldoutFamily": "unique-frozen-authority-v1",
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    },
+    {
+      "version": 25,
+      "minReaderVersion": 24,
+      "minWriterVersion": 25,
+      "upgrade": "forward-only-v25",
+      "rollback": "restore-v24-backup",
+      "inPlaceDowngrade": false,
+      "preparedRecovery": "append-only-v1",
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    },
+    {
+      "version": 26,
+      "minReaderVersion": 25,
+      "minWriterVersion": 26,
+      "upgrade": "forward-only-v26",
+      "rollback": "restore-v25-backup",
+      "inPlaceDowngrade": false,
+      "runnerRecovery": "hash-bound-snapshot-chain-v1",
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    },
+    {
+      "version": 27,
+      "minReaderVersion": 27,
+      "minWriterVersion": 27,
+      "upgrade": "forward-only-v27",
+      "rollback": "restore-v26-backup",
+      "inPlaceDowngrade": false,
+      "storyMemoryOwner": "agent-private-owner-column-v1",
+      "drillCommand": "dart run tool/agent_evaluation_recovery_drill.dart"
+    }
+  ]
+}

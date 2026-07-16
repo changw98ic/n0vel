@@ -4,12 +4,15 @@ import 'cached_project_storage.dart';
 import 'story_generation_storage.dart';
 
 class SqliteStoryGenerationStorage implements StoryGenerationStorage {
-  SqliteStoryGenerationStorage({String? dbPath})
-    : _impl = SqliteJsonBlobStorage(
-        dbPath: dbPath ?? resolveAuthoringDbPath(),
-        tableName: 'story_generation_state',
-        jsonColumn: 'payload_json',
-      );
+  SqliteStoryGenerationStorage({
+    String? dbPath,
+    bool requireExistingSchema = false,
+  }) : _impl = SqliteJsonBlobStorage(
+         dbPath: dbPath ?? resolveAuthoringDbPath(),
+         tableName: 'story_generation_state',
+         jsonColumn: 'payload_json',
+         requireExistingSchema: requireExistingSchema,
+       );
 
   final SqliteJsonBlobStorage _impl;
 

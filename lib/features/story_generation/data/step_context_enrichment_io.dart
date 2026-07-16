@@ -1,4 +1,5 @@
-import 'package:novel_writer/app/rag/hybrid_retriever.dart' show RagSceneContext;
+import 'package:novel_writer/app/rag/hybrid_retriever.dart'
+    show RagSceneContext;
 
 import 'scene_runtime_models.dart' show SceneBrief;
 import '../domain/memory_models.dart' show StoryRetrievalPack;
@@ -43,7 +44,11 @@ class ContextEnrichmentOutput extends TypedArtifact {
   ArtifactType get type => ArtifactType.contextAssembly;
 
   @override
-  Map<String, Object?> toJson() => {'type': type.name};
+  Map<String, Object?> toJson() => {
+    'type': type.name,
+    'resumeSafe':
+        retrievalPack == null && ragContext == null && cachedAssembly == null,
+  };
 
   @override
   int get tokenEstimate => 0;

@@ -34,7 +34,11 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
     ];
   }
 
-  StoryGenerationRunSnapshot _snapshotFromOutput(SceneRuntimeOutput output) {
+  StoryGenerationRunSnapshot _snapshotFromOutput(
+    SceneRuntimeOutput output, {
+    DurableCandidateReference? durableCandidate,
+  }) {
+    final candidateProse = output.prose.text.trim();
     final roleTurnsByCharacter = {
       for (final turn in output.roleTurns) turn.characterId: turn,
     };
@@ -65,13 +69,31 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
       sceneLabel: _sceneLabel(),
       headline: 'AI 试写完成',
       summary:
-          '${output.resolvedCast.length} 位出场人物完成本章，候选内容已保留为记录，检查结果：${output.review.decision.name}。',
+          '${output.resolvedCast.length} 位出场人物完成本章，候选正文已保留为可恢复记录，检查结果：${output.review.decision.name}。',
       stageSummary: output.review.feedback.isEmpty
           ? '候选稿已生成，等待作者采纳'
           : output.review.feedback,
       turnLabel: output.roleTurns.isEmpty
           ? '第 0 回合'
           : '第 ${output.sceneState?.turnIndex ?? 1} 回合',
+      candidateProse: candidateProse,
+      candidateRevision: durableCandidate?.candidateRevision,
+      candidateHash: durableCandidate?.candidateHash ?? '',
+      candidateFinalProseHash: durableCandidate?.finalProseHash ?? '',
+      candidateDeterministicGateEvidenceHash:
+          durableCandidate?.deterministicGateEvidenceHash ?? '',
+      candidateFinalCouncilEvidenceHash:
+          durableCandidate?.finalCouncilEvidenceHash ?? '',
+      candidateQualityEvidenceHash: durableCandidate?.qualityEvidenceHash ?? '',
+      candidatePendingWriteSetHash: durableCandidate?.pendingWriteSetHash ?? '',
+      candidateMaterialDigest: durableCandidate?.materialDigest ?? '',
+      candidateInputDigest: durableCandidate?.inputDigest ?? '',
+      candidateBaseDraftHash: durableCandidate?.baseDraftHash ?? '',
+      candidateGenerationBundleHash:
+          durableCandidate?.generationBundleHash ?? '',
+      runId: _snapshot.runId,
+      checkpointSchemaVersion: _snapshot.checkpointSchemaVersion,
+      checkpoints: _snapshot.checkpoints,
       participants: participants,
       messages: [
         ..._authorFeedbackMessages(),
@@ -105,7 +127,13 @@ extension _StoryGenerationRunSnapshotMapping on StoryGenerationRunStore {
             kind: StoryGenerationRunMessageKind.beat,
             participantId: beat.actorId,
           ),
-        if (output.editorialDraft != null)
+        StoryGenerationRunMessage(
+          title: '候选正文',
+          body: candidateProse,
+          kind: StoryGenerationRunMessageKind.editorial,
+        ),
+        if (output.editorialDraft != null &&
+            output.editorialDraft!.text.trim() != candidateProse)
           StoryGenerationRunMessage(
             title: '编辑稿',
             body: output.editorialDraft!.text,

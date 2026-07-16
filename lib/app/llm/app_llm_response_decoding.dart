@@ -3,12 +3,14 @@ import 'dart:convert';
 class AppLlmDecodedResponse {
   const AppLlmDecodedResponse({
     required this.text,
+    this.providerModel,
     this.promptTokens,
     this.completionTokens,
     this.totalTokens,
   });
 
   final String text;
+  final String? providerModel;
   final int? promptTokens;
   final int? completionTokens;
   final int? totalTokens;
@@ -70,6 +72,7 @@ AppLlmDecodedResponse? decodeOpenAiChatResponseBody(String body) {
   final usage = decoded['usage'];
   return AppLlmDecodedResponse(
     text: text,
+    providerModel: _nonEmptyString(decoded['model']),
     promptTokens: _usageToken(usage, 'prompt_tokens'),
     completionTokens: _usageToken(usage, 'completion_tokens'),
     totalTokens: _usageToken(usage, 'total_tokens'),
@@ -84,6 +87,7 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
   int? promptTokens;
   int? completionTokens;
   int? totalTokens;
+  String? providerModel;
 
   for (final rawLine in const LineSplitter().convert(body)) {
     final line = rawLine.trim();
@@ -100,6 +104,8 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
       if (decoded is! Map) {
         continue;
       }
+
+      providerModel = _nonEmptyString(decoded['model']) ?? providerModel;
 
       final choices = decoded['choices'];
       if (choices is List && choices.isNotEmpty) {
@@ -133,10 +139,122 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
   final filtered = stripThinking ? stripThinkingChain(normalized) : normalized;
   return AppLlmDecodedResponse(
     text: filtered.isNotEmpty ? filtered : normalized,
+    providerModel: providerModel,
     promptTokens: promptTokens,
     completionTokens: completionTokens,
     totalTokens: totalTokens,
   );
+}
+
+/// Decodes a non-streaming Anthropic Messages response.
+///
+/// Anthropic names the usage fields `input_tokens` and `output_tokens`, so
+/// treating this body as OpenAI-compatible would lose the exact usage needed
+/// by the canary budget gate.
+AppLlmDecodedResponse? decodeAnthropicMessageResponseBody(String body) {
+  final decoded = jsonDecode(body);
+  if (decoded is! Map) {
+    return null;
+  }
+  final content = decoded['content'];
+  if (content is! List) {
+    return null;
+  }
+  final text = StringBuffer();
+  for (final block in content) {
+    if (block is Map &&
+        block['type'] == 'text' &&
+        block['text'] is String &&
+        (block['text'] as String).isNotEmpty) {
+      text.write(block['text'] as String);
+    }
+  }
+  final normalized = text.toString().trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  final usage = decoded['usage'];
+  final promptTokens = _usageToken(usage, 'input_tokens');
+  final completionTokens = _usageToken(usage, 'output_tokens');
+  return AppLlmDecodedResponse(
+    text: normalized,
+    providerModel: _nonEmptyString(decoded['model']),
+    promptTokens: promptTokens,
+    completionTokens: completionTokens,
+    totalTokens: _anthropicTotalTokens(
+      usage,
+      promptTokens: promptTokens,
+      completionTokens: completionTokens,
+    ),
+  );
+}
+
+/// Decodes Anthropic Messages SSE events, including model and split usage.
+AppLlmDecodedResponse? decodeAnthropicMessageStreamBody(String body) {
+  final text = StringBuffer();
+  String? providerModel;
+  int? promptTokens;
+  int? completionTokens;
+
+  for (final rawLine in const LineSplitter().convert(body)) {
+    final line = rawLine.trim();
+    if (!line.startsWith('data:')) {
+      continue;
+    }
+    final payload = line.substring(5).trim();
+    if (payload.isEmpty || payload == '[DONE]') {
+      continue;
+    }
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) {
+        continue;
+      }
+      final type = decoded['type'];
+      if (type == 'message_start') {
+        final message = decoded['message'];
+        if (message is Map) {
+          providerModel = _nonEmptyString(message['model']) ?? providerModel;
+          final usage = message['usage'];
+          promptTokens = _usageToken(usage, 'input_tokens') ?? promptTokens;
+          completionTokens =
+              _usageToken(usage, 'output_tokens') ?? completionTokens;
+        }
+      } else if (type == 'content_block_delta') {
+        final delta = decoded['delta'];
+        if (delta is Map && delta['text'] is String) {
+          text.write(delta['text'] as String);
+        }
+      } else if (type == 'message_delta') {
+        final usage = decoded['usage'];
+        completionTokens =
+            _usageToken(usage, 'output_tokens') ?? completionTokens;
+      }
+    } on FormatException {
+      continue;
+    }
+  }
+
+  final normalized = text.toString().trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  return AppLlmDecodedResponse(
+    text: normalized,
+    providerModel: providerModel,
+    promptTokens: promptTokens,
+    completionTokens: completionTokens,
+    totalTokens: _anthropicTotalTokens(
+      null,
+      promptTokens: promptTokens,
+      completionTokens: completionTokens,
+    ),
+  );
+}
+
+String? _nonEmptyString(Object? value) {
+  final normalized = value?.toString().trim() ?? '';
+  return normalized.isEmpty ? null : normalized;
 }
 
 /// Strips chain-of-thought thinking from [text] that may contain both model
@@ -183,6 +301,21 @@ int? _usageToken(Object? usage, String key) {
     return null;
   }
   return _toInt(usage[key]);
+}
+
+int? _anthropicTotalTokens(
+  Object? usage, {
+  required int? promptTokens,
+  required int? completionTokens,
+}) {
+  final explicit = _usageToken(usage, 'total_tokens');
+  if (explicit != null) {
+    return explicit;
+  }
+  if (promptTokens == null || completionTokens == null) {
+    return null;
+  }
+  return promptTokens + completionTokens;
 }
 
 int? _toInt(Object? value) {

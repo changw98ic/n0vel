@@ -4,7 +4,7 @@
 
 ## 最快启动路径
 
-前提：你的电脑已安装 Flutter 3.27+。如果还没有，见下方 [Flutter 安装](#flutter-安装)。
+前提：你的电脑已安装 CI 当前固定的 Flutter stable 3.41.9。若 CI 版本更新，以工作流中的固定版本为准。如果还没有，见下方 [Flutter 安装](#flutter-安装)。
 
 ```bash
 git clone https://github.com/changw98ic/n0vel.git
@@ -17,7 +17,7 @@ flutter run -d macos   # Windows 换 windows，Linux 换 linux
 
 ## Flutter 安装
 
-n0vel 是 Flutter 桌面应用，需要 Flutter SDK 3.27 或更新版本。
+n0vel 是 Flutter 桌面应用。推荐使用 CI 当前固定的 Flutter stable 3.41.9，并确保 SDK 满足 `pubspec.yaml` 中的 Flutter/Dart 约束。
 
 1. 前往 [flutter.dev/docs/get-started/install](https://flutter.dev/docs/get-started/install) 选择你的操作系统。
 2. 按指引解压并加入 `PATH`。

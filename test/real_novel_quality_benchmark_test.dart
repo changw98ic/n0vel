@@ -12,13 +12,13 @@ import 'package:novel_writer/features/story_generation/data/ai_cliche_detector.d
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_concurrent_runner.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
 import 'package:novel_writer/features/story_generation/data/narrative_arc_models.dart';
 import 'package:novel_writer/features/story_generation/data/narrative_arc_tracker.dart';
 import 'package:novel_writer/features/story_generation/data/prose_style_analyzer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
-const String _envGuard = 'RUN_REAL_NOVEL_QUALITY_BENCHMARK';
 const String _outputRoot = 'artifacts/real_validation/novel_quality_benchmark';
 const Duration _heartbeatInterval = Duration(minutes: 10);
 
@@ -37,7 +37,9 @@ class _Heartbeat {
   void beat([String? detail]) {
     _lastBeat = DateTime.now();
     if (detail != null) {
-      stdout.writeln('[$label] 心跳 @ ${DateTime.now().toIso8601String()} — $detail');
+      stdout.writeln(
+        '[$label] 心跳 @ ${DateTime.now().toIso8601String()} — $detail',
+      );
     }
   }
 
@@ -50,9 +52,7 @@ class _Heartbeat {
           '上次心跳在 ${_lastBeat.toIso8601String()}',
         );
       } else {
-        stdout.writeln(
-          '[$label] 心跳检查：距上次活动 ${since.inSeconds}s，正常运行中',
-        );
+        stdout.writeln('[$label] 心跳检查：距上次活动 ${since.inSeconds}s，正常运行中');
       }
     });
   }
@@ -166,7 +166,9 @@ class _TrackingLlmClient implements AppLlmClient {
     final completionTokens = result.completionTokens ?? 0;
     totalPromptTokens += promptTokens;
     totalCompletionTokens += completionTokens;
-    _log('LLM chat call #$callCount done in ${sw.elapsedMilliseconds}ms: succeeded=${result.succeeded} text=${result.text?.length ?? 0} chars prompt=$promptTokens completion=$completionTokens failure=${result.failureKind}');
+    _log(
+      'LLM chat call #$callCount done in ${sw.elapsedMilliseconds}ms: succeeded=${result.succeeded} text=${result.text?.length ?? 0} chars prompt=$promptTokens completion=$completionTokens failure=${result.failureKind}',
+    );
     return result;
   }
 
@@ -212,11 +214,10 @@ Future<_ResolvedSettings> _resolveSettings() async {
   final useMimo = env['NOVEL_BENCHMARK_USE_MIMO'] == '1';
 
   // 优先用 NOVEL_BENCHMARK_ 前缀变量，避免与 Claude Code 代理变量冲突
-  var apiKey = env['NOVEL_BENCHMARK_API_KEY'] ??
-      env['ANTHROPIC_AUTH_TOKEN'] ?? '';
+  var apiKey =
+      env['NOVEL_BENCHMARK_API_KEY'] ?? env['ANTHROPIC_AUTH_TOKEN'] ?? '';
   if (apiKey.isEmpty) {
-    apiKey = localConfig['ANTHROPIC_AUTH_TOKEN'] ??
-        localConfig['apiKey'] ?? '';
+    apiKey = localConfig['ANTHROPIC_AUTH_TOKEN'] ?? localConfig['apiKey'] ?? '';
   }
 
   var baseUrl = env['NOVEL_BENCHMARK_BASE_URL'] ?? '';
@@ -241,16 +242,19 @@ Future<_ResolvedSettings> _resolveSettings() async {
     if (model.isEmpty) model = 'glm-5.1';
   }
 
-  final providerName = baseUrl.contains('bigmodel.cn') || baseUrl.contains('zhipuai.cn')
+  final providerName =
+      baseUrl.contains('bigmodel.cn') || baseUrl.contains('zhipuai.cn')
       ? '智谱 GLM'
       : baseUrl.contains('xiaomimimo.com')
-          ? 'Xiaomi MiMo'
-          : 'Ollama Cloud';
+      ? 'Xiaomi MiMo'
+      : 'Ollama Cloud';
 
-  final timeoutMs = int.tryParse(env['REAL_AI_TIMEOUT_MS'] ?? '') ??
+  final timeoutMs =
+      int.tryParse(env['REAL_AI_TIMEOUT_MS'] ?? '') ??
       int.tryParse(localConfig['timeoutMs'] ?? '') ??
       300000;
-  final maxConcurrent = int.tryParse(env['REAL_AI_MAX_CONCURRENT'] ?? '') ??
+  final maxConcurrent =
+      int.tryParse(env['REAL_AI_MAX_CONCURRENT'] ?? '') ??
       int.tryParse(localConfig['maxConcurrentRequests'] ?? '') ??
       1;
 
@@ -279,7 +283,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-01',
     title: '第一章 消失的工人',
-    summary: '调查记者林默收到失踪码头工人老陈寄来的神秘包裹，里面只有一本破损的货运台账。'
+    summary:
+        '调查记者林默收到失踪码头工人老陈寄来的神秘包裹，里面只有一本破损的货运台账。'
         '她决定亲自去港区码头查清真相。',
     targetLength: 2500,
     scenes: [
@@ -287,7 +292,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '神秘包裹',
         targetLength: 1000,
-        summary: '林默在报社收到一个没有寄件人地址的包裹，拆开后是一本被海水浸泡过的货运台账。'
+        summary:
+            '林默在报社收到一个没有寄件人地址的包裹，拆开后是一本被海水浸泡过的货运台账。'
             '账本里夹着一张手写纸条："如果我出事，把这个交给林默——老陈。"',
         targetBeat: '建立悬念，引出老陈失踪的核心线索，确立林默的调查动机。',
         worldNodeIds: ['press-office'],
@@ -317,7 +323,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '码头探访',
         targetLength: 1000,
-        summary: '林默傍晚赶到旧码头，发现港区比想象中更荒凉。她找到老陈曾工作过的仓库，'
+        summary:
+            '林默傍晚赶到旧码头，发现港区比想象中更荒凉。她找到老陈曾工作过的仓库，'
             '却被一个自称是港区管理方凯的人拦住。',
         targetBeat: '林默首次踏入港区，建立危险氛围；方凯登场留下第一印象。',
         worldNodeIds: ['harbor-district'],
@@ -350,7 +357,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-02',
     title: '第二章 货运清单',
-    summary: '林默通过账本线索追查到一批隐藏的货运记录，发现远洋贸易公司在做虚假报关。'
+    summary:
+        '林默通过账本线索追查到一批隐藏的货运记录，发现远洋贸易公司在做虚假报关。'
         '她决定潜入市政档案楼查证。',
     targetLength: 2500,
     scenes: [
@@ -358,7 +366,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '账本里的秘密',
         targetLength: 1000,
-        summary: '林默连夜研究老陈的账本，发现其中用红笔标注的几笔货运记录与公开报关数据对不上。'
+        summary:
+            '林默连夜研究老陈的账本，发现其中用红笔标注的几笔货运记录与公开报关数据对不上。'
             '她带着发现去找苏薇商议对策。',
         targetBeat: '揭示核心谜团——虚假报关，推动故事进入主动调查阶段。',
         worldNodeIds: ['press-office'],
@@ -388,7 +397,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '午夜档案楼',
         targetLength: 1000,
-        summary: '林默借着加班名义进入市政档案楼，找到了远洋贸易公司三年前的原始航运底册。'
+        summary:
+            '林默借着加班名义进入市政档案楼，找到了远洋贸易公司三年前的原始航运底册。'
             '就在她拍照取证时，发现有人也在翻找同一批档案。',
         targetBeat: '获取关键证据，同时暗示有第三方势力也在追查同一件事。',
         worldNodeIds: ['city-archive'],
@@ -412,7 +422,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-03',
     title: '第三章 线人之约',
-    summary: '老陈突然联系林默约在废弃磨坊见面，说要告诉她全部真相。'
+    summary:
+        '老陈突然联系林默约在废弃磨坊见面，说要告诉她全部真相。'
         '但见面时老陈极度紧张，方凯的人也出现在附近。',
     targetLength: 2500,
     scenes: [
@@ -420,7 +431,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '老陈现身',
         targetLength: 1000,
-        summary: '林默按照短信指示来到城郊废弃磨坊，见到了失踪数月的老陈。'
+        summary:
+            '林默按照短信指示来到城郊废弃磨坊，见到了失踪数月的老陈。'
             '老陈消瘦了很多，精神紧张，不停回头张望。',
         targetBeat: '老陈现身揭开部分真相，建立时间紧迫感。',
         worldNodeIds: ['old-mill'],
@@ -449,7 +461,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '被盯上的会面',
         targetLength: 1000,
-        summary: '老陈正要说出地下仓库的具体位置时，磨坊外面出现了两辆黑色SUV。'
+        summary:
+            '老陈正要说出地下仓库的具体位置时，磨坊外面出现了两辆黑色SUV。'
             '老陈仓皇逃离，林默只来得及记下他说的几个关键词。',
         targetBeat: '关键信息被打断，留下悬念；确认方凯/钱董势力在追踪老陈。',
         worldNodeIds: ['old-mill'],
@@ -483,7 +496,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-04',
     title: '第四章 内部消息',
-    summary: '方凯主动联系林默，声称自己也是受害者，愿意提供远洋贸易公司的内部文件。'
+    summary:
+        '方凯主动联系林默，声称自己也是受害者，愿意提供远洋贸易公司的内部文件。'
         '林默半信半疑，但决定利用这个机会获取更多证据。',
     targetLength: 2500,
     scenes: [
@@ -491,7 +505,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '方凯的提议',
         targetLength: 1000,
-        summary: '方凯在报社楼下拦住林默，说他知道她在调查远洋贸易公司，'
+        summary:
+            '方凯在报社楼下拦住林默，说他知道她在调查远洋贸易公司，'
             '并提出可以提供公司内部的货运调度记录作为交换——他需要林默帮他把家人送出城。',
         targetBeat: '方凯以合作者身份出现，埋下双面间谍的伏笔。',
         worldNodeIds: ['press-office'],
@@ -520,7 +535,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '真伪难辨',
         targetLength: 1000,
-        summary: '林默与苏薇讨论方凯的可信度。苏薇建议林默先验证方凯提供的文件真伪，'
+        summary:
+            '林默与苏薇讨论方凯的可信度。苏薇建议林默先验证方凯提供的文件真伪，'
             '再做下一步决定。林默找到一份文件中的细节可以与档案楼数据交叉验证。',
         targetBeat: '建立信任与怀疑的张力，推动进入暗访阶段。',
         worldNodeIds: ['press-office'],
@@ -553,7 +569,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-05',
     title: '第五章 伪造现场',
-    summary: '林默租住的公寓被人翻搜，老陈寄来的原始账本险些被拿走。'
+    summary:
+        '林默租住的公寓被人翻搜，老陈寄来的原始账本险些被拿走。'
         '同一天，港区发生一起"意外"坍塌事故，林默怀疑是为了销毁证据。',
     targetLength: 2500,
     scenes: [
@@ -561,7 +578,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '被翻的公寓',
         targetLength: 1000,
-        summary: '林默回到公寓发现门锁被撬，屋内被翻得乱七八糟。'
+        summary:
+            '林默回到公寓发现门锁被撬，屋内被翻得乱七八糟。'
             '所幸她事先把关键证据复印件存放在报社保险柜里。',
         targetBeat: '威胁升级到人身层面，确认对方已经在针对林默。',
         worldNodeIds: ['safehouse'],
@@ -582,7 +600,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '港区坍塌',
         targetLength: 1000,
-        summary: '林默收到港区消息：一座旧仓库突然坍塌，官方说是年久失修。'
+        summary:
+            '林默收到港区消息：一座旧仓库突然坍塌，官方说是年久失修。'
             '林默赶赴现场，发现坍塌的正是老陈提到过的那个仓库。',
         targetBeat: '确认销毁证据行为，时间紧迫感进一步升级。',
         worldNodeIds: ['harbor-district'],
@@ -603,7 +622,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-03',
         title: '下定决心',
         targetLength: 1000,
-        summary: '坍塌事件让林默确信对方在系统性销毁证据。她决定不再等待，'
+        summary:
+            '坍塌事件让林默确信对方在系统性销毁证据。她决定不再等待，'
             '要在地下仓库被彻底清理之前完成暗访取证。',
         targetBeat: '从被动调查转为主动暗访，故事进入冒险阶段。',
         worldNodeIds: ['safehouse'],
@@ -635,7 +655,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-06',
     title: '第六章 暗访仓库',
-    summary: '林默利用方凯提供的通行卡潜入地下仓库，找到了走私货物的直接证据。'
+    summary:
+        '林默利用方凯提供的通行卡潜入地下仓库，找到了走私货物的直接证据。'
         '但在撤离过程中差点被巡逻人员发现。',
     targetLength: 2500,
     scenes: [
@@ -643,7 +664,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '潜入',
         targetLength: 1000,
-        summary: '深夜，林默用方凯给的通行卡刷卡进入地下仓储区。'
+        summary:
+            '深夜，林默用方凯给的通行卡刷卡进入地下仓储区。'
             '通道里光线昏暗，她用手机微光仔细辨认方向标识。',
         targetBeat: '暗访行动开始，建立高压紧张氛围。',
         worldNodeIds: ['underground-warehouse'],
@@ -664,7 +686,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '发现证据',
         targetLength: 1000,
-        summary: '林默在地下仓库B区找到了大量未申报的走私货物，包括违禁化学品和伪造标签。'
+        summary:
+            '林默在地下仓库B区找到了大量未申报的走私货物，包括违禁化学品和伪造标签。'
             '她用手机拍照记录了一切。',
         targetBeat: '获取决定性证据，调查取得重大突破。',
         worldNodeIds: ['underground-warehouse'],
@@ -685,7 +708,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-03',
         title: '险些被发现',
         targetLength: 1000,
-        summary: '就在林默准备离开时，巡逻队突然出现。她躲进一个空集装箱里，'
+        summary:
+            '就在林默准备离开时，巡逻队突然出现。她躲进一个空集装箱里，'
             '透过缝隙看到巡逻队中有方凯的身影。',
         targetBeat: '方凯可能不可信的暗示；暗访行动险象环生。',
         worldNodeIds: ['underground-warehouse'],
@@ -709,7 +733,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-07',
     title: '第七章 双面间谍',
-    summary: '林默质问方凯为何出现在地下仓库。方凯承认自己在钱董和自己妹妹之间做两面人。'
+    summary:
+        '林默质问方凯为何出现在地下仓库。方凯承认自己在钱董和自己妹妹之间做两面人。'
         '但随后发生的事证明方凯的"坦白"也是精心设计的陷阱。',
     targetLength: 2500,
     scenes: [
@@ -717,7 +742,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '正面质问',
         targetLength: 1000,
-        summary: '林默约方凯在河道暗码头见面，直接质问他为什么出现在地下仓库巡逻队里。'
+        summary:
+            '林默约方凯在河道暗码头见面，直接质问他为什么出现在地下仓库巡逻队里。'
             '方凯被迫坦白：他是钱董安排的内应，但他说自己已经想退出。',
         targetBeat: '方凯暴露双重身份，信任彻底崩塌。',
         worldNodeIds: ['river-dock'],
@@ -746,7 +772,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '陷阱',
         targetLength: 1000,
-        summary: '林默拿到U盘后刚离开暗码头，就发现身后有人跟踪。'
+        summary:
+            '林默拿到U盘后刚离开暗码头，就发现身后有人跟踪。'
             '她按事先约定的路线甩掉尾巴，回到安全屋检查U盘——里面的文件全是伪造的。',
         targetBeat: '方凯彻底暴露为钱董的棋子；林默必须独立完成调查。',
         worldNodeIds: ['safehouse'],
@@ -770,7 +797,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-08',
     title: '第八章 绝地反击',
-    summary: '林默不再依赖任何线人，与苏薇制定了一套独立的证据收集和发布计划。'
+    summary:
+        '林默不再依赖任何线人，与苏薇制定了一套独立的证据收集和发布计划。'
         '她决定去检查站拦截最后一趟走私运输车。',
     targetLength: 2500,
     scenes: [
@@ -778,7 +806,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '制定计划',
         targetLength: 1000,
-        summary: '林默和苏薇在报社彻夜商议。她们决定兵分两路：'
+        summary:
+            '林默和苏薇在报社彻夜商议。她们决定兵分两路：'
             '苏薇负责准备新闻报道和联系上级媒体，林默去获取最后一份现场证据。',
         targetBeat: '从被动转为主动进攻，节奏加快。',
         worldNodeIds: ['press-office'],
@@ -807,7 +836,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '检查站埋伏',
         targetLength: 1000,
-        summary: '凌晨三点，林默在环城公路检查站附近蹲守。她看到了那辆走私运输车，'
+        summary:
+            '凌晨三点，林默在环城公路检查站附近蹲守。她看到了那辆走私运输车，'
             '但车牌和方凯提供的完全不同。',
         targetBeat: '发现方凯给的信息已过时/被篡改，需要临场应变。',
         worldNodeIds: ['highway-checkpoint'],
@@ -828,7 +858,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-03',
         title: '最后的证据',
         targetLength: 1000,
-        summary: '林默跟踪运输车到了河道暗码头，拍到货物卸载和人员交接的全过程。'
+        summary:
+            '林默跟踪运输车到了河道暗码头，拍到货物卸载和人员交接的全过程。'
             '在画面中，她看到了一个意想不到的人——钱董本人出现在现场。',
         targetBeat: '获取铁证，反派正式露面，为高潮对峙做铺垫。',
         worldNodeIds: ['river-dock'],
@@ -852,7 +883,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-09',
     title: '第九章 正面对峙',
-    summary: '林默带着全部证据直接面对钱董，要求他自首。'
+    summary:
+        '林默带着全部证据直接面对钱董，要求他自首。'
         '钱董试图收买不成后，派人追杀林默。',
     targetLength: 2500,
     scenes: [
@@ -860,7 +892,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '最后的谈判',
         targetLength: 1000,
-        summary: '林默通过方凯传话，约钱董在远洋贸易公司办公室见面。'
+        summary:
+            '林默通过方凯传话，约钱董在远洋贸易公司办公室见面。'
             '她当面展示了所有证据，要求钱董在24小时内自首。',
         targetBeat: '正面对峙，反派和主角的价值观直接碰撞。',
         worldNodeIds: ['trading-co-office'],
@@ -889,7 +922,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '逃离',
         targetLength: 1000,
-        summary: '谈判破裂，钱董叫人扣住林默。林默利用事先在办公室窗户上做的标记，'
+        summary:
+            '谈判破裂，钱董叫人扣住林默。林默利用事先在办公室窗户上做的标记，'
             '从二楼跳到外面的消防梯上，带着证据U盘逃走。',
         targetBeat: '动作场景，生死逃亡，为最终公开真相争取时间。',
         worldNodeIds: ['trading-co-office'],
@@ -913,7 +947,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'chapter-10',
     title: '第十章 真相大白',
-    summary: '苏薇在预定时间发布了调查报道。警方介入调查，钱董的走私网络被全面揭露。'
+    summary:
+        '苏薇在预定时间发布了调查报道。警方介入调查，钱董的走私网络被全面揭露。'
         '老陈被找到并安全救出。林默完成了她的调查使命。',
     targetLength: 2500,
     scenes: [
@@ -921,7 +956,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-01',
         title: '报道发布',
         targetLength: 1000,
-        summary: '苏薇在报社编辑部按下发送键，调查报道同时在全国三十多家媒体平台同步发布。'
+        summary:
+            '苏薇在报社编辑部按下发送键，调查报道同时在全国三十多家媒体平台同步发布。'
             '消息迅速引爆舆论。',
         targetBeat: '真相公之于众，调查成果落地。',
         worldNodeIds: ['press-office'],
@@ -942,7 +978,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-02',
         title: '老陈获救',
         targetLength: 1000,
-        summary: '警方根据林默提供的线索找到了被关押在废弃仓库里的老陈。'
+        summary:
+            '警方根据林默提供的线索找到了被关押在废弃仓库里的老陈。'
             '老陈身体虚弱但神志清醒，他向警方做了完整笔录。',
         targetBeat: '老陈安全获救，核心线人证词补全证据链。',
         worldNodeIds: ['police-station'],
@@ -962,7 +999,8 @@ const _benchmarkChapters = <_BenchmarkChapter>[
         id: 'scene-03',
         title: '余波',
         targetLength: 1000,
-        summary: '钱董在机场试图出境时被截获。方凯因配合调查获得从宽处理。'
+        summary:
+            '钱董在机场试图出境时被截获。方凯因配合调查获得从宽处理。'
             '林默站在报社天台上，看着城市天际线，'
             '苏薇给她端来一杯咖啡："下一个选题想好了吗？"',
         targetBeat: '故事收束，角色命运交代清楚，留下开放性结尾。',
@@ -1000,7 +1038,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-01',
     title: '第一章 灵根觉醒',
-    summary: '青云宗门外弟子叶尘在后山采药时意外触发上古阵法，被封印千年的残缺灵根觉醒。'
+    summary:
+        '青云宗门外弟子叶尘在后山采药时意外触发上古阵法，被封印千年的残缺灵根觉醒。'
         '他发现自己能看到别人看不到的灵气流动。',
     targetLength: 2500,
     scenes: [
@@ -1008,7 +1047,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s01',
         title: '后山异变',
         targetLength: 1000,
-        summary: '叶尘在悬崖边采一株罕见的星雾草时脚下石壁崩塌，跌入隐秘洞穴。'
+        summary:
+            '叶尘在悬崖边采一株罕见的星雾草时脚下石壁崩塌，跌入隐秘洞穴。'
             '洞穴中央的石台上放着一枚古旧玉简，触碰的瞬间灵气暴涌。',
         targetBeat: '建立悬念，引出上古传承的核心线索，确立叶尘的特殊体质。',
         worldNodeIds: ['qyun-mountain'],
@@ -1038,7 +1078,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s02',
         title: '宗门质询',
         targetLength: 1000,
-        summary: '叶尘被带到宗门大殿，玄清长老亲自查验他的灵根。'
+        summary:
+            '叶尘被带到宗门大殿，玄清长老亲自查验他的灵根。'
             '结果令人震惊——五行废灵根中竟隐藏着消失万年的混沌灵根残片。',
         targetBeat: '揭示叶尘的特殊体质，引发宗门高层关注和暗中的觊觎。',
         worldNodeIds: ['qyun-hall'],
@@ -1078,7 +1119,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-02',
     title: '第二章 宗门大比',
-    summary: '一年一度的宗门大比开始，叶尘意外获得参赛资格。'
+    summary:
+        '一年一度的宗门大比开始，叶尘意外获得参赛资格。'
         '他在比武场上展现出不同寻常的战斗直觉，引起各方关注。',
     targetLength: 2500,
     scenes: [
@@ -1086,7 +1128,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s03',
         title: '擂台初战',
         targetLength: 1000,
-        summary: '叶尘在首场对决中面对筑基期弟子周明。所有人都认为他必败无疑，'
+        summary:
+            '叶尘在首场对决中面对筑基期弟子周明。所有人都认为他必败无疑，'
             '但他凭借灵眼能力看穿对手灵力运转轨迹，以弱胜强。',
         targetBeat: '展示叶尘独特能力，制造以弱胜强的反转效果。',
         worldNodeIds: ['qyun-arena'],
@@ -1116,7 +1159,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s04',
         title: '暗夜警告',
         targetLength: 1000,
-        summary: '比武结束后苏瑶找到叶尘，警告他赵元不是表面看上去那么简单。'
+        summary:
+            '比武结束后苏瑶找到叶尘，警告他赵元不是表面看上去那么简单。'
             '赵元曾让三名发现他秘密的弟子"意外"陨落。',
         targetBeat: '揭示赵元的危险性，建立紧张感和阵营对立。',
         worldNodeIds: ['qyun-disciple-quarters'],
@@ -1146,7 +1190,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-03',
     title: '第三章 秘境试炼',
-    summary: '宗门开启千年秘境"天玄洞"，各门派弟子进入争夺机缘。'
+    summary:
+        '宗门开启千年秘境"天玄洞"，各门派弟子进入争夺机缘。'
         '叶尘在秘境中发现一座上古炼丹师的洞府遗迹。',
     targetLength: 2500,
     scenes: [
@@ -1154,7 +1199,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s05',
         title: '迷雾森林',
         targetLength: 1000,
-        summary: '叶尘进入秘境后被传送至一片灵气紊乱的迷雾森林。'
+        summary:
+            '叶尘进入秘境后被传送至一片灵气紊乱的迷雾森林。'
             '他的灵眼能力在这里意外地能看穿迷雾中的灵兽陷阱和隐藏路径。',
         targetBeat: '秘境探险开局，展示叶尘在极端环境中的独特优势。',
         worldNodeIds: ['tianxuan-forest'],
@@ -1184,7 +1230,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s06',
         title: '古丹府',
         targetLength: 1000,
-        summary: '叶尘跟随灵气指引找到上古炼丹师洞府。洞府内有完整的丹方石刻和一枚空间戒指。'
+        summary:
+            '叶尘跟随灵气指引找到上古炼丹师洞府。洞府内有完整的丹方石刻和一枚空间戒指。'
             '但赵元也追踪到了这里，企图抢夺。',
         targetBeat: '核心机缘获取，同时引出与赵元的正面对抗。',
         worldNodeIds: ['tianxuan-cave'],
@@ -1215,7 +1262,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-04',
     title: '第四章 故人之叛',
-    summary: '叶尘在秘境中遭遇赵元伏击，危急时刻同伴张远突然反水投靠赵元。'
+    summary:
+        '叶尘在秘境中遭遇赵元伏击，危急时刻同伴张远突然反水投靠赵元。'
         '叶尘凭借古丹府中获得的阵法知识勉强脱困。',
     targetLength: 2500,
     scenes: [
@@ -1223,7 +1271,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s07',
         title: '暗林伏击',
         targetLength: 1000,
-        summary: '叶尘在秘境深处遭遇赵元和两名内门弟子的围攻。'
+        summary:
+            '叶尘在秘境深处遭遇赵元和两名内门弟子的围攻。'
             '赵元使出禁术级别的攻击，叶尘被困在灵力牢笼中。',
         targetBeat: '危机升级，展示赵元隐藏的实力和冷酷手段。',
         worldNodeIds: ['tianxuan-deep'],
@@ -1253,7 +1302,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s08',
         title: '破阵脱困',
         targetLength: 1000,
-        summary: '叶尘利用灵眼找到灵力牢笼的阵法缺陷，引爆自身灵根混沌残片的力量破阵。'
+        summary:
+            '叶尘利用灵眼找到灵力牢笼的阵法缺陷，引爆自身灵根混沌残片的力量破阵。'
             '脱困后他发现张远一直暗中给赵元传递自己的位置信息。',
         targetBeat: '背叛揭露，叶尘被迫独自面对强敌，激发潜藏力量。',
         worldNodeIds: ['tianxuan-deep'],
@@ -1284,7 +1334,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-05',
     title: '第五章 破境重生',
-    summary: '叶尘在秘境深处闭关疗伤，混沌灵根残片与上古玉简中的传承产生共鸣，'
+    summary:
+        '叶尘在秘境深处闭关疗伤，混沌灵根残片与上古玉简中的传承产生共鸣，'
         '助他一举突破筑基期。出关后恰逢秘境即将关闭。',
     targetLength: 2500,
     scenes: [
@@ -1292,7 +1343,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s09',
         title: '混沌共鸣',
         targetLength: 1000,
-        summary: '叶尘在秘境深处的灵泉旁打坐疗伤，混沌灵根残片在灵气充裕的环境下主动运转，'
+        summary:
+            '叶尘在秘境深处的灵泉旁打坐疗伤，混沌灵根残片在灵气充裕的环境下主动运转，'
             '玉简中的功法自行灌入识海。他在短短一天内完成练气到筑基的突破。',
         targetBeat: '实力飞跃的转折点，展示传承力量的深远影响。',
         worldNodeIds: ['tianxuan-spring'],
@@ -1313,7 +1365,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s10',
         title: '秘境出口',
         targetLength: 1000,
-        summary: '叶尘赶到秘境出口时发现传送阵已被赵元的人控制。'
+        summary:
+            '叶尘赶到秘境出口时发现传送阵已被赵元的人控制。'
             '他必须在新实力尚未稳固的情况下强行突围。',
         targetBeat: '新力量的首次实战检验，紧张的逃亡节奏。',
         worldNodeIds: ['tianxuan-exit'],
@@ -1344,7 +1397,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-06',
     title: '第六章 魔修之约',
-    summary: '回到宗门后叶尘被隔离审查。柳无双主动现身邀他合作——'
+    summary:
+        '回到宗门后叶尘被隔离审查。柳无双主动现身邀他合作——'
         '她知道赵元背后的真正秘密，但需要叶尘的灵眼能力作为交换。',
     targetLength: 2500,
     scenes: [
@@ -1352,7 +1406,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s11',
         title: '静室对峙',
         targetLength: 1000,
-        summary: '叶尘被关在宗门静室中等待长老问询。柳无双通过秘术潜入，'
+        summary:
+            '叶尘被关在宗门静室中等待长老问询。柳无双通过秘术潜入，'
             '提出一个惊人的说法——赵元身上有魔修的功法气息。',
         targetBeat: '引入魔修视角，揭示赵元背后更大的阴谋。',
         worldNodeIds: ['qyun-seal-room'],
@@ -1381,7 +1436,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s12',
         title: '危险同盟',
         targetLength: 1000,
-        summary: '叶尘经过慎重考虑决定与柳无双临时结盟。柳无双透露赵元的师父——'
+        summary:
+            '叶尘经过慎重考虑决定与柳无双临时结盟。柳无双透露赵元的师父——'
             '宗门二长老暗渊真人——才是幕后黑手，他在借赵元收集宗门弟子的灵根精华。',
         targetBeat: '建立主角与魔修的非典型联盟，揭示更高层阴谋。',
         worldNodeIds: ['qyun-seal-room'],
@@ -1411,7 +1467,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-07',
     title: '第七章 灵药园之谜',
-    summary: '叶尘被指派到灵药园劳作，暗中调查失踪弟子的线索。'
+    summary:
+        '叶尘被指派到灵药园劳作，暗中调查失踪弟子的线索。'
         '他在灵药园地下发现了一条隐藏的灵脉通道。',
     targetLength: 2500,
     scenes: [
@@ -1419,7 +1476,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s13',
         title: '灵药园当值',
         targetLength: 1000,
-        summary: '叶尘以劳改名义进入灵药园，暗中用灵眼观察灵气流向。'
+        summary:
+            '叶尘以劳改名义进入灵药园，暗中用灵眼观察灵气流向。'
             '他发现灵药园中央的古井灵气流向异常——不是向外扩散，而是向内汇聚。',
         targetBeat: '调查推进，发现隐藏线索，保持悬疑节奏。',
         worldNodeIds: ['qyun-garden'],
@@ -1449,7 +1507,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s14',
         title: '地下灵脉',
         targetLength: 1000,
-        summary: '叶尘趁夜潜入古井下的通道，发现一处地下密室。'
+        summary:
+            '叶尘趁夜潜入古井下的通道，发现一处地下密室。'
             '密室中有七具干枯的尸体——都是失踪的弟子，他们的灵根精华被完全抽空。',
         targetBeat: '核心发现，揭露暗渊真人的罪行证据。',
         worldNodeIds: ['qyun-underground'],
@@ -1471,7 +1530,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-08',
     title: '第八章 宗门审判',
-    summary: '叶尘将证据呈交玄清长老，请求公开审判暗渊真人。'
+    summary:
+        '叶尘将证据呈交玄清长老，请求公开审判暗渊真人。'
         '但宗主的态度暧昧不明，叶尘意识到宗门高层内部早已分裂。',
     targetLength: 2500,
     scenes: [
@@ -1479,7 +1539,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s15',
         title: '长老密会',
         targetLength: 1000,
-        summary: '叶尘私下向玄清长老展示地下密室的证据。'
+        summary:
+            '叶尘私下向玄清长老展示地下密室的证据。'
             '玄清长老震惊之余透露，暗渊真人的修为已臻金丹巅峰，宗内无人能单独制衡。',
         targetBeat: '证据提交，但面临实力悬殊的困境。',
         worldNodeIds: ['qyun-elder-hall'],
@@ -1508,7 +1569,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s16',
         title: '大殿风云',
         targetLength: 1000,
-        summary: '玄清长老召开宗门大会公开证据。暗渊真人当众否认，'
+        summary:
+            '玄清长老召开宗门大会公开证据。暗渊真人当众否认，'
             '反而指控叶尘与魔修勾结图谋不轨。宗主最终决定将叶尘收押候审。',
         targetBeat: '正义受挫，反派反咬一口，主角陷入更大危机。',
         worldNodeIds: ['qyun-hall'],
@@ -1538,7 +1600,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-09',
     title: '第九章 绝境逢生',
-    summary: '叶尘被关押在宗门禁地，赵元奉命"看守"实则要取他性命。'
+    summary:
+        '叶尘被关押在宗门禁地，赵元奉命"看守"实则要取他性命。'
         '柳无双和苏瑶联手劫狱，三方在禁地中展开混战。',
     targetLength: 2500,
     scenes: [
@@ -1546,7 +1609,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s17',
         title: '禁地囚笼',
         targetLength: 1000,
-        summary: '赵元深夜来到禁地，以审讯为名准备处决叶尘。'
+        summary:
+            '赵元深夜来到禁地，以审讯为名准备处决叶尘。'
             '他透露自己不过是一枚棋子，真正的目标是唤醒叶尘体内的混沌灵根完整形态。',
         targetBeat: '反派揭示真实目的，危机达到顶点。',
         worldNodeIds: ['qyun-prison'],
@@ -1575,7 +1639,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s18',
         title: '劫狱混战',
         targetLength: 1000,
-        summary: '柳无双破开禁地阵法，苏瑶在外围策应。三方合力击退赵元，'
+        summary:
+            '柳无双破开禁地阵法，苏瑶在外围策应。三方合力击退赵元，'
             '但赵元在逃走前启动了暗渊真人留下的禁制，整个禁地开始崩塌。',
         targetBeat: '多角色协作战斗，紧张的逃亡节奏。',
         worldNodeIds: ['qyun-prison'],
@@ -1615,7 +1680,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
   _BenchmarkChapter(
     id: 'x-chapter-10',
     title: '第十章 混沌觉醒',
-    summary: '暗渊真人现身强夺混沌灵根，叶尘在生死关头与玉简传承完全融合。'
+    summary:
+        '暗渊真人现身强夺混沌灵根，叶尘在生死关头与玉简传承完全融合。'
         '混沌灵根全面觉醒，叶尘以超越境界的力量击退暗渊真人，但代价惨重。',
     targetLength: 2500,
     scenes: [
@@ -1623,7 +1689,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s19',
         title: '暗渊降临',
         targetLength: 1000,
-        summary: '叶尘逃出禁地后被暗渊真人拦截。金丹巅峰的威压如山般倾泻，'
+        summary:
+            '叶尘逃出禁地后被暗渊真人拦截。金丹巅峰的威压如山般倾泻，'
             '叶尘的筑基修为在绝对实力面前毫无还手之力。暗渊开始强行抽取混沌灵根。',
         targetBeat: '最终 boss 登场，实力差距悬殊制造绝望感。',
         worldNodeIds: ['qyun-summit'],
@@ -1653,7 +1720,8 @@ const _xianxiaChapters = <_BenchmarkChapter>[
         id: 'x-s20',
         title: '传承觉醒',
         targetLength: 1000,
-        summary: '在混沌灵根即将被剥离的刹那，玉简传承彻底激活。'
+        summary:
+            '在混沌灵根即将被剥离的刹那，玉简传承彻底激活。'
             '叶尘获得上古大能的战斗经验和临时境界提升，击退暗渊真人。'
             '但觉醒后的反噬让他修为跌落，经脉寸断。',
         targetBeat: '高潮决战，胜利伴随惨痛代价，为后续故事留悬念。',
@@ -1699,9 +1767,31 @@ const _xianxiaChapters = <_BenchmarkChapter>[
 
 // 紧张度关键词
 const _tensionKeywords = [
-  '危险', '紧急', '致命', '枪', '血', '逃', '死', '追', '杀',
-  '暗', '惊', '恐', '怒', '吼', '哭', '痛', '崩溃', '绝望',
-  '陷阱', '出卖', '背叛', '威胁', '逼迫', '对峙', '追杀',
+  '危险',
+  '紧急',
+  '致命',
+  '枪',
+  '血',
+  '逃',
+  '死',
+  '追',
+  '杀',
+  '暗',
+  '惊',
+  '恐',
+  '怒',
+  '吼',
+  '哭',
+  '痛',
+  '崩溃',
+  '绝望',
+  '陷阱',
+  '出卖',
+  '背叛',
+  '威胁',
+  '逼迫',
+  '对峙',
+  '追杀',
 ];
 
 double _computeHookStrength(String text) {
@@ -1719,17 +1809,44 @@ double _computeHookStrength(String text) {
   var score = 0.0;
 
   // 动作动词
-  const actionVerbs = ['冲', '跑', '跳', '抓', '摔', '撞', '翻', '拽', '喊', '叫'];
+  const actionVerbs = [
+    '冲',
+    '跑',
+    '跳',
+    '抓',
+    '摔',
+    '撞',
+    '翻',
+    '拽',
+    '喊',
+    '叫',
+    '拍',
+    '按',
+    '推',
+    '拉',
+    '挥',
+    '砸',
+    '踢',
+    '扑',
+    '扯',
+    '扣',
+    '拔',
+    '压',
+  ];
   for (final v in actionVerbs) {
-    if (first100.contains(v)) { score += 0.2; break; }
+    if (first100.contains(v)) {
+      score += 0.2;
+      break;
+    }
   }
 
   // 疑问/感叹
   if (first100.contains('？') || first100.contains('?')) score += 0.2;
   if (first100.contains('！') || first100.contains('!')) score += 0.15;
 
-  // 对话开头
-  if (first100.startsWith('"') || first100.startsWith('「')) score += 0.15;
+  // 前50字内直接对白；动作后立即接对白同样构成开场钩子。
+  final first50 = clean.length > 50 ? clean.substring(0, 50) : clean;
+  if (first50.contains('"') || first50.contains('「')) score += 0.15;
 
   // 短句开头（前20字内出现句号）
   final first20 = clean.length > 20 ? clean.substring(0, 20) : clean;
@@ -1738,7 +1855,10 @@ double _computeHookStrength(String text) {
   // 悬念关键词
   const suspenseWords = ['突然', '竟然', '意外', '发现', '秘密', '失踪'];
   for (final w in suspenseWords) {
-    if (first100.contains(w)) { score += 0.15; break; }
+    if (first100.contains(w)) {
+      score += 0.15;
+      break;
+    }
   }
 
   return score.clamp(0.0, 1.0);
@@ -1755,13 +1875,19 @@ double _computeChapterEndHook(String text) {
   // 未完成动作
   const unfinishedActions = ['还没', '来不及', '正要', '就要', '差一点', '眼看'];
   for (final a in unfinishedActions) {
-    if (last150.contains(a)) { score += 0.2; break; }
+    if (last150.contains(a)) {
+      score += 0.2;
+      break;
+    }
   }
 
   // 悬念词
   const hookWords = ['真相', '秘密', '危险', '背后', '发现', '到底', '究竟'];
   for (final w in hookWords) {
-    if (last150.contains(w)) { score += 0.2; break; }
+    if (last150.contains(w)) {
+      score += 0.2;
+      break;
+    }
   }
 
   return score.clamp(0.0, 1.0);
@@ -1773,7 +1899,10 @@ double _computeConflictEscalation(List<String> chapterTexts) {
   final densities = <double>[];
   for (final text in chapterTexts) {
     final total = text.runes.where((r) => r >= 0x4E00 && r <= 0x9FFF).length;
-    if (total == 0) { densities.add(0); continue; }
+    if (total == 0) {
+      densities.add(0);
+      continue;
+    }
     var count = 0;
     for (final kw in _tensionKeywords) {
       var start = 0;
@@ -1809,30 +1938,40 @@ Map<String, double> _analyzePacing(String text) {
   };
 }
 
-double _computeCharacterIntroScore(String text) {
+Set<String> _characterNamesFor(Iterable<_BenchmarkChapter> chapters) => {
+  for (final chapter in chapters)
+    for (final scene in chapter.scenes)
+      for (final character in scene.cast) character.name,
+};
+
+double _computeCharacterIntroScore(
+  String text, {
+  required Iterable<String> characterNames,
+}) {
   final first500 = text.length > 500 ? text.substring(0, 500) : text;
-  final characterNames = <String>{};
-  for (final ch in _benchmarkChapters) {
-    for (final sc in ch.scenes) {
-      for (final c in sc.cast) {
-        characterNames.add(c.name);
-      }
-    }
-  }
+  final uniqueCharacterNames = characterNames.toSet();
 
   var found = 0;
-  for (final name in characterNames) {
+  for (final name in uniqueCharacterNames) {
     if (first500.contains(name)) found++;
   }
 
   // 至少出现一个主角名得基础分
-  final nameScore = found > 0 ? 0.4 + (found / characterNames.length).clamp(0.0, 0.6) : 0.0;
+  final nameScore = found > 0
+      ? 0.4 + (found / uniqueCharacterNames.length).clamp(0.0, 0.6)
+      : 0.0;
 
   // 是否有动作或对话标记
   final hasDialogue = first500.contains('"') || first500.contains('「');
-  final hasAction = first500.contains('走') || first500.contains('站') || first500.contains('看');
+  final hasAction =
+      first500.contains('走') ||
+      first500.contains('站') ||
+      first500.contains('看');
 
-  return (nameScore + (hasDialogue ? 0.1 : 0) + (hasAction ? 0.1 : 0)).clamp(0.0, 1.0);
+  return (nameScore + (hasDialogue ? 0.1 : 0) + (hasAction ? 0.1 : 0)).clamp(
+    0.0,
+    1.0,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1842,8 +1981,9 @@ double _computeCharacterIntroScore(String text) {
 String _goldenThreeReport(
   List<_ChapterSummary> summaries,
   List<String> chapterTexts,
-  List<SceneRuntimeOutput> outputs,
-) {
+  List<SceneRuntimeOutput> outputs, {
+  required Iterable<String> characterNames,
+}) {
   final buf = StringBuffer()
     ..writeln('# 黄金三章质量分析报告')
     ..writeln()
@@ -1864,14 +2004,19 @@ String _goldenThreeReport(
       ..writeln('- Review 通过：${s.reviewPassed ? "✅" : "❌"}')
       ..writeln('- Prose 重试：${s.proseRetryCount} 次')
       ..writeln('- 耗时：${s.totalMs}ms')
-      ..writeln('- Token 消耗：prompt=${s.promptTokens} completion=${s.completionTokens}')
+      ..writeln(
+        '- Token 消耗：prompt=${s.promptTokens} completion=${s.completionTokens}',
+      )
       ..writeln();
 
     // 开头钩子
     if (i == 0) {
       final hook = _computeHookStrength(text);
       buf.writeln('- **开头钩子强度**：${(hook * 100).toStringAsFixed(0)}%');
-      final introScore = _computeCharacterIntroScore(text);
+      final introScore = _computeCharacterIntroScore(
+        text,
+        characterNames: characterNames,
+      );
       buf.writeln('- **角色引入效果**：${(introScore * 100).toStringAsFixed(0)}%');
     }
 
@@ -1880,8 +2025,12 @@ String _goldenThreeReport(
     buf
       ..writeln('- **节奏指标**：')
       ..writeln('  - 平均句长：${pacing['avgSentenceLength']?.toStringAsFixed(1)} 字')
-      ..writeln('  - 句长方差：${pacing['sentenceLengthVariance']?.toStringAsFixed(1)}')
-      ..writeln('  - 对话比率：${(pacing['dialogueRatio']! * 100).toStringAsFixed(1)}%')
+      ..writeln(
+        '  - 句长方差：${pacing['sentenceLengthVariance']?.toStringAsFixed(1)}',
+      )
+      ..writeln(
+        '  - 对话比率：${(pacing['dialogueRatio']! * 100).toStringAsFixed(1)}%',
+      )
       ..writeln();
 
     // 章末钩子
@@ -1891,12 +2040,13 @@ String _goldenThreeReport(
     // Quality score
     if (i < outputs.length && outputs[i].qualityScore != null) {
       final q = outputs[i].qualityScore!;
-      buf
-          .writeln('- **质量评分**：综合=${q.overall.toStringAsFixed(1)} '
-              '文笔=${q.prose.toStringAsFixed(1)} '
-              '连贯=${q.coherence.toStringAsFixed(1)} '
-              '角色=${q.character.toStringAsFixed(1)} '
-              '完整=${q.completeness.toStringAsFixed(1)}');
+      buf.writeln(
+        '- **质量评分**：综合=${q.overall.toStringAsFixed(1)} '
+        '文笔=${q.prose.toStringAsFixed(1)} '
+        '连贯=${q.coherence.toStringAsFixed(1)} '
+        '角色=${q.character.toStringAsFixed(1)} '
+        '完整=${q.completeness.toStringAsFixed(1)}',
+      );
     }
     buf.writeln();
   }
@@ -1924,7 +2074,8 @@ String _consistencyReport(
     ..writeln();
 
   // 情节线统计
-  final totalThreads = finalArc.activeThreads.length + finalArc.closedThreads.length;
+  final totalThreads =
+      finalArc.activeThreads.length + finalArc.closedThreads.length;
   final threadResolutionRate = totalThreads > 0
       ? finalArc.closedThreads.length / totalThreads
       : 0.0;
@@ -1940,22 +2091,30 @@ String _consistencyReport(
 
   // 伏笔统计
   final totalForeshadowing = finalArc.pendingForeshadowing.length;
-  final resolvedForeshadowing = finalArc.pendingForeshadowing.where((f) => f.resolvedInScene != null).length;
-  final urgentUnresolved = finalArc.pendingForeshadowing.where((f) => f.urgency >= 2 && f.resolvedInScene == null).toList();
+  final resolvedForeshadowing = finalArc.pendingForeshadowing
+      .where((f) => f.resolvedInScene != null)
+      .length;
+  final urgentUnresolved = finalArc.pendingForeshadowing
+      .where((f) => f.urgency >= 2 && f.resolvedInScene == null)
+      .toList();
 
   buf
     ..writeln('## 伏笔管理')
     ..writeln()
     ..writeln('- 伏笔总数：$totalForeshadowing')
     ..writeln('- 已回收：$resolvedForeshadowing')
-    ..writeln('- 伏笔回收率：${totalForeshadowing > 0 ? (resolvedForeshadowing / totalForeshadowing * 100).toStringAsFixed(0) : "N/A"}%')
+    ..writeln(
+      '- 伏笔回收率：${totalForeshadowing > 0 ? (resolvedForeshadowing / totalForeshadowing * 100).toStringAsFixed(0) : "N/A"}%',
+    )
     ..writeln('- 高紧急度未回收：${urgentUnresolved.length}')
     ..writeln();
 
   if (urgentUnresolved.isNotEmpty) {
     buf.writeln('**未回收高紧急伏笔**：');
     for (final f in urgentUnresolved) {
-      buf.writeln('  - 「${f.hint}」(urgency=${f.urgency}, 种于 ${f.plantedInScene})');
+      buf.writeln(
+        '  - 「${f.hint}」(urgency=${f.urgency}, 种于 ${f.plantedInScene})',
+      );
     }
     buf.writeln();
   }
@@ -1965,7 +2124,9 @@ String _consistencyReport(
     ..writeln('## 逐章统计')
     ..writeln()
     ..writeln('| 章节 | 场景数 | 字数 | Review | 重试 | 耗时 | Prompt | Completion |')
-    ..writeln('|------|--------|------|--------|------|------|--------|------------|');
+    ..writeln(
+      '|------|--------|------|--------|------|------|--------|------------|',
+    );
 
   for (final s in summaries) {
     buf.writeln(
@@ -2033,8 +2194,16 @@ String _aiFlavorReport(
     ..writeln('## AI 陈词检测')
     ..writeln()
     ..writeln('- 检出问题：${clicheReport.findings.length} 处')
-    ..writeln('- 陈词密度：${(clicheReport.clicheDensity * 100).toStringAsFixed(2)}%')
-    ..writeln('- 严重程度：${clicheReport.isSevere ? "🚨 严重" : clicheReport.hasIssues ? "⚠️ 需关注" : "✅ 良好"}')
+    ..writeln(
+      '- 陈词密度：${(clicheReport.clicheDensity * 100).toStringAsFixed(2)}%',
+    )
+    ..writeln(
+      '- 严重程度：${clicheReport.isSevere
+          ? "🚨 严重"
+          : clicheReport.hasIssues
+          ? "⚠️ 需关注"
+          : "✅ 良好"}',
+    )
     ..writeln();
 
   if (clicheReport.hasIssues) {
@@ -2085,7 +2254,9 @@ String _aiFlavorReport(
     void row(String label, double Function(ProseStyleFingerprint) extract) {
       buf.write('| $label | ${extract(genFp).toStringAsFixed(2)} |');
       for (final report in styleReports.values) {
-        buf.write(' ${extract(report.referenceFingerprint).toStringAsFixed(2)} |');
+        buf.write(
+          ' ${extract(report.referenceFingerprint).toStringAsFixed(2)} |',
+        );
       }
       buf.writeln();
     }
@@ -2100,9 +2271,13 @@ String _aiFlavorReport(
     buf.writeln();
 
     for (final entry in styleReports.entries) {
-      buf.writeln('**${entry.key}**：相似度 ${(entry.value.similarityScore * 100).toStringAsFixed(1)}%');
+      buf.writeln(
+        '**${entry.key}**：相似度 ${(entry.value.similarityScore * 100).toStringAsFixed(1)}%',
+      );
       for (final d in entry.value.divergencePoints) {
-        buf.writeln('  - ${d.metric}：生成 ${d.generatedValue.toStringAsFixed(2)} vs 参考 ${d.referenceValue.toStringAsFixed(2)}');
+        buf.writeln(
+          '  - ${d.metric}：生成 ${d.generatedValue.toStringAsFixed(2)} vs 参考 ${d.referenceValue.toStringAsFixed(2)}',
+        );
       }
       buf.writeln();
     }
@@ -2132,8 +2307,12 @@ String _runReportMarkdown({
     ..writeln('- Base URL: ${settings.baseUrl}')
     ..writeln('- Timeout: ${settings.timeoutMs}ms')
     ..writeln('- 总 LLM 调用：$totalLlmCalls 次')
-    ..writeln('- 总耗时：${totalMs}ms (${(totalMs / 1000 / 60).toStringAsFixed(1)} min)')
-    ..writeln('- 总 Token 消耗：prompt=${summaries.fold<int>(0, (sum, s) => sum + s.promptTokens)} completion=${summaries.fold<int>(0, (sum, s) => sum + s.completionTokens)}')
+    ..writeln(
+      '- 总耗时：${totalMs}ms (${(totalMs / 1000 / 60).toStringAsFixed(1)} min)',
+    )
+    ..writeln(
+      '- 总 Token 消耗：prompt=${summaries.fold<int>(0, (sum, s) => sum + s.promptTokens)} completion=${summaries.fold<int>(0, (sum, s) => sum + s.completionTokens)}',
+    )
     ..writeln()
     ..writeln('## 黄金三章')
     ..writeln();
@@ -2150,8 +2329,11 @@ String _runReportMarkdown({
     ..writeln('## 十章一致性')
     ..writeln();
 
-  final totalThreads = finalArc.activeThreads.length + finalArc.closedThreads.length;
-  final threadRate = totalThreads > 0 ? finalArc.closedThreads.length / totalThreads : 0.0;
+  final totalThreads =
+      finalArc.activeThreads.length + finalArc.closedThreads.length;
+  final threadRate = totalThreads > 0
+      ? finalArc.closedThreads.length / totalThreads
+      : 0.0;
   final passed = summaries.where((s) => s.reviewPassed).length;
 
   buf
@@ -2161,11 +2343,21 @@ String _runReportMarkdown({
     ..writeln()
     ..writeln('## AI味与风格')
     ..writeln()
-    ..writeln('- AI 陈词密度：${(clicheReport.clicheDensity * 100).toStringAsFixed(2)}%')
-    ..writeln('- 严重程度：${clicheReport.isSevere ? "严重" : clicheReport.hasIssues ? "需关注" : "良好"}');
+    ..writeln(
+      '- AI 陈词密度：${(clicheReport.clicheDensity * 100).toStringAsFixed(2)}%',
+    )
+    ..writeln(
+      '- 严重程度：${clicheReport.isSevere
+          ? "严重"
+          : clicheReport.hasIssues
+          ? "需关注"
+          : "良好"}',
+    );
 
   for (final entry in styleSimilarities.entries) {
-    buf.writeln('- ${entry.key} 相似度：${(entry.value * 100).toStringAsFixed(1)}%');
+    buf.writeln(
+      '- ${entry.key} 相似度：${(entry.value * 100).toStringAsFixed(1)}%',
+    );
   }
 
   return buf.toString().trimRight();
@@ -2215,27 +2407,42 @@ void _writeLiveStatus({
 _Heartbeat? _globalHeartbeat;
 
 void main() {
-  final shouldRun = Platform.environment[_envGuard] == '1';
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/real_novel_quality_benchmark_test.dart',
+        environment: Platform.environment,
+      );
+  final shouldRun = legacyRealProviderDecision.authorized;
   final anthropicKey = Platform.environment['ANTHROPIC_AUTH_TOKEN'];
+
+  group('角色引入评分', () {
+    test('只按当前语料提供的角色名评分', () {
+      final score = _computeCharacterIntroScore(
+        '叶尘站在洞口，抬头看向苏瑶。「我们进去。」',
+        characterNames: const {'叶尘', '苏瑶'},
+      );
+
+      expect(score, 1.0);
+    });
+  });
 
   group('黄金三章质量', () {
     test('三章完整流水线 + 质量指标分析', () async {
       if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
-        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
-      final heartbeat = _Heartbeat(
-        label: '黄金三章',
-        testFail: fail,
-      )..start();
+      final heartbeat = _Heartbeat(label: '黄金三章', testFail: fail)..start();
       _globalHeartbeat = heartbeat;
       addTearDown(heartbeat.stop);
 
       _currentStep = 'setup';
       _log('resolving settings...');
       final settings = await _resolveSettings();
-      _log('settings: provider=${settings.providerName} baseUrl=${settings.baseUrl} model=${settings.model} hasKey=${settings.apiKey.isNotEmpty}');
+      _log(
+        'settings: provider=${settings.providerName} baseUrl=${settings.baseUrl} model=${settings.model} hasKey=${settings.apiKey.isNotEmpty}',
+      );
 
       final trackingClient = _TrackingLlmClient(createDefaultAppLlmClient());
       final settingsStore = AppSettingsStore(
@@ -2252,7 +2459,9 @@ void main() {
         timeout: AppLlmTimeoutConfig.uniform(settings.timeoutMs),
         maxConcurrentRequests: settings.maxConcurrentRequests,
       );
-      _log('settings saved. snapshot: providerName=${settingsStore.snapshot.providerName} baseUrl=${settingsStore.snapshot.baseUrl} model=${settingsStore.snapshot.model} hasApiKey=${settingsStore.snapshot.hasApiKey}');
+      _log(
+        'settings saved. snapshot: providerName=${settingsStore.snapshot.providerName} baseUrl=${settingsStore.snapshot.baseUrl} model=${settingsStore.snapshot.model} hasApiKey=${settingsStore.snapshot.hasApiKey}',
+      );
 
       final outputRoot = Directory(_outputRoot);
       if (await outputRoot.exists()) {
@@ -2269,26 +2478,28 @@ void main() {
       for (final chapter in chapters) {
         chapterStartIndices.add(allBriefs.length);
         for (final scene in chapter.scenes) {
-          allBriefs.add(SceneBrief(
-            chapterId: chapter.id,
-            chapterTitle: chapter.title,
-            sceneId: scene.id,
-            sceneIndex: chapter.scenes.indexOf(scene),
-            sceneTitle: scene.title,
-            sceneSummary: scene.summary,
-            targetLength: scene.targetLength,
-            targetBeat: scene.targetBeat,
-            worldNodeIds: scene.worldNodeIds,
-            cast: [
-              for (final c in scene.cast)
-                SceneCastCandidate(
-                  characterId: c.characterId,
-                  name: c.name,
-                  role: c.role,
-                  participation: c.participation,
-                ),
-            ],
-          ));
+          allBriefs.add(
+            SceneBrief(
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              sceneId: scene.id,
+              sceneIndex: chapter.scenes.indexOf(scene),
+              sceneTitle: scene.title,
+              sceneSummary: scene.summary,
+              targetLength: scene.targetLength,
+              targetBeat: scene.targetBeat,
+              worldNodeIds: scene.worldNodeIds,
+              cast: [
+                for (final c in scene.cast)
+                  SceneCastCandidate(
+                    characterId: c.characterId,
+                    name: c.name,
+                    role: c.role,
+                    participation: c.participation,
+                  ),
+              ],
+            ),
+          );
         }
       }
 
@@ -2301,7 +2512,9 @@ void main() {
         ),
       );
 
-      _log('running ${allBriefs.length} scenes via concurrent runner (maxConcurrentScenes=3)...');
+      _log(
+        'running ${allBriefs.length} scenes via concurrent runner (maxConcurrentScenes=3)...',
+      );
       final runSw = Stopwatch()..start();
 
       final outputs = await runner.runAll(
@@ -2360,26 +2573,33 @@ void main() {
           text: chapterText,
         );
 
-        summaries.add(_ChapterSummary(
-          chapterId: chapter.id,
-          chapterTitle: chapter.title,
-          sceneCount: chapterOutputs.length,
-          actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
-          reviewPassed: chapterOutputs.every(
-            (o) => o.review.decision == SceneReviewDecision.pass,
+        summaries.add(
+          _ChapterSummary(
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            sceneCount: chapterOutputs.length,
+            actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
+            reviewPassed: chapterOutputs.every(
+              (o) => o.review.decision == SceneReviewDecision.pass,
+            ),
+            proseRetryCount: chapterOutputs.fold<int>(
+              0,
+              (sum, o) => sum + o.softFailureCount,
+            ),
+            totalMs: runSw.elapsedMilliseconds,
+            promptTokens: trackingClient.totalPromptTokens,
+            completionTokens: trackingClient.totalCompletionTokens,
           ),
-          proseRetryCount: chapterOutputs.fold<int>(
-            0,
-            (sum, o) => sum + o.softFailureCount,
-          ),
-          totalMs: runSw.elapsedMilliseconds,
-          promptTokens: trackingClient.totalPromptTokens,
-          completionTokens: trackingClient.totalCompletionTokens,
-        ));
+        );
       }
 
       // 生成报告
-      final report = _goldenThreeReport(summaries, chapterTexts, outputs);
+      final report = _goldenThreeReport(
+        summaries,
+        chapterTexts,
+        outputs,
+        characterNames: _characterNamesFor(chapters),
+      );
       await recorder.recordReport(
         relativePath: 'reports/golden_three_quality.md',
         content: report,
@@ -2395,9 +2615,16 @@ void main() {
 
       stdout.writeln(report);
 
-      expect(summaries.every((s) => s.reviewPassed), isTrue, reason: '三章全部应 review pass');
       expect(
-        chapterTexts.fold<int>(0, (sum, t) => sum + t.replaceAll(RegExp(r'\s'), '').length),
+        summaries.every((s) => s.reviewPassed),
+        isTrue,
+        reason: '三章全部应 review pass',
+      );
+      expect(
+        chapterTexts.fold<int>(
+          0,
+          (sum, t) => sum + t.replaceAll(RegExp(r'\s'), '').length,
+        ),
         greaterThan(2000),
         reason: '总字数应超过 2000',
       );
@@ -2407,14 +2634,11 @@ void main() {
   group('十章故事一致性', () {
     test('十章完整流水线 + 跨章一致性追踪', () async {
       if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
-        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
-      final heartbeat = _Heartbeat(
-        label: '十章一致性',
-        testFail: fail,
-      )..start();
+      final heartbeat = _Heartbeat(label: '十章一致性', testFail: fail)..start();
       _globalHeartbeat = heartbeat;
       addTearDown(heartbeat.stop);
 
@@ -2447,26 +2671,28 @@ void main() {
       for (final chapter in _benchmarkChapters) {
         chapterStartIndices.add(allBriefs.length);
         for (final scene in chapter.scenes) {
-          allBriefs.add(SceneBrief(
-            chapterId: chapter.id,
-            chapterTitle: chapter.title,
-            sceneId: scene.id,
-            sceneIndex: chapter.scenes.indexOf(scene),
-            sceneTitle: scene.title,
-            sceneSummary: scene.summary,
-            targetLength: scene.targetLength,
-            targetBeat: scene.targetBeat,
-            worldNodeIds: scene.worldNodeIds,
-            cast: [
-              for (final c in scene.cast)
-                SceneCastCandidate(
-                  characterId: c.characterId,
-                  name: c.name,
-                  role: c.role,
-                  participation: c.participation,
-                ),
-            ],
-          ));
+          allBriefs.add(
+            SceneBrief(
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              sceneId: scene.id,
+              sceneIndex: chapter.scenes.indexOf(scene),
+              sceneTitle: scene.title,
+              sceneSummary: scene.summary,
+              targetLength: scene.targetLength,
+              targetBeat: scene.targetBeat,
+              worldNodeIds: scene.worldNodeIds,
+              cast: [
+                for (final c in scene.cast)
+                  SceneCastCandidate(
+                    characterId: c.characterId,
+                    name: c.name,
+                    role: c.role,
+                    participation: c.participation,
+                  ),
+              ],
+            ),
+          );
         }
       }
 
@@ -2479,7 +2705,9 @@ void main() {
         ),
       );
 
-      _log('running ${allBriefs.length} scenes via concurrent runner (maxConcurrentScenes=3)...');
+      _log(
+        'running ${allBriefs.length} scenes via concurrent runner (maxConcurrentScenes=3)...',
+      );
       final runSw = Stopwatch()..start();
 
       final outputs = await runner.runAll(
@@ -2538,22 +2766,24 @@ void main() {
           text: chapterText,
         );
 
-        summaries.add(_ChapterSummary(
-          chapterId: chapter.id,
-          chapterTitle: chapter.title,
-          sceneCount: chapterOutputs.length,
-          actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
-          reviewPassed: chapterOutputs.every(
-            (o) => o.review.decision == SceneReviewDecision.pass,
+        summaries.add(
+          _ChapterSummary(
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            sceneCount: chapterOutputs.length,
+            actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
+            reviewPassed: chapterOutputs.every(
+              (o) => o.review.decision == SceneReviewDecision.pass,
+            ),
+            proseRetryCount: chapterOutputs.fold<int>(
+              0,
+              (sum, o) => sum + o.softFailureCount,
+            ),
+            totalMs: runSw.elapsedMilliseconds,
+            promptTokens: trackingClient.totalPromptTokens,
+            completionTokens: trackingClient.totalCompletionTokens,
           ),
-          proseRetryCount: chapterOutputs.fold<int>(
-            0,
-            (sum, o) => sum + o.softFailureCount,
-          ),
-          totalMs: runSw.elapsedMilliseconds,
-          promptTokens: trackingClient.totalPromptTokens,
-          completionTokens: trackingClient.totalCompletionTokens,
-        ));
+        );
       }
 
       // 一致性分析 — reconstruct arc from commit-ordered outputs
@@ -2566,7 +2796,11 @@ void main() {
         );
       }
 
-      final report = _consistencyReport(accumulatedArc, summaries, chapterTexts);
+      final report = _consistencyReport(
+        accumulatedArc,
+        summaries,
+        chapterTexts,
+      );
       await recorder.recordReport(
         relativePath: 'reports/ten_chapter_consistency.md',
         content: report,
@@ -2582,9 +2816,15 @@ void main() {
       stdout.writeln(report);
 
       final passedCount = summaries.where((s) => s.reviewPassed).length;
-      expect(passedCount, greaterThanOrEqualTo(8), reason: '至少 8 章应 review pass');
+      expect(
+        passedCount,
+        greaterThanOrEqualTo(8),
+        reason: '至少 8 章应 review pass',
+      );
 
-      final totalThreads = accumulatedArc.activeThreads.length + accumulatedArc.closedThreads.length;
+      final totalThreads =
+          accumulatedArc.activeThreads.length +
+          accumulatedArc.closedThreads.length;
       if (totalThreads > 0) {
         final rate = accumulatedArc.closedThreads.length / totalThreads;
         expect(rate, greaterThanOrEqualTo(0.5), reason: '情节线解决率应 ≥ 50%');
@@ -2595,14 +2835,11 @@ void main() {
   group('玄幻十章', () {
     test('玄幻小说十章完整流水线', () async {
       if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
-        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
-      final heartbeat = _Heartbeat(
-        label: '玄幻十章',
-        testFail: fail,
-      )..start();
+      final heartbeat = _Heartbeat(label: '玄幻十章', testFail: fail)..start();
       _globalHeartbeat = heartbeat;
       addTearDown(heartbeat.stop);
 
@@ -2648,35 +2885,40 @@ void main() {
       // Sequential chapter generation: one chapter at a time, write immediately.
       var totalCompletedScenes = 0;
       final totalScenes = _xianxiaChapters.fold<int>(
-        0, (sum, ch) => sum + ch.scenes.length,
+        0,
+        (sum, ch) => sum + ch.scenes.length,
       );
 
       for (var ci = 0; ci < _xianxiaChapters.length; ci++) {
         final chapter = _xianxiaChapters[ci];
-        _log('=== 开始 ${chapter.title} (${ci + 1}/${_xianxiaChapters.length}) ===');
+        _log(
+          '=== 开始 ${chapter.title} (${ci + 1}/${_xianxiaChapters.length}) ===',
+        );
 
         final chapterBriefs = <SceneBrief>[];
         for (final scene in chapter.scenes) {
-          chapterBriefs.add(SceneBrief(
-            chapterId: chapter.id,
-            chapterTitle: chapter.title,
-            sceneId: scene.id,
-            sceneIndex: chapter.scenes.indexOf(scene),
-            sceneTitle: scene.title,
-            sceneSummary: scene.summary,
-            targetLength: scene.targetLength,
-            targetBeat: scene.targetBeat,
-            worldNodeIds: scene.worldNodeIds,
-            cast: [
-              for (final c in scene.cast)
-                SceneCastCandidate(
-                  characterId: c.characterId,
-                  name: c.name,
-                  role: c.role,
-                  participation: c.participation,
-                ),
-            ],
-          ));
+          chapterBriefs.add(
+            SceneBrief(
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              sceneId: scene.id,
+              sceneIndex: chapter.scenes.indexOf(scene),
+              sceneTitle: scene.title,
+              sceneSummary: scene.summary,
+              targetLength: scene.targetLength,
+              targetBeat: scene.targetBeat,
+              worldNodeIds: scene.worldNodeIds,
+              cast: [
+                for (final c in scene.cast)
+                  SceneCastCandidate(
+                    characterId: c.characterId,
+                    name: c.name,
+                    role: c.role,
+                    participation: c.participation,
+                  ),
+              ],
+            ),
+          );
         }
 
         final chapterOutputs = await runner.runAll(
@@ -2725,27 +2967,31 @@ void main() {
           text: chapterText,
         );
 
-        summaries.add(_ChapterSummary(
-          chapterId: chapter.id,
-          chapterTitle: chapter.title,
-          sceneCount: chapterOutputs.length,
-          actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
-          reviewPassed: chapterOutputs.every(
-            (o) => o.review.decision == SceneReviewDecision.pass,
+        summaries.add(
+          _ChapterSummary(
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            sceneCount: chapterOutputs.length,
+            actualLength: chapterText.replaceAll(RegExp(r'\s'), '').length,
+            reviewPassed: chapterOutputs.every(
+              (o) => o.review.decision == SceneReviewDecision.pass,
+            ),
+            proseRetryCount: chapterOutputs.fold<int>(
+              0,
+              (sum, o) => sum + o.softFailureCount,
+            ),
+            totalMs: runSw.elapsedMilliseconds,
+            promptTokens: trackingClient.totalPromptTokens,
+            completionTokens: trackingClient.totalCompletionTokens,
           ),
-          proseRetryCount: chapterOutputs.fold<int>(
-            0,
-            (sum, o) => sum + o.softFailureCount,
-          ),
-          totalMs: runSw.elapsedMilliseconds,
-          promptTokens: trackingClient.totalPromptTokens,
-          completionTokens: trackingClient.totalCompletionTokens,
-        ));
+        );
 
         final charCount = chapterText.replaceAll(RegExp(r'\s'), '').length;
-        _log('=== ${chapter.title} 完成 '
-            'chars=$charCount '
-            'pass=${summaries.last.reviewPassed} ===');
+        _log(
+          '=== ${chapter.title} 完成 '
+          'chars=$charCount '
+          'pass=${summaries.last.reviewPassed} ===',
+        );
       }
 
       runSw.stop();
@@ -2760,7 +3006,12 @@ void main() {
         );
       }
 
-      final report = _goldenThreeReport(summaries, chapterTexts, allOutputs);
+      final report = _goldenThreeReport(
+        summaries,
+        chapterTexts,
+        allOutputs,
+        characterNames: _characterNamesFor(_xianxiaChapters),
+      );
       await recorder.recordReport(
         relativePath: 'reports/xianxia_quality.md',
         content: report,
@@ -2776,14 +3027,18 @@ void main() {
       stdout.writeln(report);
 
       final passedCount = summaries.where((s) => s.reviewPassed).length;
-      expect(passedCount, greaterThanOrEqualTo(8), reason: '玄幻十章至少 8 章应 review pass');
+      expect(
+        passedCount,
+        greaterThanOrEqualTo(8),
+        reason: '玄幻十章至少 8 章应 review pass',
+      );
     }, timeout: Timeout.none);
   });
 
   group('AI味检测与风格继承', () {
     test('AI陈词检测 + 风格指纹对比', () async {
       if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
-        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -2804,7 +3059,9 @@ void main() {
       }
 
       chapterFiles.sort((a, b) => a.path.compareTo(b.path));
-      final allText = chapterFiles.map((f) => f.readAsStringSync()).join('\n\n');
+      final allText = chapterFiles
+          .map((f) => f.readAsStringSync())
+          .join('\n\n');
 
       // AI 味检测
       final clicheDetector = AiClicheDetector();
@@ -2844,15 +3101,18 @@ void main() {
 
       stdout.writeln(report);
 
-      expect(clicheReport.clicheDensity, lessThan(0.03),
-          reason: 'AI 陈词密度应 < 3%');
+      expect(
+        clicheReport.clicheDensity,
+        lessThan(0.03),
+        reason: 'AI 陈词密度应 < 3%',
+      );
     }, timeout: Timeout.none);
   });
 
   group('综合质量报告', () {
     test('生成完整 benchmark 报告', () async {
       if (!shouldRun || anthropicKey == null || anthropicKey.isEmpty) {
-        markTestSkipped('设置 $_envGuard=1 和 ANTHROPIC_AUTH_TOKEN 以运行');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -2871,13 +3131,16 @@ void main() {
       }
 
       // AI 味检测
-      final allText = chapterFiles.map((f) => f.readAsStringSync()).join('\n\n');
+      final allText = chapterFiles
+          .map((f) => f.readAsStringSync())
+          .join('\n\n');
       final clicheReport = AiClicheDetector().detect(allText);
 
       // 风格对比
       final styleAnalyzer = ProseStyleAnalyzer();
       final styleSimilarities = <String, double>{};
-      for (final entry in {'剑来': 'artifacts/writing_reference/jianlai/scenes.jsonl',
+      for (final entry in {
+        '剑来': 'artifacts/writing_reference/jianlai/scenes.jsonl',
         '诡秘': 'artifacts/writing_reference/guimi/scenes.jsonl',
         '体鬼': 'artifacts/writing_reference/tigui/scenes.jsonl',
       }.entries) {
@@ -2897,18 +3160,24 @@ void main() {
 
       // 构建章节数据（从已有文件推断）
       final summaries = <_ChapterSummary>[];
-      for (var i = 0; i < chapterFiles.length && i < _benchmarkChapters.length; i++) {
+      for (
+        var i = 0;
+        i < chapterFiles.length && i < _benchmarkChapters.length;
+        i++
+      ) {
         final ch = _benchmarkChapters[i];
         final text = chapterFiles[i].readAsStringSync();
-        summaries.add(_ChapterSummary(
-          chapterId: ch.id,
-          chapterTitle: ch.title,
-          sceneCount: ch.scenes.length,
-          actualLength: text.replaceAll(RegExp(r'\s'), '').length,
-          reviewPassed: true,
-          proseRetryCount: 0,
-          totalMs: 0,
-        ));
+        summaries.add(
+          _ChapterSummary(
+            chapterId: ch.id,
+            chapterTitle: ch.title,
+            sceneCount: ch.scenes.length,
+            actualLength: text.replaceAll(RegExp(r'\s'), '').length,
+            reviewPassed: true,
+            proseRetryCount: 0,
+            totalMs: 0,
+          ),
+        );
       }
 
       final finalArc = NarrativeArcState(); // 占位
@@ -2923,14 +3192,20 @@ void main() {
         styleSimilarities: styleSimilarities,
       );
 
-      await recorder.recordReport(relativePath: 'run-report.md', content: report);
+      await recorder.recordReport(
+        relativePath: 'run-report.md',
+        content: report,
+      );
 
       // Artifact index
       const indexPath = '$_outputRoot/reports/artifact-index.md';
       final indexBuf = StringBuffer()
         ..writeln('# Artifact Index')
         ..writeln();
-      await for (final entity in outputRoot.list(recursive: true, followLinks: false)) {
+      await for (final entity in outputRoot.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File) {
           final relative = entity.path.substring(outputRoot.path.length + 1);
           indexBuf.writeln('- `$relative`');
@@ -2941,7 +3216,10 @@ void main() {
       stdout.writeln(report);
 
       expect(await File('$_outputRoot/run-report.md').exists(), isTrue);
-      expect(await File('$_outputRoot/reports/artifact-index.md').exists(), isTrue);
+      expect(
+        await File('$_outputRoot/reports/artifact-index.md').exists(),
+        isTrue,
+      );
     }, timeout: Timeout.none);
   });
 }

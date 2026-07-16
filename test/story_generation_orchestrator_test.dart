@@ -11,8 +11,8 @@ import 'package:novel_writer/features/story_generation/data/dynamic_role_agent_r
 import 'package:novel_writer/features/story_generation/data/scene_cast_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/scene_context_models.dart';
 import 'package:novel_writer/features/story_generation/data/step_finalization_io.dart';
-import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_director_orchestrator.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/event_log.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/stage_runner.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/typed_artifact.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/structured_profile.dart';
@@ -20,6 +20,25 @@ import 'package:novel_writer/features/story_generation/domain/scene_models.dart'
 import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 
 import 'test_support/fake_app_llm_client.dart';
+
+/// Production runs now make independent judge/consistency calls, repeat the
+/// council after polish, and require a complete quality scorecard. Test cases
+/// that are not specifically exercising one of those branches use this
+/// explicit protocol response rather than relying on a legacy combined pass.
+AppLlmChatResult? _standardProtocolResponse(String systemPrompt) {
+  if (systemPrompt.contains('scene judge review') ||
+      systemPrompt.contains('scene consistency review') ||
+      systemPrompt.contains('scene reader-flow review') ||
+      systemPrompt.contains('scene lexicon review')) {
+    return const AppLlmChatResult.success(text: '决定：PASS\n原因：独立评审通过。');
+  }
+  if (systemPrompt.contains('quality scorer for Chinese novel scenes')) {
+    return const AppLlmChatResult.success(
+      text: '文笔：96\n连贯：96\n角色：96\n完整：96\n综合：96\n总结：质量门通过。',
+    );
+  }
+  return null;
+}
 
 void main() {
   group('SceneCastResolver', () {
@@ -380,6 +399,8 @@ void main() {
               return const AppLlmChatResult.success(text: '决定：PASS\n原因：动线一致。');
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt');
           },
         );
@@ -434,6 +455,7 @@ void main() {
     test(
       'records review gate events in the runner event timeline without an injected log',
       () async {
+        var editorialCalls = 0;
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
             final systemPrompt = request.messages.first.content;
@@ -454,8 +476,11 @@ void main() {
               );
             }
             if (systemPrompt.contains('scene editor')) {
-              return const AppLlmChatResult.success(
-                text: '夜色覆盖码头，雨水落下。岳刃露出破绽。',
+              editorialCalls += 1;
+              return AppLlmChatResult.success(
+                text: editorialCalls == 1
+                    ? '夜色覆盖码头，雨水落下。岳刃露出破绽。'
+                    : '「账本在哪？现在说清楚，否则别想离开这座码头。」柳溪逼近一步，岳刃终于露出破绽。',
               );
             }
             if (userPrompt.contains('任务：language_polish')) {
@@ -464,6 +489,8 @@ void main() {
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -527,6 +554,8 @@ void main() {
             );
           }
 
+          final protocolResponse = _standardProtocolResponse(systemPrompt);
+          if (protocolResponse != null) return protocolResponse;
           throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
         },
       );
@@ -562,73 +591,102 @@ void main() {
       final completedStages = result.events
           .where((event) => event.eventType == 'stage_completed')
           .toList();
-      expect(
-        completedStages.map((event) => event.stageId),
-        runner.stages.map((stage) => stage.roleId),
-      );
-      expect(
-        completedStages.map((event) => event.artifactType),
-        runner.stages.map((stage) => stage.outputType),
-      );
+      expect(completedStages.map((event) => event.stageId), [
+        ...runner.stages.take(8).map((stage) => stage.roleId),
+        'review',
+        'finalization',
+      ]);
+      expect(completedStages.map((event) => event.artifactType), [
+        ...runner.stages.take(8).map((stage) => stage.outputType),
+        ArtifactType.reviewResult,
+        ArtifactType.sceneOutput,
+      ]);
       expect(
         completedStages.map((event) => event.metadata['sceneId']).toSet(),
         {brief.sceneId},
       );
     });
 
-    test(
-      'surfaces quality scorer failures on the scene output and report',
-      () async {
-        final fakeClient = FakeAppLlmClient(
-          responder: (request) {
-            final systemPrompt = request.messages.first.content;
+    test('typed run preserves a quality scorer failure', () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (request) {
+          final systemPrompt = request.messages.first.content;
 
-            if (systemPrompt.contains('scene plan polisher')) {
-              return const AppLlmChatResult.success(
-                text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
-              );
-            }
-            final roleplay = _defaultRoleplayResponse(request);
-            if (roleplay != null) {
-              return roleplay;
-            }
-            if (systemPrompt.contains('scene beat resolver')) {
-              return const AppLlmChatResult.success(
-                text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @narrator 岳刃露出破绽',
-              );
-            }
-            if (systemPrompt.contains('scene editor')) {
-              return const AppLlmChatResult.success(text: '正文：柳溪逼近半步，岳刃露出破绽。');
-            }
-            if (systemPrompt.contains('scene combined review')) {
-              return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
-            }
+          if (systemPrompt.contains('scene plan polisher')) {
+            return const AppLlmChatResult.success(
+              text: '目标：逼问\n冲突：顶压\n推进：失守\n约束：不离题',
+            );
+          }
+          final roleplay = _defaultRoleplayResponse(request);
+          if (roleplay != null) {
+            return roleplay;
+          }
+          if (systemPrompt.contains('scene beat resolver')) {
+            return const AppLlmChatResult.success(
+              text: '[动作] @char-liuxi 柳溪逼近半步\n[事实] @narrator 岳刃露出破绽',
+            );
+          }
+          if (systemPrompt.contains('scene editor')) {
+            return const AppLlmChatResult.success(text: '正文：柳溪逼近半步，岳刃露出破绽。');
+          }
+          if (systemPrompt.contains('scene combined review')) {
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：推进成立。');
+          }
 
-            throw StateError('Unexpected prompt: $systemPrompt');
-          },
-        );
-        final settingsStore = AppSettingsStore(
-          storage: InMemoryAppSettingsStorage(),
-          llmClient: fakeClient,
-        );
-        addTearDown(settingsStore.dispose);
+          final protocolResponse = _standardProtocolResponse(systemPrompt);
+          if (protocolResponse != null) return protocolResponse;
+          throw StateError('Unexpected prompt: $systemPrompt');
+        },
+      );
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: fakeClient,
+      );
+      addTearDown(settingsStore.dispose);
 
-        final orchestrator = PipelineStageRunnerImpl(
-          settingsStore: settingsStore,
-          qualityScorer: _ThrowingQualityScorer(),
-        );
+      final orchestrator = PipelineStageRunnerImpl(
+        settingsStore: settingsStore,
+        pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+        qualityScorer: _ThrowingQualityScorer(),
+      );
+      final brief = _brief();
+      final context = PipelineContext(
+        eventLog: orchestrator.eventLog,
+        retrievalPolicy: orchestrator.defaultRetrievalPolicy,
+        writebackGate: orchestrator.writebackGate,
+        sceneBrief: SceneBriefRef(
+          projectId: brief.projectId ?? brief.chapterId,
+          sceneId: brief.sceneId,
+        ),
+        metadata: <String, Object?>{'sceneBrief': brief},
+      );
 
-        final result = await orchestrator.runScene(_brief());
+      final result = await orchestrator.run(context.sceneBrief, context);
 
-        expect(result.qualityScore, isNotNull);
-        expect(result.qualityScore!.warning, contains('quality scorer failed'));
-        expect(result.qualityScore!.warning, contains('scorer unavailable'));
-        expect(
-          SceneQualityReporter.toMarkdown([result]),
-          contains('quality scorer failed'),
-        );
-      },
-    );
+      expect(result.success, isFalse);
+      expect(result.failureCode, FailureCode.qualityFail);
+      expect(result.failedStageId, 'quality_gate');
+      expect(
+        orchestrator.eventLog.query(
+          stageId: 'quality_gate',
+          eventType: 'quality_blocked',
+        ),
+        hasLength(1),
+      );
+      expect(
+        orchestrator.eventLog.query(
+          stageId: 'finalization',
+          eventType: 'stage_completed',
+        ),
+        isEmpty,
+      );
+      final pipelineFailure = orchestrator.eventLog
+          .query(stageId: 'quality_gate', eventType: 'pipeline_failed')
+          .single;
+      expect(pipelineFailure.failureCode, FailureCode.qualityFail);
+      expect(pipelineFailure.metadata['errorType'], 'StateError');
+      expect(pipelineFailure.metadata['error'], contains('scorer unavailable'));
+    });
 
     test(
       'runs reader polish after passing review when scene metadata enables it',
@@ -667,6 +725,8 @@ void main() {
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -746,6 +806,8 @@ void main() {
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -811,6 +873,8 @@ void main() {
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -893,6 +957,8 @@ void main() {
               return const AppLlmChatResult.success(text: '决定：PASS\n原因：事实一致。');
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -1018,6 +1084,11 @@ void main() {
 
             if (systemPrompt.contains('scene editor')) {
               proseAttempts += 1;
+              if (proseAttempts == 2) {
+                expect(userPrompt, contains('【本轮仅修复以下已验证缺口】'));
+                expect(userPrompt, contains('情节问题：冲突升级不足'));
+                expect(userPrompt, contains('保留亮点：角色行动与场面调度一致'));
+              }
               return AppLlmChatResult.success(
                 text: proseAttempts == 1
                     ? '第一稿：场面成立，但冲突推进偏弱。'
@@ -1044,7 +1115,8 @@ void main() {
                 text: '决定：PASS\n原因：角色扮演过程忠实落地。',
               );
             }
-
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -1116,7 +1188,7 @@ void main() {
     );
 
     test(
-      'returns replan decision when the combined review requests replanning',
+      'lets independent adjudication override one reviewer replan request',
       () async {
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
@@ -1137,12 +1209,14 @@ void main() {
             if (systemPrompt.contains('scene editor')) {
               return const AppLlmChatResult.success(text: '正文：冲突形成但空间关系混乱。');
             }
-            if (systemPrompt.contains('scene combined review')) {
+            if (systemPrompt.contains('scene judge review')) {
               return const AppLlmChatResult.success(
                 text: '决定：REPLAN_SCENE\n原因：空间调度自相矛盾，需要重排场面。',
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt');
           },
         );
@@ -1162,11 +1236,18 @@ void main() {
 
         final result = await orchestrator.runScene(_brief());
 
-        expect(result.review.decision, SceneReviewDecision.replanScene);
         expect(result.review.judge.status, SceneReviewStatus.replanScene);
-        expect(result.review.consistency.status, SceneReviewStatus.replanScene);
-        expect(result.prose.attempt, 1);
-        expect(result.softFailureCount, 0);
+        expect(result.review.consistency.status, SceneReviewStatus.pass);
+        expect(result.review.adjudication, isNotNull);
+        expect(result.review.adjudication!.status, SceneReviewStatus.pass);
+        expect(result.review.decision, SceneReviewDecision.pass);
+        expect(
+          orchestrator.eventLog.query(
+            stageId: 'finalization',
+            eventType: 'stage_completed',
+          ),
+          hasLength(1),
+        );
       },
     );
 
@@ -1220,14 +1301,21 @@ void main() {
                     : '第二稿：乔眠敲响调音叉，旧设备共振并释放求救声。',
               );
             }
-            if (systemPrompt.contains('scene combined review')) {
+            if (systemPrompt.contains('scene judge review')) {
               return AppLlmChatResult.success(
                 text: editorialCalls == 1
                     ? '决定：REPLAN_SCENE\n原因：角色只完成线索识别，缺少调音叉共振与求救声这个剧情功能。'
                     : '决定：PASS\n原因：角色动机与剧情功能同时成立。',
               );
             }
+            if (systemPrompt.contains('scene review adjudication')) {
+              return const AppLlmChatResult.success(
+                text: '决定：REPLAN_SCENE\n原因：正文缺少作者明确要求的调音叉共振与求救声剧情功能。',
+              );
+            }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -1333,6 +1421,8 @@ void main() {
               );
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt\n$userPrompt');
           },
         );
@@ -1373,7 +1463,7 @@ void main() {
       },
     );
 
-    test('counts every soft failure when retry budget is exhausted', () async {
+    test('fails closed when every prose retry is rejected', () async {
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
           final systemPrompt = request.messages.first.content;
@@ -1402,6 +1492,8 @@ void main() {
             return const AppLlmChatResult.success(text: '决定：PASS\n原因：设定一致。');
           }
 
+          final protocolResponse = _standardProtocolResponse(systemPrompt);
+          if (protocolResponse != null) return protocolResponse;
           throw StateError('Unexpected prompt: $systemPrompt');
         },
       );
@@ -1419,11 +1511,26 @@ void main() {
         ),
       );
 
-      final result = await orchestrator.runScene(_brief());
-
-      expect(result.review.decision, SceneReviewDecision.rewriteProse);
-      expect(result.prose.attempt, 2);
-      expect(result.softFailureCount, 2);
+      await expectLater(
+        orchestrator.runScene(_brief()),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        fakeClient.requests
+            .where(
+              (request) =>
+                  request.messages.first.content.contains('scene judge review'),
+            )
+            .length,
+        2,
+      );
+      expect(
+        orchestrator.eventLog.query(
+          stageId: 'finalization',
+          eventType: 'stage_completed',
+        ),
+        isEmpty,
+      );
     });
 
     test(
@@ -1470,6 +1577,8 @@ void main() {
               return const AppLlmChatResult.success(text: '决定：PASS\n原因：设定一致。');
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt');
           },
         );
@@ -1495,7 +1604,8 @@ void main() {
         expect(result.prose.text, compactDraft);
         expect(result.review.decision, SceneReviewDecision.pass);
         expect(result.softFailureCount, 1);
-        expect(reviewCalls, 1);
+        // One preliminary review and one independent final council review.
+        expect(reviewCalls, 2);
       },
     );
 
@@ -1545,6 +1655,8 @@ void main() {
               return const AppLlmChatResult.success(text: '决定：PASS\n原因：设定一致。');
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt');
           },
         );
@@ -1614,6 +1726,8 @@ void main() {
             return const AppLlmChatResult.success(text: '决定：PASS\n原因：角色动线一致。');
           }
 
+          final protocolResponse = _standardProtocolResponse(systemPrompt);
+          if (protocolResponse != null) return protocolResponse;
           throw StateError('Unexpected prompt: $systemPrompt');
         },
       );
@@ -1639,12 +1753,12 @@ void main() {
                   request.messages.first.content.contains('scene judge review'),
             )
             .length,
-        2,
+        3,
       );
     });
 
     test(
-      'malformed review output degrades without restarting the scene',
+      'malformed review output blocks finalization after bounded retries',
       () async {
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
@@ -1672,6 +1786,8 @@ void main() {
               return const AppLlmChatResult.success(text: '决定：PASS\n原因：一致。');
             }
 
+            final protocolResponse = _standardProtocolResponse(systemPrompt);
+            if (protocolResponse != null) return protocolResponse;
             throw StateError('Unexpected prompt: $systemPrompt');
           },
         );
@@ -1684,15 +1800,31 @@ void main() {
         final orchestrator = PipelineStageRunnerImpl(
           settingsStore: settingsStore,
           pipelineConfig: const GenerationPipelineConfig(
+            maxProseRetries: 1,
             hardGatesEnabled: false,
           ),
         );
 
-        final result = await orchestrator.runScene(_brief());
-
-        expect(result.review.decision, SceneReviewDecision.rewriteProse);
-        expect(result.review.judge.reason, contains('评审决定格式异常'));
-        expect(result.proseAttempts, 2);
+        await expectLater(
+          orchestrator.runScene(_brief()),
+          throwsA(isA<StateError>()),
+        );
+        expect(
+          fakeClient.requests
+              .where(
+                (request) =>
+                    request.messages.first.content.contains('scene editor'),
+              )
+              .length,
+          2,
+        );
+        expect(
+          orchestrator.eventLog.query(
+            stageId: 'finalization',
+            eventType: 'stage_completed',
+          ),
+          isEmpty,
+        );
       },
     );
   });

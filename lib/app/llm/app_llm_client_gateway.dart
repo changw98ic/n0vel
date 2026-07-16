@@ -5,6 +5,13 @@ import 'app_llm_circuit_breaker.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
 
+typedef AppLlmGatewayPhysicalDispatchRunner =
+    Future<AppLlmChatResult> Function({
+      required AppLlmChatRequest request,
+      required int retryIndex,
+      required Future<AppLlmChatResult> Function() operation,
+    });
+
 class AppLlmClientGateway implements AppLlmClient {
   AppLlmClientGateway({
     required AppLlmClient delegate,
@@ -45,7 +52,19 @@ class AppLlmClientGateway implements AppLlmClient {
       _connectionStateController.stream;
 
   @override
-  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) =>
+      chatWithPhysicalDispatch(request);
+
+  /// Runs [request] while exposing each real delegate call independently.
+  ///
+  /// The callback is deliberately per physical provider dispatch rather than
+  /// per logical gateway call: retries therefore receive their own timing,
+  /// pool slot, and trace entry. Circuit-breaker ownership remains here so a
+  /// reused gateway preserves its failure history across requests.
+  Future<AppLlmChatResult> chatWithPhysicalDispatch(
+    AppLlmChatRequest request, {
+    AppLlmGatewayPhysicalDispatchRunner? dispatchRunner,
+  }) async {
     _lastBaseUrl = request.baseUrl;
     _lastApiKey = request.apiKey;
     _lastModel = request.model;
@@ -55,7 +74,18 @@ class AppLlmClientGateway implements AppLlmClient {
     return _circuitBreaker.guard(() async {
       var attempt = 0;
       while (true) {
-        final result = await _delegate.chat(request);
+        Future<AppLlmChatResult> dispatch() {
+          // llm-call-site: boundary.gateway.primary
+          return _delegate.chat(request);
+        }
+
+        final result = dispatchRunner == null
+            ? await dispatch()
+            : await dispatchRunner(
+                request: request,
+                retryIndex: attempt,
+                operation: dispatch,
+              );
         if (result.succeeded) {
           _setConnectionState(AppLlmConnectionState.connected);
           _stopReconnectLoop();
@@ -74,9 +104,7 @@ class AppLlmClientGateway implements AppLlmClient {
           }
           return result;
         }
-        await Future<void>.delayed(
-          Duration(milliseconds: _backoffMs(attempt)),
-        );
+        await Future<void>.delayed(Duration(milliseconds: _backoffMs(attempt)));
       }
     });
   }
@@ -88,26 +116,30 @@ class AppLlmClientGateway implements AppLlmClient {
       return Stream.error(
         AppLlmStreamException(
           failureKind: AppLlmFailureKind.server,
-          detail: 'Circuit breaker is open - '
+          detail:
+              'Circuit breaker is open - '
               '${_circuitBreaker.consecutiveFailures} consecutive failures, '
               'retry after ${const Duration(seconds: 30)}',
         ),
       );
     }
 
-    return _delegate.chatStream(request).transform(
-      StreamTransformer<String, String>.fromHandlers(
-        handleData: (data, sink) => sink.add(data),
-        handleError: (error, stackTrace, sink) {
-          _circuitBreaker.recordStreamFailure();
-          sink.addError(error, stackTrace);
-        },
-        handleDone: (sink) {
-          _circuitBreaker.recordStreamSuccess();
-          sink.close();
-        },
-      ),
-    );
+    return _delegate
+        // llm-call-site: boundary.gateway.stream
+        .chatStream(request)
+        .transform(
+          StreamTransformer<String, String>.fromHandlers(
+            handleData: (data, sink) => sink.add(data),
+            handleError: (error, stackTrace, sink) {
+              _circuitBreaker.recordStreamFailure();
+              sink.addError(error, stackTrace);
+            },
+            handleDone: (sink) {
+              _circuitBreaker.recordStreamSuccess();
+              sink.close();
+            },
+          ),
+        );
   }
 
   void _startReconnectLoop() {
@@ -132,6 +164,7 @@ class AppLlmClientGateway implements AppLlmClient {
     if (_connectionStateController.isClosed) return;
     if (_lastBaseUrl == null) return;
 
+    // llm-call-site: boundary.gateway.health-probe
     final result = await _delegate.chat(
       AppLlmChatRequest(
         baseUrl: _lastBaseUrl!,

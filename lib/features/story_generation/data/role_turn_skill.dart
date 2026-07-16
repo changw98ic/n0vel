@@ -1,11 +1,14 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_memory_delta_models.dart';
 import 'character_visible_context_models.dart';
 import 'role_skill_descriptor.dart';
 import 'scene_roleplay_session_models.dart';
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
+import 'formal_evaluation_policy.dart';
 
 abstract interface class RoleTurnSkill {
   String get skillId;
@@ -19,10 +22,10 @@ abstract interface class RoleTurnSkill {
 }
 
 class BasicRoleTurnSkill implements RoleTurnSkill {
-  BasicRoleTurnSkill({required AppSettingsStore settingsStore})
+  BasicRoleTurnSkill({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   @override
   String get skillId => 'basic_role_turn';
@@ -67,51 +70,63 @@ class BasicRoleTurnSkill implements RoleTurnSkill {
     required CharacterVisibleContext context,
     required int round,
   }) async {
-    final result = await requestStoryGenerationPassWithRetry(
-      settingsStore: _settingsStore,
-      shouldRetryOutput: _shouldRetryMalformedTurn,
-      messages: [
-        const AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You generate one character turn inside a Chinese novel scene. '
-              'Use the character-visible context as the material. Create one '
-              'single-actor turn record with action, optional spoken dialogue, '
-              'private thought, and a prose fragment for this moment. Use this five-line shape:\n'
-              '意图：...\n'
-              '可见动作：...\n'
-              '对白：...\n'
-              '内心：...\n'
-              '正文片段：...',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：scene_roleplay_turn',
-            'skill：$skillId@$version',
-            '回合：$round',
-            context.toPromptText(),
-            '当前行动角色：${context.characterName}',
-            '意图字段：写角色此刻想达成的目标，例如逼问线索、试探底线、稳住局面、拖延时间或保护某人。',
-            '可见动作字段：写第三方能拍到的外部画面，包括肢体动作、表情变化、位置移动、身体反应或操控物体。',
-            '对白字段：写${context.characterName}实际说出口的一句话；沉默时保留字段为空。',
-            '内心字段：写一句当下判断或决定，聚焦当前瞬间的认知变化。',
-            '内心示例：我怀疑他在试探，先按兵不动。/这条件太顺，我得再压一句。/她不安，却决定继续逼问。',
-            '正文片段字段：写小说正文片段，约120-220字，第三人称呈现本角色本轮可见动作和对白，可融入一句当下心理判断。',
-            '剧情功能：角色可以选择比导演桥段更合理的具体做法；行动或正文片段需呈现它如何完成同等剧情功能，或呈现暂缓后的冲突压力。',
-            '输出：按五个字段填写，语句短，聚焦当前瞬间。',
-          ].join('\n'),
-        ),
-      ],
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      const <String, Object?>{},
     );
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'roleplay',
+      callSiteId: 'role-turn',
+    );
+    final resolvedVariables = <String, Object?>{
+      'skillId': skillId,
+      'skillVersion': version,
+      'round': round,
+      'visibleContext': context.toPromptText(),
+      'characterName': context.characterName,
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    late final AppLlmChatResult result;
+    try {
+      result = await requestFormalStoryGenerationPassWithRetry(
+        settingsStore: _settingsStore,
+        promptInvocation: promptIdentity,
+        promptInvocationEvidence: promptIdentity.evidence(
+          messages,
+          resolvedVariables: resolvedVariables,
+        ),
+        shouldRetryOutput: formalEvaluation
+            ? _shouldRejectExactTurn
+            : _shouldRetryMalformedTurn,
+        traceName: 'scene_roleplay_turn',
+        traceMetadata: <String, Object?>{
+          'agentId': context.characterId,
+          'agentRole': context.role,
+          'agentName': context.characterName,
+          'round': round,
+          'skillId': skillId,
+          'skillVersion': version,
+        },
+        messages: messages,
+      );
+    } on Object catch (error) {
+      if (formalEvaluation) {
+        throw StateError('formal role turn provider call failed: $error');
+      }
+      rethrow;
+    }
     if (!result.succeeded) {
       throw StateError(
         result.detail ?? 'Role turn skill failed for ${context.characterId}.',
       );
     }
-    final raw = result.text!.trim();
+    final raw = formalEvaluation ? result.text! : result.text!.trim();
+    if (formalEvaluation && _shouldRejectExactTurn(raw)) {
+      throw StateError('formal role turn output was malformed');
+    }
     return _parseTurn(
-      raw: _normalizeTurnRaw(raw, context: context) ?? raw,
+      raw: formalEvaluation
+          ? raw
+          : (_normalizeTurnRaw(raw, context: context) ?? raw),
       round: round,
       context: context,
     );
@@ -153,6 +168,27 @@ class BasicRoleTurnSkill implements RoleTurnSkill {
 
   bool _shouldRetryMalformedTurn(String raw) {
     return _normalizeTurnRaw(raw) == null;
+  }
+
+  bool _shouldRejectExactTurn(String raw) {
+    if (raw.isEmpty || raw != raw.trim()) return true;
+    const labels = <String>['意图', '可见动作', '对白', '内心', '正文片段'];
+    final lines = raw.split('\n');
+    if (lines.length != labels.length) return true;
+    final values = <String>[];
+    for (var index = 0; index < labels.length; index += 1) {
+      final line = lines[index];
+      final prefix = '${labels[index]}：';
+      if (line != line.trim() || !line.startsWith(prefix)) return true;
+      final value = line.substring(prefix.length);
+      if (value != value.trim()) return true;
+      values.add(value);
+    }
+    for (var index = 0; index < values.length; index += 1) {
+      if (index == 2 && values[index].isEmpty) continue;
+      if (_isPlaceholder(values[index])) return true;
+    }
+    return _containsDraftingMeta(values);
   }
 
   String? _normalizeTurnRaw(String raw, {CharacterVisibleContext? context}) {

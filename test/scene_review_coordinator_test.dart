@@ -65,42 +65,54 @@ void main() {
   // review() — full pass-through
   // ===========================================================================
   group('SceneReviewCoordinator.review()', () {
-    test('default review uses a single combined LLM pass', () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: (request) {
-          final system = request.messages.first.content;
-          final user = request.messages.last.content;
-          expect(system, contains('scene combined review'));
-          expect(system, contains('scene judge review'));
-          expect(system, contains('scene consistency review'));
-          expect(system, contains('scene roleplay fidelity review'));
-          expect(user, contains('任务：scene_combined_review'));
-          expect(
-            user,
-            contains(
-              '评审类别：prose, scene_plan, chapter_plan, continuity, '
-              'character_state, world_state',
-            ),
-          );
-          return const AppLlmChatResult.success(text: '决定：PASS\n原因：冲突成立，动线合理。');
-        },
-      );
-      final store = _setupStore(fakeClient);
-      final coordinator = SceneReviewCoordinator(settingsStore: store);
+    test(
+      'default review uses independent judge and consistency LLM passes',
+      () async {
+        final taskTypes = <String>[];
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final system = request.messages.first.content;
+            final user = request.messages.last.content;
+            if (system.contains('scene judge review')) {
+              expect(system, contains('不属于本次 LLM 评审的否决理由'));
+              taskTypes.add('judge');
+              expect(user, contains('任务：scene_judge_review'));
+              expect(user, contains('评审类别：prose, scene_plan'));
+            } else if (system.contains('scene consistency review')) {
+              taskTypes.add('consistency');
+              expect(user, contains('任务：scene_consistency_review'));
+              expect(
+                user,
+                contains(
+                  'chapter_plan, continuity, character_state, world_state',
+                ),
+              );
+            } else {
+              throw StateError('Unexpected reviewer prompt');
+            }
+            return const AppLlmChatResult.success(
+              text: '决定：PASS\n原因：冲突成立，动线合理。',
+            );
+          },
+        );
+        final store = _setupStore(fakeClient);
+        final coordinator = SceneReviewCoordinator(settingsStore: store);
 
-      final result = await coordinator.review(
-        brief: _brief(),
-        director: _director,
-        roleOutputs: _roleOutputs,
-        prose: _prose,
-      );
+        final result = await coordinator.review(
+          brief: _brief(),
+          director: _director,
+          roleOutputs: _roleOutputs,
+          prose: _prose,
+        );
 
-      expect(fakeClient.requests, hasLength(1));
-      expect(result.judge.status, SceneReviewStatus.pass);
-      expect(result.judge.reason, '冲突成立，动线合理。');
-      expect(result.consistency.status, SceneReviewStatus.pass);
-      expect(result.decision, SceneReviewDecision.pass);
-    });
+        expect(fakeClient.requests, hasLength(2));
+        expect(taskTypes, ['judge', 'consistency']);
+        expect(result.judge.status, SceneReviewStatus.pass);
+        expect(result.judge.reason, '冲突成立，动线合理。');
+        expect(result.consistency.status, SceneReviewStatus.pass);
+        expect(result.decision, SceneReviewDecision.pass);
+      },
+    );
 
     test('local review rejects prose that contradicts canon facts', () async {
       final fakeClient = FakeAppLlmClient(
@@ -229,12 +241,16 @@ void main() {
     );
 
     test(
-      'blocking review mode metadata still uses the default combined pass',
+      'blocking review mode metadata still uses independent review passes',
       () async {
         final fakeClient = FakeAppLlmClient(
           responder: (request) {
             final system = request.messages.first.content;
-            expect(system, contains('scene combined review'));
+            expect(
+              system.contains('scene judge review') ||
+                  system.contains('scene consistency review'),
+              isTrue,
+            );
             return const AppLlmChatResult.success(text: '决定：PASS\n原因：没有阻塞问题。');
           },
         );
@@ -252,7 +268,7 @@ void main() {
           prose: _prose,
         );
 
-        expect(fakeClient.requests, hasLength(1));
+        expect(fakeClient.requests, hasLength(2));
         expect(result.decision, SceneReviewDecision.pass);
         expect(result.judge.reason, '没有阻塞问题。');
         expect(result.consistency.status, SceneReviewStatus.pass);
@@ -288,16 +304,21 @@ void main() {
       expect(result.decision, SceneReviewDecision.rewriteProse);
     });
 
-    test('combined REPLAN_SCENE → decision is replanScene', () async {
+    test('consistency REPLAN_SCENE is confirmed by the adjudicator', () async {
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
           final system = request.messages.first.content;
-          if (system.contains('scene combined review')) {
+          if (system.contains('scene review adjudication')) {
+            return const AppLlmChatResult.success(
+              text: '决定：REPLAN_SCENE\n原因：角色行为与设定存在直接矛盾。',
+            );
+          }
+          if (system.contains('scene consistency review')) {
             return const AppLlmChatResult.success(
               text: '决定：REPLAN_SCENE\n原因：角色行为与设定矛盾。',
             );
           }
-          throw StateError('Unexpected prompt');
+          return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
         },
       );
       final store = _setupStore(fakeClient);
@@ -311,33 +332,43 @@ void main() {
       );
 
       expect(result.consistency.status, SceneReviewStatus.replanScene);
+      expect(result.adjudication?.status, SceneReviewStatus.replanScene);
       expect(result.decision, SceneReviewDecision.replanScene);
     });
 
-    test('combined REPLAN_SCENE remains a replan decision', () async {
-      final fakeClient = FakeAppLlmClient(
-        responder: (request) {
-          final system = request.messages.first.content;
-          if (system.contains('scene combined review')) {
-            return const AppLlmChatResult.success(
-              text: '决定：REPLAN_SCENE\n原因：严重矛盾。',
-            );
-          }
-          throw StateError('Unexpected prompt');
-        },
-      );
-      final store = _setupStore(fakeClient);
-      final coordinator = SceneReviewCoordinator(settingsStore: store);
+    test(
+      'adjudicator prevents an uncorroborated replan from overriding pass',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final system = request.messages.first.content;
+            if (system.contains('scene review adjudication')) {
+              return const AppLlmChatResult.success(
+                text: '决定：PASS\n原因：正文没有可验证的重规划级矛盾。',
+              );
+            }
+            if (system.contains('scene consistency review')) {
+              return const AppLlmChatResult.success(
+                text: '决定：REPLAN_SCENE\n原因：严重矛盾。',
+              );
+            }
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
+          },
+        );
+        final store = _setupStore(fakeClient);
+        final coordinator = SceneReviewCoordinator(settingsStore: store);
 
-      final result = await coordinator.review(
-        brief: _brief(),
-        director: _director,
-        roleOutputs: _roleOutputs,
-        prose: _prose,
-      );
+        final result = await coordinator.review(
+          brief: _brief(),
+          director: _director,
+          roleOutputs: _roleOutputs,
+          prose: _prose,
+        );
 
-      expect(result.decision, SceneReviewDecision.replanScene);
-    });
+        expect(result.adjudication?.status, SceneReviewStatus.pass);
+        expect(result.decision, SceneReviewDecision.pass);
+      },
+    );
 
     test('judge REPLAN_SCENE also takes priority', () async {
       final fakeClient = FakeAppLlmClient(
@@ -438,11 +469,11 @@ void main() {
         expect(result.judge.status, SceneReviewStatus.rewriteProse);
         expect(result.judge.reason, '格式错误，需要复核正文。');
         expect(result.decision, SceneReviewDecision.rewriteProse);
-        expect(formatterTraceSink.entries, hasLength(1));
-        final trace = formatterTraceSink.entries.single;
+        expect(formatterTraceSink.entries, hasLength(2));
+        final trace = formatterTraceSink.entries.first;
         expect(trace.chapterId, 'chapter-01');
         expect(trace.sceneId, 'scene-01');
-        expect(trace.passLabel, 'combined');
+        expect(trace.passLabel, 'judge');
         expect(trace.rawText, '决定：X\n原因：格式错误。');
         expect(trace.repairedText, '决定：REWRITE_PROSE\n原因：格式错误，需要复核正文。');
         expect(trace.finalText, trace.repairedText);
@@ -464,7 +495,7 @@ void main() {
                 text: '决定：REWRITE_PROSE\n原因：正文不是小说正文，需要重写。',
               );
             }
-            if (system.contains('scene combined review')) {
+            if (system.contains('scene judge review')) {
               return const AppLlmChatResult.success(
                 text: '''
 The user asks for a scene review.
@@ -478,7 +509,7 @@ Analysis: 正文完全是模型元分析，不是小说正文。
 ''',
               );
             }
-            throw StateError('Unexpected prompt');
+            return const AppLlmChatResult.success(text: '决定：PASS\n原因：一致。');
           },
         );
         final store = _setupStore(fakeClient);
@@ -499,7 +530,7 @@ Analysis: 正文完全是模型元分析，不是小说正文。
         expect(result.judge.status, SceneReviewStatus.rewriteProse);
         expect(result.judge.reason, '正文不是小说正文，需要重写。');
         expect(result.decision, SceneReviewDecision.rewriteProse);
-        expect(formatterTraceSink.entries.single.repairAttempted, isTrue);
+        expect(formatterTraceSink.entries.first.repairAttempted, isTrue);
       },
     );
   });
@@ -508,104 +539,107 @@ Analysis: 正文完全是模型元分析，不是小说正文。
   // Prompt construction
   // ===========================================================================
   group('SceneReviewCoordinator prompt construction', () {
-    test(
-      'attaches all stable review categories to the combined pass',
-      () async {
-        final seenTaskTypes = <String>{};
-        final fakeClient = FakeAppLlmClient(
-          responder: (request) {
-            final user = request.messages.last.content;
-            if (user.contains('任务：scene_combined_review')) {
-              seenTaskTypes.add('combined');
-              expect(
-                user,
-                contains(
-                  '评审类别：prose, scene_plan, chapter_plan, continuity, '
-                  'character_state, world_state',
-                ),
-              );
-            } else {
-              throw StateError('Unexpected prompt: $user');
-            }
-            return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
-          },
-        );
-        final store = _setupStore(fakeClient);
-        final coordinator = SceneReviewCoordinator(settingsStore: store);
-
-        final result = await coordinator.review(
-          brief: _brief(),
-          director: _director,
-          roleOutputs: _roleOutputs,
-          prose: _prose,
-          enableReaderFlowReview: true,
-          enableLexiconReview: true,
-        );
-
-        expect(seenTaskTypes, {'combined'});
-        expect(fakeClient.requests, hasLength(1));
-        expect(result.judge.categories, [
-          SceneReviewCategory.prose,
-          SceneReviewCategory.scenePlan,
-          SceneReviewCategory.chapterPlan,
-          SceneReviewCategory.continuity,
-          SceneReviewCategory.characterState,
-          SceneReviewCategory.worldState,
-        ]);
-        expect(result.consistency.categories, [
-          SceneReviewCategory.chapterPlan,
-          SceneReviewCategory.continuity,
-          SceneReviewCategory.characterState,
-          SceneReviewCategory.worldState,
-        ]);
-        expect(result.readerFlow!.categories, [SceneReviewCategory.prose]);
-        expect(result.lexicon!.categories, [SceneReviewCategory.prose]);
-      },
-    );
-
-    test('includes retrieval summary in the combined pass', () async {
+    test('attaches each reviewer only to its independent categories', () async {
+      final seenTaskTypes = <String>{};
       final fakeClient = FakeAppLlmClient(
         responder: (request) {
-          final system = request.messages.first.content;
-          if (system.contains('scene combined review')) {
-            final user = request.messages.last.content;
-            expect(user, contains('已知事实'));
-            expect(user, contains('柳溪曾受伤'));
-            return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
+          final user = request.messages.last.content;
+          if (user.contains('任务：scene_judge_review')) {
+            seenTaskTypes.add('judge');
+            expect(user, contains('评审类别：prose, scene_plan'));
+          } else if (user.contains('任务：scene_consistency_review')) {
+            seenTaskTypes.add('consistency');
+            expect(
+              user,
+              contains(
+                'chapter_plan, continuity, character_state, world_state',
+              ),
+            );
+          } else if (user.contains('任务：scene_reader_flow_review')) {
+            seenTaskTypes.add('reader');
+          } else if (user.contains('任务：scene_lexicon_review')) {
+            seenTaskTypes.add('lexicon');
+          } else {
+            throw StateError('Unexpected prompt: $user');
           }
-          throw StateError('Unexpected prompt');
+          return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
         },
       );
       final store = _setupStore(fakeClient);
       final coordinator = SceneReviewCoordinator(settingsStore: store);
 
-      await coordinator.review(
+      final result = await coordinator.review(
         brief: _brief(),
         director: _director,
         roleOutputs: _roleOutputs,
         prose: _prose,
-        retrievalPack: const StoryRetrievalPack(
-          query: StoryMemoryQuery(
-            projectId: 'chapter-01',
-            queryType: StoryMemoryQueryType.concreteFact,
-            text: '柳溪状态',
-          ),
-          hits: [
-            StoryMemoryHit(
-              chunk: StoryMemoryChunk(
-                id: 'accepted-state-1',
-                projectId: 'chapter-01',
-                scopeId: 'scene-00',
-                kind: MemorySourceKind.acceptedState,
-                content: '柳溪曾受伤',
-                rootSourceIds: ['scene-00'],
-              ),
-              score: 1,
-            ),
-          ],
-        ),
+        enableReaderFlowReview: true,
+        enableLexiconReview: true,
       );
+
+      expect(seenTaskTypes, {'judge', 'consistency', 'reader', 'lexicon'});
+      expect(fakeClient.requests, hasLength(4));
+      expect(result.judge.categories, [
+        SceneReviewCategory.prose,
+        SceneReviewCategory.scenePlan,
+      ]);
+      expect(result.consistency.categories, [
+        SceneReviewCategory.chapterPlan,
+        SceneReviewCategory.continuity,
+        SceneReviewCategory.characterState,
+        SceneReviewCategory.worldState,
+      ]);
+      expect(result.readerFlow!.categories, [SceneReviewCategory.prose]);
+      expect(result.lexicon!.categories, [SceneReviewCategory.prose]);
     });
+
+    test(
+      'includes retrieval summary in every independent review pass',
+      () async {
+        final fakeClient = FakeAppLlmClient(
+          responder: (request) {
+            final system = request.messages.first.content;
+            if (system.contains('scene judge review') ||
+                system.contains('scene consistency review')) {
+              final user = request.messages.last.content;
+              expect(user, contains('已知事实'));
+              expect(user, contains('柳溪曾受伤'));
+              return const AppLlmChatResult.success(text: '决定：PASS\n原因：通过。');
+            }
+            throw StateError('Unexpected prompt');
+          },
+        );
+        final store = _setupStore(fakeClient);
+        final coordinator = SceneReviewCoordinator(settingsStore: store);
+
+        await coordinator.review(
+          brief: _brief(),
+          director: _director,
+          roleOutputs: _roleOutputs,
+          prose: _prose,
+          retrievalPack: const StoryRetrievalPack(
+            query: StoryMemoryQuery(
+              projectId: 'chapter-01',
+              queryType: StoryMemoryQueryType.concreteFact,
+              text: '柳溪状态',
+            ),
+            hits: [
+              StoryMemoryHit(
+                chunk: StoryMemoryChunk(
+                  id: 'accepted-state-1',
+                  projectId: 'chapter-01',
+                  scopeId: 'scene-00',
+                  kind: MemorySourceKind.acceptedState,
+                  content: '柳溪曾受伤',
+                  rootSourceIds: ['scene-00'],
+                ),
+                score: 1,
+              ),
+            ],
+          ),
+        );
+      },
+    );
 
     test('omits retrieval section when null', () async {
       final fakeClient = FakeAppLlmClient(

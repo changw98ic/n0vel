@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import '../../../app/state/app_authoring_storage_io_support.dart';
+import '../../story_generation/data/generation_material_manifest_repository.dart';
 import 'review_task_storage.dart';
 
 class SqliteReviewTaskStorage implements ReviewTaskStorage {
@@ -46,14 +47,32 @@ class SqliteReviewTaskStorage implements ReviewTaskStorage {
   }) async {
     final database = _openDatabase();
     try {
-      database.execute(
-        '''
-        INSERT OR REPLACE INTO review_task_projects (
-          project_id, payload_json, updated_at_ms
-        ) VALUES (?, ?, ?)
-        ''',
-        [projectId, jsonEncode(data), DateTime.now().millisecondsSinceEpoch],
-      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      database.execute('BEGIN IMMEDIATE');
+      try {
+        database.execute(
+          '''
+          INSERT OR REPLACE INTO review_task_projects (
+            project_id, payload_json, updated_at_ms
+          ) VALUES (?, ?, ?)
+          ''',
+          [projectId, jsonEncode(data), now],
+        );
+        GenerationMaterialManifestRepository(
+          db: database,
+        ).replaceCanonicalSource(
+          projectId: projectId,
+          sceneId: '*',
+          sourceKind: 'review',
+          sourceId: projectId,
+          canonicalContent: data,
+          updatedAtMs: now,
+        );
+        database.execute('COMMIT');
+      } catch (_) {
+        if (!database.autocommit) database.execute('ROLLBACK');
+        rethrow;
+      }
     } finally {
       database.dispose();
     }

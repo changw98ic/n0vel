@@ -1,13 +1,22 @@
 import 'app_llm_client_types.dart';
+import 'app_llm_prompt_invocation.dart';
+import 'app_llm_prompt_release.dart';
 import 'app_llm_prompt_version.dart';
 
 abstract interface class AppLlmCallTraceSink {
   Future<void> record(AppLlmCallTraceEntry entry);
 }
 
+/// Marker for audit paths where losing a trace must fail the operation.
+/// Ordinary application telemetry remains best-effort.
+abstract interface class AppLlmRequiredCallTraceSink
+    implements AppLlmCallTraceSink {}
+
 class AppLlmCallTraceEntry {
   const AppLlmCallTraceEntry({
     required this.timestampMs,
+    this.startedAtMs,
+    this.completedAtMs,
     required this.traceName,
     required this.model,
     required this.host,
@@ -26,12 +35,26 @@ class AppLlmCallTraceEntry {
     this.failureKind,
     this.statusCode,
     this.errorDetail,
+    this.promptReleaseRef,
     this.promptVersion,
+    this.stageId,
+    this.callSiteId,
+    this.variantId,
+    this.generationBundleHash,
+    this.renderedMessagesDigest,
+    this.resolvedVariablesDigest,
+    this.rendererContractHash,
     this.schemaType,
     this.schemaValid,
     this.schemaViolations,
   });
 
+  /// Exact dispatch interval captured after a request-pool slot is acquired.
+  ///
+  /// Legacy entries omit both values and remain reconstructable from
+  /// [timestampMs] and [latencyMs].
+  final int? startedAtMs;
+  final int? completedAtMs;
   final int timestampMs;
   final String traceName;
   final String model;
@@ -52,8 +75,19 @@ class AppLlmCallTraceEntry {
   final String? errorDetail;
   final Map<String, Object?> metadata;
 
+  /// Immutable prompt snapshot identity used by formal generation calls.
+  final PromptReleaseRef? promptReleaseRef;
+
   /// Prompt 模板版本（如果调用方提供）。
   final PromptVersion? promptVersion;
+
+  final String? stageId;
+  final String? callSiteId;
+  final String? variantId;
+  final String? generationBundleHash;
+  final String? renderedMessagesDigest;
+  final String? resolvedVariablesDigest;
+  final String? rendererContractHash;
 
   /// Schema 类型标识（如 'prose', 'review', 'director', 'generic'）。
   final String? schemaType;
@@ -69,16 +103,95 @@ class AppLlmCallTraceEntry {
     required AppLlmChatResult result,
     required String traceName,
     Map<String, Object?> metadata = const {},
+    PromptReleaseRef? promptReleaseRef,
     PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
+    PromptInvocationEvidence? promptInvocationEvidence,
     String? schemaType,
     bool? schemaValid,
     List<String>? schemaViolations,
+    int? startedAtMs,
+    int? completedAtMs,
   }) {
+    final resolvedStartedAtMs = startedAtMs;
+    final resolvedCompletedAtMs = completedAtMs;
+    final hasStartedAt = resolvedStartedAtMs != null;
+    final hasCompletedAt = resolvedCompletedAtMs != null;
+    if (hasStartedAt != hasCompletedAt) {
+      throw ArgumentError(
+        'startedAtMs and completedAtMs must be supplied together',
+      );
+    }
+    if (resolvedStartedAtMs != null) {
+      final exactCompletedAtMs = resolvedCompletedAtMs!;
+      if (resolvedStartedAtMs < 0 ||
+          exactCompletedAtMs <= resolvedStartedAtMs) {
+        throw ArgumentError.value(
+          <int>[resolvedStartedAtMs, exactCompletedAtMs],
+          'dispatchInterval',
+          'must be a non-negative, non-empty interval',
+        );
+      }
+    }
     final host = _hostFromBaseUrl(request.baseUrl);
     final promptChars = _promptChars(request.messages);
     final completionChars = result.text?.length ?? 0;
+    if (promptInvocationEvidence != null &&
+        !promptInvocationEvidence.matchesMessages(request.messages)) {
+      throw StateError(
+        'PromptInvocationEvidence does not match request messages',
+      );
+    }
+    if (promptReleaseRef != null &&
+        promptInvocationEvidence != null &&
+        promptReleaseRef != promptInvocationEvidence.promptReleaseRef) {
+      throw StateError(
+        'PromptInvocationEvidence and PromptReleaseRef disagree',
+      );
+    }
+    final resolvedPromptReleaseRef =
+        promptInvocationEvidence?.promptReleaseRef ?? promptReleaseRef;
+    if (resolvedPromptReleaseRef != null &&
+        promptVersion != null &&
+        (resolvedPromptReleaseRef.templateId != promptVersion.templateId ||
+            resolvedPromptReleaseRef.semanticVersion !=
+                promptVersion.version)) {
+      throw StateError('PromptReleaseRef and legacy PromptVersion disagree');
+    }
+    final resolvedPromptVersion =
+        promptVersion ??
+        (resolvedPromptReleaseRef == null
+            ? null
+            : PromptVersion(
+                templateId: resolvedPromptReleaseRef.templateId,
+                version: resolvedPromptReleaseRef.semanticVersion,
+                description: 'Derived from immutable PromptReleaseRef',
+              ));
+    final renderedMessagesDigest =
+        promptInvocationEvidence?.renderedMessagesDigest;
+    final resolvedVariablesDigest =
+        promptInvocationEvidence?.resolvedVariablesDigest;
+    final rendererContractHash = promptInvocationEvidence?.rendererContractHash;
+    final protectedMetadata = <String, Object?>{
+      ...metadata,
+      if (resolvedPromptReleaseRef != null)
+        'promptReleaseRef': resolvedPromptReleaseRef.toJson(),
+      'stageId': ?stageId,
+      'callSiteId': ?callSiteId,
+      'variantId': ?variantId,
+      'generationBundleHash': ?generationBundleHash,
+      'renderedMessagesDigest': ?renderedMessagesDigest,
+      'resolvedVariablesDigest': ?resolvedVariablesDigest,
+      'rendererContractHash': ?rendererContractHash,
+    };
     return AppLlmCallTraceEntry(
-      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      timestampMs:
+          resolvedCompletedAtMs ?? DateTime.now().millisecondsSinceEpoch,
+      startedAtMs: resolvedStartedAtMs,
+      completedAtMs: resolvedCompletedAtMs,
       traceName: traceName,
       model: request.model,
       host: host,
@@ -96,8 +209,16 @@ class AppLlmCallTraceEntry {
       failureKind: result.failureKind?.name,
       statusCode: result.statusCode,
       errorDetail: result.detail,
-      metadata: Map<String, Object?>.unmodifiable(metadata),
-      promptVersion: promptVersion,
+      metadata: Map<String, Object?>.unmodifiable(protectedMetadata),
+      promptReleaseRef: resolvedPromptReleaseRef,
+      promptVersion: resolvedPromptVersion,
+      stageId: stageId,
+      callSiteId: callSiteId,
+      variantId: variantId,
+      generationBundleHash: generationBundleHash,
+      renderedMessagesDigest: renderedMessagesDigest,
+      resolvedVariablesDigest: resolvedVariablesDigest,
+      rendererContractHash: rendererContractHash,
       schemaType: schemaType,
       schemaValid: schemaValid,
       schemaViolations: schemaViolations != null
@@ -109,6 +230,8 @@ class AppLlmCallTraceEntry {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'timestampMs': timestampMs,
+      if (startedAtMs != null) 'startedAtMs': startedAtMs,
+      if (completedAtMs != null) 'completedAtMs': completedAtMs,
       'traceName': traceName,
       'model': model,
       'host': host,
@@ -127,7 +250,20 @@ class AppLlmCallTraceEntry {
       if (statusCode != null) 'statusCode': statusCode,
       if (errorDetail != null) 'errorDetail': errorDetail,
       if (metadata.isNotEmpty) 'metadata': metadata,
+      if (promptReleaseRef != null)
+        'promptReleaseRef': promptReleaseRef!.toJson(),
       if (promptVersion != null) 'promptVersion': promptVersion!.toJson(),
+      if (stageId != null) 'stageId': stageId,
+      if (callSiteId != null) 'callSiteId': callSiteId,
+      if (variantId != null) 'variantId': variantId,
+      if (generationBundleHash != null)
+        'generationBundleHash': generationBundleHash,
+      if (renderedMessagesDigest != null)
+        'renderedMessagesDigest': renderedMessagesDigest,
+      if (resolvedVariablesDigest != null)
+        'resolvedVariablesDigest': resolvedVariablesDigest,
+      if (rendererContractHash != null)
+        'rendererContractHash': rendererContractHash,
       if (schemaType != null) 'schemaType': schemaType,
       if (schemaValid != null) 'schemaValid': schemaValid,
       if (schemaViolations != null && schemaViolations!.isNotEmpty)

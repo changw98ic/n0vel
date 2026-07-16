@@ -1,7 +1,9 @@
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 
 import '../story_context_cache.dart';
+import '../story_memory_indexer.dart';
 import '../story_memory_storage.dart';
+import '../story_memory_storage_io.dart';
 import '../../domain/scene_models.dart';
 import '../../domain/memory_models.dart';
 import '../../domain/story_pipeline_interfaces.dart'
@@ -83,9 +85,8 @@ class ContextEnrichmentStep
     StoryRetrievalPack? retrievalPack;
     RagSceneContext? ragContext;
     SceneContextAssembly? cachedAssembly;
-    if (!effectiveMaterials.isEmpty &&
-        _memoryStorage != null &&
-        _memoryRetriever != null) {
+    SceneContextAssembly? assembledContext;
+    if (_memoryStorage != null && _memoryRetriever != null) {
       final scopeId = '$projectScopeId:${brief.sceneId}';
       cachedAssembly = _contextCache?.lookup(
         projectScopeId,
@@ -98,6 +99,7 @@ class ContextEnrichmentStep
             brief: brief,
             materials: effectiveMaterials,
           );
+      assembledContext = assembly;
 
       if (cachedAssembly == null && _contextCache != null) {
         _contextCache.store(
@@ -108,15 +110,13 @@ class ContextEnrichmentStep
         );
       }
 
-      // Persist indexed chunks
-      if (assembly.memoryChunks.isNotEmpty) {
-        await _memoryStorage.saveChunks(projectScopeId, assembly.memoryChunks);
-
-        // Index assembled memory chunks into HybridRetriever
-        if (_hybridRetriever != null) {
-          await _hybridRetriever.indexChunks(assembly.memoryChunks);
-        }
-      }
+      // Replace this producer's complete generation, including an empty one.
+      // Cache hits still execute the replace so persistent stores cannot drift.
+      await _replaceOwnedGeneration(
+        projectId: projectScopeId,
+        scopeId: scopeId,
+        chunks: assembly.memoryChunks,
+      );
 
       // Run retrieval for scene context
       final query = StoryMemoryQuery(
@@ -144,7 +144,71 @@ class ContextEnrichmentStep
       effectiveMaterials: effectiveMaterials,
       retrievalPack: retrievalPack,
       ragContext: ragContext,
-      cachedAssembly: cachedAssembly,
+      cachedAssembly: assembledContext,
     );
+  }
+
+  Future<void> _replaceOwnedGeneration({
+    required String projectId,
+    required String scopeId,
+    required List<StoryMemoryChunk> chunks,
+  }) async {
+    const producer = StoryMemoryIndexer.contextEnrichmentProducer;
+    final storage = _memoryStorage;
+    if (storage is! OwnedGenerationMemoryStorage) {
+      throw StateError(
+        'Context enrichment requires owned-generation memory storage',
+      );
+    }
+    final ownedStorage = storage as OwnedGenerationMemoryStorage;
+
+    final hybrid = _hybridRetriever;
+    if (hybrid == null) {
+      await ownedStorage.replaceOwnedGeneration(
+        projectId: projectId,
+        scopeId: scopeId,
+        producer: producer,
+        chunks: chunks,
+        includeLegacyContextRows: true,
+      );
+      return;
+    }
+
+    if (storage is! StoryMemoryStorageIO || !hybrid.usesDatabase(storage.db)) {
+      throw StateError(
+        'Atomic context generation replacement requires memory, FTS, and '
+        'vector storage to share one SQLite database',
+      );
+    }
+
+    final storyWrite = await storage.prepareOwnedGeneration(
+      projectId: projectId,
+      scopeId: scopeId,
+      producer: producer,
+      chunks: chunks,
+      includeLegacyContextRows: true,
+    );
+    final hybridWrite = await hybrid.prepareOwnedGeneration(
+      projectId: projectId,
+      scopeId: scopeId,
+      producer: producer,
+      chunks: chunks,
+      includeLegacyContextRows: true,
+    );
+    final db = storage.db;
+    await storage.writeCoordinator.synchronized<void>((lease) async {
+      db.execute('SAVEPOINT context_enrichment_replace_generation');
+      try {
+        await storage.commitOwnedGeneration(storyWrite, lease: lease);
+        await hybrid.commitOwnedGeneration(hybridWrite, lease: lease);
+        db.execute('RELEASE SAVEPOINT context_enrichment_replace_generation');
+      } catch (_) {
+        db.execute(
+          'ROLLBACK TO SAVEPOINT context_enrichment_replace_generation',
+        );
+        db.execute('RELEASE SAVEPOINT context_enrichment_replace_generation');
+        rethrow;
+      }
+    });
   }
 }

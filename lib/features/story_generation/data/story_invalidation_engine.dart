@@ -1,4 +1,4 @@
-import '../../../app/state/story_generation_store.dart';
+import '../../../app/state/story_generation_types.dart';
 import 'scene_review_models.dart';
 
 /// Describes the scope of an invalidation: which scenes, chapters, and

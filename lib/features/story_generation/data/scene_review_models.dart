@@ -1,13 +1,91 @@
-import 'package:novel_writer/app/state/app_storage_clone.dart';
+import 'package:novel_writer/domain/storage_utils.dart';
 
 import '../domain/scene_models.dart' show SceneQualityScore;
 import 'scene_context_models.dart';
 import 'scene_roleplay_session_models.dart';
 import 'scene_runtime_models.dart';
+import 'polish_canon_evidence.dart';
+import 'story_mechanics_evidence.dart';
 
 enum SceneReviewStatus { pass, rewriteProse, replanScene }
 
 enum SceneReviewDecision { pass, rewriteProse, replanScene }
+
+enum SceneReviewPhase {
+  preliminary,
+  finalCouncil,
+  deterministic,
+  quality;
+
+  String get wireName => this == finalCouncil ? 'final' : name;
+}
+
+/// One immutable audit entry for a council or deterministic quality decision.
+///
+/// [timestamp] is Unix epoch milliseconds. Both constructors defensively
+/// snapshot [failureCodes]; [SceneReviewAttempt.snapshot] is the named
+/// production entry point used where that behavior should be explicit.
+final class SceneReviewAttempt {
+  SceneReviewAttempt({
+    required this.round,
+    required this.proseAttempt,
+    required this.phase,
+    required this.decision,
+    required this.reason,
+    List<String> failureCodes = const [],
+    this.timestamp,
+    this.proseHash,
+    this.repairScheduled = false,
+  }) : _failureCodes = immutableList(failureCodes);
+
+  factory SceneReviewAttempt.snapshot({
+    required int round,
+    required int proseAttempt,
+    required SceneReviewPhase phase,
+    required SceneReviewDecision decision,
+    required String reason,
+    List<String> failureCodes = const [],
+    int? timestamp,
+    String? proseHash,
+    bool repairScheduled = false,
+  }) {
+    return SceneReviewAttempt(
+      round: round,
+      proseAttempt: proseAttempt,
+      phase: phase,
+      decision: decision,
+      reason: reason,
+      failureCodes: failureCodes,
+      timestamp: timestamp,
+      proseHash: proseHash,
+      repairScheduled: repairScheduled,
+    );
+  }
+
+  final int round;
+  final int proseAttempt;
+  final SceneReviewPhase phase;
+  final SceneReviewDecision decision;
+  final String reason;
+  final List<String> _failureCodes;
+  final int? timestamp;
+  final String? proseHash;
+  final bool repairScheduled;
+
+  List<String> get failureCodes => List<String>.unmodifiable(_failureCodes);
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'round': round,
+    'proseAttempt': proseAttempt,
+    'phase': phase.wireName,
+    'decision': decision.name,
+    'reason': reason,
+    'failureCodes': List<String>.unmodifiable(failureCodes),
+    'timestamp': timestamp,
+    'proseHash': proseHash,
+    'repairScheduled': repairScheduled,
+  };
+}
 
 enum SceneReviewCategory {
   prose,
@@ -77,6 +155,7 @@ class SceneReviewResult {
   const SceneReviewResult({
     required this.judge,
     required this.consistency,
+    this.adjudication,
     this.readerFlow,
     this.lexicon,
     this.roleplayFidelity,
@@ -86,6 +165,10 @@ class SceneReviewResult {
 
   final SceneReviewPassResult judge;
   final SceneReviewPassResult consistency;
+
+  /// Tie-break evidence when the judge and consistency reviewers disagree on
+  /// whether the scene must be replanned.
+  final SceneReviewPassResult? adjudication;
   final SceneReviewPassResult? readerFlow;
   final SceneReviewPassResult? lexicon;
   final SceneReviewPassResult? roleplayFidelity;
@@ -98,6 +181,7 @@ class SceneReviewResult {
       for (final category in [
         ...judge.categories,
         ...consistency.categories,
+        if (adjudication != null) ...adjudication!.categories,
         if (readerFlow != null) ...readerFlow!.categories,
         if (lexicon != null) ...lexicon!.categories,
         if (roleplayFidelity != null) ...roleplayFidelity!.categories,
@@ -111,6 +195,8 @@ class SceneReviewResult {
       if (judge.reason.trim().isNotEmpty) 'Judge: ${judge.reason.trim()}',
       if (consistency.reason.trim().isNotEmpty)
         'Consistency: ${consistency.reason.trim()}',
+      if (adjudication != null && adjudication!.reason.trim().isNotEmpty)
+        'Adjudication: ${adjudication!.reason.trim()}',
       if (readerFlow != null && readerFlow!.reason.trim().isNotEmpty)
         'ReaderFlow: ${readerFlow!.reason.trim()}',
       if (lexicon != null && lexicon!.reason.trim().isNotEmpty)
@@ -126,6 +212,8 @@ class SceneReviewResult {
       if (judge.reason.trim().isNotEmpty) 'Judge: ${judge.reason.trim()}',
       if (consistency.reason.trim().isNotEmpty)
         'Consistency: ${consistency.reason.trim()}',
+      if (adjudication != null && adjudication!.reason.trim().isNotEmpty)
+        'Adjudication: ${adjudication!.reason.trim()}',
       if (readerFlow != null && readerFlow!.reason.trim().isNotEmpty)
         'ReaderFlow: ${readerFlow!.reason.trim()}',
       if (lexicon != null && lexicon!.reason.trim().isNotEmpty)
@@ -150,6 +238,11 @@ class SceneReviewResult {
         consistency.reason.trim().isNotEmpty) {
       consistencyFixes.add(consistency.reason.trim());
     }
+    if (adjudication != null &&
+        adjudication!.status != SceneReviewStatus.pass &&
+        adjudication!.reason.trim().isNotEmpty) {
+      plotIssues.add(adjudication!.reason.trim());
+    }
     if (readerFlow != null &&
         readerFlow!.status != SceneReviewStatus.pass &&
         readerFlow!.reason.trim().isNotEmpty) {
@@ -168,6 +261,15 @@ class SceneReviewResult {
     if (judge.status == SceneReviewStatus.pass &&
         judge.reason.trim().isNotEmpty) {
       preserve.add(judge.reason.trim());
+    }
+    if (consistency.status == SceneReviewStatus.pass &&
+        consistency.reason.trim().isNotEmpty) {
+      preserve.add(consistency.reason.trim());
+    }
+    if (adjudication != null &&
+        adjudication!.status == SceneReviewStatus.pass &&
+        adjudication!.reason.trim().isNotEmpty) {
+      preserve.add(adjudication!.reason.trim());
     }
     if (readerFlow != null &&
         readerFlow!.status == SceneReviewStatus.pass &&
@@ -198,6 +300,9 @@ class SceneReviewResult {
       if (judge.status != SceneReviewStatus.pass) judge.reason.trim(),
       if (consistency.status != SceneReviewStatus.pass)
         consistency.reason.trim(),
+      if (adjudication != null &&
+          adjudication!.status != SceneReviewStatus.pass)
+        adjudication!.reason.trim(),
       if (readerFlow != null && readerFlow!.status != SceneReviewStatus.pass)
         readerFlow!.reason.trim(),
       if (lexicon != null && lexicon!.status != SceneReviewStatus.pass)
@@ -213,6 +318,9 @@ class SceneReviewResult {
       if (judge.status == SceneReviewStatus.pass) judge.reason.trim(),
       if (consistency.status == SceneReviewStatus.pass)
         consistency.reason.trim(),
+      if (adjudication != null &&
+          adjudication!.status == SceneReviewStatus.pass)
+        adjudication!.reason.trim(),
       if (readerFlow != null && readerFlow!.status == SceneReviewStatus.pass)
         readerFlow!.reason.trim(),
       if (lexicon != null && lexicon!.status == SceneReviewStatus.pass)
@@ -244,13 +352,21 @@ class SceneRuntimeOutput {
     required this.review,
     required this.proseAttempts,
     required this.softFailureCount,
+    List<SceneReviewAttempt> reviewAttempts = const [],
     this.qualityScore,
+    this.polishCanonEvidence,
+    this.storyMechanicsEvidence,
+    Map<String, Object?>? productionPreQualityEvidence,
   }) : resolvedCast = immutableList(resolvedCast),
        roleOutputs = immutableList(roleOutputs),
        roleTurns = immutableList(roleTurns),
        resolvedBeats = immutableList(resolvedBeats),
        updatedBeliefStates = immutableList(updatedBeliefStates),
-       updatedPresentationStates = immutableList(updatedPresentationStates);
+       updatedPresentationStates = immutableList(updatedPresentationStates),
+       reviewAttempts = immutableList(reviewAttempts),
+       productionPreQualityEvidence = productionPreQualityEvidence == null
+           ? null
+           : immutableMap(productionPreQualityEvidence);
 
   final SceneBrief brief;
   final List<ResolvedSceneCastMember> resolvedCast;
@@ -267,5 +383,9 @@ class SceneRuntimeOutput {
   final SceneReviewResult review;
   final int proseAttempts;
   final int softFailureCount;
+  final List<SceneReviewAttempt> reviewAttempts;
   final SceneQualityScore? qualityScore;
+  final PolishCanonEvidence? polishCanonEvidence;
+  final StoryMechanicsEvidence? storyMechanicsEvidence;
+  final Map<String, Object?>? productionPreQualityEvidence;
 }

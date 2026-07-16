@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
 import 'package:novel_writer/app/llm/app_llm_client_types.dart';
+import 'package:novel_writer/app/llm/app_product_prompt_registry.dart';
 import 'package:novel_writer/app/state/app_ai_history_storage_io.dart';
 import 'package:novel_writer/app/state/app_ai_history_store.dart';
 import 'package:novel_writer/app/state/app_draft_storage.dart';
@@ -33,9 +34,11 @@ import 'package:novel_writer/app/state/story_outline_storage_io.dart';
 import 'package:novel_writer/app/state/story_outline_store.dart';
 import 'package:novel_writer/features/import_export/data/project_transfer_service.dart';
 import 'package:novel_writer/features/story_generation/data/artifact_recorder.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_scheduler.dart';
+import 'package:novel_writer/features/story_generation/data/scene_hard_gates.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
@@ -45,8 +48,44 @@ import 'test_support/jsonl_trace_sinks.dart';
 
 const int _maxTransportRetriesPerScene = 6;
 const int _maxConcurrentSceneRuns = 2;
+const String _validGeneratedOutline = '''
+## 第一章 新雨码头
+- 章节目标：柳溪在零点前拿到蓝色柜机的密封底册
+- 证据组：主体=柳溪|动作=拿到/取得/获取|对象=密封底册/底册|场所=蓝色柜机/柜机|时限=零点/午夜
+- 主要冲突：岳刃封死集装箱巷并逼她交出录音笔
+- 证据组：主体=岳刃|动作=封死/封锁/堵死|对象=录音笔/录音设备|场所=集装箱巷/集装箱通道|结果=逼她交出/迫使
+- 转折点：底册内页指向港务档案楼七号暗门
+- 证据组：主体=底册内页/底册|动作=指向/指明/引向|对象=七号暗门/暗门|场所=港务档案楼/档案楼
+- 结尾钩子：一条实时短信显示沈渡已在暗门后等她
+- 证据组：主体=实时短信/短信|动作=显示/提示/标明|对象=沈渡|场所=暗门后/暗门|结果=等她/等待/守候
+
+## 第二章 暗门压痕
+- 章节目标：柳溪拓印七号暗门里的密钥页
+- 证据组：主体=柳溪|动作=拓印/拓下/复刻|对象=密钥页/钥页|场所=七号暗门/暗门
+- 主要冲突：清理队正在焊死档案楼唯一出口
+- 证据组：主体=清理队|动作=焊死/焊封/封死|对象=唯一出口/出口|场所=档案楼
+- 转折点：紫外灯照出密钥页上的二次压痕
+- 证据组：主体=紫外灯|动作=照出/显出/揭出|对象=二次压痕/压痕|场所=密钥页
+- 结尾钩子：沈渡打开通往天台的维修井却听见枪机声
+- 证据组：主体=沈渡|动作=打开/开启|对象=维修井/检修井|场所=天台|结果=听见枪机声/听到枪机声
+
+## 第三章 天台云端
+- 章节目标：柳溪在包围前完成密钥页云端上传
+- 证据组：主体=柳溪|动作=云端上传/上传|对象=密钥页|时限=包围前/合围前
+- 主要冲突：岳刃持枪截断天台天线与撤离路线
+- 证据组：主体=岳刃|动作=截断/切断|对象=天线/通信天线|场所=天台|结果=撤离路线/退路
+- 转折点：沈渡中枪坠落前把最后一段密钥抛给柳溪
+- 证据组：主体=沈渡|动作=抛给/扔给/递给|对象=最后一段密钥/密钥|结果=中枪坠落/中枪/坠落
+- 结尾钩子：上传成功后云端返回一个尚在连线的第四人编号
+- 证据组：主体=云端|动作=返回/回传|对象=第四人编号/编号|时限=上传成功后/上传后|结果=连线/在线
+''';
 
 void main() {
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/real_three_chapter_generation_test.dart',
+        environment: Platform.environment,
+      );
   test('retryable transport failures are detected conservatively', () {
     expect(
       _isRetryableTransportFailure(
@@ -164,8 +203,176 @@ void main() {
     expect(prompt, contains('主要冲突'));
     expect(prompt, contains('转折点'));
     expect(prompt, contains('结尾钩子'));
+    expect(prompt, contains('证据组'));
+    expect(prompt, contains('主体='));
+    expect(prompt, contains('动作='));
+    expect(prompt, contains('对象='));
+    expect(prompt, contains('每个字段的下一行'));
     expect(prompt, contains('只规划三章'));
   });
+
+  test(
+    'phase 3 AI outline becomes workspace and SceneBrief authority',
+    () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (request) =>
+            const AppLlmChatResult.success(text: _validGeneratedOutline),
+      );
+      final settingsStore = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: fakeClient,
+      );
+      final workspaceStore = AppWorkspaceStore(
+        storage: InMemoryAppWorkspaceStorage(),
+      );
+      addTearDown(settingsStore.dispose);
+      addTearDown(workspaceStore.dispose);
+
+      final generated = await _generateRealThreeChapterOutline(
+        settingsStore: settingsStore,
+        chapters: _validationChapters,
+      );
+      final chapters = generated.chapters;
+      workspaceStore.createProject();
+      _applyChapterOutlineToWorkspaceStore(
+        workspaceStore: workspaceStore,
+        chapters: chapters,
+      );
+
+      expect(fakeClient.requests, hasLength(1));
+      expect(chapters.first.title, '第一章 新雨码头');
+      expect(workspaceStore.scenes.first.summary, contains('岳刃封死集装箱巷并逼她交出录音笔'));
+      expect(generated.markdown, contains('第三章 天台云端'));
+
+      final conflictScene = chapters.first.scenes[1];
+      final brief = _buildValidationSceneBrief(
+        chapter: chapters.first,
+        scene: conflictScene,
+        chapterSimulationInput: '已完成多 Agent 讨论',
+        restart: 0,
+        transportRetries: 0,
+        restartNotes: const [],
+      );
+      expect(brief.chapterTitle, '第一章 新雨码头');
+      expect(brief.targetBeat, '岳刃封死集装箱巷并逼她交出录音笔');
+      expect(brief.sceneSummary, contains('自然改写'));
+      expect(brief.sceneSummary, isNot(contains('逐字保留')));
+      expect(brief.metadata['requireOutlineFidelity'], isTrue);
+      expect(brief.metadata['generatedOutlineAuthority'], <String, Object?>{
+        'title': '第一章 新雨码头',
+        'chapterGoal': '柳溪在零点前拿到蓝色柜机的密封底册',
+        'primaryConflict': '岳刃封死集装箱巷并逼她交出录音笔',
+        'turningPoint': '底册内页指向港务档案楼七号暗门',
+        'endingHook': '一条实时短信显示沈渡已在暗门后等她',
+      });
+      expect(brief.metadata['requiredOutlineBeats'], [
+        {
+          'id': 'chapter-01:primary-conflict',
+          'description': '主要冲突：岳刃封死集装箱巷并逼她交出录音笔',
+          'evidenceGroups': [
+            ['岳刃'],
+            ['封死', '封锁', '堵死'],
+            ['录音笔', '录音设备'],
+            ['集装箱巷', '集装箱通道'],
+            ['逼她交出', '迫使'],
+          ],
+        },
+      ]);
+    },
+  );
+
+  test(
+    'phase 3 semantic outline evidence accepts paraphrase but rejects fragments',
+    () {
+      final beat = _parseGeneratedChapterOutlines(
+        _validGeneratedOutline,
+      ).first.beatsForChapter('chapter-01')[1];
+      final contract = beat.toContract();
+      final groups = contract['evidenceGroups']! as List<Object?>;
+      final aliases = groups
+          .cast<List<String>>()
+          .expand((group) => group)
+          .toList(growable: false);
+
+      expect(aliases, isNot(contains(beat.value)));
+
+      final brief = SceneBrief(
+        chapterId: 'chapter-01',
+        chapterTitle: '第一章 新雨码头',
+        sceneId: 'scene-02',
+        sceneTitle: '集装箱巷对峙',
+        sceneSummary: beat.value,
+        targetBeat: beat.value,
+        metadata: <String, Object?>{
+          'requireOutlineFidelity': true,
+          'requiredOutlineBeats': <Object?>[contract],
+        },
+      );
+
+      const paraphrasedProse = '岳刃命人封锁集装箱巷，迫使柳溪缴出手中的录音笔。';
+      final paraphraseViolations = sceneHardGateViolations(
+        brief: brief,
+        proseText: paraphrasedProse,
+      ).where((violation) => violation.text.contains('大纲'));
+      expect(paraphraseViolations, isEmpty);
+
+      const irrelevantFragment = '岳刃站在集装箱巷口，雨水沿着衣领往下流。';
+      final fragmentViolations = sceneHardGateViolations(
+        brief: brief,
+        proseText: irrelevantFragment,
+      ).where((violation) => violation.text.contains('大纲'));
+      expect(fragmentViolations, isNotEmpty, reason: '只复制人名和地点不能代替冲突动作与证物去向。');
+    },
+  );
+
+  test('phase 3 AI outline parser fails closed on a missing field', () {
+    const malformed = '''
+## 第一章 雨夜
+- 章节目标：目标
+- 主要冲突：冲突
+- 转折点：转折
+''';
+
+    expect(
+      () => _parseAndBindGeneratedOutline(
+        rawText: malformed,
+        seedChapters: _validationChapters,
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test(
+    'phase 3 parser rejects missing, ungrounded, extra, and misordered evidence',
+    () {
+      const firstEvidence =
+          '- 证据组：主体=柳溪|动作=拿到/取得/获取|对象=密封底册/底册|场所=蓝色柜机/柜机|时限=零点/午夜';
+      const nextField = '- 主要冲突：岳刃封死集装箱巷并逼她交出录音笔';
+      final malformedCases = <String>[
+        _validGeneratedOutline.replaceFirst('$firstEvidence\n', ''),
+        _validGeneratedOutline.replaceFirst('主体=柳溪', '主体=陌生人'),
+        _validGeneratedOutline.replaceFirst(
+          firstEvidence,
+          '$firstEvidence\n$firstEvidence',
+        ),
+        _validGeneratedOutline.replaceFirst(
+          '$firstEvidence\n$nextField',
+          '$nextField\n$firstEvidence',
+        ),
+        _validGeneratedOutline.replaceFirst('主体=柳溪', '主体=柳溪在零点前拿到蓝色柜机的密封底册'),
+      ];
+
+      for (final malformed in malformedCases) {
+        expect(
+          () => _parseAndBindGeneratedOutline(
+            rawText: malformed,
+            seedChapters: _validationChapters,
+          ),
+          throwsA(isA<FormatException>()),
+        );
+      }
+    },
+  );
 
   test(
     'phase 5 chapter simulation runs two real-agent rounds and produces prose input',
@@ -367,10 +574,8 @@ void main() {
   test(
     'real three chapter generation leaves visible artifacts',
     () async {
-      if (Platform.environment['RUN_REAL_STORY_VALIDATION'] != '1') {
-        markTestSkipped(
-          'Set RUN_REAL_STORY_VALIDATION=1 to run the real provider validation.',
-        );
+      if (!legacyRealProviderDecision.authorized) {
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -662,21 +867,22 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
       relativePath: 'inputs/character_profiles.md',
       content: _characterProfilesMarkdown(_validationChapters),
     );
-    final realOutlineMarkdown = await _generateRealThreeChapterOutline(
+    final generatedOutline = await _generateRealThreeChapterOutline(
       settingsStore: settingsStore,
       chapters: _validationChapters,
     );
+    final authoritativeChapters = generatedOutline.chapters;
     await recorder.recordReport(
       relativePath: 'inputs/three_chapter_outline.md',
-      content: realOutlineMarkdown,
+      content: generatedOutline.markdown,
     );
     await recorder.recordReport(
       relativePath: 'outline/three_chapter_outline.md',
-      content: realOutlineMarkdown,
+      content: generatedOutline.markdown,
     );
     _applyChapterOutlineToWorkspaceStore(
       workspaceStore: workspaceStore,
-      chapters: _validationChapters,
+      chapters: authoritativeChapters,
     );
     sceneContextStore.syncContext();
     expect(workspaceStore.scenes, hasLength(3));
@@ -689,7 +895,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
           'generatedAt': DateTime.now().toIso8601String(),
         },
         chapters: [
-          for (final chapter in _validationChapters)
+          for (final chapter in authoritativeChapters)
             StoryOutlineChapterSnapshot(
               id: chapter.id,
               title: chapter.title,
@@ -736,7 +942,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
     final qualityOutputs = <SceneRuntimeOutput>[];
     final bookBuffer = StringBuffer();
 
-    for (final chapter in _validationChapters) {
+    for (final chapter in authoritativeChapters) {
       await statusReporter.update(
         phase: 'chapter-start',
         detail: 'Starting ${chapter.id} ${chapter.title}.',
@@ -905,7 +1111,7 @@ Future<_RealValidationResult> _runRealThreeChapterValidation() async {
     recoveredSourceStores = await _openAndVerifyRecoveredSourceStores(
       sourcePaths: sourcePaths,
       expectedChapterTitles: [
-        for (final chapter in _validationChapters) chapter.title,
+        for (final chapter in authoritativeChapters) chapter.title,
       ],
     );
     final recoveredStores = recoveredSourceStores;
@@ -1358,18 +1564,41 @@ Future<_ConfiguredModel> _configureRealSettings({
   );
 }
 
-Future<String> _generateRealThreeChapterOutline({
+Future<_GeneratedThreeChapterOutline> _generateRealThreeChapterOutline({
   required AppSettingsStore settingsStore,
   required List<_ValidationChapter> chapters,
 }) async {
+  final invocation = AppProductPromptRegistry.current.invocation(
+    stageId: 'simulation',
+    callSiteId: 'real-agent-turn',
+  );
+  final variables = <String, Object?>{
+    'label': '三章大纲编辑',
+    'goal': '输出三章、四字段、可直接绑定到正文生成的大纲',
+    'agentPrompt': _realOutlinePrompt(chapters),
+    'round': 1,
+    'rounds': 1,
+    'sceneContext': '港区悬疑小说前三章规划',
+    'authorGoal': '生成后立即解析并作为下游场景权威，禁止额外解释',
+    'priorOutputs': '无',
+  };
+  final messages = invocation.render(variables).messages;
   final result = await settingsStore.requestAiCompletion(
-    messages: [
-      const AppLlmChatMessage(
-        role: 'system',
-        content: '你是长篇类型小说大纲编辑。输出必须具体、可执行，避免泛泛而谈。',
-      ),
-      AppLlmChatMessage(role: 'user', content: _realOutlinePrompt(chapters)),
-    ],
+    messages: messages,
+    traceName: 'real_three_chapter_outline',
+    traceMetadata: const <String, Object?>{
+      'validationPhase': 'phase-3',
+      'chapterCount': 3,
+    },
+    promptReleaseRef: invocation.promptReleaseRef,
+    promptInvocationEvidence: invocation.evidence(
+      messages: messages,
+      resolvedVariables: variables,
+    ),
+    stageId: invocation.stageId,
+    callSiteId: invocation.callSiteId,
+    variantId: invocation.variantId,
+    generationBundleHash: invocation.generationBundleHash,
   );
   if (!result.succeeded || (result.text ?? '').trim().isEmpty) {
     fail(
@@ -1378,17 +1607,352 @@ Future<String> _generateRealThreeChapterOutline({
     );
   }
 
-  return [
-    '# 三章大纲规划',
+  return _parseAndBindGeneratedOutline(
+    rawText: result.text!,
+    seedChapters: chapters,
+  );
+}
+
+_GeneratedThreeChapterOutline _parseAndBindGeneratedOutline({
+  required String rawText,
+  required List<_ValidationChapter> seedChapters,
+}) {
+  final parsedChapters = _parseGeneratedChapterOutlines(rawText);
+  if (seedChapters.length != parsedChapters.length) {
+    throw FormatException(
+      '三章大纲绑定失败：种子章节 ${seedChapters.length} 章，'
+      'AI 结构化章节 ${parsedChapters.length} 章。',
+    );
+  }
+
+  final boundChapters = <_ValidationChapter>[];
+  for (
+    var chapterIndex = 0;
+    chapterIndex < seedChapters.length;
+    chapterIndex += 1
+  ) {
+    final seed = seedChapters[chapterIndex];
+    final authority = parsedChapters[chapterIndex];
+    if (seed.scenes.length != 4) {
+      throw FormatException(
+        '章节 ${seed.id} 必须恰好有 4 个场景，才能逐一绑定'
+        '章节目标、主要冲突、转折点和结尾钩子。',
+      );
+    }
+    final beats = authority.beatsForChapter(seed.id);
+    boundChapters.add(
+      _ValidationChapter(
+        id: seed.id,
+        title: authority.title,
+        summary: authority.chapterGoal,
+        targetLength: seed.targetLength,
+        metadata: <String, Object?>{
+          ...seed.metadata,
+          'generatedOutlineAuthority': authority.toMetadata(),
+        },
+        outlineAuthority: authority,
+        scenes: <_ValidationScene>[
+          for (
+            var sceneIndex = 0;
+            sceneIndex < seed.scenes.length;
+            sceneIndex += 1
+          )
+            _bindOutlineBeatToScene(
+              seed: seed.scenes[sceneIndex],
+              beat: beats[sceneIndex],
+            ),
+        ],
+      ),
+    );
+  }
+
+  return _GeneratedThreeChapterOutline(
+    chapters: boundChapters,
+    markdown: [
+      '# 三章大纲规划',
+      '',
+      '## 真实 AI 输出',
+      '',
+      rawText.trim(),
+      '',
+      '## Store 持久化镜像',
+      '',
+      _outlineMarkdown(boundChapters),
+    ].join('\n').trimRight(),
+  );
+}
+
+List<_GeneratedChapterOutline> _parseGeneratedChapterOutlines(String rawText) {
+  const expectedOrdinals = <String>['第一章', '第二章', '第三章'];
+  const expectedFields = <String>['章节目标', '主要冲突', '转折点', '结尾钩子'];
+  final headingPattern = RegExp(
+    r'^##\s*(第一章|第二章|第三章)(?:\s*[：:]\s*|\s+)(.+?)\s*$',
+  );
+  final fieldPattern = RegExp(
+    r'^[-*]\s*(章节目标|主要冲突|转折点|结尾钩子)\s*[：:]\s*(.+?)\s*$',
+  );
+  final evidencePattern = RegExp(r'^[-*]\s*证据组\s*[：:]\s*(.+?)\s*$');
+  final parsed = <_GeneratedChapterOutline>[];
+  String? currentOrdinal;
+  String? currentTitle;
+  String? awaitingEvidenceFor;
+  final currentFields = <String, String>{};
+  final currentEvidence = <String, List<_OutlineEvidenceGroup>>{};
+
+  void finishCurrentChapter() {
+    if (currentOrdinal == null) return;
+    if (awaitingEvidenceFor != null) {
+      throw FormatException(
+        '$currentOrdinal 字段 $awaitingEvidenceFor 后缺少紧邻的证据组。',
+      );
+    }
+    if (currentFields.length != expectedFields.length ||
+        !expectedFields.every(currentFields.containsKey)) {
+      final missing = expectedFields
+          .where((field) => !currentFields.containsKey(field))
+          .join('、');
+      throw FormatException('$currentOrdinal 结构化大纲不完整，缺失字段：$missing。');
+    }
+    if (currentEvidence.length != expectedFields.length ||
+        !expectedFields.every(currentEvidence.containsKey)) {
+      final missing = expectedFields
+          .where((field) => !currentEvidence.containsKey(field))
+          .join('、');
+      throw FormatException('$currentOrdinal 结构化大纲不完整，缺失证据组：$missing。');
+    }
+    parsed.add(
+      _GeneratedChapterOutline(
+        title: '$currentOrdinal $currentTitle',
+        chapterGoal: currentFields['章节目标']!,
+        chapterGoalEvidence: currentEvidence['章节目标']!,
+        primaryConflict: currentFields['主要冲突']!,
+        primaryConflictEvidence: currentEvidence['主要冲突']!,
+        turningPoint: currentFields['转折点']!,
+        turningPointEvidence: currentEvidence['转折点']!,
+        endingHook: currentFields['结尾钩子']!,
+        endingHookEvidence: currentEvidence['结尾钩子']!,
+      ),
+    );
+    currentFields.clear();
+    currentEvidence.clear();
+  }
+
+  for (final rawLine in rawText.split('\n')) {
+    final line = rawLine.trim();
+    if (line.isEmpty || line.startsWith('```')) {
+      if (awaitingEvidenceFor != null) {
+        throw FormatException(
+          '$currentOrdinal 字段 $awaitingEvidenceFor 后必须立即跟证据组，'
+          '不得插入空行或代码栅栏。',
+        );
+      }
+      continue;
+    }
+
+    final heading = headingPattern.firstMatch(line);
+    if (heading != null) {
+      if (awaitingEvidenceFor != null) {
+        throw FormatException(
+          '$currentOrdinal 字段 $awaitingEvidenceFor 后缺少紧邻的证据组。',
+        );
+      }
+      finishCurrentChapter();
+      if (parsed.length >= expectedOrdinals.length) {
+        throw const FormatException('AI 大纲包含超过三章的结构化内容。');
+      }
+      final ordinal = heading.group(1)!;
+      final expectedOrdinal = expectedOrdinals[parsed.length];
+      if (ordinal != expectedOrdinal) {
+        throw FormatException('AI 大纲章节顺序错误：期望 $expectedOrdinal，实际为 $ordinal。');
+      }
+      currentOrdinal = ordinal;
+      currentTitle = heading.group(2)!.trim();
+      if (currentTitle.isEmpty) {
+        throw FormatException('$ordinal 缺失章节标题。');
+      }
+      continue;
+    }
+
+    if (line.startsWith('#')) {
+      throw FormatException('AI 大纲包含未授权标题：$line');
+    }
+    if (currentOrdinal == null) {
+      throw FormatException('AI 大纲在第一个章节标题前包含额外内容：$line');
+    }
+
+    final evidence = evidencePattern.firstMatch(line);
+    if (evidence != null) {
+      final fieldLabel = awaitingEvidenceFor;
+      if (fieldLabel == null) {
+        throw FormatException('$currentOrdinal 包含多余或顺序错误的证据组。');
+      }
+      currentEvidence[fieldLabel] = _parseOutlineEvidenceGroups(
+        rawEvidence: evidence.group(1)!,
+        fieldLabel: fieldLabel,
+        fieldValue: currentFields[fieldLabel]!,
+      );
+      awaitingEvidenceFor = null;
+      continue;
+    }
+
+    final field = fieldPattern.firstMatch(line);
+    if (field == null) {
+      throw FormatException('$currentOrdinal 包含非结构化行：$line');
+    }
+    if (awaitingEvidenceFor != null) {
+      throw FormatException(
+        '$currentOrdinal 字段 $awaitingEvidenceFor 后缺少紧邻的证据组。',
+      );
+    }
+    final label = field.group(1)!;
+    if (currentFields.length >= expectedFields.length) {
+      throw FormatException('$currentOrdinal 包含多余字段：$label。');
+    }
+    if (currentFields.containsKey(label)) {
+      throw FormatException('$currentOrdinal 重复字段：$label。');
+    }
+    final expectedLabel = expectedFields[currentFields.length];
+    if (label != expectedLabel) {
+      throw FormatException(
+        '$currentOrdinal 字段顺序错误：期望 $expectedLabel，实际为 $label。',
+      );
+    }
+    final value = field.group(2)!.trim();
+    final normalizedValue = _normalizeOutlineEvidenceText(value);
+    if (normalizedValue.runes.length < 6 ||
+        normalizedValue.runes.length > 160) {
+      throw FormatException('$currentOrdinal 字段 $label 规范化后必须为 6-160 个字符。');
+    }
+    currentFields[label] = value;
+    awaitingEvidenceFor = label;
+  }
+  finishCurrentChapter();
+
+  if (parsed.length != expectedOrdinals.length) {
+    throw FormatException('AI 大纲必须恰好包含三章，实际解析为 ${parsed.length} 章。');
+  }
+  return List<_GeneratedChapterOutline>.unmodifiable(parsed);
+}
+
+const List<String> _outlineEvidenceLabelOrder = <String>[
+  '主体',
+  '动作',
+  '对象',
+  '场所',
+  '时限',
+  '结果',
+];
+const Set<String> _requiredOutlineEvidenceLabels = <String>{'主体', '动作', '对象'};
+
+List<_OutlineEvidenceGroup> _parseOutlineEvidenceGroups({
+  required String rawEvidence,
+  required String fieldLabel,
+  required String fieldValue,
+}) {
+  if (rawEvidence.runes.length > 360) {
+    throw FormatException('$fieldLabel 证据组超过 360 个字符。');
+  }
+  final rawGroups = rawEvidence.split('|');
+  if (rawGroups.length < 3 || rawGroups.length > 6) {
+    throw FormatException('$fieldLabel 证据组必须包含 3-6 个带标签的组。');
+  }
+
+  final normalizedField = _normalizeOutlineEvidenceText(fieldValue);
+  final groups = <_OutlineEvidenceGroup>[];
+  final seenLabels = <String>{};
+  final seenAliases = <String>{};
+  var previousLabelIndex = -1;
+  for (final rawGroup in rawGroups) {
+    final equalsIndex = rawGroup.indexOf('=');
+    if (equalsIndex <= 0 || equalsIndex != rawGroup.lastIndexOf('=')) {
+      throw FormatException('$fieldLabel 证据组必须使用“标签=别名/别名”格式。');
+    }
+    final label = rawGroup.substring(0, equalsIndex).trim();
+    final labelIndex = _outlineEvidenceLabelOrder.indexOf(label);
+    if (labelIndex < 0) {
+      throw FormatException('$fieldLabel 证据组包含未授权标签：$label。');
+    }
+    if (!seenLabels.add(label)) {
+      throw FormatException('$fieldLabel 证据组重复标签：$label。');
+    }
+    if (labelIndex <= previousLabelIndex) {
+      throw FormatException('$fieldLabel 证据组标签顺序错误：$label。');
+    }
+    previousLabelIndex = labelIndex;
+
+    final rawAliases = rawGroup.substring(equalsIndex + 1).split('/');
+    if (rawAliases.isEmpty || rawAliases.length > 4) {
+      throw FormatException('$fieldLabel 证据组 $label 必须包含 1-4 个别名。');
+    }
+    final aliases = <String>[];
+    for (final rawAlias in rawAliases) {
+      final alias = rawAlias.trim();
+      final normalizedAlias = _normalizeOutlineEvidenceText(alias);
+      final normalizedLength = normalizedAlias.runes.length;
+      if (alias.runes.length > 32 ||
+          normalizedLength < 2 ||
+          normalizedLength > 24) {
+        throw FormatException('$fieldLabel 证据组 $label 的别名长度必须为 2-24 个规范化字符。');
+      }
+      if (normalizedAlias == normalizedField) {
+        throw FormatException('$fieldLabel 证据组不得把整个字段作为别名。');
+      }
+      if (!seenAliases.add(normalizedAlias)) {
+        throw FormatException('$fieldLabel 证据组包含重复别名：$alias。');
+      }
+      aliases.add(alias);
+    }
+    if (!normalizedField.contains(
+      _normalizeOutlineEvidenceText(aliases.first),
+    )) {
+      throw FormatException('$fieldLabel 证据组 $label 的第一个别名未在字段原文中落地。');
+    }
+    groups.add(
+      _OutlineEvidenceGroup(
+        label: label,
+        aliases: List<String>.unmodifiable(aliases),
+      ),
+    );
+  }
+
+  final missingRequired = _requiredOutlineEvidenceLabels.difference(seenLabels);
+  if (missingRequired.isNotEmpty) {
+    throw FormatException(
+      '$fieldLabel 证据组缺失必需标签：${missingRequired.join('、')}。',
+    );
+  }
+  return List<_OutlineEvidenceGroup>.unmodifiable(groups);
+}
+
+String _normalizeOutlineEvidenceText(String value) {
+  return value.trim().toLowerCase().replaceAll(
+    RegExp(r'[\s，。；：、！？“”‘’（）()\[\]【】《》—_\-]+'),
     '',
-    '## 真实 AI 输出',
-    '',
-    result.text!.trim(),
-    '',
-    '## Store 持久化镜像',
-    '',
-    _outlineMarkdown(chapters),
-  ].join('\n').trimRight();
+  );
+}
+
+_ValidationScene _bindOutlineBeatToScene({
+  required _ValidationScene seed,
+  required _AuthoritativeOutlineBeat beat,
+}) {
+  final semanticEvidence = beat.evidenceGroups
+      .map((group) => '${group.label}=${group.aliases.join('/')}')
+      .join('；');
+  return _ValidationScene(
+    id: seed.id,
+    title: seed.title,
+    targetLength: seed.targetLength,
+    summary: [
+      seed.summary,
+      '原始验证推进：${seed.targetBeat}',
+      'AI 大纲权威字段（${beat.label}）：${beat.value}',
+      '正文必须用自然改写显式落地核心语义；允许同义转述，但下列每组证据至少出现一项：$semanticEvidence。',
+    ].join('\n'),
+    targetBeat: beat.value,
+    worldNodeIds: seed.worldNodeIds,
+    cast: seed.cast,
+    outlineBeat: beat,
+  );
 }
 
 String _realOutlinePrompt(List<_ValidationChapter> chapters) {
@@ -1407,6 +1971,9 @@ String _realOutlinePrompt(List<_ValidationChapter> chapters) {
     '硬性要求：',
     '- 只规划三章，不要追加第四章或番外。',
     '- 每章必须包含四个字段：章节目标、主要冲突、转折点、结尾钩子。',
+    '- 每个字段的下一行必须紧跟一行证据组，中间不得有空行。',
+    '- 证据组必须按主体、动作、对象、场所、时限、结果的顺序；主体/动作/对象必需，其余可选。',
+    '- 每组用“标签=原文证据/同义别名”；第一个别名必须在对应字段原文中出现，不得把整句作为证据。',
     '- 每章要能直接落成一个 AppWorkspaceStore 场景节点。',
     '- 保持悬疑港区、调查记者、账本证据、雨夜追逃的主线连续性。',
     '',
@@ -1421,10 +1988,14 @@ String _realOutlinePrompt(List<_ValidationChapter> chapters) {
     '',
     '输出格式：',
     '## 第一章 标题',
-    '- 章节目标：',
-    '- 主要冲突：',
-    '- 转折点：',
-    '- 结尾钩子：',
+    '- 章节目标：柳溪在零点前拿到蓝色柜机的密封底册',
+    '- 证据组：主体=柳溪|动作=拿到/取得/获取|对象=密封底册/底册|场所=蓝色柜机/柜机|时限=零点/午夜',
+    '- 主要冲突：岳刃封死集装箱巷并逼她交出录音笔',
+    '- 证据组：主体=岳刃|动作=封死/封锁|对象=录音笔/录音设备|场所=集装箱巷|结果=逼她交出/迫使',
+    '- 转折点：底册内页指向港务档案楼七号暗门',
+    '- 证据组：主体=底册内页|动作=指向/指明|对象=七号暗门/暗门|场所=港务档案楼',
+    '- 结尾钩子：一条实时短信显示沈渡已在暗门后等她',
+    '- 证据组：主体=实时短信/短信|动作=显示/提示|对象=沈渡|场所=暗门后|结果=等她/等待',
     '',
     '然后按同样格式输出第二章、第三章。',
   ].join('\n');
@@ -1465,6 +2036,15 @@ void _applyChapterOutlineToWorkspaceStore({
 }
 
 String _chapterSceneSummary(_ValidationChapter chapter) {
+  final authority = chapter.outlineAuthority;
+  if (authority != null) {
+    return [
+      '章节目标：${authority.chapterGoal}',
+      '主要冲突：${authority.primaryConflict}',
+      '转折点：${authority.turningPoint}',
+      '结尾钩子：${authority.endingHook}',
+    ].join('\n');
+  }
   final turnScene = chapter.scenes.length >= 3
       ? chapter.scenes[2]
       : chapter.scenes.last;
@@ -1496,36 +2076,13 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
     );
     try {
       final output = await orchestrator.runScene(
-        SceneBrief(
-          chapterId: chapter.id,
-          chapterTitle: chapter.title,
-          sceneId: scene.id,
-          sceneTitle: scene.title,
-          sceneSummary: [
-            scene.summary,
-            '目标推进：${scene.targetBeat}',
-            chapterSimulationInput,
-            if (restartNotes.isNotEmpty) '上一轮审查要求：${restartNotes.last}',
-          ].join('\n\n'),
-          targetLength: scene.targetLength,
-          targetBeat: scene.targetBeat,
-          worldNodeIds: scene.worldNodeIds,
-          cast: [
-            for (final cast in scene.cast)
-              SceneCastCandidate(
-                characterId: cast.characterId,
-                name: cast.name,
-                role: cast.role,
-                participation: cast.participation,
-                metadata: Map<String, Object?>.from(cast.metadata),
-              ),
-          ],
-          metadata: {
-            'worldNodeIds': scene.worldNodeIds,
-            'fullRunRestart': restart,
-            'transportRetryCount': transportRetries,
-            'phase5SimulationInput': chapterSimulationInput,
-          },
+        _buildValidationSceneBrief(
+          chapter: chapter,
+          scene: scene,
+          chapterSimulationInput: chapterSimulationInput,
+          restart: restart,
+          transportRetries: transportRetries,
+          restartNotes: restartNotes,
         ),
       );
       if (output.review.decision == SceneReviewDecision.pass) {
@@ -1581,6 +2138,58 @@ Future<_SceneExecutionResult> _runSceneWithEscalation({
 
   throw StateError(
     'Scene ${chapter.id}/${scene.id} did not reach PASS after 3 full runs.',
+  );
+}
+
+SceneBrief _buildValidationSceneBrief({
+  required _ValidationChapter chapter,
+  required _ValidationScene scene,
+  required String chapterSimulationInput,
+  required int restart,
+  required int transportRetries,
+  required List<String> restartNotes,
+}) {
+  final authority = chapter.outlineAuthority;
+  final outlineBeat = scene.outlineBeat;
+  if ((authority == null) != (outlineBeat == null)) {
+    throw StateError('章节 ${chapter.id} 的 AI 大纲权威与场景 ${scene.id} 证据节拍不完整。');
+  }
+
+  return SceneBrief(
+    chapterId: chapter.id,
+    chapterTitle: chapter.title,
+    sceneId: scene.id,
+    sceneTitle: scene.title,
+    sceneSummary: [
+      scene.summary,
+      '目标推进：${scene.targetBeat}',
+      chapterSimulationInput,
+      if (restartNotes.isNotEmpty) '上一轮审查要求：${restartNotes.last}',
+    ].join('\n\n'),
+    targetLength: scene.targetLength,
+    targetBeat: scene.targetBeat,
+    worldNodeIds: scene.worldNodeIds,
+    cast: [
+      for (final cast in scene.cast)
+        SceneCastCandidate(
+          characterId: cast.characterId,
+          name: cast.name,
+          role: cast.role,
+          participation: cast.participation,
+          metadata: Map<String, Object?>.from(cast.metadata),
+        ),
+    ],
+    metadata: <String, Object?>{
+      'worldNodeIds': scene.worldNodeIds,
+      'fullRunRestart': restart,
+      'transportRetryCount': transportRetries,
+      'phase5SimulationInput': chapterSimulationInput,
+      if (authority != null && outlineBeat != null) ...<String, Object?>{
+        'generatedOutlineAuthority': authority.toMetadata(),
+        'requireOutlineFidelity': true,
+        'requiredOutlineBeats': <Object?>[outlineBeat.toContract()],
+      },
+    },
   );
 }
 
@@ -2666,6 +3275,105 @@ class _ConfiguredModel {
   final String connectionMessage;
 }
 
+class _GeneratedThreeChapterOutline {
+  _GeneratedThreeChapterOutline({
+    required this.markdown,
+    required List<_ValidationChapter> chapters,
+  }) : chapters = List<_ValidationChapter>.unmodifiable(chapters);
+
+  final String markdown;
+  final List<_ValidationChapter> chapters;
+}
+
+class _GeneratedChapterOutline {
+  const _GeneratedChapterOutline({
+    required this.title,
+    required this.chapterGoal,
+    required this.chapterGoalEvidence,
+    required this.primaryConflict,
+    required this.primaryConflictEvidence,
+    required this.turningPoint,
+    required this.turningPointEvidence,
+    required this.endingHook,
+    required this.endingHookEvidence,
+  });
+
+  final String title;
+  final String chapterGoal;
+  final List<_OutlineEvidenceGroup> chapterGoalEvidence;
+  final String primaryConflict;
+  final List<_OutlineEvidenceGroup> primaryConflictEvidence;
+  final String turningPoint;
+  final List<_OutlineEvidenceGroup> turningPointEvidence;
+  final String endingHook;
+  final List<_OutlineEvidenceGroup> endingHookEvidence;
+
+  Map<String, Object?> toMetadata() => <String, Object?>{
+    'title': title,
+    'chapterGoal': chapterGoal,
+    'primaryConflict': primaryConflict,
+    'turningPoint': turningPoint,
+    'endingHook': endingHook,
+  };
+
+  List<_AuthoritativeOutlineBeat> beatsForChapter(String chapterId) =>
+      <_AuthoritativeOutlineBeat>[
+        _AuthoritativeOutlineBeat(
+          id: '$chapterId:chapter-goal',
+          label: '章节目标',
+          value: chapterGoal,
+          evidenceGroups: chapterGoalEvidence,
+        ),
+        _AuthoritativeOutlineBeat(
+          id: '$chapterId:primary-conflict',
+          label: '主要冲突',
+          value: primaryConflict,
+          evidenceGroups: primaryConflictEvidence,
+        ),
+        _AuthoritativeOutlineBeat(
+          id: '$chapterId:turning-point',
+          label: '转折点',
+          value: turningPoint,
+          evidenceGroups: turningPointEvidence,
+        ),
+        _AuthoritativeOutlineBeat(
+          id: '$chapterId:ending-hook',
+          label: '结尾钩子',
+          value: endingHook,
+          evidenceGroups: endingHookEvidence,
+        ),
+      ];
+}
+
+class _AuthoritativeOutlineBeat {
+  const _AuthoritativeOutlineBeat({
+    required this.id,
+    required this.label,
+    required this.value,
+    required this.evidenceGroups,
+  });
+
+  final String id;
+  final String label;
+  final String value;
+  final List<_OutlineEvidenceGroup> evidenceGroups;
+
+  Map<String, Object?> toContract() => <String, Object?>{
+    'id': id,
+    'description': '$label：$value',
+    'evidenceGroups': <Object?>[
+      for (final group in evidenceGroups) group.aliases,
+    ],
+  };
+}
+
+class _OutlineEvidenceGroup {
+  const _OutlineEvidenceGroup({required this.label, required this.aliases});
+
+  final String label;
+  final List<String> aliases;
+}
+
 class _ValidationChapter {
   const _ValidationChapter({
     required this.id,
@@ -2674,6 +3382,7 @@ class _ValidationChapter {
     required this.targetLength,
     required this.metadata,
     required this.scenes,
+    this.outlineAuthority,
   });
 
   final String id;
@@ -2682,6 +3391,7 @@ class _ValidationChapter {
   final int targetLength;
   final Map<String, Object?> metadata;
   final List<_ValidationScene> scenes;
+  final _GeneratedChapterOutline? outlineAuthority;
 }
 
 class _ValidationScene {
@@ -2693,6 +3403,7 @@ class _ValidationScene {
     required this.targetBeat,
     required this.worldNodeIds,
     required this.cast,
+    this.outlineBeat,
   });
 
   final String id;
@@ -2702,6 +3413,7 @@ class _ValidationScene {
   final String targetBeat;
   final List<String> worldNodeIds;
   final List<_ValidationCast> cast;
+  final _AuthoritativeOutlineBeat? outlineBeat;
 }
 
 class _ValidationCast {

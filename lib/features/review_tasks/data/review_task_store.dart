@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
-
 import '../../../app/state/app_project_scoped_store.dart';
 import '../domain/review_task_models.dart';
 import 'review_task_storage.dart';
@@ -182,18 +180,4 @@ class ReviewTaskStore extends AppProjectScopedStore {
   @override
   Future<void> clearDeletedProjectScope(String projectId) =>
       _storage.clearProject(projectId);
-}
-
-class ReviewTaskScope extends InheritedNotifier<ReviewTaskStore> {
-  const ReviewTaskScope({
-    super.key,
-    required ReviewTaskStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static ReviewTaskStore of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<ReviewTaskScope>();
-    assert(scope != null, 'ReviewTaskScope is missing in the widget tree.');
-    return scope!.notifier!;
-  }
 }

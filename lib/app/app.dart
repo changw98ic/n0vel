@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import 'di/app_providers.dart';
 import 'di/service_registration.dart';
@@ -41,11 +42,10 @@ class NovelWriterApp extends StatefulWidget {
 
 class _NovelWriterAppState extends State<NovelWriterApp>
     with WidgetsBindingObserver {
-  late final ServiceRegistry _registry;
+  late ServiceRegistry _registry;
   late final CrashDetector _crashDetector;
   bool _crashDetected = false;
   bool _dbCorrupted = false;
-  bool _restoringBackup = false;
   bool _cleanShutdownMarked = false;
 
   @override
@@ -57,12 +57,19 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     _crashDetector = widget.crashDetector ?? CrashDetector();
     _crashDetected = _crashDetector.wasDirtyShutdown();
 
-    _registry = NovelWriterApp.debugRegistryOverride ?? ServiceRegistry();
-    if (NovelWriterApp.debugRegistryOverride == null) {
+    final debugRegistry = NovelWriterApp.debugRegistryOverride;
+    if (debugRegistry != null) {
+      _registry = debugRegistry;
+    } else if (_crashDetected) {
+      // Keep the owned registry dormant until recovery has finished. Even a
+      // lazily-created store can retain a pre-restore snapshot and later write
+      // it over the restored database.
+      _registry = ServiceRegistry();
+    } else {
       try {
-        registerAppServices(_registry);
+        _registry = _createInitializedRegistry();
       } on DatabaseCorruptedException {
-        // DB corruption triggers the same recovery flow as a crash.
+        _registry = ServiceRegistry();
         _crashDetected = true;
         _dbCorrupted = true;
       }
@@ -93,10 +100,54 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     _crashDetector.markCleanShutdown();
   }
 
+  ServiceRegistry _createInitializedRegistry() {
+    final registry = ServiceRegistry();
+    try {
+      registerAppServices(registry);
+      // Registrations are lazy, so explicitly open the authoring database
+      // before mounting providers. This makes corruption enter recovery
+      // instead of surfacing later from an arbitrary store build.
+      registry.resolve<sqlite3.Database>();
+      return registry;
+    } on Object {
+      registry.disposeAll();
+      rethrow;
+    }
+  }
+
+  void _activateRegistryAfterRecovery() {
+    if (NovelWriterApp.debugRegistryOverride != null) {
+      setState(() {
+        _dbCorrupted = false;
+        _crashDetected = false;
+      });
+      return;
+    }
+
+    _registry.disposeAll();
+    try {
+      final replacement = _createInitializedRegistry();
+      setState(() {
+        _registry = replacement;
+        _dbCorrupted = false;
+        _crashDetected = false;
+      });
+    } on DatabaseCorruptedException {
+      setState(() {
+        _registry = ServiceRegistry();
+        _dbCorrupted = true;
+        _crashDetected = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_dbCorrupted) {
       return _buildCorruptionRecovery(context);
+    }
+    if (_crashDetected) {
+      return _buildCrashRecovery();
     }
     return ProviderScope(
       overrides: [serviceRegistryProvider.overrideWithValue(_registry)],
@@ -110,20 +161,21 @@ class _NovelWriterAppState extends State<NovelWriterApp>
             darkTheme: AppTheme.dark(),
             themeMode: settingsStore.snapshot.themeMode,
             home: widget.home ?? const ProjectListPage(),
-            builder: (context, child) {
-              return _CrashRecoveryOverlay(
-                crashDetected: _crashDetected,
-                restoringBackup: _restoringBackup,
-                onRestoreComplete: () {
-                  setState(() {
-                    _restoringBackup = false;
-                  });
-                },
-                child: child!,
-              );
-            },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCrashRecovery() {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: '小说工作台',
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      home: _CrashRecoveryOverlay(
+        onRestoreComplete: _activateRegistryAfterRecovery,
+        child: const Scaffold(body: Center(child: Text('正在检查可用备份…'))),
       ),
     );
   }
@@ -135,39 +187,20 @@ class _NovelWriterAppState extends State<NovelWriterApp>
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       home: _CorruptionRecoveryScreen(
-        onRestoreComplete: () {
-          setState(() {
-            _dbCorrupted = false;
-            _crashDetected = false;
-          });
-          if (NovelWriterApp.debugRegistryOverride == null) {
-            try {
-              registerAppServices(_registry);
-            } on DatabaseCorruptedException {
-              setState(() {
-                _crashDetected = true;
-                _dbCorrupted = true;
-              });
-            }
-          }
-        },
+        onRestoreComplete: _activateRegistryAfterRecovery,
       ),
     );
   }
 }
 
-/// Overlay that intercepts the first frame after a crash-detected startup
-/// and shows the recovery dialog.
+/// Startup gate that completes crash recovery before the application providers
+/// and their database-backed stores are mounted.
 class _CrashRecoveryOverlay extends StatefulWidget {
   const _CrashRecoveryOverlay({
-    required this.crashDetected,
-    required this.restoringBackup,
     required this.onRestoreComplete,
     required this.child,
   });
 
-  final bool crashDetected;
-  final bool restoringBackup;
   final VoidCallback onRestoreComplete;
   final Widget child;
 
@@ -182,7 +215,7 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (widget.crashDetected && !_dialogShown) {
+    if (!_dialogShown) {
       _dialogShown = true;
       _offerRecovery();
     }
@@ -190,8 +223,21 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 
   Future<void> _offerRecovery() async {
     final backupService = NovelWriterApp.debugCreateAutoBackupService();
-    final backups = await backupService.listBackups();
-    if (backups.isEmpty || !mounted) return;
+    final List<BackupEntry> backups;
+    try {
+      backups = await backupService.listBackups();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _restoreError = '读取备份失败：$e';
+      });
+      return;
+    }
+    if (!mounted) return;
+    if (backups.isEmpty) {
+      widget.onRestoreComplete();
+      return;
+    }
 
     final shouldRestore = await NovelWriterApp.debugShowRecoveryDialog(
       context,
@@ -219,35 +265,53 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
   @override
   Widget build(BuildContext context) {
     if (_restoreError != null) {
-      return Material(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-                const SizedBox(height: 16),
-                Text('恢复失败', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(_restoreError!, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: widget.onRestoreComplete,
-                  child: const Text('继续使用当前数据'),
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          IgnorePointer(child: ExcludeSemantics(child: widget.child)),
+          Material(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('恢复失败', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    Text(
+                      _restoreError!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _restoreError = null;
+                        });
+                        widget.onRestoreComplete();
+                      },
+                      child: const Text('继续使用当前数据'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () {
+                        final data = ClipboardData(text: _restoreError!);
+                        Clipboard.setData(data);
+                      },
+                      child: const Text('复制错误信息'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    final data = ClipboardData(text: _restoreError!);
-                    Clipboard.setData(data);
-                  },
-                  child: const Text('复制错误信息'),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       );
     }
     return widget.child;
@@ -333,12 +397,15 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   const SizedBox(height: 12),
                   Text(
                     '应用检测到数据库文件已损坏，无法正常启动。\n'
-                    '请从备份恢复后重启应用。',
+                    '请从备份恢复；完成后应用会重新初始化数据服务。',
                     style: theme.textTheme.bodyMedium,
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ],
                   const SizedBox(height: 20),
                   if (_loading)
@@ -351,23 +418,27 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   else ...[
                     Text('可用备份：', style: theme.textTheme.titleSmall),
                     const SizedBox(height: 8),
-                    ..._backups.take(5).map(
-                      (b) => ListTile(
-                        dense: true,
-                        title: Text(_formatBackupTime(b.createdAtMs)),
-                        subtitle: Text(_formatSize(b.sizeBytes)),
-                        trailing: _restoring
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : FilledButton(
-                                onPressed: () => _restore(b),
-                                child: const Text('恢复'),
-                              ),
-                      ),
-                    ),
+                    ..._backups
+                        .take(5)
+                        .map(
+                          (b) => ListTile(
+                            dense: true,
+                            title: Text(_formatBackupTime(b.createdAtMs)),
+                            subtitle: Text(_formatSize(b.sizeBytes)),
+                            trailing: _restoring
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : FilledButton(
+                                    onPressed: () => _restore(b),
+                                    child: const Text('恢复'),
+                                  ),
+                          ),
+                        ),
                   ],
                 ],
               ),

@@ -11,10 +11,11 @@ import '../../../app/state/story_generation_run_store.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
 import '../../author_feedback/domain/author_feedback_models.dart';
 import '../../review_tasks/data/review_task_store.dart';
-import 'workbench_ai_controller.dart';
-import 'workbench_ai_revision_helpers.dart';
-import 'workbench_editor_helpers.dart';
-import 'workbench_types.dart';
+import '../../story_generation/data/generation_ledger_models.dart';
+import '../data/workbench_ai_controller.dart';
+import '../presentation/workbench_ai_revision_helpers.dart';
+import '../presentation/workbench_editor_helpers.dart';
+import '../presentation/workbench_types.dart';
 
 // --- AI flow command results ---
 
@@ -23,6 +24,47 @@ sealed class AiGenerationCommand {}
 class ShowAiNotReady extends AiGenerationCommand {}
 
 class ShowAiOverlappingSelections extends AiGenerationCommand {}
+
+/// The normal workbench action has started (and finished) a scene pipeline
+/// run. Its candidate is rendered from [StoryGenerationRunStore], rather than
+/// from a one-off chat completion review dialog.
+class ShowAiSceneRunResult extends AiGenerationCommand {
+  ShowAiSceneRunResult({required this.snapshot});
+
+  final StoryGenerationRunSnapshot snapshot;
+}
+
+enum WorkbenchCandidateActionState {
+  idle,
+  accepting,
+  rejecting,
+  accepted,
+  rejected,
+  conflict,
+  unavailable,
+  cancelled,
+  failed,
+}
+
+class WorkbenchCandidateActionFeedback {
+  const WorkbenchCandidateActionFeedback({
+    required this.state,
+    this.message = '',
+  });
+
+  final WorkbenchCandidateActionState state;
+  final String message;
+
+  bool get isBusy =>
+      state == WorkbenchCandidateActionState.accepting ||
+      state == WorkbenchCandidateActionState.rejecting;
+
+  bool get isError =>
+      state == WorkbenchCandidateActionState.conflict ||
+      state == WorkbenchCandidateActionState.unavailable ||
+      state == WorkbenchCandidateActionState.cancelled ||
+      state == WorkbenchCandidateActionState.failed;
+}
 
 class ShowAiReview extends AiGenerationCommand {
   ShowAiReview({
@@ -108,6 +150,10 @@ class WorkbenchOrchestrator extends AppStoreListenable {
   bool _showContextSyncedBanner = false;
   final List<WorkbenchAiSelectionDraft> _aiSelections = [];
   bool _isChapterListOpen = true;
+  WorkbenchCandidateActionFeedback _candidateActionFeedback =
+      const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.idle,
+      );
 
   WorkbenchToolPanel? get activeToolPanel => _activeToolPanel;
   AiToolMode get aiToolMode => _aiToolMode;
@@ -116,6 +162,8 @@ class WorkbenchOrchestrator extends AppStoreListenable {
   List<WorkbenchAiSelectionDraft> get aiSelections =>
       List.unmodifiable(_aiSelections);
   bool get isChapterListOpen => _isChapterListOpen;
+  WorkbenchCandidateActionFeedback get candidateActionFeedback =>
+      _candidateActionFeedback;
 
   bool get canGenerateAi =>
       settingsStore.hasAnyReadyConfiguration &&
@@ -236,10 +284,8 @@ class WorkbenchOrchestrator extends AppStoreListenable {
     notifyListeners();
 
     try {
-      final original = draftStore.snapshot.text;
-      final continueMode = _aiToolMode == AiToolMode.continueWriting;
-
       if (_aiToolMode == AiToolMode.rewrite && _aiSelections.isNotEmpty) {
+        final original = draftStore.snapshot.text;
         final selectionPrompt = '多选区改写（${_aiSelections.length}段）';
         final blocks = await aiController.requestSelectionReviewBlocks(
           original,
@@ -258,29 +304,132 @@ class WorkbenchOrchestrator extends AppStoreListenable {
         );
       }
 
-      final fallbackPrompt = prompt.isEmpty
-          ? WorkbenchAiRevisionHelpers.defaultIntent(continueMode: continueMode)
+      // No selection means the author asked to write the current scene, not
+      // to perform an inline edit. Keep that action on the single durable
+      // StoryPipeline path so it receives context, review, and persistence.
+      final effectivePrompt = prompt.isEmpty
+          ? WorkbenchAiRevisionHelpers.defaultIntent(
+              continueMode: _aiToolMode == AiToolMode.continueWriting,
+            )
           : prompt;
-      final blocks = await aiController.requestFallbackReviewBlocks(
-        original: original,
-        prompt: prompt,
-        continueMode: continueMode,
-        metadata: metadata,
+      await storyRunStore.runCurrentScene(rulesOverride: effectivePrompt);
+      final snapshot = storyRunStore.snapshot;
+      await aiController.logEvent(
+        category: AppEventLogCategory.ai,
+        action: 'ai.scene_pipeline.completed',
+        status: snapshot.candidatePresentation.canAccept
+            ? AppEventLogStatus.succeeded
+            : AppEventLogStatus.failed,
+        message: snapshot.candidatePresentation.canAccept
+            ? 'Scene pipeline generated a recoverable candidate.'
+            : 'Scene pipeline did not produce a candidate.',
         correlationId: correlationId,
+        metadata: {
+          'runStatus': snapshot.status.name,
+          'candidatePresentation': snapshot.candidatePresentation.state.name,
+        },
       );
-      return ShowAiReview(
-        reviewTitle: continueMode ? 'AI 续写确认' : 'AI 修改确认',
-        historyPrompt: fallbackPrompt,
-        blocks: blocks,
-        metadata: metadata,
-        continueMode: continueMode,
-        clearSelectionsOnAccept: false,
-        correlationId: correlationId,
-      );
+      return ShowAiSceneRunResult(snapshot: snapshot);
     } finally {
       _isGeneratingAi = false;
       notifyListeners();
     }
+  }
+
+  /// Requests one author acceptance through the run-store transaction entry
+  /// point.  The UI never writes draft text from its cached prose preview.
+  Future<void> acceptCurrentCandidate() async {
+    if (_candidateActionFeedback.isBusy) return;
+    if (!storyRunStore.snapshot.candidatePresentation.canAccept) {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.unavailable,
+        message: '候选 proof 或正文载荷不可用，不能采纳；系统没有自动恢复。',
+      );
+      notifyListeners();
+      return;
+    }
+    _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+      state: WorkbenchCandidateActionState.accepting,
+      message: '正在以候选证明提交作者采纳…',
+    );
+    notifyListeners();
+    try {
+      final result = await storyRunStore.acceptCurrentCandidate();
+      _candidateActionFeedback = WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.accepted,
+        message: result is GenerationCommitAlreadyApplied
+            ? '该候选此前已经采纳；已返回原提交记录。'
+            : '候选稿已采纳并完成事务提交。',
+      );
+    } on GenerationDraftConflict {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.conflict,
+        message: '正文在候选生成后已变更，候选未提交。请比较后重新生成；系统没有自动覆盖。',
+      );
+    } on GenerationMaterialConflict {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.conflict,
+        message: '项目资料在候选生成后已变更，候选未提交。请确认资料后重新生成；系统没有自动恢复。',
+      );
+    } on GenerationCandidateEvidenceConflict {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.unavailable,
+        message: '候选 proof 或正文载荷校验失败，候选未提交。请重新生成；系统没有自动恢复。',
+      );
+    } on GenerationCancelWonConflict {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.cancelled,
+        message: '取消操作先于采纳生效，候选没有提交。请创建新的运行。',
+      );
+    } on GenerationCommitConflict {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.conflict,
+        message: '候选提交发生冲突，未写入正文或长期记忆。请检查后重新生成。',
+      );
+    } catch (_) {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.failed,
+        message: '候选采纳未完成，未将缓存正文写入编辑器。请查看运行记录后重试。',
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Rejects only the staged candidate namespace.  Rejection never routes the
+  /// cached prose through draft/version stores.
+  Future<void> rejectCurrentCandidate() async {
+    if (_candidateActionFeedback.isBusy) return;
+    if (!storyRunStore.snapshot.candidatePresentation.canReject) {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.unavailable,
+        message: '候选 proof 或正文载荷不可用，不能拒绝；没有任何正文会被提交。',
+      );
+      notifyListeners();
+      return;
+    }
+    _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+      state: WorkbenchCandidateActionState.rejecting,
+      message: '正在丢弃未采纳候选…',
+    );
+    notifyListeners();
+    try {
+      final rejected = await storyRunStore.rejectCurrentCandidate();
+      _candidateActionFeedback = rejected
+          ? const WorkbenchCandidateActionFeedback(
+              state: WorkbenchCandidateActionState.rejected,
+              message: '候选稿已拒绝；正文、版本和长期记忆均未提交。',
+            )
+          : const WorkbenchCandidateActionFeedback(
+              state: WorkbenchCandidateActionState.unavailable,
+              message: '候选 proof 已不可用，无法拒绝；没有任何正文会被提交。',
+            );
+    } catch (_) {
+      _candidateActionFeedback = const WorkbenchCandidateActionFeedback(
+        state: WorkbenchCandidateActionState.failed,
+        message: '拒绝候选未完成；没有将缓存正文写入编辑器。请刷新运行记录后重试。',
+      );
+    }
+    notifyListeners();
   }
 
   // --- AI replay flow ---

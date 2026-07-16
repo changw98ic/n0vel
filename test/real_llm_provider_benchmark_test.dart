@@ -7,6 +7,7 @@ import 'package:novel_writer/app/llm/app_llm_providers.dart' as providers;
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
 import 'package:novel_writer/features/story_generation/data/generation_pipeline_config.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 
@@ -26,6 +27,12 @@ import 'package:novel_writer/features/story_generation/domain/scene_models.dart'
 ///   OLLAMA_CLOUD_KEY — Ollama Cloud API key（Kimi）
 ///   OLLAMA_CLOUD_MODEL — Ollama Cloud 模型名（默认 kimi-k2.6）
 void main() {
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/real_llm_provider_benchmark_test.dart',
+        environment: Platform.environment,
+      );
+  final realProviderRunAuthorized = legacyRealProviderDecision.authorized;
   final anthropicKey = Platform.environment['ANTHROPIC_AUTH_TOKEN'];
   final xiaomiKey = Platform.environment['XIAOMI_API_KEY'];
   final ollamaCloudUrl = Platform.environment['OLLAMA_CLOUD_URL'];
@@ -33,14 +40,21 @@ void main() {
   final ollamaCloudModel =
       Platform.environment['OLLAMA_CLOUD_MODEL'] ?? 'kimi-k2.6';
 
-  final hasZhipu = anthropicKey != null && anthropicKey.isNotEmpty;
-  final hasMimo = xiaomiKey != null && xiaomiKey.isNotEmpty;
-  final hasKimi = ollamaCloudKey != null && ollamaCloudKey.isNotEmpty;
+  final hasZhipu =
+      realProviderRunAuthorized &&
+      anthropicKey != null &&
+      anthropicKey.isNotEmpty;
+  final hasMimo =
+      realProviderRunAuthorized && xiaomiKey != null && xiaomiKey.isNotEmpty;
+  final hasKimi =
+      realProviderRunAuthorized &&
+      ollamaCloudKey != null &&
+      ollamaCloudKey.isNotEmpty;
 
   group('GLM 工作流', () {
     test('glm-5.1 完整 9 步流水线', () async {
       if (!hasZhipu) {
-        print('⏭️ 跳过：缺少 ANTHROPIC_AUTH_TOKEN');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -65,7 +79,7 @@ void main() {
   group('MiMo 工作流', () {
     test('mimo-v2.5-pro 完整 9 步流水线', () async {
       if (!hasMimo) {
-        print('⏭️ 跳过：缺少 XIAOMI_API_KEY');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -90,7 +104,7 @@ void main() {
   group('Kimi 工作流', () {
     test('$ollamaCloudModel 完整 9 步流水线', () async {
       if (!hasKimi) {
-        print('⏭️ 跳过：缺少 OLLAMA_CLOUD_KEY');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 
@@ -122,7 +136,7 @@ void main() {
       if (hasMimo) available.add('MiMo');
       if (hasKimi) available.add('Kimi');
       if (available.length < 2) {
-        print('⏭️ 跳过：至少需要 2 个供应商，当前可用: $available');
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 

@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import re
 import sys
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 PRD = DOCS_DIR / "prd.md"
 ARCH = DOCS_DIR / "architecture.md"
+AGENT_EVAL_SPEC = DOCS_DIR / "agent-engineering-evaluation-spec.md"
 UI = ROOT / "editor.pen"
 
 
@@ -24,25 +26,37 @@ def expect_contains(text: str, expected: str, label: str) -> None:
         fail(f"{label} missing required text: {expected}")
 
 
+def validate_local_markdown_links(path: Path, text: str) -> None:
+    for raw_target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
+        target = raw_target.strip().strip("<>")
+        if (
+            not target
+            or target.startswith(("http://", "https://", "mailto:", "#"))
+        ):
+            continue
+        relative_target = target.split("#", maxsplit=1)[0]
+        resolved = (path.parent / relative_target).resolve()
+        if not resolved.exists():
+            fail(f"{path.relative_to(ROOT)} has broken local link: {raw_target}")
+
+
 def main() -> None:
     if not PRD.is_file():
         fail("docs/prd.md is missing")
     if not ARCH.is_file():
         fail("docs/architecture.md is missing")
+    if not AGENT_EVAL_SPEC.is_file():
+        fail("docs/agent-engineering-evaluation-spec.md is missing")
     if not UI.is_file():
         fail("editor.pen is missing")
 
     top_level_docs = sorted(
         p.name for p in DOCS_DIR.iterdir() if not p.name.startswith(".")
     )
-    if top_level_docs != ["architecture.md", "prd.md"]:
-        fail(
-            "docs/ directory must contain only architecture.md and prd.md; "
-            f"found {top_level_docs}"
-        )
 
     prd_text = PRD.read_text(encoding="utf-8")
     arch_text = ARCH.read_text(encoding="utf-8")
+    agent_eval_spec_text = AGENT_EVAL_SPEC.read_text(encoding="utf-8")
 
     for section in (
         "## 1. 产品定位",
@@ -98,6 +112,25 @@ def main() -> None:
     if "```mermaid" not in arch_text:
         fail("docs/architecture.md must include a mermaid diagram")
 
+    for required_text in (
+        "状态：V26 本地实现已进入最终复核；真实发布矩阵登记为外部条件",
+        "真实发布矩阵登记为外部条件",
+        "不代表功能已经完成",
+        "provider-execution-and-pass3-smoke",
+        "releaseEligible = false",
+        "截至 2026-07-14 的结论：V26 仓库内实现",
+        "authoring schema V27",
+        "Runner authority 在 `prepared`、`accepted`、`outboxCompleted`、`finalPersisted` 四个边界",
+        "## 14. 机械验收标准",
+        "## 19. 对抗性复核记录",
+    ):
+        expect_contains(
+            agent_eval_spec_text,
+            required_text,
+            "docs/agent-engineering-evaluation-spec.md",
+        )
+    validate_local_markdown_links(AGENT_EVAL_SPEC, agent_eval_spec_text)
+
     try:
         ui_json = json.loads(UI.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -108,24 +141,29 @@ def main() -> None:
 
     ui_text = UI.read_text(encoding="utf-8")
     expect_contains(ui_text, "编辑页 - 纯净写作", "editor.pen")
-    expect_contains(ui_text, "写作助手工作流 - 规则检查", "editor.pen")
-    expect_contains(ui_text, "设置页", "editor.pen")
-    expect_contains(ui_text, "导入导出页", "editor.pen")
+    expect_contains(ui_text, "书架页", "editor.pen")
+    expect_contains(ui_text, "作品资料页", "editor.pen")
+    expect_contains(ui_text, "新建作品页", "editor.pen")
+    expect_contains(ui_text, "设定资料页", "editor.pen")
+    expect_contains(ui_text, "写作助手工作流", "editor.pen")
     expect_contains(ui_text, "用户反馈对话", "editor.pen")
     expect_contains(ui_text, "发起一次规则检查", "editor.pen")
-    expect_contains(ui_text, "状态：可恢复运行", "editor.pen")
-    expect_contains(ui_text, "规则检查失败", "editor.pen")
-    expect_contains(ui_text, "源内容已变更", "editor.pen")
-    expect_contains(ui_text, "运行内候选", "editor.pen")
-    expect_contains(ui_text, "继续运行", "editor.pen")
-    expect_contains(ui_text, "丢弃运行", "editor.pen")
+    expect_contains(ui_text, "状态：等待作者反馈", "editor.pen")
+    expect_contains(ui_text, "源内容检测", "editor.pen")
+    expect_contains(ui_text, "候选正文预览", "editor.pen")
+    expect_contains(ui_text, "可恢复", "editor.pen")
+    expect_contains(ui_text, "上次运行未完成 · 可继续或丢弃", "editor.pen")
+    expect_contains(ui_text, "恢复上次运行", "editor.pen")
     expect_contains(ui_text, "监控记录", "editor.pen")
     expect_contains(ui_text, "Navigation", "editor.pen")
     expect_contains(ui_text, "纯净编辑工作区", "editor.pen")
 
     print("Docs bundle validation: PASSED")
     print(f"- docs/: {top_level_docs}")
-    print("- required artifacts: docs/prd.md, docs/architecture.md, editor.pen")
+    print(
+        "- required artifacts: docs/prd.md, docs/architecture.md, "
+        "docs/agent-engineering-evaluation-spec.md, editor.pen"
+    )
 
 
 if __name__ == "__main__":

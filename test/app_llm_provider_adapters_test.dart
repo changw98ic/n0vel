@@ -257,6 +257,14 @@ void main() {
           'data: {"type":"content_block_delta","delta":{"text":""}}\n\n';
       expect(adapter.decodeOutputText(sse), isNull);
     });
+
+    test('decodeOutputText extracts text from non-streaming message JSON', () {
+      const response =
+          '{"content":[{"type":"text","text":" hello "},'
+          '{"type":"tool_use","id":"ignored"},'
+          '{"type":"text","text":"world"}]}';
+      expect(adapter.decodeOutputText(response), 'hello world');
+    });
   });
 
   group('MimoAdapter', () {

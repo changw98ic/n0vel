@@ -21,6 +21,16 @@ typedef FailoverEndpointRunner =
 typedef FailoverEndpointGatewayProvider =
     AppLlmClientGateway Function(FailoverEndpoint endpoint);
 
+typedef FailoverPhysicalDispatchRunner =
+    Future<AppLlmChatResult> Function({
+      required FailoverEndpoint endpoint,
+      required AppLlmChatRequest request,
+      required int endpointIndex,
+      required int gatewayRetryIndex,
+      required bool wasFallback,
+      required Future<AppLlmChatResult> Function() operation,
+    });
+
 /// Failover chain 中的一个 provider 端点。
 class FailoverEndpoint {
   const FailoverEndpoint({
@@ -87,6 +97,7 @@ class LlmFailoverChain {
     required AppLlmClient delegate,
     this.strategy = FailoverStrategy.localFirst,
     this.endpointRunner,
+    this.physicalDispatchRunner,
     this.gatewayProvider,
     int maxRetriesPerEndpoint = 3,
     int baseDelayMs = 1000,
@@ -108,6 +119,7 @@ class LlmFailoverChain {
   final List<FailoverEndpoint> endpoints;
   final FailoverStrategy strategy;
   final FailoverEndpointRunner? endpointRunner;
+  final FailoverPhysicalDispatchRunner? physicalDispatchRunner;
   final FailoverEndpointGatewayProvider? gatewayProvider;
 
   final AppLlmClient _delegate;
@@ -188,12 +200,33 @@ class LlmFailoverChain {
         messages: requestTemplate.messages,
         provider: endpoint.provider,
         onPartialText: requestTemplate.onPartialText,
+        formalCacheIdentity: requestTemplate.formalCacheIdentity,
+        preferStreaming: requestTemplate.preferStreaming,
       );
+
+      Future<AppLlmChatResult> executeGateway() {
+        final physicalRunner = physicalDispatchRunner;
+        // llm-call-site: boundary.failover.direct
+        return gateway.chatWithPhysicalDispatch(
+          request,
+          dispatchRunner: physicalRunner == null
+              ? null
+              : ({required request, required retryIndex, required operation}) =>
+                    physicalRunner(
+                      endpoint: endpoint,
+                      request: request,
+                      endpointIndex: i,
+                      gatewayRetryIndex: retryIndex,
+                      wasFallback: i > 0,
+                      operation: operation,
+                    ),
+        );
+      }
 
       final runner = endpointRunner;
       lastResult = runner == null
-          ? await gateway.chat(request)
-          : await runner(endpoint, () => gateway.chat(request));
+          ? await executeGateway()
+          : await runner(endpoint, executeGateway);
 
       attempts?.add(
         FailoverAttemptResult(

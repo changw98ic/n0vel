@@ -104,10 +104,8 @@ class RevisionHubPage extends ConsumerWidget {
                         icon: Icons.task_outlined,
                         title: '改稿任务',
                         subtitle: summary.taskSubtitle,
-                        onTap: () => AppNavigator.push(
-                          context,
-                          AppRoutes.reviewTasks,
-                        ),
+                        onTap: () =>
+                            AppNavigator.push(context, AppRoutes.reviewTasks),
                       ),
                       RevisionHubNavItem(
                         icon: Icons.dashboard_outlined,
@@ -328,6 +326,11 @@ String _runStatusLabel(StoryGenerationRunStatus status) {
     StoryGenerationRunStatus.idle => '尚未生成',
     StoryGenerationRunStatus.running => '生成中',
     StoryGenerationRunStatus.completed => '已生成',
+    StoryGenerationRunStatus.preliminaryReviewBlocked => '初审阻断，待作者处理',
+    StoryGenerationRunStatus.finalReviewBlocked => '终审阻断，待作者处理',
+    StoryGenerationRunStatus.qualityBlocked => '质量阻断，需新正文后重试',
+    StoryGenerationRunStatus.budgetBlocked => '预算阻断，需新运行',
+    StoryGenerationRunStatus.conflict => '资料或正文冲突，未提交',
     StoryGenerationRunStatus.failed => '生成失败',
     StoryGenerationRunStatus.cancelled => '已取消',
   };

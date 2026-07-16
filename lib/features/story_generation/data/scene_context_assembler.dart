@@ -45,6 +45,7 @@ class SceneContextAssembler implements SceneContextAssemblerService {
       projectId: brief.projectId ?? brief.chapterId,
       scopeId: scopeId,
       materials: materials,
+      producer: StoryMemoryIndexer.contextEnrichmentProducer,
     );
 
     return SceneContextAssembly(

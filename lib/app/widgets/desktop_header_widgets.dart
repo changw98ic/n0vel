@@ -43,7 +43,7 @@ abstract final class AppNavTabs {
 
   static void navigateTo(WidgetRef ref, BuildContext context, int index) async {
     final canNavigate = await confirmIfBlocked(context);
-    if (!canNavigate) return;
+    if (!context.mounted || !canNavigate) return;
     switch (index) {
       case 0:
         Navigator.of(context).popUntil((route) => route.isFirst);

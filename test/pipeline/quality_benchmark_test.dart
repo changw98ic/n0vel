@@ -4,7 +4,14 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_provider_entry_gate.dart';
+
 void main() {
+  final legacyRealProviderDecision =
+      AgentEvaluationRealProviderEntryGate.legacyDecision(
+        entryPoint: 'test/pipeline/quality_benchmark_test.dart',
+        environment: Platform.environment,
+      );
   test('10-scene deterministic quality corpus stays within tolerance', () {
     const corpus = [
       _QualityCase('opening-hook', 0.74, 0.76),
@@ -40,10 +47,8 @@ void main() {
   test(
     'real 10-scene benchmark delegates to existing benchmark suite',
     () async {
-      if (Platform.environment['RUN_REAL_NOVEL_QUALITY_BENCHMARK'] != '1') {
-        markTestSkipped(
-          'Set RUN_REAL_NOVEL_QUALITY_BENCHMARK=1 to run the real benchmark.',
-        );
+      if (!legacyRealProviderDecision.authorized) {
+        markTestSkipped(legacyRealProviderDecision.denialReason);
         return;
       }
 

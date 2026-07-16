@@ -1,4 +1,7 @@
 import '../llm/app_llm_client.dart';
+import '../llm/app_llm_call_site_inventory.dart';
+import '../llm/app_llm_prompt_release.dart';
+import '../llm/app_llm_prompt_invocation.dart';
 import '../llm/app_llm_request_pool.dart';
 import 'ai_request_service.dart';
 import 'app_store_listenable.dart';
@@ -26,12 +29,28 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
     int? maxTokens,
     String? traceName,
     Map<String, Object?> traceMetadata = const {},
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
+    PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
   }) {
+    final callSiteAuthority = AppLlmCallSiteAuthority.registeredPrompt(
+      promptReleaseRef: promptReleaseRef,
+      promptInvocationEvidence: promptInvocationEvidence,
+      stageId: stageId,
+      callSiteId: callSiteId,
+      variantId: variantId,
+      generationBundleHash: generationBundleHash,
+    );
+    if (callSiteAuthority is! AppLlmRegisteredPromptAuthority) {
+      throw StateError('central product dispatch requires prompt authority');
+    }
     final resolvedTraceName = traceName ?? _inferTraceName(messages);
     final resolved = _resolveRequestSettings(resolvedTraceName);
-    final requestPool = storeRequestPoolForProfile(
-      resolved.providerProfileId,
-    );
+    final requestPool = storeRequestPoolForProfile(resolved.providerProfileId);
     final route = ResolvedProviderRoute(
       providerName: resolved.providerName,
       baseUrl: resolved.baseUrl,
@@ -41,12 +60,12 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
     );
 
     // 构建备用 provider 列表用于 failover。
-    final failoverEndpoints =
-        storeAiRequestService.buildFailoverEndpoints(
+    final failoverEndpoints = storeAiRequestService.buildFailoverEndpoints(
       profiles: storeSnapshot.providerProfiles,
       excludeProfileId: resolved.providerProfileId,
     );
 
+    // llm-call-site: boundary.settings.central-request
     return storeAiRequestService.requestCompletion(
       snapshot: storeSnapshot,
       route: route,
@@ -56,7 +75,15 @@ mixin AppSettingsStoreAiRouting on AppStoreListenable {
       maxTokens: maxTokens,
       traceName: resolvedTraceName,
       traceMetadata: traceMetadata,
+      promptReleaseRef: promptReleaseRef,
+      promptInvocationEvidence: promptInvocationEvidence,
+      promptVersion: promptVersion,
+      stageId: stageId,
+      callSiteId: callSiteId,
+      variantId: variantId,
+      generationBundleHash: generationBundleHash,
       failoverEndpoints: failoverEndpoints,
+      callSiteAuthority: callSiteAuthority,
     );
   }
 

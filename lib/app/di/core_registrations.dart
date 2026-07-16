@@ -15,6 +15,9 @@ import '../state/story_arc_store.dart';
 import '../../features/writing_stats/data/writing_stats_store.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
+import '../../features/story_generation/data/story_memory_storage.dart';
+import '../../features/story_generation/data/story_context_cache.dart';
+import '../rag/hybrid_retriever.dart';
 import 'service_registry.dart';
 
 void registerCoreServices(ServiceRegistry registry) {
@@ -26,6 +29,17 @@ void registerCoreServices(ServiceRegistry registry) {
             r.resolve<RoleplaySessionStore>().clearProject(projectId),
         (projectId) =>
             r.resolve<CharacterMemoryStore>().clearProject(projectId),
+        (projectId) => r.resolve<StoryMemoryStorage>().clearProject(projectId),
+        (projectId) async {
+          r.resolve<StoryContextCache>().invalidateProject(projectId);
+        },
+        (projectId) async {
+          final retriever = r.resolve<HybridRetriever>();
+          await Future.wait([
+            retriever.ftsStorage.clearProject(projectId),
+            retriever.vectorStore.clearProject(projectId),
+          ]);
+        },
       ],
     ),
   );

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +7,7 @@ import '../../../app/state/app_workspace_store.dart';
 import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_list_filter.dart';
+import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import 'project_list_components.dart';
@@ -41,6 +40,7 @@ class ProjectListPage extends ConsumerStatefulWidget {
 
 class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _gridScrollController = ScrollController();
   int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
@@ -62,7 +62,9 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   static int _compareByGenre(ProjectRecord a, ProjectRecord b) =>
       a.genre.compareTo(b.genre);
 
-  List<AppListFilterOption<ProjectRecord>> _filterOptions(BuildContext context) {
+  List<AppListFilterOption<ProjectRecord>> _filterOptions(
+    BuildContext context,
+  ) {
     final now = DateTime.now().millisecondsSinceEpoch;
     const dayMs = 24 * 60 * 60 * 1000;
     return [
@@ -81,6 +83,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _gridScrollController.dispose();
     super.dispose();
   }
 
@@ -185,15 +188,13 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                       borderRadius: BorderRadius.circular(
                         AppDesignTokens.radiusLarge,
                       ),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFD8D2C6)),
+                      borderSide: const BorderSide(color: Color(0xFFD8D2C6)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
                         AppDesignTokens.radiusLarge,
                       ),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFD8D2C6)),
+                      borderSide: const BorderSide(color: Color(0xFFD8D2C6)),
                     ),
                   ),
                 ),
@@ -229,25 +230,32 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
               final availableWidth =
                   constraints.maxWidth - horizontalPadding * 2;
               final cardWidth =
-                  (availableWidth - crossAxisSpacing * (columns - 1)) /
-                      columns;
+                  (availableWidth - crossAxisSpacing * (columns - 1)) / columns;
               const cardHeight = 320.0;
               final aspectRatio = cardWidth / cardHeight;
-              return GridView.builder(
-                padding:
-                    const EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  childAspectRatio: aspectRatio,
-                  crossAxisSpacing: crossAxisSpacing,
-                  mainAxisSpacing: mainAxisSpacing,
-                ),
-                itemCount: projects.length,
-                itemBuilder: (context, index) => ProjectShelfCard(
-                  project: projects[index],
-                  onTap: () => _openEditor(context, projects[index]),
-                  onSecondaryTap: (offset) =>
-                      _showCardContextMenu(context, projects[index], offset),
+              return AppPremiumScrollbar(
+                controller: _gridScrollController,
+                child: GridView.builder(
+                  controller: _gridScrollController,
+                  padding: const EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    16,
+                    horizontalPadding,
+                    20,
+                  ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    childAspectRatio: aspectRatio,
+                    crossAxisSpacing: crossAxisSpacing,
+                    mainAxisSpacing: mainAxisSpacing,
+                  ),
+                  itemCount: projects.length,
+                  itemBuilder: (context, index) => ProjectShelfCard(
+                    project: projects[index],
+                    onTap: () => _openEditor(context, projects[index]),
+                    onSecondaryTap: (offset) =>
+                        _showCardContextMenu(context, projects[index], offset),
+                  ),
                 ),
               );
             },

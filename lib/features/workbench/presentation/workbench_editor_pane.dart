@@ -105,12 +105,13 @@ class WorkbenchEditorPane extends StatelessWidget {
                             ),
                             decoration: InputDecoration(
                               hintText: '开始书写当前章节正文…',
-                              hintStyle: TextStyle(
-                                color: palette.tertiaryText,
-                              ),
+                              hintStyle: TextStyle(color: palette.tertiaryText),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.fromLTRB(
-                                90, 54, 90, 16,
+                                90,
+                                54,
+                                90,
+                                16,
                               ),
                             ),
                           ),
@@ -194,25 +195,25 @@ class _EditorToolbar extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          EditorToolbarIconButton(
+          const EditorToolbarIconButton(
             icon: Icons.undo,
             tooltip: '撤销',
             onTap: null,
           ),
           const SizedBox(width: 14),
-          EditorToolbarIconButton(
+          const EditorToolbarIconButton(
             icon: Icons.format_bold,
             tooltip: '加粗',
             onTap: null,
           ),
           const SizedBox(width: 14),
-          EditorToolbarIconButton(
+          const EditorToolbarIconButton(
             icon: Icons.message_outlined,
             tooltip: '批注',
             onTap: null,
           ),
           const SizedBox(width: 14),
-          EditorToolbarIconButton(
+          const EditorToolbarIconButton(
             icon: Icons.highlight,
             tooltip: '高亮',
             onTap: null,

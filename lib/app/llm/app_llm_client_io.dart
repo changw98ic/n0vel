@@ -14,17 +14,28 @@ AppLlmClient createAppLlmClient() => _IoAppLlmClient();
 class _IoAppLlmClient implements AppLlmClient {
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
-    final streamed = await _chatOnce(request, stream: true);
+    // A streaming attempt and its non-stream fallback are one user-visible
+    // request. They must share a deadline so a provider that keeps a stream
+    // alive without completing cannot double (or indefinitely extend) the
+    // caller's configured receive timeout.
+    final deadline = DateTime.now().add(
+      Duration(milliseconds: request.timeout.receiveTimeoutMs),
+    );
+    if (!request.preferStreaming) {
+      return _chatOnce(request, stream: false, deadline: deadline);
+    }
+    final streamed = await _chatOnce(request, stream: true, deadline: deadline);
     if (streamed.succeeded ||
         streamed.failureKind != AppLlmFailureKind.invalidResponse) {
       return streamed;
     }
-    return _chatOnce(request, stream: false);
+    return _chatOnce(request, stream: false, deadline: deadline);
   }
 
   Future<AppLlmChatResult> _chatOnce(
     AppLlmChatRequest request, {
     required bool stream,
+    required DateTime deadline,
   }) async {
     final adapter = AppLlmProviderAdapters.of(request.provider);
     final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
@@ -57,22 +68,47 @@ class _IoAppLlmClient implements AppLlmClient {
     );
 
     final stopwatch = Stopwatch()..start();
+    final cancelToken = CancelToken();
+
+    Duration remaining() {
+      final value = deadline.difference(DateTime.now());
+      if (value <= Duration.zero) {
+        cancelToken.cancel('chat deadline exceeded');
+        throw TimeoutException('chat deadline exceeded');
+      }
+      return value;
+    }
+
+    Future<T> beforeDeadline<T>(Future<T> future) => future.timeout(
+      remaining(),
+      onTimeout: () {
+        cancelToken.cancel('chat deadline exceeded');
+        throw TimeoutException('chat deadline exceeded');
+      },
+    );
+
     try {
-      final response = await dio.postUri<ResponseBody>(
-        endpoint,
-        data: adapter.buildBody(
-          model: request.model,
-          messages: request.messages,
-          stream: stream,
-          maxTokens: request.effectiveMaxTokens,
+      final response = await beforeDeadline(
+        // llm-call-site: boundary.provider.io-stream-http
+        dio.postUri<ResponseBody>(
+          endpoint,
+          data: adapter.buildBody(
+            model: request.model,
+            messages: request.messages,
+            stream: stream,
+            maxTokens: request.effectiveMaxTokens,
+          ),
+          cancelToken: cancelToken,
         ),
       );
       final statusCode = response.statusCode ?? 0;
 
       if (statusCode < 200 || statusCode >= 300) {
-        final body = await _readResponseBody(
-          response.data,
-          timeoutMs: request.timeout.receiveTimeoutMs,
+        final body = await beforeDeadline(
+          _readResponseBody(
+            response.data,
+            timeoutMs: request.timeout.receiveTimeoutMs,
+          ),
         );
         stopwatch.stop();
         if (statusCode == HttpStatus.unauthorized ||
@@ -104,15 +140,19 @@ class _IoAppLlmClient implements AppLlmClient {
         );
       }
 
-      final body = await _readResponseBody(
-        response.data,
-        timeoutMs: request.timeout.receiveTimeoutMs,
+      final body = await beforeDeadline(
+        _readResponseBody(
+          response.data,
+          timeoutMs: request.timeout.receiveTimeoutMs,
+        ),
       );
       stopwatch.stop();
 
-      final decoded =
-          decodeOpenAiChatStreamBody(body) ??
-          decodeOpenAiChatResponseBody(body);
+      final decoded = request.provider == AppLlmProvider.anthropic
+          ? decodeAnthropicMessageStreamBody(body) ??
+                decodeAnthropicMessageResponseBody(body)
+          : decodeOpenAiChatStreamBody(body) ??
+                decodeOpenAiChatResponseBody(body);
       final outputText = decoded?.text ?? adapter.decodeOutputText(body);
       if (outputText == null || outputText.trim().isEmpty) {
         return AppLlmChatResult.failure(
@@ -128,6 +168,7 @@ class _IoAppLlmClient implements AppLlmClient {
         promptTokens: decoded?.promptTokens,
         completionTokens: decoded?.completionTokens,
         totalTokens: decoded?.totalTokens,
+        providerModel: decoded?.providerModel,
       );
     } on DioException catch (error) {
       final failure = _mapDioException(error);
@@ -257,6 +298,7 @@ class _IoAppLlmClient implements AppLlmClient {
     );
 
     try {
+      // llm-call-site: boundary.provider.io-chat-http
       final response = await dio.postUri<ResponseBody>(
         endpoint,
         data: adapter.buildBody(

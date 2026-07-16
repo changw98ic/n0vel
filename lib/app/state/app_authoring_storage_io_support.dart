@@ -96,18 +96,69 @@ class DatabaseCorruptedException implements Exception {
 Database openAuthoringDatabase(String dbPath) {
   final file = File(dbPath);
   file.parent.createSync(recursive: true);
-  final Database database;
+  Database? database;
   try {
     database = sqlite3.open(dbPath);
     _applyPerformancePragmas(database);
     _checkIntegrity(database);
+    DatabaseSchemaManager(
+      migrations: authoringSchemaMigrations,
+    ).ensureSchema(database);
+    return database;
   } on SqliteException catch (e) {
+    database?.dispose();
     throw DatabaseCorruptedException(e.message);
+  } on Object {
+    database?.dispose();
+    rethrow;
   }
-  DatabaseSchemaManager(
-    migrations: authoringSchemaMigrations,
-  ).ensureSchema(database);
-  return database;
+}
+
+/// Opens a database whose schema and integrity were already established by a
+/// long-lived owning connection (for example an immutable evaluation sandbox
+/// clone). This path deliberately does not rerun migrations or integrity_check
+/// from a secondary isolate, both of which instantiate unrelated FTS virtual
+/// tables. Exact schema-version equality keeps the shortcut fail closed.
+Database openExistingAuthoringDatabase(String dbPath, {bool readOnly = false}) {
+  final file = File(dbPath);
+  if (!file.existsSync()) {
+    throw DatabaseCorruptedException('existing authoring database is missing');
+  }
+  final database = sqlite3.open(
+    dbPath,
+    mode: readOnly ? OpenMode.readOnly : OpenMode.readWrite,
+  );
+  try {
+    database.execute('PRAGMA busy_timeout = 5000');
+    database.execute('PRAGMA foreign_keys = ON');
+    if (readOnly) database.execute('PRAGMA query_only = ON');
+    final actualVersion =
+        database.select('PRAGMA user_version').single['user_version'] as int;
+    final expectedVersion = authoringSchemaMigrations.last.version;
+    if (actualVersion != expectedVersion) {
+      throw DatabaseCorruptedException(
+        'existing authoring schema version mismatch '
+        '(expected=$expectedVersion, actual=$actualVersion)',
+      );
+    }
+    return database;
+  } on Object {
+    database.dispose();
+    rethrow;
+  }
+}
+
+T withExistingAuthoringDb<T>(
+  String dbPath,
+  T Function(Database) action, {
+  bool readOnly = false,
+}) {
+  final db = openExistingAuthoringDatabase(dbPath, readOnly: readOnly);
+  try {
+    return action(db);
+  } finally {
+    db.dispose();
+  }
 }
 
 /// Runs a quick integrity check and throws if the database is corrupted.
@@ -119,7 +170,6 @@ void _checkIntegrity(Database database) {
   for (final row in rows) {
     final value = row.values.first?.toString();
     if (value != null && value != 'ok') {
-      database.dispose();
       throw DatabaseCorruptedException(value);
     }
   }

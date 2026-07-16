@@ -1,10 +1,13 @@
 import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_memory_delta_models.dart';
 import 'character_visible_context_models.dart';
 import 'scene_roleplay_session_models.dart';
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
+import 'formal_evaluation_policy.dart';
 
 abstract interface class SceneArbiterSkill {
   String get skillId;
@@ -20,10 +23,11 @@ abstract interface class SceneArbiterSkill {
 }
 
 class BasicSceneArbiterSkill implements SceneArbiterSkill {
-  BasicSceneArbiterSkill({required AppSettingsStore settingsStore})
-    : _settingsStore = settingsStore;
+  BasicSceneArbiterSkill({
+    required StoryGenerationSettingsContract settingsStore,
+  }) : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   @override
   String get skillId => 'basic_scene_arbiter';
@@ -39,36 +43,62 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
     required List<SceneRoleplayTurn> roundTurns,
     required List<SceneRoleplayTurn> transcript,
   }) async {
-    final result = await requestStoryGenerationPassWithRetry(
-      settingsStore: _settingsStore,
-      shouldRetryOutput: _shouldRetryMalformedArbitration,
-      messages: [
-        const AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a neutral scene arbiter. Resolve only public facts from '
-              'visible actions and dialogue. Use this 4-line public summary:\n'
-              '事实：...\n'
-              '状态：...\n'
-              '压力：...\n'
-              '收束：是/否',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：scene_roleplay_arbitrate',
-            'skill：$skillId@$version',
-            '回合：$round',
-            '场景：$sceneTitle',
-            '上一局面：$previousPublicState',
-            '本轮行动：${roundTurns.map(_publicTurnLine).join('；')}',
-            '全部可见过程：${_compact(transcript.map(_publicTurnLine).join('；'), maxChars: 900)}',
-            '判断：若核心冲突已推动到可写正文的阶段，收束为是；否则为否。',
-          ].join('\n'),
-        ),
-      ],
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      const <String, Object?>{},
     );
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'roleplay',
+      callSiteId: 'arbiter',
+    );
+    final resolvedVariables = <String, Object?>{
+      'skillId': skillId,
+      'skillVersion': version,
+      'round': round,
+      'sceneTitle': sceneTitle,
+      'previousState': previousPublicState,
+      'roundTurns': roundTurns.map(_publicTurnLine).join('；'),
+      'transcript': _compact(
+        transcript.map(_publicTurnLine).join('；'),
+        maxChars: 900,
+      ),
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    late final AppLlmChatResult result;
+    try {
+      result = await requestFormalStoryGenerationPassWithRetry(
+        settingsStore: _settingsStore,
+        promptInvocation: promptIdentity,
+        promptInvocationEvidence: promptIdentity.evidence(
+          messages,
+          resolvedVariables: resolvedVariables,
+        ),
+        shouldRetryOutput: formalEvaluation
+            ? _shouldRejectExactArbitration
+            : _shouldRetryMalformedArbitration,
+        traceName: 'scene_roleplay_arbitrate',
+        traceMetadata: <String, Object?>{
+          'agentId': 'scene-arbiter',
+          'agentRole': 'arbiter',
+          'round': round,
+          'skillId': skillId,
+          'skillVersion': version,
+        },
+        messages: messages,
+      );
+    } on Object catch (error) {
+      if (formalEvaluation) {
+        throw StateError(
+          'formal scene arbitration provider call failed: $error',
+        );
+      }
+      rethrow;
+    }
     if (!result.succeeded) {
+      if (formalEvaluation) {
+        throw StateError(
+          result.detail ?? 'formal scene arbitration provider call failed',
+        );
+      }
       final nextState = _fallbackState(
         sceneState: previousPublicState,
         turns: roundTurns,
@@ -84,8 +114,12 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
         skillVersion: version,
       );
     }
+    final raw = formalEvaluation ? result.text! : result.text!.trim();
+    if (formalEvaluation && _shouldRejectExactArbitration(raw)) {
+      throw StateError('formal scene arbitration output was malformed');
+    }
     return _parseArbitration(
-      raw: result.text!.trim(),
+      raw: raw,
       previousState: previousPublicState,
       roundTurns: roundTurns,
     );
@@ -176,6 +210,28 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
     return _isPlaceholder(fact) ||
         _isPlaceholder(state) ||
         _isPlaceholder(pressure);
+  }
+
+  bool _shouldRejectExactArbitration(String raw) {
+    if (raw.isEmpty || raw != raw.trim()) return true;
+    const labels = <String>['事实', '状态', '压力', '收束'];
+    final lines = raw.split('\n');
+    if (lines.length != labels.length) return true;
+    final values = <String>[];
+    for (var index = 0; index < labels.length; index += 1) {
+      final line = lines[index];
+      final prefix = '${labels[index]}：';
+      if (line != line.trim() || !line.startsWith(prefix)) return true;
+      final value = line.substring(prefix.length);
+      if (value != value.trim()) return true;
+      values.add(value);
+    }
+    if (_isPlaceholder(values[0]) ||
+        _isPlaceholder(values[1]) ||
+        _isPlaceholder(values[2])) {
+      return true;
+    }
+    return values[3] != '是' && values[3] != '否';
   }
 
   bool _isPlaceholder(String value) {

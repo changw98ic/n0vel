@@ -1,15 +1,15 @@
-import 'package:novel_writer/app/llm/app_llm_client.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'story_generation_pass_retry.dart';
+import 'story_prompt_registry.dart';
 import '../domain/scene_models.dart';
 import '../domain/story_pipeline_interfaces.dart';
 
 class SceneQualityScorer implements SceneQualityScorerService {
-  SceneQualityScorer({required AppSettingsStore settingsStore})
+  SceneQualityScorer({required StoryGenerationSettingsContract settingsStore})
     : _settingsStore = settingsStore;
 
-  final AppSettingsStore _settingsStore;
+  final StoryGenerationSettingsContract _settingsStore;
 
   @override
   Future<SceneQualityScore> score({
@@ -18,33 +18,27 @@ class SceneQualityScorer implements SceneQualityScorerService {
     required SceneProseDraft prose,
     required SceneReviewResult review,
   }) async {
-    final result = await requestStoryGenerationPassWithRetry(
+    final promptIdentity = StoryPromptRegistry.production.invocation(
+      stageId: 'quality-gate',
+      callSiteId: 'quality-scorer',
+    );
+    final resolvedVariables = <String, Object?>{
+      'sceneTitle': _compact(brief.sceneTitle, maxChars: 40),
+      'sceneSummary': _compact(brief.sceneSummary, maxChars: 80),
+      'director': _compact(director.text, maxChars: 120),
+      'prose': prose.text,
+      'review': _compact(review.editorialFeedback, maxChars: 1200),
+      'faithfulnessContext': _faithfulnessContext(brief),
+    };
+    final messages = promptIdentity.render(resolvedVariables).messages;
+    final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
-      messages: [
-        const AppLlmChatMessage(
-          role: 'system',
-          content:
-              'You are a quality scorer for Chinese novel scenes. '
-              'Use this 6-line scorecard:\n'
-              '文笔：<0-100>\n'
-              '连贯：<0-100>\n'
-              '角色：<0-100>\n'
-              '完整：<0-100>\n'
-              '综合：<0-100>\n'
-              '总结：一句话评价',
-        ),
-        AppLlmChatMessage(
-          role: 'user',
-          content: [
-            '任务：scene_quality_scoring',
-            '场：${_compact(brief.sceneTitle, maxChars: 40)}',
-            '摘要：${_compact(brief.sceneSummary, maxChars: 80)}',
-            '导演：${_compact(director.text, maxChars: 120)}',
-            '正文：${prose.text}',
-            '评审：${_compact(review.editorialFeedback, maxChars: 120)}',
-          ].join('\n'),
-        ),
-      ],
+      promptInvocation: promptIdentity,
+      promptInvocationEvidence: promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      messages: messages,
       traceName: 'scene_quality_scoring',
       traceMetadata: {
         'chapterId': brief.chapterId,
@@ -56,59 +50,174 @@ class SceneQualityScorer implements SceneQualityScorerService {
       throw StateError(result.detail ?? 'Scene quality scoring failed.');
     }
 
-    return parseScore(result.text!.trim());
+    return parseScore(
+      result.text!.trim(),
+      requireExtendedRubric:
+          brief.formalExecution ||
+          brief.metadata['requireExtendedQualityRubric'] == true,
+    );
   }
 
   /// Parses a quality score from raw LLM output text.
-  static SceneQualityScore parseScore(String rawText) {
+  static SceneQualityScore parseScore(
+    String rawText, {
+    bool requireExtendedRubric = false,
+  }) {
     final lines = rawText
         .split('\n')
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList(growable: false);
 
-    double prose = 0;
-    double coherence = 0;
-    double character = 0;
-    double completeness = 0;
-    double overall = 0;
+    double? prose;
+    double? coherence;
+    double? character;
+    double? completeness;
+    double? style;
+    double? imagery;
+    double? rhythm;
+    double? faithfulness;
+    double? overall;
     String summary = '';
+    final seenFields = <String>{};
 
     for (final line in lines) {
-      if (line.startsWith('文笔：')) {
-        prose = _extractScore(line);
-      } else if (line.startsWith('连贯：')) {
-        coherence = _extractScore(line);
-      } else if (line.startsWith('角色：')) {
-        character = _extractScore(line);
-      } else if (line.startsWith('完整：')) {
-        completeness = _extractScore(line);
-      } else if (line.startsWith('综合：')) {
-        overall = _extractScore(line);
-      } else if (line.startsWith('总结：')) {
-        summary = line.substring(3).trim();
+      final normalized = _normalizeScoreLine(line);
+      if (normalized.startsWith('文笔：')) {
+        _recordUniqueField(seenFields, '文笔', rawText);
+        prose = _extractScore(normalized);
+      } else if (normalized.startsWith('连贯：')) {
+        _recordUniqueField(seenFields, '连贯', rawText);
+        coherence = _extractScore(normalized);
+      } else if (normalized.startsWith('角色：')) {
+        _recordUniqueField(seenFields, '角色', rawText);
+        character = _extractScore(normalized);
+      } else if (normalized.startsWith('完整：')) {
+        _recordUniqueField(seenFields, '完整', rawText);
+        completeness = _extractScore(normalized);
+      } else if (normalized.startsWith('文风：')) {
+        _recordUniqueField(seenFields, '文风', rawText);
+        style = _extractScore(normalized);
+      } else if (normalized.startsWith('修辞：')) {
+        _recordUniqueField(seenFields, '修辞', rawText);
+        imagery = _extractScore(normalized);
+      } else if (normalized.startsWith('节奏：')) {
+        _recordUniqueField(seenFields, '节奏', rawText);
+        rhythm = _extractScore(normalized);
+      } else if (normalized.startsWith('忠实：')) {
+        _recordUniqueField(seenFields, '忠实', rawText);
+        faithfulness = _extractScore(normalized);
+      } else if (normalized.startsWith('综合：')) {
+        _recordUniqueField(seenFields, '综合', rawText);
+        overall = _extractScore(normalized);
+      } else if (normalized.startsWith('总结：')) {
+        _recordUniqueField(seenFields, '总结', rawText);
+        summary = normalized.substring(3).trim();
       }
     }
 
-    if (overall == 0) {
-      overall = (prose + coherence + character + completeness) / 4;
+    if (prose == null ||
+        coherence == null ||
+        character == null ||
+        completeness == null ||
+        overall == null ||
+        summary.isEmpty) {
+      throw FormatException(
+        'Quality scorecard is incomplete or malformed; all five scores and a summary are required.',
+        rawText,
+      );
+    }
+
+    if (requireExtendedRubric &&
+        (style == null ||
+            imagery == null ||
+            rhythm == null ||
+            faithfulness == null)) {
+      throw FormatException(
+        'Formal quality scorecard is missing 文风、修辞、节奏或忠实评分。',
+        rawText,
+      );
     }
 
     return SceneQualityScore(
-      overall: overall.clamp(0, 100),
-      prose: prose.clamp(0, 100),
-      coherence: coherence.clamp(0, 100),
-      character: character.clamp(0, 100),
-      completeness: completeness.clamp(0, 100),
+      overall: overall,
+      prose: prose,
+      coherence: coherence,
+      character: character,
+      completeness: completeness,
+      style: style,
+      imagery: imagery,
+      rhythm: rhythm,
+      faithfulness: faithfulness,
       summary: summary,
     );
   }
 
-  static double _extractScore(String line) {
+  String _faithfulnessContext(SceneBrief brief) {
+    final parts = <String>[
+      '允许依据：',
+      if (brief.sceneSummary.trim().isNotEmpty) '场景概要：${brief.sceneSummary}',
+      if (brief.targetBeat.trim().isNotEmpty) '目标节拍：${brief.targetBeat}',
+      if (brief.cast.isNotEmpty)
+        '出场角色：${brief.cast.map((member) => '${member.name}(${member.role})').join('、')}',
+      if (brief.worldNodeIds.isNotEmpty) '世界节点：${brief.worldNodeIds.join('、')}',
+      if (brief.characterProfiles.isNotEmpty)
+        '角色资料：${brief.characterProfiles.map((profile) => profile.toJson()).join('；')}',
+      if (brief.knowledgeAtoms.isNotEmpty)
+        '知识边界：${brief.knowledgeAtoms.map((atom) => '${atom.ownerScope}:${atom.content}').join('；')}',
+    ];
+    return _compact(parts.join('\n'), maxChars: 2200);
+  }
+
+  static double? _extractScore(String line) {
     final colonIndex = line.indexOf('：');
-    if (colonIndex < 0) return 0;
+    if (colonIndex < 0) return null;
     final raw = line.substring(colonIndex + 1).trim();
-    return double.tryParse(raw)?.clamp(0.0, 100.0) ?? 0.0;
+    final match = RegExp(r'^([0-9]+(?:\.[0-9]+)?)').firstMatch(raw);
+    final value = match == null ? null : double.tryParse(match.group(1)!);
+    if (value == null || !value.isFinite || value < 0 || value > 100) {
+      return null;
+    }
+    return value;
+  }
+
+  static String _normalizeScoreLine(String line) {
+    var normalized = line
+        .replaceFirst(RegExp(r'^\s*(?:[-*]\s+|\d+[.)]\s*)'), '')
+        .replaceAll('**', '')
+        .replaceAll('`', '')
+        .trim();
+    // GLM sometimes emits an ASCII colon even when the Chinese rubric uses
+    // the full-width form. Accept the transport variation without weakening
+    // the required dimension set or numeric bounds.
+    for (final label in const <String>[
+      '文笔',
+      '连贯',
+      '角色',
+      '完整',
+      '文风',
+      '修辞',
+      '节奏',
+      '忠实',
+      '综合',
+      '总结',
+    ]) {
+      normalized = normalized.replaceFirst(
+        RegExp('^${RegExp.escape(label)}\\s*:'),
+        '$label：',
+      );
+    }
+    return normalized;
+  }
+
+  static void _recordUniqueField(
+    Set<String> seenFields,
+    String field,
+    String rawText,
+  ) {
+    if (!seenFields.add(field)) {
+      throw FormatException('Duplicate quality score field: $field.', rawText);
+    }
   }
 
   String _compact(String value, {required int maxChars}) {

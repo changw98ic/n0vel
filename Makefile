@@ -1,10 +1,13 @@
-.PHONY: test analyze docs-check mvp-docs-check verify-macos package-macos-preview
+.PHONY: test analyze rag-vector-eval docs-check mvp-docs-check verify-macos package-macos-preview
 
 test:
 	flutter test
 
 analyze:
 	flutter analyze
+
+rag-vector-eval:
+	dart run tool/rag_vector_index_evaluator.dart --vectors 100000 --dimensions 64
 
 docs-check:
 	python3 scripts/validate_docs_bundle.py

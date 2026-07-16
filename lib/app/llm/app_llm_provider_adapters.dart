@@ -176,7 +176,26 @@ class AnthropicAdapter implements AppLlmProviderAdapter {
       }
     }
     final normalized = buffer.toString().trim();
-    return normalized.isEmpty ? null : normalized;
+    if (normalized.isNotEmpty) return normalized;
+    // Anthropic returns a normal JSON message body when `stream: false`.
+    // The client deliberately retries a malformed/empty stream in that mode,
+    // so treating only SSE as decodable discarded otherwise valid responses.
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map || decoded['content'] is! List) return null;
+      final text = StringBuffer();
+      for (final block in decoded['content'] as List) {
+        if (block is Map &&
+            block['type'] == 'text' &&
+            block['text'] is String) {
+          text.write(block['text'] as String);
+        }
+      }
+      final result = text.toString().trim();
+      return result.isEmpty ? null : result;
+    } on FormatException {
+      return null;
+    }
   }
 }
 

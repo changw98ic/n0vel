@@ -1,5 +1,4 @@
-import 'package:novel_writer/app/llm/app_llm_client_types.dart';
-import 'package:novel_writer/app/state/app_settings_store.dart';
+import '../domain/contracts/settings_contract.dart';
 
 import 'character_consistency_models.dart';
 import 'knowledge_visibility_filter.dart';
@@ -7,6 +6,8 @@ import 'scene_context_models.dart';
 import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_runtime_models.dart';
 import 'soul_contract_validator.dart';
+import 'story_prompt_registry.dart';
+import 'evaluation/agent_evaluation_trace_context.dart';
 
 /// Proactive character consistency verification for pre- and post-generation.
 class CharacterConsistencyVerifier {
@@ -15,7 +16,7 @@ class CharacterConsistencyVerifier {
     SoulContractValidator? soulValidator,
   }) : _soulValidator = soulValidator;
 
-  final AppSettingsStore settingsStore;
+  final StoryGenerationSettingsContract settingsStore;
   final SoulContractValidator? _soulValidator;
 
   /// Pre-generation check: validates character context against their profiles.
@@ -108,21 +109,34 @@ class CharacterConsistencyVerifier {
       phase: 'post-generation content',
     );
 
-    final systemPrompt = _buildPostCheckSystemPrompt();
-    final userPrompt = _buildPostCheckUserPrompt(
-      sceneTitle: brief.sceneTitle,
-      characterProfiles: profileSummaries,
-      generatedContent: generatedContent,
-    );
-
     try {
+      final promptIdentity = StoryPromptRegistry.production.invocation(
+        stageId: 'review',
+        callSiteId: 'character-consistency',
+      );
+      final resolvedVariables = <String, Object?>{
+        'sceneTitle': brief.sceneTitle,
+        'characterProfiles': profileSummaries,
+        'generatedContent': generatedContent,
+      };
+      final messages = promptIdentity.render(resolvedVariables).messages;
+      // llm-call-site: boundary.story.character-consistency
       final result = await settingsStore.requestAiCompletion(
-        messages: [
-          AppLlmChatMessage(role: 'system', content: systemPrompt),
-          AppLlmChatMessage(role: 'user', content: userPrompt),
-        ],
+        messages: messages,
         maxTokens: 1024,
         traceName: 'character-consistency-check',
+        traceMetadata:
+            AgentEvaluationTraceContext.current?.toTraceMetadata() ??
+            const <String, Object?>{},
+        promptReleaseRef: promptIdentity.promptReleaseRef,
+        promptInvocationEvidence: promptIdentity.evidence(
+          messages,
+          resolvedVariables: resolvedVariables,
+        ),
+        stageId: promptIdentity.callSite.stageId,
+        callSiteId: promptIdentity.callSite.callSiteId,
+        variantId: promptIdentity.callSite.variantId,
+        generationBundleHash: promptIdentity.generationBundleHash,
       );
 
       if (result.text == null || result.text!.trim().isEmpty) {
@@ -192,32 +206,6 @@ class CharacterConsistencyVerifier {
       parts.add('【正文】\n${_truncate(prose.text, 800)}');
     }
     return parts.join('\n\n');
-  }
-
-  String _buildPostCheckSystemPrompt() {
-    return '你是一个小说角色一致性校验器。检查生成的场景内容是否符合角色设定。\n'
-        '逐条检查以下方面，对每个发现的问题输出一行：\n'
-        '格式：[严重度]|[检查项]|[角色ID]|[问题描述]|[修复建议]\n'
-        '严重度: info/warning/blocking\n'
-        '检查项: dialogueVoice/actionCapability/knowledgeBoundary/emotionalArc/relationshipConsistency\n'
-        '如果没有问题，输出: PASS\n'
-        '检查重点：\n'
-        '1. 对话风格是否符合角色性格\n'
-        '2. 动作是否在角色能力范围内\n'
-        '3. 角色是否引用了不该知道的信息\n'
-        '4. 情感变化是否合理\n'
-        '5. 角色间互动是否符合已建立的关系';
-  }
-
-  String _buildPostCheckUserPrompt({
-    required String sceneTitle,
-    required String characterProfiles,
-    required String generatedContent,
-  }) {
-    return '场景: $sceneTitle\n\n'
-        '【角色设定】\n$characterProfiles\n\n'
-        '【生成内容】\n$generatedContent\n\n'
-        '请检查以上生成内容中的角色一致性问题：';
   }
 
   ConsistencyReport _parseCheckResponse(String response) {

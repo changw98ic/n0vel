@@ -21,10 +21,10 @@ import 'workbench_ai_revision_helpers.dart';
 import 'workbench_editor_helpers.dart';
 import 'workbench_tool_window_panel.dart';
 import 'workbench_types.dart';
-import 'workbench_ai_controller.dart';
+import '../data/workbench_ai_controller.dart';
 import 'workbench_ai_review_dialog.dart';
 import 'workbench_editor_pane.dart';
-import 'workbench_orchestrator.dart';
+import '../domain/workbench_orchestrator.dart';
 
 export 'workbench_types.dart';
 

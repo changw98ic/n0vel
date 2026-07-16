@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
-
 import '../../../app/state/app_project_scoped_store.dart';
 import '../domain/author_feedback_models.dart';
 import 'author_feedback_storage.dart';
@@ -12,10 +10,7 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     super.workspaceStore,
     super.eventBus,
     DateTime Function()? clock,
-  }) : _storage =
-           storage ??
-
-           createDefaultAuthorFeedbackStorage(),
+  }) : _storage = storage ?? createDefaultAuthorFeedbackStorage(),
        _clock = clock ?? DateTime.now,
        super(
          scopeMode: AppStoreScopeMode.project,
@@ -25,10 +20,13 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     unawaited(_readyFuture);
   }
 
-  
   final AuthorFeedbackStorage _storage;
   final DateTime Function() _clock;
   final Map<String, List<AuthorFeedbackItem>> _itemsByProjectId = {};
+  // Kept opaque here because V9 still stores feedback as a project JSON blob.
+  // The generation commit coordinator owns its lease state in the same blob
+  // and updates it through the shared SQLite transaction.
+  final Map<String, Map<String, Object?>> _generationMetadataByProjectId = {};
   Future<void> _readyFuture = Future<void>.value();
 
   List<AuthorFeedbackItem> get items =>
@@ -223,6 +221,7 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
   Map<String, Object?> exportJson() {
     return {
       'items': [for (final item in items) item.toJson()],
+      ...?_generationMetadataByProjectId[activeProjectId],
     };
   }
 
@@ -236,7 +235,30 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
       for (final raw in rawItems)
         if (raw is Map<Object?, Object?>) AuthorFeedbackItem.fromJson(raw),
     ];
+    _setGenerationMetadata(activeProjectId, data);
     unawaited(_persist());
+    notifyListeners();
+  }
+
+  /// Mirrors a feedback document already committed by the shared authoring-db
+  /// accept transaction.  It never persists independently.
+  void applyCommittedJsonFromAuthoringTransaction(
+    Map<String, Object?> data, {
+    required String projectId,
+  }) {
+    if (projectId != activeProjectId) {
+      return;
+    }
+    final rawItems = data['items'];
+    if (rawItems is! List) {
+      return;
+    }
+    markMutated();
+    _itemsByProjectId[projectId] = [
+      for (final raw in rawItems)
+        if (raw is Map<Object?, Object?>) AuthorFeedbackItem.fromJson(raw),
+    ];
+    _setGenerationMetadata(projectId, data);
     notifyListeners();
   }
 
@@ -254,17 +276,20 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     }
     if (restored == null) {
       _itemsByProjectId[activeProjectId] = const [];
+      _generationMetadataByProjectId.remove(activeProjectId);
       return;
     }
     final rawItems = restored['items'];
     if (rawItems is! List) {
       _itemsByProjectId[activeProjectId] = const [];
+      _generationMetadataByProjectId.remove(activeProjectId);
       return;
     }
     _itemsByProjectId[activeProjectId] = [
       for (final raw in rawItems)
         if (raw is Map<Object?, Object?>) AuthorFeedbackItem.fromJson(raw),
     ];
+    _setGenerationMetadata(activeProjectId, restored);
     notifyListeners();
   }
 
@@ -274,6 +299,7 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
   @override
   void onProjectDeleted(String projectId) {
     _itemsByProjectId.remove(projectId);
+    _generationMetadataByProjectId.remove(projectId);
   }
 
   @override
@@ -328,19 +354,17 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
     }
     return trimmed;
   }
-}
 
-class AuthorFeedbackScope extends InheritedNotifier<AuthorFeedbackStore> {
-  const AuthorFeedbackScope({
-    super.key,
-    required AuthorFeedbackStore store,
-    required super.child,
-  }) : super(notifier: store);
-
-  static AuthorFeedbackStore of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<AuthorFeedbackScope>();
-    assert(scope != null, 'AuthorFeedbackScope is missing in the widget tree.');
-    return scope!.notifier!;
+  void _setGenerationMetadata(String projectId, Map<String, Object?> data) {
+    final metadata = <String, Object?>{};
+    final leases = data['generationLeases'];
+    if (leases is Map) {
+      metadata['generationLeases'] = Map<String, Object?>.from(leases);
+    }
+    if (metadata.isEmpty) {
+      _generationMetadataByProjectId.remove(projectId);
+    } else {
+      _generationMetadataByProjectId[projectId] = metadata;
+    }
   }
 }
