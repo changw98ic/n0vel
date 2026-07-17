@@ -44,7 +44,7 @@ Not-tested: <what-not-tested>
 - Issue 内容必须包含：目标、范围、验收标准、风险
 
 ### CI 检查要求
-- 每次 push 后必须检查 `flutter-analyze-test.yml` 和 `verify-macos.yml` 状态
+- 检查本次变更实际触发的 workflow；如果没有触发，记录路径过滤原因
 - CI 失败必须修复后才能继续下一个里程碑
 
 ### 回滚策略

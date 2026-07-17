@@ -116,9 +116,9 @@ Not-tested: CI 验证待 push 后检查
 
 ### CI 检查要求
 
-每次 push 后必须检查：
-- `flutter-analyze-test.yml` 状态
-- `verify-macos.yml` 状态
+检查本次变更实际触发的 workflow；如果没有触发，记录路径过滤原因：
+- `flutter-analyze-test.yml`（若由代码、测试或依赖变更触发）
+- `verify-macos.yml`（若由桌面验证入口、脚本或相关代码变更触发）
 
 CI 失败必须修复后才能继续下一个里程碑。
 
