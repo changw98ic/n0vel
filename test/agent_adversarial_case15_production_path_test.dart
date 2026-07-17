@@ -24,9 +24,10 @@ void main() {
         final payload = item.authoritySources.single.payload;
         expect(
           payload['sutProviderCallCount'],
-          540,
+          AgentEvaluationPromotionPerformanceScenario
+              .expectedSutProviderCallCount,
           reason:
-              '60 sealed slots must each complete all 9 exact-schema production calls',
+              '60 sealed slots must each complete all 13 exact-schema production calls',
         );
         final db = sqlite3.open(
           '${root.path}/${payload['databaseFile']}',

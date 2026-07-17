@@ -15,6 +15,7 @@ void main() {
     'quality.repetition',
     'quality.expository_dialogue',
     'quality.causal_gap',
+    'quality.faithfulness_gap',
     'rag.visibility_or_scope',
     'recovery.checkpoint_or_cas',
     'budget.exceeded',

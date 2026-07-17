@@ -8,6 +8,7 @@ import 'package:novel_writer/app/llm/app_llm_client_types.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_manifest.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_holdout_reuse_authority.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_holdout_store.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_execution_budget.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_private_holdout.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_private_holdout_runner.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_production_executor.dart';
@@ -56,19 +57,41 @@ void main() {
     _chmod(suiteRoot.path, '700');
     final publicRoot = Directory('${suiteRoot.path}/public');
     releaseConfiguration = _configuration();
+    final logicalOriginMs = DateTime.now().millisecondsSinceEpoch;
     final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
       configuration: releaseConfiguration,
       sutClient: _PromotableChallengerClient(),
       judgeClient: _PromotableMarkerJudgeClient(),
       outputDirectory: Directory('${publicRoot.path}/reports'),
       workDirectory: Directory('${publicRoot.path}/work'),
+      runnerNowMs: _deterministicClock(originMs: logicalOriginMs),
+      budgetNowMs: _deterministicClock(originMs: logicalOriginMs),
     );
     try {
       publicTemplate = await harness.run();
     } finally {
       harness.dispose();
     }
+    _expectHealthyLogicalBudgetJournals(
+      directory: Directory('${publicRoot.path}/work'),
+      configuration: releaseConfiguration,
+      logicalOriginMs: logicalOriginMs,
+    );
     expect(publicTemplate.partitions.single.regressionStatus, 'promote');
+    final publicAuthority = sqlite3.open(
+      publicTemplate.authorityDatabasePath,
+      mode: OpenMode.readOnly,
+    );
+    try {
+      final verdict = publicAuthority.select(
+        '''SELECT status, reasons_json FROM eval_release_gate_verdicts
+               WHERE verdict_kind = 'regression' ''',
+      ).single;
+      expect(verdict['status'], 'promote');
+      expect(jsonDecode(verdict['reasons_json'] as String), isEmpty);
+    } finally {
+      publicAuthority.dispose();
+    }
 
     privateFixture = File('${suiteRoot.path}/private-fixture.sqlite');
     final fixtureDb = sqlite3.open(privateFixture.path);
@@ -637,12 +660,15 @@ void main() {
         sutRouteCount: 2,
         executionId: 'purpose-coordinator-two-sut-execution',
       );
+      final logicalOriginMs = DateTime.now().millisecondsSinceEpoch;
       final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
         configuration: configuration,
         sutClient: _PromotableChallengerClient(),
         judgeClient: _PromotableMarkerJudgeClient(),
         outputDirectory: Directory('${root.path}/public-reports'),
         workDirectory: Directory('${root.path}/public-work'),
+        runnerNowMs: _deterministicClock(originMs: logicalOriginMs),
+        budgetNowMs: _deterministicClock(originMs: logicalOriginMs),
       );
       late final AgentEvaluationRealReleaseResult aggregateTemplate;
       try {
@@ -650,6 +676,11 @@ void main() {
       } finally {
         harness.dispose();
       }
+      _expectHealthyLogicalBudgetJournals(
+        directory: Directory('${root.path}/public-work'),
+        configuration: configuration,
+        logicalOriginMs: logicalOriginMs,
+      );
       expect(aggregateTemplate.partitions, hasLength(1));
       expect(aggregateTemplate.partitions.single.cellCount, 40);
       expect(aggregateTemplate.partitions.single.slotCount, 120);
@@ -1410,7 +1441,9 @@ AgentEvaluationRealReleaseConfiguration _configuration({
     completionMicrousdPerMillionTokens: 1,
     judgePromptMicrousdPerMillionTokens: 1,
     judgeCompletionMicrousdPerMillionTokens: 1,
-    deadline: const Duration(minutes: 5),
+    // Coordinator scenarios retain 10/20-minute test timeouts. The frozen
+    // purpose-built deadline must not race those watchdogs on a loaded host.
+    deadline: const Duration(minutes: 30),
     holdoutAccessBudget: 1,
     codeCommit: 'purpose-built-test-commit',
     sourceTreeHash: _digest('2'),
@@ -1418,6 +1451,43 @@ AgentEvaluationRealReleaseConfiguration _configuration({
     runtimeReleaseHash: _digest('4'),
     tokenizerReleaseHash: _digest('5'),
   );
+}
+
+int Function() _deterministicClock({required int originMs}) {
+  var ticks = 0;
+  return () => originMs + (ticks++ * 10);
+}
+
+void _expectHealthyLogicalBudgetJournals({
+  required Directory directory,
+  required AgentEvaluationRealReleaseConfiguration configuration,
+  required int logicalOriginMs,
+}) {
+  final expectedDeadline =
+      logicalOriginMs + configuration.deadline.inMilliseconds;
+  for (final entry in <({String fileName, String budgetId})>[
+    (
+      fileName: 'execution-budget.json',
+      budgetId: 'real-release-${configuration.executionId}',
+    ),
+    (
+      fileName: 'judge-budget.json',
+      budgetId: 'real-release-judge-${configuration.executionId}',
+    ),
+  ]) {
+    final journal = File('${directory.path}/${entry.fileName}');
+    expect(
+      readAgentEvaluationBudgetJournalDeadlineAtMs(
+        journal,
+        expectedBudgetId: entry.budgetId,
+      ),
+      expectedDeadline,
+    );
+    final payload = Map<String, Object?>.from(
+      jsonDecode(journal.readAsStringSync()) as Map,
+    );
+    expect(payload['breached'], isFalse);
+  }
 }
 
 final class _PromotableChallengerClient implements AppLlmClient {

@@ -110,6 +110,9 @@ Future<void> _runProcessLane() async {
             candidateHash: candidateHash,
           );
           if (mode == 'crash' && stage.name == crashStage) {
+            File(
+              '${root.path}/crash-boundary.txt',
+            ).writeAsStringSync(stage.name, flush: true);
             // Deliberately bypass Runner cleanup. This models SIGKILL after
             // both the sandbox snapshot and fenced authority append committed.
             exit(73);

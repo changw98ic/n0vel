@@ -774,7 +774,8 @@ class PipelineStageRunnerImpl
         // exhaustion is a blocked run, not permission to polish/finalize it.
         if (reviewOutput.action != SceneReviewDecision.pass) {
           throw StateError(
-            'Preliminary review did not pass after $softFailureCount prose retries.',
+            'Preliminary review did not pass after $softFailureCount prose '
+            'retries: ${_reviewAttemptReason(reviewOutput)}',
           );
         }
 

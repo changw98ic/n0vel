@@ -82,6 +82,8 @@ Future<AgentEvaluationPromotionPerformanceProjection> _runBoundary({
     workDirectory: Directory('${root.path}/work'),
     runnerNowMs:
         AgentEvaluationPromotionPerformanceScenario.deterministicRunnerClock(),
+    budgetNowMs:
+        AgentEvaluationPromotionPerformanceScenario.deterministicRunnerClock(),
   );
   late final AgentEvaluationRealReleaseResult result;
   try {
@@ -91,9 +93,19 @@ Future<AgentEvaluationPromotionPerformanceProjection> _runBoundary({
   }
   expect(result.realProviderEvidence, isFalse);
   expect(result.releaseEligible, isFalse);
-  expect(sut.baselineCalls + sut.pricedChallengerCalls, 540);
-  expect(sut.baselineCalls, greaterThan(0));
-  expect(sut.pricedChallengerCalls, greaterThan(0));
+  expect(
+    sut.baselineCalls + sut.pricedChallengerCalls,
+    AgentEvaluationPromotionPerformanceScenario.expectedSutProviderCallCount,
+  );
+  expect(
+    sut.baselineCalls,
+    AgentEvaluationPromotionPerformanceScenario.expectedBaselineCallCount,
+  );
+  expect(
+    sut.pricedChallengerCalls,
+    AgentEvaluationPromotionPerformanceScenario
+        .expectedPricedChallengerCallCount,
+  );
 
   final db = sqlite3.open(result.authorityDatabasePath);
   try {

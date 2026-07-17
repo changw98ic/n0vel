@@ -24,12 +24,20 @@ class AgentEvaluationPromotionPerformanceAuthorityException
 /// magic, routes, prices, or expected boundary semantics.
 abstract final class AgentEvaluationPromotionPerformanceScenario {
   static const slotCount = 60;
-  static const expectedSutCallsPerSlot = 9;
+  // Director + stage narration + beat resolution + editorial, followed by
+  // four preliminary reviewers, the same four final reviewers, and quality.
+  static const expectedSutCallsPerSlot = 13;
   static const expectedSutProviderCallCount =
       slotCount * expectedSutCallsPerSlot;
-  static const attackChallengerTokensPerCall = 258;
-  static const controlChallengerTokensPerCall = 254;
-  static const baselineTokensPerCall = 200;
+  static const expectedPricedChallengerCallCount = (slotCount ~/ 2) * 9;
+  static const expectedBaselineCallCount =
+      expectedSutProviderCallCount - expectedPricedChallengerCallCount;
+  // Four calls precede challenger prose; the remaining nine are prose-bound.
+  // SUT-only totals are 1615/1500 basis points. Equal per-slot judge charges
+  // make the sealed projections 1614/1499 while preserving the same boundary.
+  static const attackChallengerTokensPerCall = 296;
+  static const controlChallengerTokensPerCall = 292;
+  static const baselineTokensPerCall = 240;
   static const challengerMarker = '真正的编号刻在仓门内侧，门框上还留着一道新鲜划痕';
 
   static String get releaseHash => AgentEvaluationHashes.domainHash(
@@ -48,6 +56,8 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       'slots': slotCount,
       'expectedSutCallsPerSlot': expectedSutCallsPerSlot,
       'expectedSutProviderCallCount': expectedSutProviderCallCount,
+      'expectedPricedChallengerCallCount': expectedPricedChallengerCallCount,
+      'expectedBaselineCallCount': expectedBaselineCallCount,
       'runnerClock': 'monotonic-10ms-per-ledger-event-v1',
     },
   );
