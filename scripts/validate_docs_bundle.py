@@ -94,6 +94,9 @@ def main() -> None:
         "`review_tasks`",
         "`reading`",
         "`sandbox`",
+        "`story_arc`",
+        "`fulltext_search`",
+        "`writing_stats`",
     ):
         expect_contains(arch_text, route_name, "docs/architecture.md")
 

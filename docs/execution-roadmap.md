@@ -2,23 +2,25 @@
 
 > 版本: 1.0
 > 创建日期: 2026-05-24
-> 负责人: Claude ACP (implementation), Codex (review)
+> 负责人: Codex leader 与仓库授权的实现/验证代理
 > 跟踪 issue: #23
+
+> 状态说明：本文是长期计划和任务验收清单，不是当前可执行能力目录。任务中的路径和测试命令描述目标交付时的验收方式；如果对应路径尚不存在，任务仍处于计划中。当前可执行命令以 [README](../README.md)、[Makefile](../Makefile) 和 `.github/workflows/` 为准。
 
 ## 执行协议
 
 ### 角色分工
-- **Claude ACP**（Agent CodePath）：负责代码实现、测试、commit
-- **Codex**：仅负责审阅、验证、CI 状态检查、回退建议，**不直接实现代码**
+- **Codex leader**：负责范围确认、关键路径、整合、最终验证和交付
+- **实现代理**：在明确的文件范围内负责代码或文档实现与针对性测试
+- **验证代理**：负责独立检查、测试证据和风险回报
 
 ### 里程碑执行流程
-1. Claude ACP 按任务 ID 顺序执行里程碑内的任务
-2. 每个任务完成后，本地 commit（WIP 可，但必须清晰）
-3. 里程碑内所有任务完成后，统一 push 到远端分支
-4. Claude ACP 检查 GitHub Actions CI 状态
-5. CI 失败 -> Claude ACP 修复 -> 重新 push -> 再次检查
-6. CI 通过 -> 交付给 Codex 审阅
-7. Codex 审阅通过 -> 合并到主分支；审阅不通过 -> 提出反馈 -> Claude ACP 修复
+1. 按任务 ID 确认范围、前置依赖和独立工作面
+2. 每个任务完成后运行最相关的本地检查，并创建清晰的 commit
+3. 里程碑内所有任务完成后，推送主题分支并创建针对仓库主分支的 PR
+4. 检查被触发的 GitHub Actions；文档-only 变更若未触发 CI，必须明确记录
+5. CI 或审阅失败 -> 在原主题分支修复 -> 重新验证并更新 PR
+6. 验证证据齐全后合并到仓库实际主分支 `master`
 
 ### 提交信息格式（Lore Commit Protocol）
 
@@ -32,7 +34,6 @@ Confidence: <high|medium|low>
 Scope-risk: <risk-assessment>
 Tested: <what-was-tested>
 Not-tested: <what-not-tested>
-Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ```
 
 类型示例：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`、`规划`
@@ -72,7 +73,7 @@ Co-Authored-By: Claude ACP <noreply@anthropic.com>
 ## M0: Roadmap/Backlog Operationalization
 
 ### 目标
-建立长期执行计划框架，使后续 Claude ACP jobs 可按 task ID 接力执行。
+建立长期执行计划框架，使后续任务可按 task ID 接力执行。
 
 ### 验收标准
 - [ ] `docs/execution-roadmap.md` 存在且包含 M0-M8 所有任务

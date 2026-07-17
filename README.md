@@ -59,17 +59,19 @@ flutter run -d macos
 
 ## 第一次使用
 
-1. 打开 `Settings`。
-2. 在 `Default model` 里填写模型服务：
+1. 打开“设置”。
+2. 在“默认模型”里填写模型服务：
 
 | 字段 | 填什么 |
 | --- | --- |
-| Model service | 给服务起一个容易识别的名字，例如 `OpenAI 兼容服务` |
-| Base URL | 模型服务的接口地址，很多服务需要以 `/v1` 结尾 |
-| Model | 服务商提供的模型名称 |
-| API key | 你的模型服务密钥 |
+| 模型服务 | 给服务起一个容易识别的名字，例如 `OpenAI 兼容服务` |
+| 接口地址 | 模型服务的接口地址，很多服务需要以 `/v1` 结尾 |
+| 模型 | 服务商提供的模型名称 |
+| 密钥 | 你的模型服务密钥 |
 
-常见 OpenAI 兼容服务的示例 Base URL 和 Model 值见 [OpenAI-compatible provider examples](docs/openai-compatible-providers.md)。这些示例不会包含真实密钥；你需要使用自己的 API key。
+常见 OpenAI 兼容服务的示例“接口地址”和“模型”值见 [OpenAI-compatible provider examples](docs/openai-compatible-providers.md)。这些示例不会包含真实密钥；你需要使用自己的密钥。
+
+设置页还提供“多模型服务配置”和“路由规则”等高级能力；首次使用只需先填写“默认模型”，无需配置路由。
 
 3. 超时和并发设置先保持默认；只有请求经常超时或服务商有限流时再调整。
 4. 点击连接测试，通过后保存。
@@ -172,6 +174,8 @@ flutter analyze --no-pub
 flutter test --no-pub -r compact
 make docs-check
 ```
+
+上面的完整 `flutter test` 会包含较长的评估、恢复和 release-evidence 测试；其中真实 provider 用例需要显式授权和完整运行时配置，未授权时会按测试设计跳过。日常快速基线可先运行 `flutter analyze --no-pub` 和 `make docs-check`，再按改动范围选择测试文件。
 
 文本生成质量与三章证据的聚焦回归：
 
