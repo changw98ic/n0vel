@@ -95,10 +95,7 @@ void main() {
 
     test('custom separator', () {
       // 'ab' + ' | ' + 'cd' + ' | ' + 'ef' = 12 chars → ceil(12/4) = 3
-      expect(
-        estimator.estimateJoined(['ab', 'cd', 'ef'], separator: ' | '),
-        3,
-      );
+      expect(estimator.estimateJoined(['ab', 'cd', 'ef'], separator: ' | '), 3);
     });
   });
 

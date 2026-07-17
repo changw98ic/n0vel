@@ -126,11 +126,13 @@ class JsonlValidator {
 
       final stat = await entity.stat();
       final validation = validateFile(entity);
-      results.add(JsonlFileStatus(
-        file: entity,
-        sizeBytes: stat.size,
-        validation: validation,
-      ));
+      results.add(
+        JsonlFileStatus(
+          file: entity,
+          sizeBytes: stat.size,
+          validation: validation,
+        ),
+      );
     }
     return results;
   }

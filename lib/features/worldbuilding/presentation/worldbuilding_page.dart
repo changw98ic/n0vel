@@ -193,13 +193,13 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
             body,
           if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
             Positioned.fill(
-              child: WorldbuildingDeleteOverlay(nodeTitle: current?.title ?? '当前节点'),
+              child: WorldbuildingDeleteOverlay(
+                nodeTitle: current?.title ?? '当前节点',
+              ),
             ),
         ],
       ),
-      statusBar: const BottomSpecBar(
-        description: '作品设定 · 世界观资料已保存',
-      ),
+      statusBar: const BottomSpecBar(description: '作品设定 · 世界观资料已保存'),
     );
   }
 
@@ -227,7 +227,10 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
           const SizedBox(height: 8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
-          const WorldbuildingInfoBlock(title: '没有匹配节点', message: '试试更短的地名、组织名或规则关键词。'),
+          const WorldbuildingInfoBlock(
+            title: '没有匹配节点',
+            message: '试试更短的地名、组织名或规则关键词。',
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -490,7 +493,10 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const WorldbuildingInfoBlock(title: '引用场景', message: '创建节点后，这里会同步展示规则摘要与关联场景。'),
+          const WorldbuildingInfoBlock(
+            title: '引用场景',
+            message: '创建节点后，这里会同步展示规则摘要与关联场景。',
+          ),
         ],
       );
     }
@@ -500,9 +506,15 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const WorldbuildingInfoBlock(title: '改筛建议', message: '可尝试地点名、组织名、物件名或规则关键词。'),
+          const WorldbuildingInfoBlock(
+            title: '改筛建议',
+            message: '可尝试地点名、组织名、物件名或规则关键词。',
+          ),
           const SizedBox(height: 8),
-          const WorldbuildingInfoBlock(title: '引用场景', message: '筛选无结果时，不展示引用片段。'),
+          const WorldbuildingInfoBlock(
+            title: '引用场景',
+            message: '筛选无结果时，不展示引用片段。',
+          ),
         ],
       );
     }
@@ -512,7 +524,10 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         children: [
           Text('规则与引用', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
-          const WorldbuildingInfoBlock(title: '规则摘要', message: '类型缺失时，暂不把这条素材纳入规则摘要或引用索引。'),
+          const WorldbuildingInfoBlock(
+            title: '规则摘要',
+            message: '类型缺失时，暂不把这条素材纳入规则摘要或引用索引。',
+          ),
         ],
       );
     }
@@ -667,6 +682,4 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       ],
     );
   }
-
 }
-

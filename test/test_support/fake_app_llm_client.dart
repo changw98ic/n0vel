@@ -56,7 +56,8 @@ class FakeAppLlmClient implements AppLlmClient {
       );
     }
 
-    if (request.timeout.receiveTimeoutMs < 1000 || normalizedBaseUrl.contains('timeout')) {
+    if (request.timeout.receiveTimeoutMs < 1000 ||
+        normalizedBaseUrl.contains('timeout')) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.timeout,
         detail: 'timeout_ms 太小，请调大后重试。',

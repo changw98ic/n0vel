@@ -7,10 +7,15 @@ until signing/notarization is added.
 
 ## Current Release Policy
 
-- `v0.x` releases are preview releases for technical testers and early writers.
+- `1.0.x` releases are still preview releases for technical testers and early
+  writers; the package version is not a claim of signed or production-ready
+  distribution.
 - Testers must bring their own OpenAI-compatible model provider and API key.
 - The app stores local project data on the user's machine; preview archives must
   not bundle private sample projects, API keys, or local settings files.
+- Local event diagnostics redact manuscript/prompt excerpts by default. They
+  can be cleared or pruned by the app's maintenance API; they are not a
+  substitute for a hosted telemetry-retention policy.
 - Web/Chrome preview is not advertised until issue #10 is fixed.
 
 ## Prerequisites

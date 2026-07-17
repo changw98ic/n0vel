@@ -158,7 +158,8 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                                         onPressed: () {
                                           store.updateCurrentScene(
                                             sceneId: scene.id,
-                                            recentLocation: scene.displayLocation,
+                                            recentLocation:
+                                                scene.displayLocation,
                                           );
                                         },
                                       ),
@@ -188,7 +189,10 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                     children: [
                       Text('章节详情', style: theme.textTheme.titleMedium),
                       const SizedBox(height: 12),
-                      SceneDetailField(label: '章节标题', value: currentScene.title),
+                      SceneDetailField(
+                        label: '章节标题',
+                        value: currentScene.title,
+                      ),
                       const SizedBox(height: 12),
                       SceneDetailField(
                         label: '章节标签',

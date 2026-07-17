@@ -130,9 +130,7 @@ class WritingStatsService {
     );
 
     return WritingStatsSnapshot(
-      dailyStats: dailyStats
-          .map(WritingDailyStat.fromJson)
-          .toList(),
+      dailyStats: dailyStats.map(WritingDailyStat.fromJson).toList(),
       projectStat: projectStat,
       goals: goals,
       todayCharCount: todayCharCount,
@@ -147,8 +145,7 @@ class WritingStatsService {
   Future<void> saveGoal(WritingGoal goal) => _storage.upsertGoal(goal.toJson());
 
   /// 删除一个写作目标。
-  Future<void> deleteGoal(String goalId) =>
-      _storage.deleteGoal(goalId: goalId);
+  Future<void> deleteGoal(String goalId) => _storage.deleteGoal(goalId: goalId);
 
   /// 加载所有目标。
   Future<List<WritingGoal>> loadGoals({String? projectId}) async {
@@ -235,8 +232,9 @@ class WritingStatsService {
       'totalDeltaChars': newTotalDelta,
       'totalChapters': projectStat.totalChapters,
       'totalSessions': projectStat.totalSessions + (delta > 0 ? 1 : 0),
-      'firstWriteAtMs':
-          projectStat.firstWriteAtMs == 0 ? nowMs : projectStat.firstWriteAtMs,
+      'firstWriteAtMs': projectStat.firstWriteAtMs == 0
+          ? nowMs
+          : projectStat.firstWriteAtMs,
       'lastWriteAtMs': nowMs,
       'bestDayChars': bestDayChars,
       'bestDayDate': bestDayDate,

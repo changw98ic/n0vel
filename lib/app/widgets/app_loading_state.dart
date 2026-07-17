@@ -93,14 +93,16 @@ class AppLoadingOverlay extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const AppLoadingIndicator(variant: AppLoadingVariant.overlay),
+                    const AppLoadingIndicator(
+                      variant: AppLoadingVariant.overlay,
+                    ),
                     if (message != null && message!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Text(
                         message!,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: palette.secondaryText,
+                        ),
                       ),
                     ],
                   ],
@@ -224,10 +226,7 @@ class AppSkeletonCard extends StatelessWidget {
       ),
     );
     if (height != null) {
-      return SizedBox(
-        height: height,
-        child: content,
-      );
+      return SizedBox(height: height, child: content);
     }
     return content;
   }

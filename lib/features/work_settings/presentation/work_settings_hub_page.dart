@@ -15,7 +15,8 @@ class WorkSettingsHubPage extends ConsumerStatefulWidget {
   const WorkSettingsHubPage({super.key});
 
   @override
-  ConsumerState<WorkSettingsHubPage> createState() => _WorkSettingsHubPageState();
+  ConsumerState<WorkSettingsHubPage> createState() =>
+      _WorkSettingsHubPageState();
 }
 
 class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
@@ -71,7 +72,8 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
               DesignActionButton(
                 icon: Icons.edit_note,
                 label: '进入编辑',
-                onPressed: () => AppNavigator.push(context, AppRoutes.workbench),
+                onPressed: () =>
+                    AppNavigator.push(context, AppRoutes.workbench),
               ),
             ],
           ),
@@ -92,7 +94,9 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                     SizedBox(
                       width: 330,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusXLarge,
+                        ),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(
                             sigmaX: AppDesignTokens.glassBlurRadius,
@@ -102,28 +106,31 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                             padding: const EdgeInsets.all(18),
                             decoration: frostedSidebarDecoration(context),
                             child: ScrollConfiguration(
-                              behavior: ScrollConfiguration.of(context).copyWith(
-                                dragDevices: {
-                                  PointerDeviceKind.touch,
-                                  PointerDeviceKind.mouse,
-                                  PointerDeviceKind.trackpad,
-                                },
-                              ),
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                  ),
                               child: Scrollbar(
                                 controller: _sidebarScrollController,
                                 thumbVisibility: true,
                                 child: SingleChildScrollView(
                                   controller: _sidebarScrollController,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       // Project title
                                       Text(
                                         summary.headerSubtitle,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: palette.primary,
-                                        ),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: palette.primary,
+                                            ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -136,8 +143,12 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: palette.subtle.withValues(alpha: 0.5),
-                                          borderRadius: BorderRadius.circular(AppDesignTokens.radiusMedium),
+                                          color: palette.subtle.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            AppDesignTokens.radiusMedium,
+                                          ),
                                         ),
                                         child: Wrap(
                                           spacing: 24,
@@ -154,7 +165,8 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                               value: summary.recentSettings,
                                             ),
                                             WorkSettingsStatChip(
-                                              icon: Icons.playlist_add_check_outlined,
+                                              icon: Icons
+                                                  .playlist_add_check_outlined,
                                               label: '下一步',
                                               value: summary.nextStep,
                                             ),
@@ -164,17 +176,19 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                       const SizedBox(height: 20),
                                       Text(
                                         '下一步建议',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: palette.secondaryText,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: palette.secondaryText,
+                                            ),
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
                                         summary.nextStep,
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: palette.tertiaryText,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: palette.tertiaryText,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -189,7 +203,9 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                     // Right: Main content (fill)
                     Expanded(
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusXLarge,
+                        ),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(
                             sigmaX: AppDesignTokens.glassBlurRadius,
@@ -199,47 +215,87 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                             padding: const EdgeInsets.all(24),
                             decoration: glassCardDecoration(context),
                             child: ScrollConfiguration(
-                              behavior: ScrollConfiguration.of(context).copyWith(
-                                dragDevices: {
-                                  PointerDeviceKind.touch,
-                                  PointerDeviceKind.mouse,
-                                  PointerDeviceKind.trackpad,
-                                },
-                              ),
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                  ),
                               child: Scrollbar(
                                 controller: _mainScrollController,
                                 thumbVisibility: true,
                                 child: SingleChildScrollView(
                                   controller: _mainScrollController,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             '核心设定与大纲',
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: palette.primary,
-                                            ),
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: palette.primary,
+                                                ),
                                           ),
                                           Row(
                                             children: [
                                               TextButton.icon(
-                                                icon: const Icon(Icons.people_outline, size: 16),
-                                                label: const Text('人物库', style: TextStyle(fontSize: 12)),
-                                                onPressed: () => AppNavigator.push(context, AppRoutes.characters),
+                                                icon: const Icon(
+                                                  Icons.people_outline,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '人物库',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.characters,
+                                                    ),
                                               ),
                                               TextButton.icon(
-                                                icon: const Icon(Icons.public_outlined, size: 16),
-                                                label: const Text('世界观', style: TextStyle(fontSize: 12)),
-                                                onPressed: () => AppNavigator.push(context, AppRoutes.worldbuilding),
+                                                icon: const Icon(
+                                                  Icons.public_outlined,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '世界观',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.worldbuilding,
+                                                    ),
                                               ),
                                               TextButton.icon(
-                                                icon: const Icon(Icons.auto_stories_outlined, size: 16),
-                                                label: const Text('参考资料', style: TextStyle(fontSize: 12)),
-                                                onPressed: () => AppNavigator.push(context, AppRoutes.style),
+                                                icon: const Icon(
+                                                  Icons.auto_stories_outlined,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  '参考资料',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    AppNavigator.push(
+                                                      context,
+                                                      AppRoutes.style,
+                                                    ),
                                               ),
                                             ],
                                           ),
@@ -248,14 +304,19 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                       const SizedBox(height: 20),
                                       Row(
                                         children: [
-                                          const Icon(Icons.group_outlined, size: 18, color: Color(0xFFB6813B)),
+                                          const Icon(
+                                            Icons.group_outlined,
+                                            size: 18,
+                                            color: Color(0xFFB6813B),
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             '核心出场角色',
-                                            style: theme.textTheme.titleSmall?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: palette.primary,
-                                            ),
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: palette.primary,
+                                                ),
                                           ),
                                         ],
                                       ),
@@ -266,41 +327,75 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                               alignment: Alignment.center,
                                               child: Text(
                                                 '角色库暂无角色，点击右上角人物库添加',
-                                                style: theme.textTheme.bodySmall?.copyWith(color: palette.tertiaryText),
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color:
+                                                          palette.tertiaryText,
+                                                    ),
                                               ),
                                             )
                                           : SizedBox(
                                               height: 140,
                                               child: PremiumHorizontalScrollView(
-                                                builder: (context, controller) => ListView.separated(
-                                                  controller: controller,
-                                                  scrollDirection: Axis.horizontal,
-                                                  itemCount: workspaceStore.characters.length,
-                                                  separatorBuilder: (context, index) => const SizedBox(width: 12),
-                                                  itemBuilder: (context, index) {
-                                                    final char = workspaceStore.characters[index];
-                                                    final initial = char.name.isNotEmpty ? char.name.substring(0, 1) : '?';
-                                                    return FrostedCharacterCard(
-                                                      name: char.name,
-                                                      role: char.role,
-                                                      avatarInitial: initial,
-                                                      onTap: () => AppNavigator.push(context, AppRoutes.characters),
-                                                    );
-                                                  },
-                                                ),
+                                                builder:
+                                                    (
+                                                      context,
+                                                      controller,
+                                                    ) => ListView.separated(
+                                                      controller: controller,
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      itemCount: workspaceStore
+                                                          .characters
+                                                          .length,
+                                                      separatorBuilder:
+                                                          (context, index) =>
+                                                              const SizedBox(
+                                                                width: 12,
+                                                              ),
+                                                      itemBuilder: (context, index) {
+                                                        final char = workspaceStore
+                                                            .characters[index];
+                                                        final initial =
+                                                            char.name.isNotEmpty
+                                                            ? char.name
+                                                                  .substring(
+                                                                    0,
+                                                                    1,
+                                                                  )
+                                                            : '?';
+                                                        return FrostedCharacterCard(
+                                                          name: char.name,
+                                                          role: char.role,
+                                                          avatarInitial:
+                                                              initial,
+                                                          onTap: () =>
+                                                              AppNavigator.push(
+                                                                context,
+                                                                AppRoutes
+                                                                    .characters,
+                                                              ),
+                                                        );
+                                                      },
+                                                    ),
                                               ),
                                             ),
                                       const SizedBox(height: 24),
                                       Row(
                                         children: [
-                                          const Icon(Icons.auto_stories_outlined, size: 18, color: Color(0xFFB6813B)),
+                                          const Icon(
+                                            Icons.auto_stories_outlined,
+                                            size: 18,
+                                            color: Color(0xFFB6813B),
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             '正文章节预览',
-                                            style: theme.textTheme.titleSmall?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: palette.primary,
-                                            ),
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: palette.primary,
+                                                ),
                                           ),
                                         ],
                                       ),
@@ -311,33 +406,60 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
                                               alignment: Alignment.center,
                                               child: Text(
                                                 '正文暂无章节，请前往编辑新建第一章',
-                                                style: theme.textTheme.bodySmall?.copyWith(color: palette.tertiaryText),
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color:
+                                                          palette.tertiaryText,
+                                                    ),
                                               ),
                                             )
                                           : SizedBox(
                                               height: 190,
                                               child: PremiumHorizontalScrollView(
-                                                builder: (context, controller) => ListView.separated(
-                                                  controller: controller,
-                                                  scrollDirection: Axis.horizontal,
-                                                  itemCount: workspaceStore.scenes.length,
-                                                  separatorBuilder: (context, index) => const SizedBox(width: 12),
-                                                  itemBuilder: (context, index) {
-                                                    final scene = workspaceStore.scenes[index];
-                                                    return FrostedChapterCard(
-                                                      title: scene.title,
-                                                      location: scene.displayChapterLabel,
-                                                      summary: scene.summary,
-                                                      onTap: () {
-                                                        workspaceStore.updateCurrentScene(
-                                                          sceneId: scene.id,
-                                                          recentLocation: scene.displayLocation,
+                                                builder:
+                                                    (
+                                                      context,
+                                                      controller,
+                                                    ) => ListView.separated(
+                                                      controller: controller,
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      itemCount: workspaceStore
+                                                          .scenes
+                                                          .length,
+                                                      separatorBuilder:
+                                                          (context, index) =>
+                                                              const SizedBox(
+                                                                width: 12,
+                                                              ),
+                                                      itemBuilder: (context, index) {
+                                                        final scene =
+                                                            workspaceStore
+                                                                .scenes[index];
+                                                        return FrostedChapterCard(
+                                                          title: scene.title,
+                                                          location: scene
+                                                              .displayChapterLabel,
+                                                          summary:
+                                                              scene.summary,
+                                                          onTap: () {
+                                                            workspaceStore
+                                                                .updateCurrentScene(
+                                                                  sceneId:
+                                                                      scene.id,
+                                                                  recentLocation:
+                                                                      scene
+                                                                          .displayLocation,
+                                                                );
+                                                            AppNavigator.push(
+                                                              context,
+                                                              AppRoutes
+                                                                  .workbench,
+                                                            );
+                                                          },
                                                         );
-                                                        AppNavigator.push(context, AppRoutes.workbench);
                                                       },
-                                                    );
-                                                  },
-                                                ),
+                                                    ),
                                               ),
                                             ),
                                     ],
@@ -583,4 +705,3 @@ bool _isWhitespace(int codeUnit) {
       codeUnit == 0x0d ||
       codeUnit == 0x20;
 }
-

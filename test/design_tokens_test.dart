@@ -105,8 +105,14 @@ void main() {
 
     test('icon size tokens are positive', () {
       expect(AppDesignTokens.iconSmall, greaterThan(0));
-      expect(AppDesignTokens.iconMedium, greaterThan(AppDesignTokens.iconSmall));
-      expect(AppDesignTokens.iconLarge, greaterThan(AppDesignTokens.iconMedium));
+      expect(
+        AppDesignTokens.iconMedium,
+        greaterThan(AppDesignTokens.iconSmall),
+      );
+      expect(
+        AppDesignTokens.iconLarge,
+        greaterThan(AppDesignTokens.iconMedium),
+      );
     });
 
     test('elevation tokens are non-negative', () {

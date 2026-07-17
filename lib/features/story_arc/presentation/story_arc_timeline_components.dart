@@ -31,86 +31,83 @@ class TimelineSceneCard extends StatelessWidget {
         horizontal: AppDesignTokens.space4,
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {}, // 预留：点击跳转到场景编辑
-        child: Row(
-          children: [
-            // 拖拽手柄 + 序号
-            Container(
-              width: 48,
-              padding: const EdgeInsets.symmetric(
-                vertical: AppDesignTokens.space12,
-              ),
-              color: theme.colorScheme.surfaceContainerHighest,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.drag_indicator,
-                    size: AppDesignTokens.iconSmall,
+      child: Row(
+        children: [
+          // 拖拽手柄 + 序号
+          Container(
+            width: 48,
+            padding: const EdgeInsets.symmetric(
+              vertical: AppDesignTokens.space12,
+            ),
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.drag_indicator,
+                  size: AppDesignTokens.iconSmall,
+                  color: theme.colorScheme.outline,
+                ),
+                const SizedBox(height: AppDesignTokens.space4),
+                Text(
+                  '${index + 1}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: theme.colorScheme.outline,
                   ),
-                  const SizedBox(height: AppDesignTokens.space4),
-                  Text(
-                    '${index + 1}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.outline,
-                    ),
+                ),
+              ],
+            ),
+          ),
+          // 场景内容
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(AppDesignTokens.space12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 场景标题行
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sceneId,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (hasAlerts) _AlertBadge(count: foreshadowing.length),
+                    ],
                   ),
+                  if (threads.isNotEmpty) ...[
+                    const SizedBox(height: AppDesignTokens.space8),
+                    Wrap(
+                      spacing: AppDesignTokens.space4,
+                      runSpacing: AppDesignTokens.space4,
+                      children: [
+                        for (final thread in threads)
+                          _ThreadChip(thread: thread),
+                      ],
+                    ),
+                  ],
+                  if (foreshadowing.isNotEmpty) ...[
+                    const SizedBox(height: AppDesignTokens.space8),
+                    Wrap(
+                      spacing: AppDesignTokens.space4,
+                      runSpacing: AppDesignTokens.space4,
+                      children: [
+                        for (final f in foreshadowing)
+                          _ForeshadowingChip(foreshadowing: f),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            // 场景内容
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDesignTokens.space12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 场景标题行
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            sceneId,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (hasAlerts) _AlertBadge(count: foreshadowing.length),
-                      ],
-                    ),
-                    if (threads.isNotEmpty) ...[
-                      const SizedBox(height: AppDesignTokens.space8),
-                      Wrap(
-                        spacing: AppDesignTokens.space4,
-                        runSpacing: AppDesignTokens.space4,
-                        children: [
-                          for (final thread in threads)
-                            _ThreadChip(thread: thread),
-                        ],
-                      ),
-                    ],
-                    if (foreshadowing.isNotEmpty) ...[
-                      const SizedBox(height: AppDesignTokens.space8),
-                      Wrap(
-                        spacing: AppDesignTokens.space4,
-                        runSpacing: AppDesignTokens.space4,
-                        children: [
-                          for (final f in foreshadowing)
-                            _ForeshadowingChip(foreshadowing: f),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -156,15 +153,9 @@ class TensionCurveChart extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _LegendDot(
-                  color: theme.colorScheme.primary,
-                  label: '情节线',
-                ),
+                _LegendDot(color: theme.colorScheme.primary, label: '情节线'),
                 const SizedBox(width: AppDesignTokens.space12),
-                _LegendDot(
-                  color: theme.colorScheme.error,
-                  label: '伏笔',
-                ),
+                _LegendDot(color: theme.colorScheme.error, label: '伏笔'),
               ],
             ),
             const SizedBox(height: AppDesignTokens.space8),
@@ -297,9 +288,7 @@ class ForeshadowingCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: AppDesignTokens.space4),
-      color: isResolved
-          ? theme.colorScheme.surfaceContainerHighest
-          : null,
+      color: isResolved ? theme.colorScheme.surfaceContainerHighest : null,
       child: Padding(
         padding: const EdgeInsets.all(AppDesignTokens.space12),
         child: Column(
@@ -579,10 +568,7 @@ class _LegendDot extends StatelessWidget {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(

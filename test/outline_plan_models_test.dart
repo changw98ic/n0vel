@@ -28,23 +28,26 @@ void main() {
     test('accepts sequential beats starting from 1', () {
       final beats = [
         BeatPlan(
-            id: 'b1',
-            scenePlanId: 's1',
-            sequence: 1,
-            beatType: 'action',
-            content: 'a'),
+          id: 'b1',
+          scenePlanId: 's1',
+          sequence: 1,
+          beatType: 'action',
+          content: 'a',
+        ),
         BeatPlan(
-            id: 'b2',
-            scenePlanId: 's1',
-            sequence: 2,
-            beatType: 'dialogue',
-            content: 'b'),
+          id: 'b2',
+          scenePlanId: 's1',
+          sequence: 2,
+          beatType: 'dialogue',
+          content: 'b',
+        ),
         BeatPlan(
-            id: 'b3',
-            scenePlanId: 's1',
-            sequence: 3,
-            beatType: 'reflection',
-            content: 'c'),
+          id: 'b3',
+          scenePlanId: 's1',
+          sequence: 3,
+          beatType: 'reflection',
+          content: 'c',
+        ),
       ];
       expect(isValidBeatSequence(beats), isTrue);
     });
@@ -56,17 +59,19 @@ void main() {
     test('rejects beats with gaps', () {
       final beats = [
         BeatPlan(
-            id: 'b1',
-            scenePlanId: 's1',
-            sequence: 1,
-            beatType: 'action',
-            content: 'a'),
+          id: 'b1',
+          scenePlanId: 's1',
+          sequence: 1,
+          beatType: 'action',
+          content: 'a',
+        ),
         BeatPlan(
-            id: 'b3',
-            scenePlanId: 's1',
-            sequence: 3,
-            beatType: 'action',
-            content: 'c'),
+          id: 'b3',
+          scenePlanId: 's1',
+          sequence: 3,
+          beatType: 'action',
+          content: 'c',
+        ),
       ];
       expect(isValidBeatSequence(beats), isFalse);
     });
@@ -74,17 +79,19 @@ void main() {
     test('rejects beats with duplicate sequences', () {
       final beats = [
         BeatPlan(
-            id: 'b1',
-            scenePlanId: 's1',
-            sequence: 1,
-            beatType: 'action',
-            content: 'a'),
+          id: 'b1',
+          scenePlanId: 's1',
+          sequence: 1,
+          beatType: 'action',
+          content: 'a',
+        ),
         BeatPlan(
-            id: 'b2',
-            scenePlanId: 's1',
-            sequence: 1,
-            beatType: 'dialogue',
-            content: 'b'),
+          id: 'b2',
+          scenePlanId: 's1',
+          sequence: 1,
+          beatType: 'dialogue',
+          content: 'b',
+        ),
       ];
       expect(isValidBeatSequence(beats), isFalse);
     });
@@ -92,11 +99,12 @@ void main() {
     test('rejects beats not starting at 1', () {
       final beats = [
         BeatPlan(
-            id: 'b2',
-            scenePlanId: 's1',
-            sequence: 2,
-            beatType: 'action',
-            content: 'a'),
+          id: 'b2',
+          scenePlanId: 's1',
+          sequence: 2,
+          beatType: 'action',
+          content: 'a',
+        ),
       ];
       expect(isValidBeatSequence(beats), isFalse);
     });
@@ -273,8 +281,10 @@ void main() {
       expect(beat.povCharacterId, isNull);
       expect(beat.requiredCognitionIds, isEmpty);
       expect(beat.transitionTarget, isNull);
-      expect(() => (beat.requiredCognitionIds as List).add('x'),
-          throwsUnsupportedError);
+      expect(
+        () => (beat.requiredCognitionIds as List).add('x'),
+        throwsUnsupportedError,
+      );
     });
 
     test('serializes and deserializes round-trip without transition', () {
@@ -387,14 +397,18 @@ void main() {
       expect(scene.narrativeArc, '');
       expect(scene.metadata, isEmpty);
       expect(() => (scene.castIds as List).add('x'), throwsUnsupportedError);
-      expect(() => (scene.beats as List).add(BeatPlan(
+      expect(
+        () => (scene.beats as List).add(
+          BeatPlan(
             id: '',
             scenePlanId: '',
             sequence: 0,
             beatType: '',
             content: '',
-          )),
-          throwsUnsupportedError);
+          ),
+        ),
+        throwsUnsupportedError,
+      );
     });
 
     test('serializes and deserializes round-trip', () {
@@ -508,14 +522,18 @@ void main() {
         targetSceneCount: 5,
       );
       expect(chapter.scenes, isEmpty);
-      expect(() => (chapter.scenes as List).add(ScenePlan(
+      expect(
+        () => (chapter.scenes as List).add(
+          ScenePlan(
             id: '',
             chapterPlanId: '',
             title: '',
             summary: '',
             povCharacterId: '',
-          )),
-          throwsUnsupportedError);
+          ),
+        ),
+        throwsUnsupportedError,
+      );
     });
 
     test('serializes and deserializes round-trip', () {
@@ -577,13 +595,12 @@ void main() {
       expect(plan.targetChapterCount, 0);
       expect(plan.chapters, isEmpty);
       expect(plan.metadata, isEmpty);
-      expect(() => (plan.chapters as List).add(ChapterPlan(
-            id: '',
-            novelPlanId: '',
-            title: '',
-            summary: '',
-          )),
-          throwsUnsupportedError);
+      expect(
+        () => (plan.chapters as List).add(
+          ChapterPlan(id: '', novelPlanId: '', title: '', summary: ''),
+        ),
+        throwsUnsupportedError,
+      );
     });
 
     test('serializes and deserializes full hierarchy round-trip', () {
@@ -652,8 +669,10 @@ void main() {
       expect(restored.chapters.length, 1);
       expect(restored.chapters[0].scenes.length, 1);
       expect(restored.chapters[0].scenes[0].beats.length, 2);
-      expect(restored.chapters[0].scenes[0].beats[1].transitionTarget?.kind,
-          'time_skip');
+      expect(
+        restored.chapters[0].scenes[0].beats[1].transitionTarget?.kind,
+        'time_skip',
+      );
       expect(restored.metadata['genre'], 'thriller');
     });
 

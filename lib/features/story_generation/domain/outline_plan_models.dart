@@ -135,12 +135,12 @@ class StateTransitionTarget {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        fromSceneId,
-        toSceneId,
-        kind,
-        Object.hashAllUnordered(constraints.entries),
-      );
+    id,
+    fromSceneId,
+    toSceneId,
+    kind,
+    Object.hashAllUnordered(constraints.entries),
+  );
 }
 
 /// A single beat within a scene — the smallest unit of narrative action.
@@ -154,8 +154,7 @@ class BeatPlan {
     this.povCharacterId,
     List<String> requiredCognitionIds = const [],
     this.transitionTarget,
-  }) : requiredCognitionIds =
-            List<String>.unmodifiable(requiredCognitionIds);
+  }) : requiredCognitionIds = List<String>.unmodifiable(requiredCognitionIds);
 
   final String id;
   final String scenePlanId;
@@ -235,15 +234,15 @@ class BeatPlan {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        scenePlanId,
-        sequence,
-        beatType,
-        content,
-        povCharacterId,
-        Object.hashAll(requiredCognitionIds),
-        transitionTarget,
-      );
+    id,
+    scenePlanId,
+    sequence,
+    beatType,
+    content,
+    povCharacterId,
+    Object.hashAll(requiredCognitionIds),
+    transitionTarget,
+  );
 }
 
 /// A scene within a chapter, containing ordered beats.
@@ -260,12 +259,12 @@ class ScenePlan {
     List<BeatPlan> beats = const [],
     this.narrativeArc = '',
     Map<String, Object?> metadata = const {},
-  })  : castIds = List<String>.unmodifiable(castIds),
-        worldNodeIds = List<String>.unmodifiable(worldNodeIds),
-        beats = List<BeatPlan>.unmodifiable(beats),
-        metadata = Map<String, Object?>.unmodifiable(
-          Map<String, Object?>.from(metadata),
-        );
+  }) : castIds = List<String>.unmodifiable(castIds),
+       worldNodeIds = List<String>.unmodifiable(worldNodeIds),
+       beats = List<BeatPlan>.unmodifiable(beats),
+       metadata = Map<String, Object?>.unmodifiable(
+         Map<String, Object?>.from(metadata),
+       );
 
   final String id;
   final String chapterPlanId;
@@ -360,18 +359,18 @@ class ScenePlan {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        chapterPlanId,
-        title,
-        summary,
-        targetLength,
-        povCharacterId,
-        Object.hashAll(castIds),
-        Object.hashAll(worldNodeIds),
-        Object.hashAll(beats),
-        narrativeArc,
-        _mapHash(metadata),
-      );
+    id,
+    chapterPlanId,
+    title,
+    summary,
+    targetLength,
+    povCharacterId,
+    Object.hashAll(castIds),
+    Object.hashAll(worldNodeIds),
+    Object.hashAll(beats),
+    narrativeArc,
+    _mapHash(metadata),
+  );
 }
 
 /// A chapter within the novel plan, containing ordered scenes.
@@ -427,8 +426,10 @@ class ChapterPlan {
       novelPlanId: json['novelPlanId']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       summary: json['summary']?.toString() ?? '',
-      targetSceneCount:
-          _parseIntOrFallback(json['targetSceneCount'], fallback: 0),
+      targetSceneCount: _parseIntOrFallback(
+        json['targetSceneCount'],
+        fallback: 0,
+      ),
       scenes: _decodeList(json['scenes'], ScenePlan.fromJson),
     );
   }
@@ -447,13 +448,13 @@ class ChapterPlan {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        novelPlanId,
-        title,
-        summary,
-        targetSceneCount,
-        Object.hashAll(scenes),
-      );
+    id,
+    novelPlanId,
+    title,
+    summary,
+    targetSceneCount,
+    Object.hashAll(scenes),
+  );
 }
 
 /// Top-level plan for a novel, containing ordered chapters.
@@ -466,10 +467,10 @@ class NovelPlan {
     this.targetChapterCount = 0,
     List<ChapterPlan> chapters = const [],
     Map<String, Object?> metadata = const {},
-  })  : chapters = List<ChapterPlan>.unmodifiable(chapters),
-        metadata = Map<String, Object?>.unmodifiable(
-          Map<String, Object?>.from(metadata),
-        );
+  }) : chapters = List<ChapterPlan>.unmodifiable(chapters),
+       metadata = Map<String, Object?>.unmodifiable(
+         Map<String, Object?>.from(metadata),
+       );
 
   final String id;
   final String projectId;
@@ -517,8 +518,10 @@ class NovelPlan {
       projectId: json['projectId']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       premise: json['premise']?.toString() ?? '',
-      targetChapterCount:
-          _parseIntOrFallback(json['targetChapterCount'], fallback: 0),
+      targetChapterCount: _parseIntOrFallback(
+        json['targetChapterCount'],
+        fallback: 0,
+      ),
       chapters: _decodeList(json['chapters'], ChapterPlan.fromJson),
       metadata: json['metadata'] is Map
           ? Map<String, Object?>.from(json['metadata'] as Map)
@@ -541,14 +544,14 @@ class NovelPlan {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        projectId,
-        title,
-        premise,
-        targetChapterCount,
-        Object.hashAll(chapters),
-        _mapHash(metadata),
-      );
+    id,
+    projectId,
+    title,
+    premise,
+    targetChapterCount,
+    Object.hashAll(chapters),
+    _mapHash(metadata),
+  );
 }
 
 // -- Private helpers ----------------------------------------------------------
@@ -557,10 +560,7 @@ int _parseIntOrFallback(Object? raw, {required int fallback}) {
   return int.tryParse(raw?.toString() ?? '') ?? fallback;
 }
 
-List<T> _decodeList<T>(
-  Object? raw,
-  T Function(Map<Object?, Object?>) decoder,
-) {
+List<T> _decodeList<T>(Object? raw, T Function(Map<Object?, Object?>) decoder) {
   if (raw is! List) return const [];
   return [
     for (final item in raw)

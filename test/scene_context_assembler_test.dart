@@ -34,7 +34,11 @@ void main() {
         const ProjectMaterialSnapshot(reviewFindings: ['a']),
       ];
       for (final s in snapshots) {
-        expect(s.isEmpty, isFalse, reason: '${s.runtimeType} with one element should not be empty');
+        expect(
+          s.isEmpty,
+          isFalse,
+          reason: '${s.runtimeType} with one element should not be empty',
+        );
       }
     });
   });
@@ -43,12 +47,12 @@ void main() {
 
   group('SceneContextAssembly', () {
     SceneBrief makeBrief() => SceneBrief(
-          chapterId: 'ch1',
-          chapterTitle: '第一章',
-          sceneId: 'sc1',
-          sceneTitle: '开篇',
-          sceneSummary: '故事开始',
-        );
+      chapterId: 'ch1',
+      chapterTitle: '第一章',
+      sceneId: 'sc1',
+      sceneTitle: '开篇',
+      sceneSummary: '故事开始',
+    );
 
     test('holds all fields from construction', () {
       final brief = makeBrief();
@@ -133,13 +137,15 @@ void main() {
 
     test('adds character_profiles requirement when brief has cast', () {
       final result = assembler.assemble(
-        brief: makeBrief(cast: [
-          SceneCastCandidate(
-            characterId: 'liuxi',
-            name: '柳溪',
-            role: 'protagonist',
-          ),
-        ]),
+        brief: makeBrief(
+          cast: [
+            SceneCastCandidate(
+              characterId: 'liuxi',
+              name: '柳溪',
+              role: 'protagonist',
+            ),
+          ],
+        ),
         materials: const ProjectMaterialSnapshot(),
       );
       expect(result.retrievalRequirements, contains('character_profiles'));
@@ -155,14 +161,17 @@ void main() {
       expect(result.retrievalRequirements.length, 1);
     });
 
-    test('adds state_ledger requirement when materials have acceptedStates', () {
-      final result = assembler.assemble(
-        brief: makeBrief(),
-        materials: const ProjectMaterialSnapshot(acceptedStates: ['state1']),
-      );
-      expect(result.retrievalRequirements, contains('state_ledger'));
-      expect(result.retrievalRequirements.length, 1);
-    });
+    test(
+      'adds state_ledger requirement when materials have acceptedStates',
+      () {
+        final result = assembler.assemble(
+          brief: makeBrief(),
+          materials: const ProjectMaterialSnapshot(acceptedStates: ['state1']),
+        );
+        expect(result.retrievalRequirements, contains('state_ledger'));
+        expect(result.retrievalRequirements.length, 1);
+      },
+    );
 
     test('adds outline_beats requirement when materials have outlineBeats', () {
       final result = assembler.assemble(
@@ -177,25 +186,22 @@ void main() {
       final result = assembler.assemble(
         brief: makeBrief(
           worldNodeIds: ['n1'],
-          cast: [
-            SceneCastCandidate(
-              characterId: 'x',
-              name: 'X',
-              role: 'lead',
-            ),
-          ],
+          cast: [SceneCastCandidate(characterId: 'x', name: 'X', role: 'lead')],
         ),
         materials: const ProjectMaterialSnapshot(
           acceptedStates: ['s1'],
           outlineBeats: ['b1'],
         ),
       );
-      expect(result.retrievalRequirements, containsAll([
-        'character_profiles',
-        'world_rules',
-        'state_ledger',
-        'outline_beats',
-      ]));
+      expect(
+        result.retrievalRequirements,
+        containsAll([
+          'character_profiles',
+          'world_rules',
+          'state_ledger',
+          'outline_beats',
+        ]),
+      );
       expect(result.retrievalRequirements.length, 4);
     });
 
@@ -228,9 +234,10 @@ void main() {
         ),
       );
       expect(result.memoryChunks.length, 2);
-      expect(result.memoryChunks.every(
-        (c) => c.kind == MemorySourceKind.worldFact,
-      ), isTrue);
+      expect(
+        result.memoryChunks.every((c) => c.kind == MemorySourceKind.worldFact),
+        isTrue,
+      );
     });
 
     test('indexes character profiles into chunks', () {
@@ -259,9 +266,7 @@ void main() {
     test('uses chapterId:sceneId as scopeId for chunks', () {
       final result = assembler.assemble(
         brief: makeBrief(),
-        materials: const ProjectMaterialSnapshot(
-          outlineBeats: ['beat A'],
-        ),
+        materials: const ProjectMaterialSnapshot(outlineBeats: ['beat A']),
       );
       expect(result.memoryChunks.first.scopeId, 'ch1:sc1');
     });
@@ -282,15 +287,18 @@ void main() {
       expect(result.memoryChunks.length, 7);
 
       final kinds = result.memoryChunks.map((c) => c.kind).toSet();
-      expect(kinds, containsAll([
-        MemorySourceKind.worldFact,
-        MemorySourceKind.characterProfile,
-        MemorySourceKind.relationshipHint,
-        MemorySourceKind.outlineBeat,
-        MemorySourceKind.sceneSummary,
-        MemorySourceKind.acceptedState,
-        MemorySourceKind.reviewFinding,
-      ]));
+      expect(
+        kinds,
+        containsAll([
+          MemorySourceKind.worldFact,
+          MemorySourceKind.characterProfile,
+          MemorySourceKind.relationshipHint,
+          MemorySourceKind.outlineBeat,
+          MemorySourceKind.sceneSummary,
+          MemorySourceKind.acceptedState,
+          MemorySourceKind.reviewFinding,
+        ]),
+      );
     });
 
     test('each chunk has a unique id', () {
@@ -344,14 +352,15 @@ void main() {
           characterProfiles: ['柳溪是调查记者'],
         ),
       );
-      expect(result.memoryChunks.first.visibility, MemoryVisibility.publicObservable);
+      expect(
+        result.memoryChunks.first.visibility,
+        MemoryVisibility.publicObservable,
+      );
     });
 
     test('copies brief and materials into assembly unchanged', () {
       final brief = makeBrief(worldNodeIds: ['n1']);
-      const materials = ProjectMaterialSnapshot(
-        worldFacts: ['fact'],
-      );
+      const materials = ProjectMaterialSnapshot(worldFacts: ['fact']);
       final result = assembler.assemble(brief: brief, materials: materials);
       expect(identical(result.brief, brief), isTrue);
       expect(result.materialSnapshot.worldFacts, ['fact']);

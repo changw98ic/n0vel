@@ -85,9 +85,7 @@ void main() {
         ),
       );
       stats.record(
-        const AppLlmChatResult.failure(
-          failureKind: AppLlmFailureKind.server,
-        ),
+        const AppLlmChatResult.failure(failureKind: AppLlmFailureKind.server),
       );
 
       expect(stats.callCount, 3);
@@ -100,10 +98,7 @@ void main() {
 
     test('ignores null token fields when summing', () {
       stats.record(
-        const AppLlmChatResult.success(
-          text: 'partial',
-          promptTokens: 10,
-        ),
+        const AppLlmChatResult.success(text: 'partial', promptTokens: 10),
       );
       expect(stats.totalPromptTokens, 10);
       expect(stats.totalCompletionTokens, 0);

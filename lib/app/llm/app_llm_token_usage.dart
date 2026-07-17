@@ -79,7 +79,8 @@ class AppLlmTokenUsageReport {
 class AppLlmTokenUsageStats {
   final List<AppLlmTokenUsageRecord> _records = <AppLlmTokenUsageRecord>[];
 
-  List<AppLlmTokenUsageRecord> get records => List<AppLlmTokenUsageRecord>.unmodifiable(_records);
+  List<AppLlmTokenUsageRecord> get records =>
+      List<AppLlmTokenUsageRecord>.unmodifiable(_records);
 
   void record(AppLlmChatResult result, {String? model}) {
     final record = AppLlmTokenUsageRecord(

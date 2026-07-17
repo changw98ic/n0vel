@@ -52,8 +52,7 @@ class DesktopShellFrame extends ConsumerWidget {
     final feedback = settingsStore.feedback;
     final diagnosticReport = settingsStore.diagnosticReport;
     final globalNotice =
-        settingsStore.hasPersistenceIssue &&
-            feedback.title != null
+        settingsStore.hasPersistenceIssue && feedback.title != null
         ? _DesktopGlobalNotice(
             title: feedback.title!,
             message: feedback.message ?? '',

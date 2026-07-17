@@ -28,18 +28,15 @@ void main() {
       expect(config.idleTimeoutMs, 60000);
     });
 
-    test(
-      'effectiveIdleTimeoutMs returns idleTimeoutMs when set',
-      () {
-        const config = AppLlmTimeoutConfig(
-          connectTimeoutMs: 1000,
-          sendTimeoutMs: 2000,
-          receiveTimeoutMs: 3000,
-          idleTimeoutMs: 4000,
-        );
-        expect(config.effectiveIdleTimeoutMs, 4000);
-      },
-    );
+    test('effectiveIdleTimeoutMs returns idleTimeoutMs when set', () {
+      const config = AppLlmTimeoutConfig(
+        connectTimeoutMs: 1000,
+        sendTimeoutMs: 2000,
+        receiveTimeoutMs: 3000,
+        idleTimeoutMs: 4000,
+      );
+      expect(config.effectiveIdleTimeoutMs, 4000);
+    });
 
     test(
       'effectiveIdleTimeoutMs falls back to receiveTimeoutMs when idle is null',
@@ -101,10 +98,7 @@ void main() {
         expect(original.idleTimeoutMs, isNotNull);
         final cleared = original.copyWith(clearIdleTimeout: true);
         expect(cleared.idleTimeoutMs, isNull);
-        expect(
-          cleared.effectiveIdleTimeoutMs,
-          original.receiveTimeoutMs,
-        );
+        expect(cleared.effectiveIdleTimeoutMs, original.receiveTimeoutMs);
       });
     });
 

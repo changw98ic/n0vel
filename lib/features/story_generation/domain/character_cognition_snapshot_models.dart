@@ -14,11 +14,12 @@ class CharacterCognitionSnapshot {
     List<RelationshipSlice> relationships = const [],
     List<SocialPositionSlice> socialPositions = const [],
     PresentationState presentation = const PresentationState(characterId: ''),
-  })  : beliefs = List<CharacterBelief>.unmodifiable(beliefs),
-        relationships = List<RelationshipSlice>.unmodifiable(relationships),
-        socialPositions =
-            List<SocialPositionSlice>.unmodifiable(socialPositions),
-        _presentation = presentation;
+  }) : beliefs = List<CharacterBelief>.unmodifiable(beliefs),
+       relationships = List<RelationshipSlice>.unmodifiable(relationships),
+       socialPositions = List<SocialPositionSlice>.unmodifiable(
+         socialPositions,
+       ),
+       _presentation = presentation;
 
   final String characterId;
   final String name;
@@ -95,10 +96,14 @@ class CharacterCognitionSnapshot {
       name: json['name']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
       beliefs: decodeList(json['beliefs'], CharacterBelief.fromJson),
-      relationships:
-          decodeList(json['relationships'], RelationshipSlice.fromJson),
-      socialPositions:
-          decodeList(json['socialPositions'], SocialPositionSlice.fromJson),
+      relationships: decodeList(
+        json['relationships'],
+        RelationshipSlice.fromJson,
+      ),
+      socialPositions: decodeList(
+        json['socialPositions'],
+        SocialPositionSlice.fromJson,
+      ),
       presentation: json['presentation'] is Map
           ? PresentationState.fromJson(
               Map<Object?, Object?>.from(json['presentation'] as Map),
@@ -124,12 +129,12 @@ class CharacterCognitionSnapshot {
 
   @override
   int get hashCode => Object.hash(
-        characterId,
-        name,
-        role,
-        Object.hashAll(beliefs),
-        Object.hashAll(relationships),
-        Object.hashAll(socialPositions),
-        presentation,
-      );
+    characterId,
+    name,
+    role,
+    Object.hashAll(beliefs),
+    Object.hashAll(relationships),
+    Object.hashAll(socialPositions),
+    presentation,
+  );
 }

@@ -12,12 +12,12 @@ void main() {
     });
 
     SceneBrief makeBrief({String sceneId = 'sc1'}) => SceneBrief(
-          chapterId: 'ch1',
-          chapterTitle: '第一章',
-          sceneId: sceneId,
-          sceneTitle: '开篇',
-          sceneSummary: '故事开始',
-        );
+      chapterId: 'ch1',
+      chapterTitle: '第一章',
+      sceneId: sceneId,
+      sceneTitle: '开篇',
+      sceneSummary: '故事开始',
+    );
 
     SceneContextAssembly makeAssembly({
       String sceneId = 'sc1',
@@ -87,13 +87,7 @@ void main() {
       final assembly = makeAssembly();
       final shortTtlCache = StoryContextCache(defaultTtlMs: 100);
 
-      shortTtlCache.store(
-        'ch1',
-        'ch1:sc1',
-        assembly,
-        materials,
-        nowMs: 1000,
-      );
+      shortTtlCache.store('ch1', 'ch1:sc1', assembly, materials, nowMs: 1000);
 
       // Before expiry
       expect(
@@ -177,10 +171,10 @@ void main() {
 
       final result = cache.lookup('ch1', 'ch1:sc1', materials);
       expect(result, isNotNull);
-      expect(
-        result!.retrievalRequirements,
-        ['world_rules', 'character_profiles'],
-      );
+      expect(result!.retrievalRequirements, [
+        'world_rules',
+        'character_profiles',
+      ]);
       expect(cache.size, 1);
     });
 
@@ -206,19 +200,16 @@ void main() {
         expect(
           cache.lookup('ch1', 'ch1:sc1', variant),
           isNull,
-          reason: 'Materials change in ${variant.runtimeType} should invalidate',
+          reason:
+              'Materials change in ${variant.runtimeType} should invalidate',
         );
       }
       expect(cache.misses, variants.length);
     });
 
     test('same materials with different order produce same fingerprint', () {
-      const materialsA = ProjectMaterialSnapshot(
-        worldFacts: ['alpha', 'beta'],
-      );
-      const materialsB = ProjectMaterialSnapshot(
-        worldFacts: ['beta', 'alpha'],
-      );
+      const materialsA = ProjectMaterialSnapshot(worldFacts: ['alpha', 'beta']);
+      const materialsB = ProjectMaterialSnapshot(worldFacts: ['beta', 'alpha']);
 
       final assembly = SceneContextAssembly(
         brief: makeBrief(),

@@ -490,9 +490,11 @@ class DirectorMemory {
       final last3 = recentScenePatterns.take(3).toList(growable: false);
       final allSame = last3.length >= 2 && last3.toSet().length == 1;
       if (allSame) {
-        parts.add('场景结构多样性警告：最近${last3.length}个场景都是${last3.first}模式，'
-            '下一个场景必须改变结构。可用替代：伏击/突袭、跟踪/潜行、'
-            '等待/观察、内心独白+决策、多人会面+立场博弈。');
+        parts.add(
+          '场景结构多样性警告：最近${last3.length}个场景都是${last3.first}模式，'
+          '下一个场景必须改变结构。可用替代：伏击/突袭、跟踪/潜行、'
+          '等待/观察、内心独白+决策、多人会面+立场博弈。',
+        );
       }
     }
     return parts.join('\n');

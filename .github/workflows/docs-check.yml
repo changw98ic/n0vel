@@ -1,0 +1,38 @@
+name: Docs Check
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths:
+      - ".github/workflows/docs-check.yml"
+      - "docs/**"
+      - "assets/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
+      - "Makefile"
+  pull_request:
+    paths:
+      - ".github/workflows/docs-check.yml"
+      - "docs/**"
+      - "assets/**"
+      - "editor.pen"
+      - "scripts/validate_docs_bundle.py"
+      - "Makefile"
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Run docs bundle validation
+        run: make docs-check

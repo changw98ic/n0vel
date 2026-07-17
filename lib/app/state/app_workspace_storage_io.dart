@@ -6,7 +6,7 @@ import '../../features/story_generation/data/generation_material_manifest_reposi
 
 import 'app_authoring_storage_io_support.dart';
 import 'app_workspace_storage.dart';
-import 'storage_write_verification.dart';
+import 'storage_lock.dart';
 import 'workspace_storage_io_helpers.dart';
 import 'workspace_storage_schema.dart';
 
@@ -48,9 +48,13 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
     : _dbPath = dbPath ?? resolveAuthoringDbPath();
 
   final String _dbPath;
+  String? _lastPersistedFingerprint;
 
   @override
-  Future<Map<String, Object?>?> load() async {
+  Future<Map<String, Object?>?> load() =>
+      StorageLock().synchronized(_dbPath, _loadLocked);
+
+  Future<Map<String, Object?>?> _loadLocked() async {
     final database = _openDatabase();
     try {
       final projects = database.select(
@@ -123,6 +127,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           auditIssues.isEmpty &&
           preferences.isEmpty &&
           projectPreferences.isEmpty) {
+        _lastPersistedFingerprint = null;
         return null;
       }
 
@@ -130,8 +135,22 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
         for (final row in preferences)
           row['preference_key'] as String: row['preference_value'] as String,
       };
+      Object? deletionTombstones;
+      final rawTombstones = preferenceMap['project_deletion_tombstones'];
+      if (rawTombstones != null && rawTombstones.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawTombstones);
+          if (decoded is Map) {
+            deletionTombstones = decoded.map(
+              (key, value) => MapEntry(key.toString(), value),
+            );
+          }
+        } on FormatException {
+          // A malformed optional journal must not hide the workspace itself.
+        }
+      }
 
-      return {
+      final result = <String, Object?>{
         'projects': [
           for (final row in projects)
             {
@@ -217,29 +236,30 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
             'audit_action_feedback': 'auditActionFeedback',
           },
         ),
+        'projectDeletionTombstones': deletionTombstones ?? const {},
         'projectTransferState': preferenceMap['project_transfer_state'],
         'currentProjectId': preferenceMap['current_project_id'],
       };
+      _lastPersistedFingerprint = _fingerprint(result);
+      return result;
     } finally {
       database.dispose();
     }
   }
 
   @override
-  Future<void> save(Map<String, Object?> data) async {
-    await verifyAfterWrite(
-      label: 'workspace',
-      save: (d) async => _writeToDatabase(d),
-      reload: () => load(),
-      data: data,
-    );
-  }
+  Future<void> save(Map<String, Object?> data) =>
+      StorageLock().synchronized(_dbPath, () => _writeToDatabase(data));
 
   /// Writes [data] to the database without verification.
   ///
   /// Extracted as a separate method so [save] can wrap it with
   /// write-after-verification.
   Future<void> _writeToDatabase(Map<String, Object?> data) async {
+    final fingerprint = _fingerprint(data);
+    if (_lastPersistedFingerprint == fingerprint) {
+      return;
+    }
     final database = _openDatabase();
     try {
       final projects = (data['projects'] as List<Object?>?) ?? const [];
@@ -259,6 +279,9 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
         'project_transfer_state':
             data['projectTransferState']?.toString() ?? '',
         'current_project_id': data['currentProjectId']?.toString() ?? '',
+        'project_deletion_tombstones': jsonEncode(
+          data['projectDeletionTombstones'] ?? const {},
+        ),
       };
 
       runInTransaction(database, () {
@@ -446,6 +469,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
           );
         }
       });
+      _lastPersistedFingerprint = fingerprint;
     } finally {
       database.dispose();
     }
@@ -453,6 +477,7 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
 
   @override
   Future<void> clear() async {
+    _lastPersistedFingerprint = null;
     final database = _openDatabase();
     try {
       database.execute('DELETE FROM workspace_projects WHERE scope_key = ?', [
@@ -486,13 +511,15 @@ class SqliteAppWorkspaceStorage implements AppWorkspaceStorage {
   }
 
   sqlite3.Database _openDatabase() {
-    final database = openAuthoringDatabase(_dbPath);
+    final database = openAuthoringDatabase(_dbPath, verifyIntegrity: false);
     WorkspaceSchema.migrateLegacyProjectSchema(database, _scopeKey);
     WorkspaceSchema.migrateLegacyScopedTables(database, _scopeKey);
     WorkspaceSchema.ensureSchema(database);
     WorkspaceSchema.migrateLegacyProjectPreferences(database, _scopeKey);
     return database;
   }
+
+  String _fingerprint(Map<String, Object?> data) => jsonEncode(data);
 
   static const String _scopeKey = 'workspace-default';
 }

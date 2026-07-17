@@ -42,11 +42,7 @@ class AuditListButton extends StatelessWidget {
 }
 
 class AuditInfoRow extends StatelessWidget {
-  const AuditInfoRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const AuditInfoRow({super.key, required this.label, required this.value});
 
   final String label;
   final String value;
@@ -83,11 +79,7 @@ class AuditInfoRow extends StatelessWidget {
 }
 
 class AuditInfoBlock extends StatelessWidget {
-  const AuditInfoBlock({
-    super.key,
-    required this.title,
-    required this.message,
-  });
+  const AuditInfoBlock({super.key, required this.title, required this.message});
 
   final String title;
   final String message;

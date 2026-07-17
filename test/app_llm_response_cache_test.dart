@@ -53,9 +53,7 @@ void main() {
     });
 
     test('delegates to underlying client on cache miss', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'response'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'response')]);
 
       final result = await cache.chat(_makeRequest());
 
@@ -67,9 +65,7 @@ void main() {
     });
 
     test('returns cached response on cache hit', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'cached'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'cached')]);
 
       final request = _makeRequest();
       final result1 = await cache.chat(request);
@@ -173,9 +169,7 @@ void main() {
     });
 
     test('timeout config does not affect cache key', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'same'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'same')]);
 
       final request1 = _makeRequest(
         timeout: const AppLlmTimeoutConfig.uniform(10000),
@@ -214,15 +208,10 @@ void main() {
     });
 
     test('evicts oldest entries when maxEntries exceeded', () async {
-      final smallCache = AppLlmResponseCache(
-        delegate: fake,
-        maxEntries: 2,
-      );
+      final smallCache = AppLlmResponseCache(delegate: fake, maxEntries: 2);
 
       for (var i = 0; i < 3; i++) {
-        fake.enqueue([
-          AppLlmChatResult.success(text: 'response-$i'),
-        ]);
+        fake.enqueue([AppLlmChatResult.success(text: 'response-$i')]);
         await smallCache.chat(
           _makeRequest(
             messages: [AppLlmChatMessage(role: 'user', content: 'prompt-$i')],
@@ -233,12 +222,12 @@ void main() {
       expect(smallCache.size, 2);
 
       // First entry should be evicted; second and third should remain
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 're-fetched'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 're-fetched')]);
       final result = await smallCache.chat(
         _makeRequest(
-          messages: const [AppLlmChatMessage(role: 'user', content: 'prompt-0')],
+          messages: const [
+            AppLlmChatMessage(role: 'user', content: 'prompt-0'),
+          ],
         ),
       );
       expect(result.text, 're-fetched');
@@ -246,9 +235,7 @@ void main() {
     });
 
     test('clearAll removes entries and resets counters', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'hello'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'hello')]);
 
       await cache.chat(_makeRequest());
       expect(cache.size, 1);
@@ -274,9 +261,7 @@ void main() {
 
       // Simulate TTL expiry by clearing and re-requesting
       cache.clearAll();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'second'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'second')]);
       await cache.chat(request);
 
       expect(cache.size, 1);
@@ -320,9 +305,7 @@ void main() {
     });
 
     test('same messages in same order produces cache hit', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'match'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'match')]);
 
       final messages = [
         const AppLlmChatMessage(role: 'system', content: 'sys'),

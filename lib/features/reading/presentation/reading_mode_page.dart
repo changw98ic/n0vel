@@ -162,9 +162,7 @@ class _ReadingModePageState extends ConsumerState<ReadingModePage> {
                                   ),
                                   if (inlineNotice != null) ...[
                                     const SizedBox(height: 18),
-                                    ReadingInlineNoticeCard(
-                                      data: inlineNotice,
-                                    ),
+                                    ReadingInlineNoticeCard(data: inlineNotice),
                                   ],
                                 ],
                               ),

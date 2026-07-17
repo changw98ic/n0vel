@@ -15,7 +15,6 @@ class ReviewTaskPage extends ConsumerStatefulWidget {
 }
 
 class _ReviewTaskPageState extends ConsumerState<ReviewTaskPage> {
-
   @override
   Widget build(BuildContext context) {
     final store = ref.watch(reviewTaskStoreProvider);
@@ -28,7 +27,7 @@ class _ReviewTaskPageState extends ConsumerState<ReviewTaskPage> {
             title: '推演写作 · 修订清单',
             subtitle: '作者待处理的推演事项',
             showBackButton: true,
-      ),
+          ),
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -46,5 +45,4 @@ class _ReviewTaskPageState extends ConsumerState<ReviewTaskPage> {
       },
     );
   }
-
 }

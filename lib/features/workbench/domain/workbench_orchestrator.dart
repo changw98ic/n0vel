@@ -1,4 +1,5 @@
 import '../../../app/logging/app_event_log.dart';
+import '../../../app/logging/app_event_log_privacy.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
@@ -268,14 +269,13 @@ class WorkbenchOrchestrator extends AppStoreListenable {
       metadata: {
         'mode': _aiToolMode.name,
         'selectionCount': _aiSelections.length,
-        'promptLength': prompt.length,
-        'promptPreview': WorkbenchAiRevisionHelpers.previewText(
-          prompt.isEmpty
+        ...AppEventLogPrivacy.textMetadata(
+          field: 'prompt',
+          value: prompt.isEmpty
               ? WorkbenchAiRevisionHelpers.defaultIntent(
                   continueMode: _aiToolMode == AiToolMode.continueWriting,
                 )
               : prompt,
-          160,
         ),
       },
     );
@@ -448,10 +448,9 @@ class WorkbenchOrchestrator extends AppStoreListenable {
       correlationId: correlationId,
       metadata: {
         'mode': entry.mode,
-        'promptLength': entry.prompt.length,
-        'promptPreview': WorkbenchAiRevisionHelpers.previewText(
-          entry.prompt,
-          160,
+        ...AppEventLogPrivacy.textMetadata(
+          field: 'prompt',
+          value: entry.prompt,
         ),
       },
     );
@@ -609,6 +608,25 @@ class WorkbenchOrchestrator extends AppStoreListenable {
 
   Future<void> retryRecoveredRun() async {
     await storyRunStore.runCurrentScene();
+  }
+
+  /// Cancels the single active chapter run and persists the terminal state.
+  ///
+  /// The run store owns the cancellation token and ledger transition; the
+  /// orchestrator only bridges that result to the Workbench listener so the
+  /// status panel updates immediately.
+  Future<bool> cancelCurrentRun() async {
+    final cancelled = await storyRunStore.cancelCurrentRun();
+    if (cancelled) notifyListeners();
+    return cancelled;
+  }
+
+  /// Retries a failed or recoverable chapter run through the existing run
+  /// store. No candidate or draft is written until the normal proof-gated
+  /// pipeline completes.
+  Future<void> retryCurrentRun() async {
+    await storyRunStore.runCurrentScene();
+    notifyListeners();
   }
 
   Future<void> discardRecoveredRun() async {

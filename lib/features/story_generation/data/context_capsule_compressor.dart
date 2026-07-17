@@ -52,8 +52,9 @@ class ContextCapsuleCompressor {
   }) {
     if (budget.isExhausted) return null;
 
-    final effectiveBudget =
-        budget.remaining < defaultCharBudget ? budget.remaining : defaultCharBudget;
+    final effectiveBudget = budget.remaining < defaultCharBudget
+        ? budget.remaining
+        : defaultCharBudget;
     final effectiveStrategy =
         strategy ?? selectStrategy(rawContent, effectiveBudget);
     final summary = _compress(rawContent, effectiveBudget, effectiveStrategy);
@@ -103,10 +104,14 @@ class ContextCapsuleCompressor {
 
     return switch (strategy) {
       CompressionStrategy.full => content,
-      CompressionStrategy.sentenceBoundary =>
-        _truncateAtSentence(content, maxChars),
-      CompressionStrategy.keySentences =>
-        _extractKeySentences(content, maxChars),
+      CompressionStrategy.sentenceBoundary => _truncateAtSentence(
+        content,
+        maxChars,
+      ),
+      CompressionStrategy.keySentences => _extractKeySentences(
+        content,
+        maxChars,
+      ),
       CompressionStrategy.keywords => _extractKeywords(content, maxChars),
     };
   }
@@ -159,9 +164,7 @@ class ContextCapsuleCompressor {
     if (maxChars <= 0) return '';
     if (content.length <= maxChars) return content;
 
-    final cleaned = content
-        .replaceAll(RegExp(r'[，,、；;：:（()）\s]+'), ' ')
-        .trim();
+    final cleaned = content.replaceAll(RegExp(r'[，,、；;：:（()）\s]+'), ' ').trim();
 
     if (cleaned.length <= maxChars) return cleaned;
     return _truncateWithEllipsis(cleaned, maxChars);
@@ -175,8 +178,13 @@ class ContextCapsuleCompressor {
   }
 
   bool _isSentenceEnd(String char) {
-    return char == '。' || char == '！' || char == '？' ||
-        char == '.' || char == '!' || char == '?' || char == '\n';
+    return char == '。' ||
+        char == '！' ||
+        char == '？' ||
+        char == '.' ||
+        char == '!' ||
+        char == '?' ||
+        char == '\n';
   }
 
   List<String> _splitSentences(String content) {

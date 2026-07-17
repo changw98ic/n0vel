@@ -26,10 +26,8 @@ class KnowledgeFact {
 
 /// Controls which characters are aware of a knowledge fact.
 class DisclosurePolicy {
-  DisclosurePolicy({
-    required this.factId,
-    Set<String> knownBy = const {},
-  }) : knownBy = Set<String>.unmodifiable(knownBy);
+  DisclosurePolicy({required this.factId, Set<String> knownBy = const {}})
+    : knownBy = Set<String>.unmodifiable(knownBy);
 
   final String factId;
   final Set<String> knownBy;
@@ -100,8 +98,7 @@ class KnowledgeVisibilityFilter {
     List<DisclosurePolicy> policies,
   ) {
     return {
-      for (final id in characterIds)
-        id: visibleFacts(allFacts, id, policies),
+      for (final id in characterIds) id: visibleFacts(allFacts, id, policies),
     };
   }
 

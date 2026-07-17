@@ -30,8 +30,7 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
 
   Future<void> retrySecureStoreAccess() async {
     final originalIssue = storeActivePersistenceIssue;
-    final correlationId =
-        storeEventLog.newCorrelationId('settings-retry');
+    final correlationId = storeEventLog.newCorrelationId('settings-retry');
     scheduleSettingsLog(
       action: 'settings.secure_store_retry.started',
       status: AppEventLogStatus.started,
@@ -112,25 +111,20 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
       storeFeedback = loadFeedback.feedback;
     }
     scheduleSettingsLog(
-      action: storeActivePersistenceIssue ==
-              AppSettingsPersistenceIssue.none
+      action: storeActivePersistenceIssue == AppSettingsPersistenceIssue.none
           ? 'settings.secure_store_retry.succeeded'
           : 'settings.secure_store_retry.warning',
-      status: storeActivePersistenceIssue ==
-              AppSettingsPersistenceIssue.none
+      status: storeActivePersistenceIssue == AppSettingsPersistenceIssue.none
           ? AppEventLogStatus.succeeded
           : AppEventLogStatus.warning,
-      message: storeActivePersistenceIssue ==
-              AppSettingsPersistenceIssue.none
+      message: storeActivePersistenceIssue == AppSettingsPersistenceIssue.none
           ? 'Secure store retry succeeded.'
           : 'Secure store retry completed with read warning.',
       correlationId: correlationId,
-      level: storeActivePersistenceIssue ==
-              AppSettingsPersistenceIssue.none
+      level: storeActivePersistenceIssue == AppSettingsPersistenceIssue.none
           ? AppEventLogLevel.info
           : AppEventLogLevel.warn,
-      errorCode: storeActivePersistenceIssue ==
-              AppSettingsPersistenceIssue.none
+      errorCode: storeActivePersistenceIssue == AppSettingsPersistenceIssue.none
           ? null
           : storeActivePersistenceIssue.name,
       errorDetail: storeStorage.lastLoadDetail,
@@ -147,8 +141,7 @@ mixin AppSettingsStoreRetry on AppStoreListenable, AppSettingsStoreLogging {
     required AppLlmTimeoutConfig timeout,
     int? maxConcurrentRequests,
   }) async {
-    final correlationId =
-        storeEventLog.newCorrelationId('settings-retry');
+    final correlationId = storeEventLog.newCorrelationId('settings-retry');
     final metadata = settingsMetadata(
       providerName: providerName,
       baseUrl: baseUrl,

@@ -144,7 +144,9 @@ class FulltextSearchStorage {
 
     createFulltextSearchTables(db);
     // 首次创建时重建索引（防漏）
-    db.execute("INSERT INTO fulltext_chapters(fulltext_chapters) VALUES('rebuild')");
+    db.execute(
+      "INSERT INTO fulltext_chapters(fulltext_chapters) VALUES('rebuild')",
+    );
 
     _migrated = true;
   }
@@ -208,20 +210,16 @@ class FulltextSearchStorage {
   /// 删除某个项目的全部索引。
   Future<void> clearProject(String projectId) async {
     await ensureTables();
-    db.execute(
-      'DELETE FROM fulltext_chapter_contents WHERE project_id = ?',
-      [projectId],
-    );
+    db.execute('DELETE FROM fulltext_chapter_contents WHERE project_id = ?', [
+      projectId,
+    ]);
   }
 
   /// 删除某个场景的索引。
   Future<void> removeScene(String projectId, String sceneId) async {
     await ensureTables();
     final id = '${projectId}_scene_$sceneId';
-    db.execute(
-      'DELETE FROM fulltext_chapter_contents WHERE id = ?',
-      [id],
-    );
+    db.execute('DELETE FROM fulltext_chapter_contents WHERE id = ?', [id]);
   }
 
   /// 全文搜索（BM25 排序）。
@@ -347,11 +345,14 @@ class FulltextSearchStorage {
   /// 返回项目中已索引的章节范围 [min, max]，若无数据返回 null。
   Future<(int, int)?> indexedChapterRange(String projectId) async {
     await ensureTables();
-    final rows = db.select('''
+    final rows = db.select(
+      '''
       SELECT MIN(chapter_index) AS min_ch, MAX(chapter_index) AS max_ch
       FROM fulltext_chapter_contents
       WHERE project_id = ?
-    ''', [projectId]);
+    ''',
+      [projectId],
+    );
     if (rows.isEmpty) return null;
     final minCh = rows.first['min_ch'] as int?;
     final maxCh = rows.first['max_ch'] as int?;
@@ -362,11 +363,14 @@ class FulltextSearchStorage {
   /// 返回项目中已索引的不同角色名列表。
   Future<List<String>> indexedCharacterNames(String projectId) async {
     await ensureTables();
-    final rows = db.select('''
+    final rows = db.select(
+      '''
       SELECT DISTINCT character_names
       FROM fulltext_chapter_contents
       WHERE project_id = ? AND character_names != ''
-    ''', [projectId]);
+    ''',
+      [projectId],
+    );
 
     final names = <String>{};
     for (final row in rows) {
@@ -474,16 +478,18 @@ class FulltextSearchStorage {
       if (results.length >= limit) break;
 
       final content = row['content'] as String;
-      results.add(FulltextResultRow(
-        projectId: row['project_id'] as String,
-        chapterIndex: row['chapter_index'] as int,
-        chapterTitle: row['chapter_title'] as String,
-        sceneId: sceneId,
-        sceneTitle: row['scene_title'] as String,
-        characterNames: row['character_names'] as String,
-        snippet: _buildCjkSnippet(content, needles),
-        score: _scoreCjk(content, needles),
-      ));
+      results.add(
+        FulltextResultRow(
+          projectId: row['project_id'] as String,
+          chapterIndex: row['chapter_index'] as int,
+          chapterTitle: row['chapter_title'] as String,
+          sceneId: sceneId,
+          sceneTitle: row['scene_title'] as String,
+          characterNames: row['character_names'] as String,
+          snippet: _buildCjkSnippet(content, needles),
+          score: _scoreCjk(content, needles),
+        ),
+      );
     }
     return results;
   }
@@ -604,5 +610,4 @@ class FulltextSearchStorage {
   static bool _containsCjk(String value) {
     return value.runes.any(_isCjk);
   }
-
 }

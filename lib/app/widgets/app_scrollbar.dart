@@ -33,7 +33,7 @@ class AppPremiumScrollbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = desktopPalette(context);
-    
+
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
         dragDevices: {

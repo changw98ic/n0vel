@@ -6,9 +6,7 @@ import '../scene_task_card_builder.dart';
 import '../scene_runtime_models.dart' show SceneBrief;
 import '../knowledge_visibility_filter.dart';
 import '../../domain/story_pipeline_interfaces.dart'
-    show
-        SceneCastResolverService,
-        SceneDirectorService;
+    show SceneCastResolverService, SceneDirectorService;
 import '../step_io.dart';
 import '../../domain/contracts/pipeline_role_contract.dart';
 import '../../domain/contracts/typed_artifact.dart';
@@ -18,17 +16,18 @@ import '../../domain/contracts/typed_artifact.dart';
 ///
 /// Extracted from [PipelineStageRunnerImpl] lines 271-304 plus helper
 /// methods 688-709, 1040-1062.
-class ScenePlanningStep implements PipelineStage<ScenePlanningInput, ScenePlanningOutput> {
+class ScenePlanningStep
+    implements PipelineStage<ScenePlanningInput, ScenePlanningOutput> {
   ScenePlanningStep({
     required SceneCastResolverService castResolver,
     CharacterConsistencyVerifier? consistencyVerifier,
     required SceneDirectorService directorOrchestrator,
     required NarrativeArcPromptBuilder arcPromptBuilder,
-  })  : _castResolver = castResolver,
-        _consistencyVerifier = consistencyVerifier,
-        _directorOrchestrator = directorOrchestrator,
-        _arcPromptBuilder = arcPromptBuilder,
-        _taskCardBuilder = const SceneTaskCardBuilder();
+  }) : _castResolver = castResolver,
+       _consistencyVerifier = consistencyVerifier,
+       _directorOrchestrator = directorOrchestrator,
+       _arcPromptBuilder = arcPromptBuilder,
+       _taskCardBuilder = const SceneTaskCardBuilder();
 
   final SceneCastResolverService _castResolver;
   final CharacterConsistencyVerifier? _consistencyVerifier;
@@ -51,7 +50,10 @@ class ScenePlanningStep implements PipelineStage<ScenePlanningInput, ScenePlanni
   /// - Runs the scene director.
   /// - Builds the task card via [SceneTaskCardBuilder].
   @override
-  Future<ScenePlanningOutput> execute(ScenePlanningInput input, Object context) async {
+  Future<ScenePlanningOutput> execute(
+    ScenePlanningInput input,
+    Object context,
+  ) async {
     final brief = input.brief;
 
     final resolvedCast = _castResolver.resolve(brief);
@@ -117,7 +119,9 @@ class ScenePlanningStep implements PipelineStage<ScenePlanningInput, ScenePlanni
     if (consistencyConstraints != null && consistencyConstraints.isNotEmpty) {
       parts.add(consistencyConstraints);
     }
-    final arcContext = _arcPromptBuilder.buildArcContext(narrativeArc ?? NarrativeArcState());
+    final arcContext = _arcPromptBuilder.buildArcContext(
+      narrativeArc ?? NarrativeArcState(),
+    );
     if (arcContext != null) {
       parts.add(arcContext);
     }

@@ -19,7 +19,10 @@ mixin _RoleplaySessionStoreIOFields {
 }
 
 class RoleplaySessionStoreIO extends Object
-    with _RoleplaySessionStoreIOFields, _RoleplaySessionStoreIOLoad, _RoleplaySessionStoreIOTransfer
+    with
+        _RoleplaySessionStoreIOFields,
+        _RoleplaySessionStoreIOLoad,
+        _RoleplaySessionStoreIOTransfer
     implements RoleplaySessionStore {
   RoleplaySessionStoreIO({required this.db});
 

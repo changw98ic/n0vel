@@ -46,7 +46,8 @@ class CharacterLibraryPage extends ConsumerStatefulWidget {
   final CharacterLibraryUiState uiState;
 
   @override
-  ConsumerState<CharacterLibraryPage> createState() => _CharacterLibraryPageState();
+  ConsumerState<CharacterLibraryPage> createState() =>
+      _CharacterLibraryPageState();
 }
 
 class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
@@ -122,7 +123,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                 SizedBox(
                   width: 260,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusXLarge,
+                    ),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: AppDesignTokens.glassBlurRadius,
@@ -144,7 +147,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                 const SizedBox(width: 24),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppDesignTokens.radiusXLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusXLarge,
+                    ),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: AppDesignTokens.glassBlurRadius,
@@ -153,7 +158,12 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                       child: Container(
                         decoration: glassCardDecoration(context),
                         padding: const EdgeInsets.all(20),
-                        child: _buildDetail(theme, resources, projectScenes, current),
+                        child: _buildDetail(
+                          theme,
+                          resources,
+                          projectScenes,
+                          current,
+                        ),
                       ),
                     ),
                   ),
@@ -180,9 +190,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           );
         },
       ),
-      statusBar: const BottomSpecBar(
-        description: '作品设定 · 人物资料已保存',
-      ),
+      statusBar: const BottomSpecBar(description: '作品设定 · 人物资料已保存'),
     );
   }
 
@@ -210,7 +218,10 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           const SizedBox(height: AppDesignTokens.space8),
           Text('0 个匹配', style: theme.textTheme.bodySmall),
           const SizedBox(height: AppDesignTokens.space12),
-          const CharacterInfoBlock(title: '没有找到匹配角色', message: '试试更短的名字、别名或身份关键词。'),
+          const CharacterInfoBlock(
+            title: '没有找到匹配角色',
+            message: '试试更短的名字、别名或身份关键词。',
+          ),
           const SizedBox(height: AppDesignTokens.space12),
           SizedBox(
             width: double.infinity,
@@ -372,14 +383,16 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
             const SizedBox(height: AppDesignTokens.space12),
             _buildCharacterFields(store, current),
             const SizedBox(height: AppDesignTokens.space16),
-            if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+            if (current.referenceSummary.isNotEmpty ||
+                current.summary.isNotEmpty)
               CharacterInfoBlock(
                 title: '引用摘要',
                 message: current.referenceSummary.isEmpty
                     ? current.summary
                     : current.referenceSummary,
               ),
-            if (current.referenceSummary.isNotEmpty || current.summary.isNotEmpty)
+            if (current.referenceSummary.isNotEmpty ||
+                current.summary.isNotEmpty)
               const SizedBox(height: AppDesignTokens.space12),
             Text('引用场景', style: theme.textTheme.bodySmall),
             const SizedBox(height: AppDesignTokens.space4),
@@ -591,5 +604,4 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       ],
     );
   }
-
 }

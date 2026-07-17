@@ -138,14 +138,8 @@ void main() {
     });
 
     test('sysSceneEditorial opening hook specifies forbidden patterns', () {
-      expect(
-        PromptLocale.zh.sysSceneEditorial,
-        contains('环境'),
-      );
-      expect(
-        PromptLocale.en.sysSceneEditorial,
-        contains('environment'),
-      );
+      expect(PromptLocale.zh.sysSceneEditorial, contains('环境'));
+      expect(PromptLocale.en.sysSceneEditorial, contains('environment'));
     });
   });
 

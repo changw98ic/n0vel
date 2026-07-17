@@ -10,10 +10,7 @@ class SummaryBasedCompressor {
   ///
   /// Returns null if the summary lacks structured (LLM-generated) data,
   /// signalling the caller to fall back to truncation-based compression.
-  String? compress({
-    required ChapterSummary summary,
-    required int budget,
-  }) {
+  String? compress({required ChapterSummary summary, required int budget}) {
     if (!summary.isLlmGenerated) return null;
 
     final buffer = StringBuffer();

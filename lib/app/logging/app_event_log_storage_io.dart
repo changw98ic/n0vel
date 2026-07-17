@@ -23,7 +23,11 @@ AppEventLogStorage createAppEventLogStorage({
 /// Maximum size of a single JSONL file before rotation occurs.
 const int _defaultMaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
 
-class IoAppEventLogStorage implements AppEventLogStorage {
+class IoAppEventLogStorage
+    implements
+        AppEventLogStorage,
+        AppEventLogMaintenance,
+        AppEventLogStorageLifecycle {
   IoAppEventLogStorage({
     String? sqlitePath,
     Directory? logsDirectory,
@@ -53,10 +57,14 @@ class IoAppEventLogStorage implements AppEventLogStorage {
 
   /// Callers should invoke this when the storage is no longer needed
   /// (e.g. on app shutdown) to release the SQLite connection.
+  @override
   void dispose() {
     _database?.dispose();
     _database = null;
   }
+
+  @override
+  Future<void> flush() => _pendingWrite;
 
   // --- Public write API (unchanged) ---
   @override
@@ -66,6 +74,64 @@ class IoAppEventLogStorage implements AppEventLogStorage {
         .then<void>((_) => _writeBestEffort(entry));
     _pendingWrite = next;
     return next;
+  }
+
+  @override
+  Future<void> clear() {
+    final next = _pendingWrite
+        .catchError((Object _) {})
+        .then<void>((_) => _clearSinks());
+    _pendingWrite = next;
+    return next;
+  }
+
+  Future<void> _clearSinks() async {
+    final databaseFile = File(_sqlitePath);
+    if (databaseFile.existsSync()) {
+      final database = _ensureDatabase();
+      _ensureSchema(database);
+      database.execute('DELETE FROM app_event_log_entries');
+      _schemaEnsured = true;
+    }
+
+    if (!await _logsDirectory.exists()) return;
+    await for (final entity in _logsDirectory.list()) {
+      if (entity is File && _isJsonlFile(entity.path)) {
+        await entity.delete();
+      }
+    }
+  }
+
+  @override
+  Future<void> pruneBefore(DateTime cutoff) {
+    final next = _pendingWrite
+        .catchError((Object _) {})
+        .then<void>((_) => _pruneSinksBefore(cutoff));
+    _pendingWrite = next;
+    return next;
+  }
+
+  Future<void> _pruneSinksBefore(DateTime cutoff) async {
+    final cutoffMs = cutoff.millisecondsSinceEpoch;
+    final databaseFile = File(_sqlitePath);
+    if (databaseFile.existsSync()) {
+      final database = _ensureDatabase();
+      _ensureSchema(database);
+      database.execute(
+        'DELETE FROM app_event_log_entries WHERE timestamp_ms < ?',
+        [cutoffMs],
+      );
+      _schemaEnsured = true;
+    }
+
+    if (!await _logsDirectory.exists()) return;
+    await for (final entity in _logsDirectory.list()) {
+      if (entity is! File || !_isJsonlFile(entity.path)) continue;
+      final day = _jsonlDay(entity.path);
+      if (day != null && day.isBefore(cutoff)) {
+        await entity.delete();
+      }
+    }
   }
 
   // --- Best-effort dual write ---
@@ -223,6 +289,17 @@ class IoAppEventLogStorage implements AppEventLogStorage {
     // Rotated names look like: 2025-01-01.1.jsonl
     final dotPattern = RegExp(r'\.\d+\.jsonl$');
     return dotPattern.hasMatch(name);
+  }
+
+  bool _isJsonlFile(String path) => path.endsWith('.jsonl');
+
+  DateTime? _jsonlDay(String path) {
+    final name = path.split('/').last;
+    final match = RegExp(
+      r'^(\d{4})-(\d{2})-(\d{2})(?:\.\d+)?\.jsonl$',
+    ).firstMatch(name);
+    if (match == null) return null;
+    return DateTime.tryParse('${match[1]}-${match[2]}-${match[3]}');
   }
 
   String _dailyFileName(int timestampMs) {

@@ -47,14 +47,22 @@ AppSimulationSnapshot buildSnapshotForTemplate(
 }) {
   return switch (template) {
     SimulationTemplate.none => AppSimulationSnapshot.empty(),
-    SimulationTemplate.runningStepOne =>
-      buildRunningStepOne(context: context, participants: participants),
-    SimulationTemplate.runningStepTwo =>
-      buildRunningStepTwo(context: context, participants: participants),
-    SimulationTemplate.completed =>
-      buildCompleted(context: context, participants: participants),
-    SimulationTemplate.failed =>
-      buildFailed(context: context, participants: participants),
+    SimulationTemplate.runningStepOne => buildRunningStepOne(
+      context: context,
+      participants: participants,
+    ),
+    SimulationTemplate.runningStepTwo => buildRunningStepTwo(
+      context: context,
+      participants: participants,
+    ),
+    SimulationTemplate.completed => buildCompleted(
+      context: context,
+      participants: participants,
+    ),
+    SimulationTemplate.failed => buildFailed(
+      context: context,
+      participants: participants,
+    ),
   };
 }
 
@@ -301,8 +309,8 @@ AppSimulationSnapshot buildRealAgentSnapshot({
         status: status == SimulationStatus.completed
             ? SimulationStageStatus.completed
             : status == SimulationStatus.failed
-                ? SimulationStageStatus.failed
-                : SimulationStageStatus.pending,
+            ? SimulationStageStatus.failed
+            : SimulationStageStatus.pending,
       ),
     ],
     participants: participants,
@@ -324,8 +332,7 @@ List<SimulationParticipantSnapshot> buildParticipants({
       for (final agent in realAgents)
         SimulationParticipantSnapshot(
           participant: agent.participant,
-          promptSummary:
-              promptOverrides[agent.participant] ?? agent.prompt,
+          promptSummary: promptOverrides[agent.participant] ?? agent.prompt,
           statusSummary: agent.goal,
         ),
     ];
@@ -482,12 +489,9 @@ String _participantMessageBody(
 ) {
   final prompt = promptLead(context, participant);
   return switch (participant) {
-    SimulationParticipant.liuXi =>
-      '我先认领当前任务。会先按"$prompt"来处理，再决定追问力度。',
-    SimulationParticipant.yueRen =>
-      '我倾向于把"$prompt"放进同一轮讨论里，不建议太快推进到摊牌。',
-    SimulationParticipant.fuXingzhou =>
-      '门口压力要继续保留，我会按"$prompt"补足这一层存在感。',
+    SimulationParticipant.liuXi => '我先认领当前任务。会先按"$prompt"来处理，再决定追问力度。',
+    SimulationParticipant.yueRen => '我倾向于把"$prompt"放进同一轮讨论里，不建议太快推进到摊牌。',
+    SimulationParticipant.fuXingzhou => '门口压力要继续保留，我会按"$prompt"补足这一层存在感。',
     _ => prompt,
   };
 }
@@ -559,8 +563,7 @@ const List<RealAgentConfig> kRealSimulationAgents = [
 /// Compute the label for the highest completed real-agent round.
 String completedRealRoundsLabel(List<SimulationChatMessage> extraMessages) {
   final rounds = extraMessages
-      .map((message) =>
-          RegExp(r'真实回合 (\d+)').firstMatch(message.title))
+      .map((message) => RegExp(r'真实回合 (\d+)').firstMatch(message.title))
       .whereType<RegExpMatch>()
       .map((match) => int.tryParse(match.group(1) ?? '') ?? 0)
       .fold<int>(0, (max, value) => value > max ? value : max);

@@ -8,7 +8,7 @@ import '../../domain/contracts/typed_artifact.dart';
 /// Step 6: generate the prose editorial draft.
 class EditorialStep implements PipelineStage<EditorialInput, EditorialOutput> {
   EditorialStep({required SceneEditorialGenerator editorialGenerator})
-      : _editorialGenerator = editorialGenerator;
+    : _editorialGenerator = editorialGenerator;
 
   final SceneEditorialGenerator _editorialGenerator;
 

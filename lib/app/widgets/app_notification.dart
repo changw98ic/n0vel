@@ -35,12 +35,14 @@ void showAppNotification(
   // Requires a ProviderScope ancestor. Use inside ConsumerWidgets when possible.
   final container = ProviderScope.containerOf(context);
   final bus = container.read(appEventBusProvider);
-  bus.publish(NotificationRequestedEvent(
-    title: title,
-    message: message,
-    severity: severity,
-    duration: duration,
-  ));
+  bus.publish(
+    NotificationRequestedEvent(
+      title: title,
+      message: message,
+      severity: severity,
+      duration: duration,
+    ),
+  );
 }
 
 class AppNotificationOverlay extends ConsumerStatefulWidget {
@@ -49,10 +51,12 @@ class AppNotificationOverlay extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<AppNotificationOverlay> createState() => _AppNotificationOverlayState();
+  ConsumerState<AppNotificationOverlay> createState() =>
+      _AppNotificationOverlayState();
 }
 
-class _AppNotificationOverlayState extends ConsumerState<AppNotificationOverlay> {
+class _AppNotificationOverlayState
+    extends ConsumerState<AppNotificationOverlay> {
   final List<AppNotificationData> _notifications = [];
   final Map<int, Timer> _timers = {};
   StreamSubscription<NotificationRequestedEvent>? _subscription;
@@ -67,7 +71,9 @@ class _AppNotificationOverlayState extends ConsumerState<AppNotificationOverlay>
   void _subscribeToBus() {
     _subscription?.cancel();
     final bus = ref.read(appEventBusProvider);
-    _subscription = bus.on<NotificationRequestedEvent>().listen(_onNotification);
+    _subscription = bus.on<NotificationRequestedEvent>().listen(
+      _onNotification,
+    );
   }
 
   void _onNotification(NotificationRequestedEvent event) {
@@ -240,8 +246,10 @@ class _NotificationCardState extends State<_NotificationCard>
                         if (widget.data.message != null &&
                             widget.data.message!.isNotEmpty) ...[
                           const SizedBox(height: 2),
-                          Text(widget.data.message!,
-                              style: theme.textTheme.bodySmall),
+                          Text(
+                            widget.data.message!,
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ],
                       ],
                     ),
@@ -257,8 +265,10 @@ class _NotificationCardState extends State<_NotificationCard>
                         size: 16,
                         color: palette.tertiaryText,
                       ),
-                      constraints:
-                          const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                       padding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
                     ),
@@ -281,9 +291,9 @@ class _NotificationCardState extends State<_NotificationCard>
       };
 
   IconData _resolveIcon() => switch (widget.data.severity) {
-        AppNoticeSeverity.error => Icons.error_outline,
-        AppNoticeSeverity.warning => Icons.warning_amber_rounded,
-        AppNoticeSeverity.info => Icons.info_outline,
-        AppNoticeSeverity.success => Icons.check_circle_outline,
-      };
+    AppNoticeSeverity.error => Icons.error_outline,
+    AppNoticeSeverity.warning => Icons.warning_amber_rounded,
+    AppNoticeSeverity.info => Icons.info_outline,
+    AppNoticeSeverity.success => Icons.check_circle_outline,
+  };
 }

@@ -90,7 +90,7 @@ class SqliteAuthorFeedbackStorage implements AuthorFeedbackStorage {
   }
 
   sqlite3.Database _openDatabase() {
-    final database = openAuthoringDatabase(_dbPath);
+    final database = openAuthoringDatabase(_dbPath, verifyIntegrity: false);
     database.execute('''
       CREATE TABLE IF NOT EXISTS author_feedback_projects (
         project_id TEXT PRIMARY KEY,

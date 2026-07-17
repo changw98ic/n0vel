@@ -203,9 +203,7 @@ void main() {
     test('empty lines in jsonl are skipped', () async {
       final dir = await Directory.systemTemp.createTemp('cpb_prose_test_');
       final file = File('${dir.path}/ref.jsonl');
-      await file.writeAsString(
-        '\n{"text":"有效文本。"}\n\n\n{"text":"更多文本。"}\n',
-      );
+      await file.writeAsString('\n{"text":"有效文本。"}\n\n\n{"text":"更多文本。"}\n');
       addTearDown(() => dir.delete(recursive: true));
 
       final fp = analyzer.referenceFingerprintFromJsonl(file.path);
@@ -215,9 +213,7 @@ void main() {
     test('invalid json lines are skipped', () async {
       final dir = await Directory.systemTemp.createTemp('cpb_prose_test_');
       final file = File('${dir.path}/ref.jsonl');
-      await file.writeAsString(
-        'not json\n{"text":"有效文本。"}\n{"bad": true}\n',
-      );
+      await file.writeAsString('not json\n{"text":"有效文本。"}\n{"bad": true}\n');
       addTearDown(() => dir.delete(recursive: true));
 
       final fp = analyzer.referenceFingerprintFromJsonl(file.path);

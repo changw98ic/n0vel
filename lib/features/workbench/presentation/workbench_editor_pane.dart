@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../app/state/app_draft_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'workbench_shell_page.dart';
@@ -11,6 +12,7 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.hasScenes,
     required this.sceneTitle,
     required this.draftText,
+    required this.persistenceStatus,
     required this.draftController,
     required this.focusNode,
     required this.scrollController,
@@ -23,6 +25,7 @@ class WorkbenchEditorPane extends StatelessWidget {
   final bool hasScenes;
   final String sceneTitle;
   final String draftText;
+  final DraftPersistenceStatus persistenceStatus;
   final TextEditingController? draftController;
   final FocusNode focusNode;
   final ScrollController scrollController;
@@ -103,12 +106,13 @@ class WorkbenchEditorPane extends StatelessWidget {
                             ),
                             decoration: InputDecoration(
                               hintText: '开始书写当前章节正文…',
-                              hintStyle: TextStyle(
-                                color: palette.tertiaryText,
-                              ),
+                              hintStyle: TextStyle(color: palette.tertiaryText),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.fromLTRB(
-                                90, 54, 90, 16,
+                                90,
+                                54,
+                                90,
+                                16,
                               ),
                             ),
                           ),
@@ -125,10 +129,12 @@ class WorkbenchEditorPane extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '已保存',
+                                _draftPersistenceLabel(persistenceStatus),
                                 key: WorkbenchShellPage.editorSurfaceMetaKey,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF77736A),
+                                  color: _draftPersistenceColor(
+                                    persistenceStatus,
+                                  ),
                                 ),
                               ),
                             ],
@@ -144,6 +150,28 @@ class WorkbenchEditorPane extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _draftPersistenceLabel(DraftPersistenceStatus status) {
+  switch (status) {
+    case DraftPersistenceStatus.saved:
+      return '已保存';
+    case DraftPersistenceStatus.saving:
+      return '保存中…';
+    case DraftPersistenceStatus.failed:
+      return '保存失败';
+  }
+}
+
+Color _draftPersistenceColor(DraftPersistenceStatus status) {
+  switch (status) {
+    case DraftPersistenceStatus.saved:
+      return const Color(0xFF77736A);
+    case DraftPersistenceStatus.saving:
+      return const Color(0xFF8A6A2D);
+    case DraftPersistenceStatus.failed:
+      return const Color(0xFFB14A3B);
   }
 }
 
@@ -190,30 +218,6 @@ class _EditorToolbar extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          EditorToolbarIconButton(
-            icon: Icons.undo,
-            tooltip: '撤销',
-            onTap: () {},
-          ),
-          const SizedBox(width: 14),
-          EditorToolbarIconButton(
-            icon: Icons.format_bold,
-            tooltip: '加粗',
-            onTap: () {},
-          ),
-          const SizedBox(width: 14),
-          EditorToolbarIconButton(
-            icon: Icons.message_outlined,
-            tooltip: '批注',
-            onTap: () {},
-          ),
-          const SizedBox(width: 14),
-          EditorToolbarIconButton(
-            icon: Icons.highlight,
-            tooltip: '高亮',
-            onTap: () {},
-          ),
-          const SizedBox(width: 14),
           EditorToolbarIconButton(
             icon: isToolPanelOpen
                 ? Icons.view_sidebar_outlined

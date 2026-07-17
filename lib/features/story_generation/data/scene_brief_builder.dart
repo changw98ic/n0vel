@@ -33,7 +33,7 @@ class SceneBriefBuilder {
       ...plan.metadata,
       '_beatSummary': beatSummary,
       '_planId': plan.id,
-      '_transitionId':? transitionId,
+      '_transitionId': ?transitionId,
     };
 
     final sceneIndex = chapterPlan.scenes.indexWhere((s) => s.id == plan.id);

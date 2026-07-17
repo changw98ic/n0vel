@@ -8,11 +8,9 @@ import 'dart:async';
 /// The [now] parameter can be injected for deterministic testing; it defaults
 /// to [DateTime.now] in production.
 class RequestRateLimiter {
-  RequestRateLimiter({
-    required int requestsPerMinute,
-    DateTime Function()? now,
-  }) : _maxRequests = requestsPerMinute < 1 ? 1 : requestsPerMinute,
-       _now = now ?? DateTime.now;
+  RequestRateLimiter({required int requestsPerMinute, DateTime Function()? now})
+    : _maxRequests = requestsPerMinute < 1 ? 1 : requestsPerMinute,
+      _now = now ?? DateTime.now;
 
   final int _maxRequests;
   final DateTime Function() _now;

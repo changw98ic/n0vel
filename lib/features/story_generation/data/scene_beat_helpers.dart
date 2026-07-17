@@ -308,7 +308,9 @@ List<LightContextCapsule> stageCapsules(List<LightContextCapsule> capsules) {
   ];
 }
 
-List<LightContextCapsule> retrievalCapsules(List<LightContextCapsule> capsules) {
+List<LightContextCapsule> retrievalCapsules(
+  List<LightContextCapsule> capsules,
+) {
   return [
     for (final capsule in capsules)
       if (capsule.intent.toolName != SceneStageNarrator.capsuleToolName)

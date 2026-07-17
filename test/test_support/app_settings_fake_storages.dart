@@ -44,8 +44,9 @@ class RecoveringReadStorage implements AppSettingsStorage {
         : AppSettingsPersistenceIssue.none;
     return {
       'providerName': _loadCount == 1 ? 'OpenAI 兼容服务' : '智谱 GLM',
-      'baseUrl':
-          _loadCount == 1 ? 'https://api.example.com/v1' : 'https://api.openai.com/v1',
+      'baseUrl': _loadCount == 1
+          ? 'https://api.example.com/v1'
+          : 'https://api.openai.com/v1',
       'model': _loadCount == 1 ? 'gpt-5.4' : 'glm-4',
       'apiKey': _loadCount == 1 ? '' : 'sk-recovered-key',
       'themePreference': 'light',

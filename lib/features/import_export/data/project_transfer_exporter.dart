@@ -33,11 +33,11 @@ class ProjectTransferExporter {
 
   /// Optional callback to export story memory data for a project.
   final Future<Map<String, Object?>?> Function(String projectId)?
-      storyMemoryExport;
+  storyMemoryExport;
 
   /// Optional callback to export roleplay sessions and character memories.
   final Future<Map<String, Object?>?> Function(String projectId)?
-      roleplayStateExport;
+  roleplayStateExport;
 
   String get exportPackagePath =>
       '${_exportsDirectory.path}/$projectTransferPackageFilename';
@@ -74,7 +74,7 @@ class ProjectTransferExporter {
     );
     if (workspaceStore.projects.isEmpty) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.export.failed',
         status: AppEventLogStatus.warning,
         message: 'Project export skipped because no project is available.',
@@ -151,8 +151,7 @@ class ProjectTransferExporter {
         if (entity is File) {
           final name = entity.uri.pathSegments.last;
           if (name == projectTransferChecksumsFilename) continue;
-          checksums[name] =
-              computePayloadChecksum(await entity.readAsString());
+          checksums[name] = computePayloadChecksum(await entity.readAsString());
         }
       }
       await File(
@@ -171,7 +170,7 @@ class ProjectTransferExporter {
       ], workingDirectory: stagingDirectory.path);
       if (zipResult.exitCode != 0) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.export.failed',
           status: AppEventLogStatus.failed,
           message: 'Project export zip command failed.',
@@ -191,7 +190,7 @@ class ProjectTransferExporter {
         );
       }
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.export.succeeded',
         status: AppEventLogStatus.succeeded,
         message: 'Project export package was created.',
@@ -209,7 +208,7 @@ class ProjectTransferExporter {
       );
     } catch (error) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.export.failed',
         status: AppEventLogStatus.failed,
         message: 'Project export failed unexpectedly.',
@@ -403,8 +402,7 @@ class ProjectTransferExporter {
   ) {
     return [
       for (final payload in payloads)
-        if (entityTypeForFilename(payload.filename)
-            case final type?
+        if (entityTypeForFilename(payload.filename) case final type?
             when config.shouldExport(type))
           payload,
     ];
@@ -416,8 +414,7 @@ class ProjectTransferExporter {
   ) {
     return [
       for (final payload in payloads)
-        if (asyncEntityTypeForFilename(payload.filename)
-            case final type?
+        if (asyncEntityTypeForFilename(payload.filename) case final type?
             when config.shouldExport(type))
           payload,
     ];

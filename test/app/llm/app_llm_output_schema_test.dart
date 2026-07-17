@@ -15,7 +15,8 @@ void main() {
     });
 
     test('正常散文通过（>50 chars，无 forbidden pattern）', () {
-      const text = '这是一段正常的散文输出，包含足够的字符数量来满足最小长度要求。'
+      const text =
+          '这是一段正常的散文输出，包含足够的字符数量来满足最小长度要求。'
           '它没有任何 markdown fence 或者 preamble 开头。';
       final result = schema.validate(text);
       expect(result.isValid, isTrue);
@@ -41,20 +42,14 @@ void main() {
       expect(text.length, 49);
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        contains(contains('too short')),
-      );
+      expect(result.violations, contains(contains('too short')));
     });
 
     test('包含 ``` markdown fence 失败', () {
       final text = '${'一' * 50}\n```\nsome code\n```';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('Forbidden pattern')),
-      );
+      expect(result.violations, anyElement(contains('Forbidden pattern')));
     });
 
     test('包含 "好的" preamble 失败', () {
@@ -113,20 +108,14 @@ void main() {
       const text = '经过审查，原因：文字流畅，符合情节发展需要，这是一个很好的段落。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('决定')),
-      );
+      expect(result.violations, anyElement(contains('决定')));
     });
 
     test('缺少 原因：失败', () {
       const text = '经过审查，决定：通过。这段文字非常好。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('原因')),
-      );
+      expect(result.violations, anyElement(contains('原因')));
     });
 
     test('使用半角冒号通过（决定: 原因:）', () {
@@ -140,10 +129,7 @@ void main() {
       expect(text.length, lessThan(10));
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('too short')),
-      );
+      expect(result.violations, anyElement(contains('too short')));
     });
   });
 
@@ -168,40 +154,28 @@ void main() {
       const text = '冲突：角色矛盾。推进：揭示真相。约束：保持节奏。还需要补充更多内容。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('目标')),
-      );
+      expect(result.violations, anyElement(contains('目标')));
     });
 
     test('缺少 冲突：失败', () {
       const text = '目标：推动情节发展。推进：揭示真相。约束：保持节奏。需要更多内容。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('冲突')),
-      );
+      expect(result.violations, anyElement(contains('冲突')));
     });
 
     test('缺少 推进：失败', () {
       const text = '目标：推动情节发展。冲突：角色矛盾。约束：保持节奏。需要更多内容。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('推进')),
-      );
+      expect(result.violations, anyElement(contains('推进')));
     });
 
     test('缺少 约束：失败', () {
       const text = '目标：推动情节发展。冲突：角色矛盾。推进：揭示真相。需要更多内容。';
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('约束')),
-      );
+      expect(result.violations, anyElement(contains('约束')));
     });
 
     test('太短失败（<20 chars）', () {
@@ -209,10 +183,7 @@ void main() {
       expect(text.length, lessThan(20));
       final result = schema.validate(text);
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('too short')),
-      );
+      expect(result.violations, anyElement(contains('too short')));
     });
 
     test('半角冒号也通过', () {
@@ -250,32 +221,20 @@ void main() {
   // =========================================================================
   group('自定义 schema', () {
     test('maxLength 限制生效', () {
-      const schema = AppLlmOutputSchema(
-        minLength: 1,
-        maxLength: 10,
-      );
+      const schema = AppLlmOutputSchema(minLength: 1, maxLength: 10);
       final result = schema.validate('这是一个超过十个字符的文本');
       expect(result.isValid, isFalse);
-      expect(
-        result.violations,
-        anyElement(contains('too long')),
-      );
+      expect(result.violations, anyElement(contains('too long')));
     });
 
     test('恰好 maxLength 边界通过', () {
-      const schema = AppLlmOutputSchema(
-        minLength: 1,
-        maxLength: 5,
-      );
+      const schema = AppLlmOutputSchema(minLength: 1, maxLength: 5);
       final result = schema.validate('12345');
       expect(result.isValid, isTrue);
     });
 
     test('maxLength + 1 失败', () {
-      const schema = AppLlmOutputSchema(
-        minLength: 1,
-        maxLength: 5,
-      );
+      const schema = AppLlmOutputSchema(minLength: 1, maxLength: 5);
       final result = schema.validate('123456');
       expect(result.isValid, isFalse);
     });
@@ -283,11 +242,7 @@ void main() {
     test('多个 requiredPatterns 全部缺失', () {
       final schema = AppLlmOutputSchema(
         minLength: 1,
-        requiredPatterns: [
-          RegExp(r'alpha'),
-          RegExp(r'beta'),
-          RegExp(r'gamma'),
-        ],
+        requiredPatterns: [RegExp(r'alpha'), RegExp(r'beta'), RegExp(r'gamma')],
       );
       final result = schema.validate('no keywords here at all');
       expect(result.isValid, isFalse);
@@ -297,11 +252,7 @@ void main() {
     test('多个 requiredPatterns 部分缺失', () {
       final schema = AppLlmOutputSchema(
         minLength: 1,
-        requiredPatterns: [
-          RegExp(r'alpha'),
-          RegExp(r'beta'),
-          RegExp(r'gamma'),
-        ],
+        requiredPatterns: [RegExp(r'alpha'), RegExp(r'beta'), RegExp(r'gamma')],
       );
       final result = schema.validate('alpha and beta present');
       expect(result.isValid, isFalse);
@@ -311,10 +262,7 @@ void main() {
 
     test('多个 forbiddenPatterns 同时命中', () {
       final schema = AppLlmOutputSchema(
-        forbiddenPatterns: [
-          RegExp(r'BAD'),
-          RegExp(r'WORSE'),
-        ],
+        forbiddenPatterns: [RegExp(r'BAD'), RegExp(r'WORSE')],
       );
       final result = schema.validate('This is BAD and WORSE');
       expect(result.isValid, isFalse);
@@ -333,10 +281,7 @@ void main() {
       final result = schema.validate('short');
       expect(result.isValid, isFalse);
       expect(result.violations.length, 2);
-      expect(
-        result.violations,
-        contains(contains('too short')),
-      );
+      expect(result.violations, contains(contains('too short')));
       expect(
         result.violations,
         contains(contains('Required pattern not found')),
@@ -369,9 +314,7 @@ void main() {
     });
 
     test('校验通过直接返回', () async {
-      fakeClient.nextResult = AppLlmChatResult.success(
-        text: '一' * 60,
-      );
+      fakeClient.nextResult = AppLlmChatResult.success(text: '一' * 60);
 
       final client = AppLlmSchemaValidatingClient(delegate: fakeClient);
       final request = _makeRequest();
@@ -404,10 +347,7 @@ void main() {
       expect(fakeClient.callCount, 2);
       // 第二次调用的 messages 应包含 violation feedback
       final retryMessages = fakeClient.capturedMessages[1];
-      expect(
-        retryMessages.any((m) => m.content.contains('未满足格式要求')),
-        isTrue,
-      );
+      expect(retryMessages.any((m) => m.content.contains('未满足格式要求')), isTrue);
     });
 
     test('重试次数耗尽返回最后结果', () async {
@@ -450,9 +390,7 @@ void main() {
     });
 
     test('chat() 方法直接透传不做校验', () async {
-      fakeClient.nextResult = const AppLlmChatResult.success(
-        text: 'anything',
-      );
+      fakeClient.nextResult = const AppLlmChatResult.success(text: 'anything');
 
       final client = AppLlmSchemaValidatingClient(delegate: fakeClient);
       final request = _makeRequest();
@@ -502,8 +440,6 @@ AppLlmChatRequest _makeRequest() {
     baseUrl: 'https://example.com',
     apiKey: 'test-key',
     model: 'test-model',
-    messages: [
-      AppLlmChatMessage(role: 'user', content: 'hello'),
-    ],
+    messages: [AppLlmChatMessage(role: 'user', content: 'hello')],
   );
 }

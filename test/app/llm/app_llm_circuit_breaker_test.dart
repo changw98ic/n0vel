@@ -11,9 +11,9 @@ void main() {
       final breaker = AppLlmCircuitBreaker();
       expect(breaker.state, AppLlmCircuitState.closed);
 
-      final result = await breaker.guard(() async => const AppLlmChatResult.success(
-        text: 'ok',
-      ));
+      final result = await breaker.guard(
+        () async => const AppLlmChatResult.success(text: 'ok'),
+      );
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'ok');
@@ -25,9 +25,11 @@ void main() {
 
       // 连续 3 次失败
       for (var i = 0; i < 3; i++) {
-        await breaker.guard(() async => const AppLlmChatResult.failure(
-          failureKind: AppLlmFailureKind.server,
-        ));
+        await breaker.guard(
+          () async => const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.server,
+          ),
+        );
       }
 
       expect(breaker.state, AppLlmCircuitState.open);
@@ -38,9 +40,11 @@ void main() {
       final breaker = AppLlmCircuitBreaker(failureThreshold: 1);
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
       expect(breaker.state, AppLlmCircuitState.open);
 
       // open 状态下的调用应被拒绝，action 不执行
@@ -63,9 +67,11 @@ void main() {
       );
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
       expect(breaker.state, AppLlmCircuitState.open);
 
       // 等待 recovery timeout
@@ -81,18 +87,20 @@ void main() {
       );
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
 
       // 等待进入 halfOpen
       await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(breaker.state, AppLlmCircuitState.halfOpen);
 
       // 探测成功 → 回到 closed
-      final result = await breaker.guard(() async => const AppLlmChatResult.success(
-        text: 'recovered',
-      ));
+      final result = await breaker.guard(
+        () async => const AppLlmChatResult.success(text: 'recovered'),
+      );
       expect(result.succeeded, isTrue);
       expect(breaker.state, AppLlmCircuitState.closed);
       expect(breaker.consecutiveFailures, 0);
@@ -105,18 +113,22 @@ void main() {
       );
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
 
       // 等待进入 halfOpen
       await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(breaker.state, AppLlmCircuitState.halfOpen);
 
       // 探测失败 → 回到 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
       expect(breaker.state, AppLlmCircuitState.open);
     });
 
@@ -124,9 +136,11 @@ void main() {
       final breaker = AppLlmCircuitBreaker(failureThreshold: 1);
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
       expect(breaker.state, AppLlmCircuitState.open);
       expect(breaker.consecutiveFailures, 1);
 
@@ -141,18 +155,22 @@ void main() {
       final breaker = AppLlmCircuitBreaker(failureThreshold: 3);
 
       // 2 次失败
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
       expect(breaker.consecutiveFailures, 2);
 
       // 成功一次 → 重置
-      await breaker.guard(() async => const AppLlmChatResult.success(
-        text: 'ok',
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.success(text: 'ok'),
+      );
       expect(breaker.consecutiveFailures, 0);
       expect(breaker.state, AppLlmCircuitState.closed);
     });
@@ -164,9 +182,11 @@ void main() {
       );
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
 
       // 等待进入 halfOpen
       await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -197,18 +217,20 @@ void main() {
       );
 
       // 触发 open
-      await breaker.guard(() async => const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.server,
-      ));
+      await breaker.guard(
+        () async => const AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.server,
+        ),
+      );
 
       // 等待进入 halfOpen
       await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(breaker.state, AppLlmCircuitState.halfOpen);
 
       // 第一次探测放行
-      final result1 = await breaker.guard(() async => const AppLlmChatResult.success(
-        text: 'probe',
-      ));
+      final result1 = await breaker.guard(
+        () async => const AppLlmChatResult.success(text: 'probe'),
+      );
       expect(result1.succeeded, isTrue);
 
       // halfOpenMaxRequests=1，成功后应该已经回到 closed

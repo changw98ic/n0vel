@@ -66,9 +66,7 @@ class RevisionHubNavItem extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: palette.border, width: 1),
-            ),
+            border: Border(bottom: BorderSide(color: palette.border, width: 1)),
           ),
           child: Row(
             children: [
@@ -78,9 +76,12 @@ class RevisionHubNavItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(
                       subtitle,
                       maxLines: 1,

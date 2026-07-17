@@ -57,14 +57,23 @@ class DatabaseCorruptedException implements Exception {
   String toString() => 'DatabaseCorruptedException: $details';
 }
 
-Database openAuthoringDatabase(String dbPath) {
+/// Opens the authoring database and ensures the current schema is available.
+///
+/// Integrity verification is enabled by default for startup, migration, and
+/// recovery paths. Short-lived storage adapters can pass `false` after the
+/// owning registry has already established the database; running a full
+/// `PRAGMA integrity_check` for every read/write would otherwise turn a small
+/// mutation into a database-wide scan.
+Database openAuthoringDatabase(String dbPath, {bool verifyIntegrity = true}) {
   final file = File(dbPath);
   file.parent.createSync(recursive: true);
   Database? database;
   try {
     database = sqlite3.open(dbPath);
     _applyPerformancePragmas(database);
-    _checkIntegrity(database);
+    if (verifyIntegrity) {
+      _checkIntegrity(database);
+    }
     DatabaseSchemaManager(
       migrations: authoringSchemaMigrations,
     ).ensureSchema(database);
@@ -150,8 +159,12 @@ Database openTelemetryDatabase(String dbPath) {
   return database;
 }
 
-T withAuthoringDb<T>(String dbPath, T Function(Database) action) {
-  final db = openAuthoringDatabase(dbPath);
+T withAuthoringDb<T>(
+  String dbPath,
+  T Function(Database) action, {
+  bool verifyIntegrity = false,
+}) {
+  final db = openAuthoringDatabase(dbPath, verifyIntegrity: verifyIntegrity);
   try {
     return action(db);
   } finally {
@@ -171,8 +184,12 @@ T runInTransaction<T>(Database db, T Function() action) {
   }
 }
 
-T withAuthoringDbInTxn<T>(String dbPath, T Function(Database) action) {
-  final db = openAuthoringDatabase(dbPath);
+T withAuthoringDbInTxn<T>(
+  String dbPath,
+  T Function(Database) action, {
+  bool verifyIntegrity = false,
+}) {
+  final db = openAuthoringDatabase(dbPath, verifyIntegrity: verifyIntegrity);
   try {
     return runInTransaction(db, () => action(db));
   } finally {

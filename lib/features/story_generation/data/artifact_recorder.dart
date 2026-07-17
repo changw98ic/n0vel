@@ -78,10 +78,12 @@ class PipelineArtifact {
       chapterId: json['chapterId'] as String,
       artifactType: json['artifactType'] as String,
       sourceId: json['sourceId'] as String,
-      data: (json['data'] as Map<Object?, Object?>?)?.cast<String, Object?>() ??
+      data:
+          (json['data'] as Map<Object?, Object?>?)?.cast<String, Object?>() ??
           const {},
       recordedAtMs: json['recordedAtMs'] as int,
-      sourceTraceIds: (json['sourceTraceIds'] as List<Object?>?)
+      sourceTraceIds:
+          (json['sourceTraceIds'] as List<Object?>?)
               ?.whereType<String>()
               .toList() ??
           const [],
@@ -209,16 +211,12 @@ class ArtifactRecorder {
 
   /// Get all artifacts for a scene, in recording order.
   List<PipelineArtifact> artifactsForScene(String sceneId) {
-    return _artifacts
-        .where((a) => a.sceneId == sceneId)
-        .toList();
+    return _artifacts.where((a) => a.sceneId == sceneId).toList();
   }
 
   /// Get artifacts by type.
   List<PipelineArtifact> artifactsByType(String artifactType) {
-    return _artifacts
-        .where((a) => a.artifactType == artifactType)
-        .toList();
+    return _artifacts.where((a) => a.artifactType == artifactType).toList();
   }
 
   /// Get the full trace chain for an artifact, walking [sourceTraceIds].

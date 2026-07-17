@@ -7,8 +7,7 @@ import 'workspace_types.dart';
 // Default data constants
 // ---------------------------------------------------------------------------
 
-const defaultStyleBindingFeedback =
-    '反馈会说明当前绑定范围、已同步的规则集和强度建议。';
+const defaultStyleBindingFeedback = '反馈会说明当前绑定范围、已同步的规则集和强度建议。';
 const defaultAuditActionFeedback = '等待处理';
 
 const defaultCharacters = <CharacterRecord>[

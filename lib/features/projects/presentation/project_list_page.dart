@@ -46,6 +46,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
+  bool _deletingProject = false;
 
   static const _headerTabs = ['书架', '最近编辑', '归档'];
 
@@ -64,7 +65,9 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   static int _compareByGenre(ProjectRecord a, ProjectRecord b) =>
       a.genre.compareTo(b.genre);
 
-  List<AppListFilterOption<ProjectRecord>> _filterOptions(BuildContext context) {
+  List<AppListFilterOption<ProjectRecord>> _filterOptions(
+    BuildContext context,
+  ) {
     final now = DateTime.now().millisecondsSinceEpoch;
     const dayMs = 24 * 60 * 60 * 1000;
     return [
@@ -182,15 +185,13 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                       borderRadius: BorderRadius.circular(
                         AppDesignTokens.radiusLarge,
                       ),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFD8D2C6)),
+                      borderSide: const BorderSide(color: Color(0xFFD8D2C6)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
                         AppDesignTokens.radiusLarge,
                       ),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFD8D2C6)),
+                      borderSide: const BorderSide(color: Color(0xFFD8D2C6)),
                     ),
                   ),
                 ),
@@ -226,16 +227,19 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
               final availableWidth =
                   constraints.maxWidth - horizontalPadding * 2;
               final cardWidth =
-                  (availableWidth - crossAxisSpacing * (columns - 1)) /
-                      columns;
+                  (availableWidth - crossAxisSpacing * (columns - 1)) / columns;
               const cardHeight = 320.0;
               final aspectRatio = cardWidth / cardHeight;
               return AppPremiumScrollbar(
                 controller: _gridScrollController,
                 child: GridView.builder(
                   controller: _gridScrollController,
-                  padding:
-                      const EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
+                  padding: const EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    16,
+                    horizontalPadding,
+                    20,
+                  ),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: columns,
                     childAspectRatio: aspectRatio,
@@ -268,8 +272,9 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0x88FFFFFF),
-                    borderRadius:
-                        BorderRadius.circular(AppDesignTokens.radiusFull),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusFull,
+                    ),
                     border: Border.all(
                       color: const Color(0x99FFFFFF),
                       width: 1,
@@ -469,9 +474,18 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       },
     );
     if (shouldDelete != true || !context.mounted) return;
-    setState(() {
-      ref.read(appWorkspaceStoreProvider).deleteProject(project);
-    });
+    if (_deletingProject) return;
+    setState(() => _deletingProject = true);
+    final result = await ref
+        .read(appWorkspaceStoreProvider)
+        .deleteProjectAndWait(project);
+    if (!context.mounted) return;
+    setState(() => _deletingProject = false);
+    if (!result.succeeded && result.status == DeleteProjectStatus.failed) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('删除失败：${result.error}')));
+    }
   }
 
   void _openWorkbench(BuildContext context, ProjectRecord project) {

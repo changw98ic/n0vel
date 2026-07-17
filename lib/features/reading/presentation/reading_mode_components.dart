@@ -106,10 +106,7 @@ class ReadingDocumentPages {
 }
 
 class ReadingInlineNoticeData {
-  const ReadingInlineNoticeData({
-    required this.title,
-    required this.message,
-  });
+  const ReadingInlineNoticeData({required this.title, required this.message});
 
   final String title;
   final String message;

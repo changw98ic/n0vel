@@ -28,19 +28,28 @@ class RoleplayTurn {
     for (final line in text.split('\n')) {
       final trimmed = line.trim();
       if (trimmed.startsWith('立场：') || trimmed.startsWith('立场:')) {
-        stance = trimmed.substring(trimmed.indexOf('：') > 0
-                ? trimmed.indexOf('：') + 1
-                : trimmed.indexOf(':') + 1)
+        stance = trimmed
+            .substring(
+              trimmed.indexOf('：') > 0
+                  ? trimmed.indexOf('：') + 1
+                  : trimmed.indexOf(':') + 1,
+            )
             .trim();
       } else if (trimmed.startsWith('动作：') || trimmed.startsWith('动作:')) {
-        action = trimmed.substring(trimmed.indexOf('：') > 0
-                ? trimmed.indexOf('：') + 1
-                : trimmed.indexOf(':') + 1)
+        action = trimmed
+            .substring(
+              trimmed.indexOf('：') > 0
+                  ? trimmed.indexOf('：') + 1
+                  : trimmed.indexOf(':') + 1,
+            )
             .trim();
       } else if (trimmed.startsWith('禁忌：') || trimmed.startsWith('禁忌:')) {
-        taboo = trimmed.substring(trimmed.indexOf('：') > 0
-                ? trimmed.indexOf('：') + 1
-                : trimmed.indexOf(':') + 1)
+        taboo = trimmed
+            .substring(
+              trimmed.indexOf('：') > 0
+                  ? trimmed.indexOf('：') + 1
+                  : trimmed.indexOf(':') + 1,
+            )
             .trim();
       }
     }
@@ -67,8 +76,7 @@ class RoleplayTurn {
           other.taboo == taboo;
 
   @override
-  int get hashCode =>
-      Object.hash(characterId, name, stance, action, taboo);
+  int get hashCode => Object.hash(characterId, name, stance, action, taboo);
 }
 
 /// A proposed action from a character within a scene beat.
@@ -299,19 +307,19 @@ class RolePromptPacket {
 
   @override
   int get hashCode => Object.hash(
-        characterId,
-        characterName,
-        characterRole,
-        currentUnderstanding,
-        currentFeeling,
-        viewOfOthers,
-        surfaceBehavior,
-        unspokenThoughts,
-        actionIntent,
-        dialogueTendency,
-        Object.hashAll(sourceAtomIds),
-        Object.hashAllUnordered(metadata.entries),
-      );
+    characterId,
+    characterName,
+    characterRole,
+    currentUnderstanding,
+    currentFeeling,
+    viewOfOthers,
+    surfaceBehavior,
+    unspokenThoughts,
+    actionIntent,
+    dialogueTendency,
+    Object.hashAll(sourceAtomIds),
+    Object.hashAllUnordered(metadata.entries),
+  );
 
   static bool _listEquals<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
@@ -341,12 +349,12 @@ class SceneStateDelta {
   final List<BeliefUpdate> beliefUpdates;
 
   List<ResolvedBeat> get acceptedBeats => [
-        for (final rb in resolvedBeats)
-          if (rb.resolution == BeatResolution.accepted) rb,
-      ];
+    for (final rb in resolvedBeats)
+      if (rb.resolution == BeatResolution.accepted) rb,
+  ];
 
   List<ResolvedBeat> get rejectedBeats => [
-        for (final rb in resolvedBeats)
-          if (rb.resolution == BeatResolution.rejected) rb,
-      ];
+    for (final rb in resolvedBeats)
+      if (rb.resolution == BeatResolution.rejected) rb,
+  ];
 }

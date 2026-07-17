@@ -29,6 +29,8 @@ mixin _WorkspaceFields on AppStoreListenable {
   AppWorkspaceStorage get _storage;
   Iterable<Future<void> Function(String projectId)>
   get _projectDeletionCleaners;
+  Future<void> Function()? get _prepareProjectDeletionFlush;
+  Future<void> Function()? get _prepareProjectDeletionBackup;
 
   abstract List<ProjectRecord> _projects;
   abstract Map<String, List<CharacterRecord>> _charactersByProjectId;
@@ -37,9 +39,17 @@ mixin _WorkspaceFields on AppStoreListenable {
   abstract Map<String, List<AuditIssueRecord>> _auditIssuesByProjectId;
   abstract Map<String, ProjectStyleState> _styleByProjectId;
   abstract Map<String, ProjectAuditUiState> _auditUiByProjectId;
+
+  /// Durable deletion intent keyed by project id. A tombstone is retained
+  /// until all external project cleaners have completed, so a crash or a
+  /// transient cleaner failure cannot silently lose the retry intent.
+  abstract Map<String, Map<String, Object?>> _projectDeletionTombstones;
   abstract String _currentProjectId;
   abstract ProjectTransferState _projectTransferState;
   abstract bool _hasLocalMutations;
+  Future<void> _persistenceTail = Future<void>.value();
+  final Map<String, Future<DeleteProjectResult>> _projectDeletionOperations =
+      <String, Future<DeleteProjectResult>>{};
   AppEventBus? get _eventBus;
 
   // -------------------------------------------------------------------------
@@ -60,6 +70,8 @@ mixin _WorkspaceFields on AppStoreListenable {
   // -------------------------------------------------------------------------
 
   List<ProjectRecord> get projects => List.unmodifiable(_projects);
+  List<String> get pendingProjectDeletionIds =>
+      List.unmodifiable(_projectDeletionTombstones.keys);
   List<CharacterRecord> get characters =>
       List.unmodifiable(_charactersForCurrentProject());
   List<SceneRecord> get scenes => List.unmodifiable(_scenesForCurrentProject());
@@ -268,6 +280,10 @@ mixin _WorkspaceFields on AppStoreListenable {
         for (final entry in _auditUiByProjectId.entries)
           entry.key: entry.value.toJson(),
       },
+      'projectDeletionTombstones': {
+        for (final entry in _projectDeletionTombstones.entries)
+          entry.key: Map<String, Object?>.from(entry.value),
+      },
       'projectTransferState': _projectTransferState.name,
       'currentProjectId': _currentProjectId,
     };
@@ -314,9 +330,25 @@ mixin _WorkspaceFields on AppStoreListenable {
 
   void _commitMutation() {
     _hasLocalMutations = true;
-    unawaited(safePersist(_persist, eventBus: _eventBus));
+    // A failed write must not poison the serial queue permanently. The next
+    // user mutation is an explicit retry and should be allowed to persist the
+    // newest full snapshot after the failure notification has been emitted.
+    final next = _persistenceTail
+        .catchError((Object _) {})
+        .then(
+          (_) => safePersist(
+            _persist,
+            eventBus: _eventBus,
+            rethrowOnFailure: true,
+          ),
+        );
+    _persistenceTail = next;
+    unawaited(next);
     notifyListeners();
   }
+
+  @override
+  Future<void> flushPersistence() => _persistenceTail;
 
   void _publishWorkspaceEvent(AppDomainEvent event) {
     final bus = _eventBus;
@@ -436,12 +468,13 @@ class AppWorkspaceStore extends AppStoreListenable
     AppEventBus? eventBus,
     Iterable<Future<void> Function(String projectId)> projectDeletionCleaners =
         const [],
-  }) : _storage =
-           storage ??
-           
-           createDefaultAppWorkspaceStorage(),
+    Future<void> Function()? prepareProjectDeletionFlush,
+    Future<void> Function()? prepareProjectDeletionBackup,
+  }) : _storage = storage ?? createDefaultAppWorkspaceStorage(),
        _eventBus = eventBus,
        _projectDeletionCleaners = projectDeletionCleaners,
+       _prepareProjectDeletionFlush = prepareProjectDeletionFlush,
+       _prepareProjectDeletionBackup = prepareProjectDeletionBackup,
        _projects = sortProjects(buildDefaultProjects()),
        _charactersByProjectId = buildDefaultProjectCharacters(
          buildDefaultProjects(),
@@ -462,7 +495,6 @@ class AppWorkspaceStore extends AppStoreListenable
     _restore();
   }
 
-  
   WorkspaceProjectSceneFacade get projectSceneFacade =>
       _AppWorkspaceProjectSceneFacade(this);
 
@@ -484,6 +516,12 @@ class AppWorkspaceStore extends AppStoreListenable
   _projectDeletionCleaners;
 
   @override
+  final Future<void> Function()? _prepareProjectDeletionFlush;
+
+  @override
+  final Future<void> Function()? _prepareProjectDeletionBackup;
+
+  @override
   List<ProjectRecord> _projects;
 
   @override
@@ -503,6 +541,9 @@ class AppWorkspaceStore extends AppStoreListenable
 
   @override
   Map<String, ProjectAuditUiState> _auditUiByProjectId;
+
+  @override
+  Map<String, Map<String, Object?>> _projectDeletionTombstones = {};
 
   @override
   String _currentProjectId;

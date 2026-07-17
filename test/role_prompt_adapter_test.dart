@@ -60,8 +60,7 @@ void main() {
       expect(text, contains('【对白倾向】'));
 
       // Verify all 7 sections present by counting headers.
-      final headerCount =
-          RegExp(r'【[^】]+】').allMatches(text).length;
+      final headerCount = RegExp(r'【[^】]+】').allMatches(text).length;
       expect(headerCount, 7);
     });
 

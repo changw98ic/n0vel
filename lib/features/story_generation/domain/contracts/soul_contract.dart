@@ -1,10 +1,5 @@
 /// How a character typically makes decisions.
-enum DecisionPattern {
-  principled,
-  emotional,
-  strategic,
-  impulsive,
-}
+enum DecisionPattern { principled, emotional, strategic, impulsive }
 
 /// A violation of a character's soul contract.
 class SoulViolation {
@@ -67,11 +62,14 @@ class SoulContract {
     // 1. Check forbidden actions (exact + substring).
     for (final forbidden in forbiddenActions) {
       if (proposedAction.contains(forbidden)) {
-        violations.add(SoulViolation(
-          rule: 'forbidden:$forbidden',
-          description: 'Action "$proposedAction" matches forbidden "$forbidden"',
-          severity: 1.0,
-        ));
+        violations.add(
+          SoulViolation(
+            rule: 'forbidden:$forbidden',
+            description:
+                'Action "$proposedAction" matches forbidden "$forbidden"',
+            severity: 1.0,
+          ),
+        );
       }
     }
 
@@ -80,11 +78,13 @@ class SoulContract {
     for (final value in coreValues) {
       final antiPattern = '不$value';
       if (proposedAction.contains(antiPattern)) {
-        violations.add(SoulViolation(
-          rule: 'coreValue:$value',
-          description: 'Action contradicts core value "$value"',
-          severity: 0.8,
-        ));
+        violations.add(
+          SoulViolation(
+            rule: 'coreValue:$value',
+            description: 'Action contradicts core value "$value"',
+            severity: 0.8,
+          ),
+        );
       }
     }
 
@@ -92,11 +92,13 @@ class SoulContract {
     if (emotionalRange.forbiddenEmotions.isNotEmpty) {
       for (final emotion in emotionalRange.forbiddenEmotions) {
         if (proposedAction.contains(emotion)) {
-          violations.add(SoulViolation(
-            rule: 'emotion:$emotion',
-            description: 'Action expresses forbidden emotion "$emotion"',
-            severity: 0.6,
-          ));
+          violations.add(
+            SoulViolation(
+              rule: 'emotion:$emotion',
+              description: 'Action expresses forbidden emotion "$emotion"',
+              severity: 0.6,
+            ),
+          );
         }
       }
     }
@@ -105,11 +107,13 @@ class SoulContract {
     for (final promise in unbreakablePromises) {
       final breakPattern = '违背$promise';
       if (proposedAction.contains(breakPattern)) {
-        violations.add(SoulViolation(
-          rule: 'promise:$promise',
-          description: 'Action breaks promise "$promise"',
-          severity: 1.0,
-        ));
+        violations.add(
+          SoulViolation(
+            rule: 'promise:$promise',
+            description: 'Action breaks promise "$promise"',
+            severity: 1.0,
+          ),
+        );
       }
     }
 
@@ -129,7 +133,9 @@ class SoulContract {
     return SoulContract(
       coreValues: _asStringList(json['coreValues']),
       forbiddenActions: _asStringList(json['forbiddenActions']),
-      emotionalRange: EmotionalContract.fromJson(_asMap(json['emotionalRange'])),
+      emotionalRange: EmotionalContract.fromJson(
+        _asMap(json['emotionalRange']),
+      ),
       decisionPattern: _parseDecisionPattern(json['decisionPattern']),
       unbreakablePromises: _asStringList(json['unbreakablePromises']),
       identityAnchors: _asStringList(json['identityAnchors']),
@@ -174,7 +180,10 @@ Map<String, Object?> _asMap(Object? raw) {
 
 List<String> _asStringList(Object? raw) {
   if (raw is! List) return const [];
-  return [for (final item in raw) if (item != null) item.toString()];
+  return [
+    for (final item in raw)
+      if (item != null) item.toString(),
+  ];
 }
 
 double _asDouble(Object? raw) {

@@ -8,10 +8,8 @@ typedef ScenePipelineSceneRunner<TScene, TResult> =
 
 typedef ScenePipelineResultGate<TResult> = bool Function(TResult result);
 
-typedef ScenePipelineResultCommitted<TResult> = void Function(
-  int index,
-  TResult result,
-);
+typedef ScenePipelineResultCommitted<TResult> =
+    void Function(int index, TResult result);
 
 class ScenePipelineScheduler<TScene, TResult> {
   const ScenePipelineScheduler({

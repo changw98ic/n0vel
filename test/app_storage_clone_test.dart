@@ -126,9 +126,7 @@ void main() {
     });
 
     test('cloned map mutations do not affect original', () {
-      const original = <String, Object?>{
-        'key': 'original-value',
-      };
+      const original = <String, Object?>{'key': 'original-value'};
       final cloned = cloneStorageMap(original);
       cloned['key'] = 'mutated';
 
@@ -138,18 +136,14 @@ void main() {
 
     test('nested map mutations in clone do not affect original', () {
       const original = <String, Object?>{
-        'settings': <String, Object?>{
-          'theme': 'dark',
-          'fontSize': 14,
-        },
+        'settings': <String, Object?>{'theme': 'dark', 'fontSize': 14},
       };
       final cloned = cloneStorageMap(original);
 
       final clonedSettings = cloned['settings'] as Map<String, Object?>;
       clonedSettings['theme'] = 'light';
 
-      final originalSettings =
-          original['settings'] as Map<String, Object?>;
+      final originalSettings = original['settings'] as Map<String, Object?>;
       expect(originalSettings['theme'], 'dark');
     });
 
@@ -195,10 +189,7 @@ void main() {
                 <String, Object?>{
                   'id': 's-01',
                   'cast': <Object?>[
-                    <String, Object?>{
-                      'characterId': 'char-01',
-                      'name': '柳溪',
-                    },
+                    <String, Object?>{'characterId': 'char-01', 'name': '柳溪'},
                   ],
                 },
               ],
@@ -208,9 +199,14 @@ void main() {
       };
       final cloned = cloneStorageMap(original);
 
-      final clonedChapter = ((cloned['project'] as Map<String, Object?>)['chapters'] as List<Object?>)[0] as Map<String, Object?>;
-      final clonedScene = (clonedChapter['scenes'] as List<Object?>)[0] as Map<String, Object?>;
-      final clonedCast = (clonedScene['cast'] as List<Object?>)[0] as Map<String, Object?>;
+      final clonedChapter =
+          ((cloned['project'] as Map<String, Object?>)['chapters']
+                  as List<Object?>)[0]
+              as Map<String, Object?>;
+      final clonedScene =
+          (clonedChapter['scenes'] as List<Object?>)[0] as Map<String, Object?>;
+      final clonedCast =
+          (clonedScene['cast'] as List<Object?>)[0] as Map<String, Object?>;
       clonedCast['name'] = '陈默';
 
       final originalChapter =
@@ -229,10 +225,7 @@ void main() {
     });
 
     test('preserves null values in map', () {
-      const original = <String, Object?>{
-        'present': 'value',
-        'absent': null,
-      };
+      const original = <String, Object?>{'present': 'value', 'absent': null};
       final cloned = cloneStorageMap(original);
 
       expect(cloned, equals(original));

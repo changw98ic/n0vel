@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import '../../../app/state/app_project_scoped_store.dart';
+import '../../../app/state/project_storage.dart';
 import '../domain/review_task_models.dart';
 import 'review_task_storage.dart';
 
 class ReviewTaskStore extends AppProjectScopedStore {
   ReviewTaskStore({
     ReviewTaskStorage? storage,
-    super.workspaceStore, super.eventBus,
+    super.workspaceStore,
+    super.eventBus,
     List<ReviewTask> initialTasks = const [],
-  }) : _storage =
-           storage ?? createDefaultReviewTaskStorage(),
+  }) : _storage = storage ?? createDefaultReviewTaskStorage(),
        super(
          scopeMode: AppStoreScopeMode.project,
          fallbackProjectId: 'project-yuechao',
@@ -22,10 +23,12 @@ class ReviewTaskStore extends AppProjectScopedStore {
     }
   }
 
-  
   final ReviewTaskStorage _storage;
   final Map<String, List<ReviewTask>> _tasksByProjectId = {};
   Future<void> _readyFuture = Future<void>.value();
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   List<ReviewTask> get _tasks =>
       _tasksByProjectId[activeProjectId] ?? const <ReviewTask>[];

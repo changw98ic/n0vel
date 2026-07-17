@@ -20,10 +20,7 @@ InMemoryAppVersionStorage seededVersionStorage({
   final storage = _SeededVersionStorage();
   final data = {
     'entries': [
-      const VersionEntry(
-        label: '初始版本',
-        content: seededInitialDraft,
-      ).toJson(),
+      const VersionEntry(label: '初始版本', content: seededInitialDraft).toJson(),
     ],
   };
   unawaited(storage.save(data, projectId: ''));
@@ -40,7 +37,9 @@ class _SeededWorkspaceStorage extends InMemoryAppWorkspaceStorage {
   @override
   Future<Map<String, Object?>?> load() {
     final data = _data;
-    return SynchronousFuture(data == null ? null : Map<String, Object?>.from(data));
+    return SynchronousFuture(
+      data == null ? null : Map<String, Object?>.from(data),
+    );
   }
 
   @override
@@ -68,10 +67,7 @@ class _SeededVersionStorage extends InMemoryAppVersionStorage {
   }
 
   @override
-  Future<void> save(
-    Map<String, Object?> data, {
-    required String projectId,
-  }) {
+  Future<void> save(Map<String, Object?> data, {required String projectId}) {
     _records[projectId] = Map<String, Object?>.from(data);
     return SynchronousFuture(null);
   }

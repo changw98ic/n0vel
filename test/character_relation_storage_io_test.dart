@@ -9,9 +9,7 @@ import 'package:novel_writer/features/characters/data/character_relation_storage
 /// 用内存 DB 创建一个已跑过 migration 的 storage
 CharacterRelationStorageIO _openStorage() {
   final db = sqlite3.openInMemory();
-  DatabaseSchemaManager(
-    migrations: authoringSchemaMigrations,
-  ).ensureSchema(db);
+  DatabaseSchemaManager(migrations: authoringSchemaMigrations).ensureSchema(db);
   return CharacterRelationStorageIO(db: db);
 }
 
@@ -81,23 +79,27 @@ void main() {
     });
 
     test('upsert 更新已有关系', () async {
-      await storage.save(const CharacterRelationRecord(
-        id: 'rel-1',
-        projectId: 'proj-a',
-        fromCharacterId: 'char-a',
-        toCharacterId: 'char-b',
-        relationType: '朋友',
-        note: '相识多年',
-      ));
+      await storage.save(
+        const CharacterRelationRecord(
+          id: 'rel-1',
+          projectId: 'proj-a',
+          fromCharacterId: 'char-a',
+          toCharacterId: 'char-b',
+          relationType: '朋友',
+          note: '相识多年',
+        ),
+      );
 
-      await storage.save(const CharacterRelationRecord(
-        id: 'rel-1-updated',
-        projectId: 'proj-a',
-        fromCharacterId: 'char-a',
-        toCharacterId: 'char-b',
-        relationType: '恋人',
-        note: '日久生情',
-      ));
+      await storage.save(
+        const CharacterRelationRecord(
+          id: 'rel-1-updated',
+          projectId: 'proj-a',
+          fromCharacterId: 'char-a',
+          toCharacterId: 'char-b',
+          relationType: '恋人',
+          note: '日久生情',
+        ),
+      );
 
       final loaded = await storage.loadByProject('proj-a');
       expect(loaded, hasLength(1));
@@ -187,24 +189,20 @@ void main() {
       final allForB = await storage.loadAllForCharacter('proj-a', 'char-b');
       expect(allForB, hasLength(2));
       // char-b 作为 from 在 rel-1，作为 to 在 rel-2
-      expect(
-        allForB.any((r) => r.id == 'rel-1'),
-        isTrue,
-      );
-      expect(
-        allForB.any((r) => r.id == 'rel-2'),
-        isTrue,
-      );
+      expect(allForB.any((r) => r.id == 'rel-1'), isTrue);
+      expect(allForB.any((r) => r.id == 'rel-2'), isTrue);
     });
 
     test('delete 删除指定关系', () async {
-      await storage.save(const CharacterRelationRecord(
-        id: 'rel-1',
-        projectId: 'proj-a',
-        fromCharacterId: 'char-a',
-        toCharacterId: 'char-b',
-        relationType: '朋友',
-      ));
+      await storage.save(
+        const CharacterRelationRecord(
+          id: 'rel-1',
+          projectId: 'proj-a',
+          fromCharacterId: 'char-a',
+          toCharacterId: 'char-b',
+          relationType: '朋友',
+        ),
+      );
 
       final deleted = await storage.delete('proj-a', 'char-a', 'char-b');
       expect(deleted, isTrue);
@@ -278,20 +276,24 @@ void main() {
     });
 
     test('项目隔离：不同项目的关系互不影响', () async {
-      await storage.save(const CharacterRelationRecord(
-        id: 'rel-a',
-        projectId: 'proj-a',
-        fromCharacterId: 'x',
-        toCharacterId: 'y',
-        relationType: '朋友',
-      ));
-      await storage.save(const CharacterRelationRecord(
-        id: 'rel-b',
-        projectId: 'proj-b',
-        fromCharacterId: 'x',
-        toCharacterId: 'y',
-        relationType: '敌人',
-      ));
+      await storage.save(
+        const CharacterRelationRecord(
+          id: 'rel-a',
+          projectId: 'proj-a',
+          fromCharacterId: 'x',
+          toCharacterId: 'y',
+          relationType: '朋友',
+        ),
+      );
+      await storage.save(
+        const CharacterRelationRecord(
+          id: 'rel-b',
+          projectId: 'proj-b',
+          fromCharacterId: 'x',
+          toCharacterId: 'y',
+          relationType: '敌人',
+        ),
+      );
 
       final a = await storage.loadByProject('proj-a');
       final b = await storage.loadByProject('proj-b');
@@ -324,10 +326,7 @@ void main() {
         ),
       ]);
 
-      final fromHero = await storage.loadByFromCharacter(
-        'proj-a',
-        'char-hero',
-      );
+      final fromHero = await storage.loadByFromCharacter('proj-a', 'char-hero');
       expect(fromHero, hasLength(3));
     });
 
@@ -399,10 +398,10 @@ void main() {
           ),
         ]);
 
-        final repairs = await storage.validateAndRepair(
-          'proj-a',
-          {'char-a', 'char-b'},
-        );
+        final repairs = await storage.validateAndRepair('proj-a', {
+          'char-a',
+          'char-b',
+        });
 
         expect(repairs, hasLength(2));
         expect(repairs[0], contains('孤儿关系'));
@@ -414,18 +413,20 @@ void main() {
       });
 
       test('所有角色都存在时无修复', () async {
-        await storage.save(const CharacterRelationRecord(
-          id: 'rel-1',
-          projectId: 'proj-a',
-          fromCharacterId: 'char-a',
-          toCharacterId: 'char-b',
-          relationType: '朋友',
-        ));
-
-        final repairs = await storage.validateAndRepair(
-          'proj-a',
-          {'char-a', 'char-b'},
+        await storage.save(
+          const CharacterRelationRecord(
+            id: 'rel-1',
+            projectId: 'proj-a',
+            fromCharacterId: 'char-a',
+            toCharacterId: 'char-b',
+            relationType: '朋友',
+          ),
         );
+
+        final repairs = await storage.validateAndRepair('proj-a', {
+          'char-a',
+          'char-b',
+        });
 
         expect(repairs, isEmpty);
       });
@@ -475,11 +476,14 @@ void main() {
           .map((r) => r['name'] as String)
           .toList();
 
-      expect(indexes, containsAll([
-        'idx_character_relations_project',
-        'idx_character_relations_from',
-        'idx_character_relations_to',
-      ]));
+      expect(
+        indexes,
+        containsAll([
+          'idx_character_relations_project',
+          'idx_character_relations_from',
+          'idx_character_relations_to',
+        ]),
+      );
     });
 
     test('PK 约束阻止同一对角色的重复关系', () {
@@ -490,11 +494,9 @@ void main() {
         migrations: authoringSchemaMigrations,
       ).ensureSchema(db);
 
-      db.execute(
-        '''INSERT INTO character_relations
+      db.execute('''INSERT INTO character_relations
           (id, project_id, from_character_id, to_character_id, relation_type, note, created_at_ms)
-          VALUES ('r1', 'p1', 'a', 'b', '朋友', '', 0)''',
-      );
+          VALUES ('r1', 'p1', 'a', 'b', '朋友', '', 0)''');
 
       // 同一对角色再次插入应走 upsert（ON CONFLICT DO UPDATE）
       db.execute(
@@ -524,11 +526,9 @@ void main() {
       );
       manager.ensureSchema(db);
 
-      db.execute(
-        '''INSERT INTO character_relations
+      db.execute('''INSERT INTO character_relations
           (id, project_id, from_character_id, to_character_id, relation_type, note, created_at_ms)
-          VALUES ('r1', 'p1', 'a', 'b', '朋友', '', 0)''',
-      );
+          VALUES ('r1', 'p1', 'a', 'b', '朋友', '', 0)''');
 
       manager.ensureSchema(db);
 

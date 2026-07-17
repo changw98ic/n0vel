@@ -34,8 +34,7 @@ class FakeRagService {
   Future<StoryRetrievalPack> retrieve(
     StoryMemoryQuery query,
     RagRetrievalPolicy policy,
-  ) =>
-      retriever.retrieve(query, policy);
+  ) => retriever.retrieve(query, policy);
 
   void dispose() => db.dispose();
 

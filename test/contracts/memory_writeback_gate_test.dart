@@ -17,48 +17,35 @@ void main() {
       expect(result.accepted, hasLength(1));
     });
 
-    test('rejects soul-violating canon writes when validator provided', () async {
-      const gate = BasicMemoryWritebackGate(
-        soulValidator: _rejectingValidator,
-      );
-      final result = await gate.validate([
-        const ProposedWrite(
-          tier: MemoryTier.canon,
-          content: 'bad action',
-        ),
-      ]);
-      expect(result.rejected, hasLength(1));
-      expect(result.rejected[0].reasons, isNotEmpty);
-    });
+    test(
+      'rejects soul-violating canon writes when validator provided',
+      () async {
+        const gate = BasicMemoryWritebackGate(
+          soulValidator: _rejectingValidator,
+        );
+        final result = await gate.validate([
+          const ProposedWrite(tier: MemoryTier.canon, content: 'bad action'),
+        ]);
+        expect(result.rejected, hasLength(1));
+        expect(result.rejected[0].reasons, isNotEmpty);
+      },
+    );
 
     test('accepts canon writes when validator passes', () async {
-      const gate = BasicMemoryWritebackGate(
-        soulValidator: _acceptingValidator,
-      );
+      const gate = BasicMemoryWritebackGate(soulValidator: _acceptingValidator);
       final result = await gate.validate([
-        const ProposedWrite(
-          tier: MemoryTier.canon,
-          content: 'good action',
-        ),
+        const ProposedWrite(tier: MemoryTier.canon, content: 'good action'),
       ]);
       expect(result.allAccepted, isTrue);
     });
 
     test('rejects canon-contradicting writes when keeper provided', () async {
-      const gate = BasicMemoryWritebackGate(
-        canonKeeper: _rejectingCanonKeeper,
-      );
+      const gate = BasicMemoryWritebackGate(canonKeeper: _rejectingCanonKeeper);
       final result = await gate.validate([
-        const ProposedWrite(
-          tier: MemoryTier.canon,
-          content: '太阳从西边升起',
-        ),
+        const ProposedWrite(tier: MemoryTier.canon, content: '太阳从西边升起'),
       ]);
       expect(result.rejected, hasLength(1));
-      expect(
-        result.rejected[0].reasons[0],
-        contains('Canon contradiction'),
-      );
+      expect(result.rejected[0].reasons[0], contains('Canon contradiction'));
     });
 
     test('tier transition: scene to draft is allowed', () {
@@ -93,9 +80,7 @@ void main() {
     });
 
     test('mixes accepted and rejected writes', () async {
-      const gate = BasicMemoryWritebackGate(
-        soulValidator: _rejectingValidator,
-      );
+      const gate = BasicMemoryWritebackGate(soulValidator: _rejectingValidator);
       final result = await gate.validate([
         const ProposedWrite(tier: MemoryTier.scene, content: 'ok'),
         const ProposedWrite(tier: MemoryTier.canon, content: 'bad'),

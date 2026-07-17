@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class LazyPage extends StatefulWidget {
-  const LazyPage({
-    super.key,
-    required this.loadLibrary,
-    required this.builder,
-  });
+  const LazyPage({super.key, required this.loadLibrary, required this.builder});
 
   final Future<void> Function() loadLibrary;
   final WidgetBuilder builder;
@@ -45,9 +41,7 @@ class _LazyLoadSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 

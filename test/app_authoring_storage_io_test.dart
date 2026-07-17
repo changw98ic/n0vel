@@ -305,6 +305,7 @@ void main() {
     store.selectAuditIssue(1);
     store.updateSelectedAuditIgnoreReason('已与设定会确认，无需继续追踪。');
     store.ignoreSelectedAuditIssue();
+    await store.flushPersistence();
 
     final restoredStore = AppWorkspaceStore(storage: storage);
     addTearDown(restoredStore.dispose);
@@ -337,6 +338,47 @@ void main() {
   });
 
   test(
+    'sqlite workspace storage persists failed project deletion tombstone',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_authoring_deletion_journal_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+
+      final dbPath = '${directory.path}/authoring.db';
+      final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
+      final store = AppWorkspaceStore(
+        storage: storage,
+        projectDeletionCleaners: [
+          (_) async => throw StateError('cleaner temporarily unavailable'),
+        ],
+      );
+      addTearDown(store.dispose);
+      store.createProject(projectName: '待重试删除');
+      await store.flushPersistence();
+
+      final result = await store.deleteProjectAndWait(store.currentProject);
+      expect(result.status, DeleteProjectStatus.failed);
+      expect(
+        store.pendingProjectDeletionIds,
+        contains(store.currentProject.id),
+      );
+
+      final restored = AppWorkspaceStore(storage: storage);
+      addTearDown(restored.dispose);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(
+        restored.pendingProjectDeletionIds,
+        contains(store.currentProject.id),
+      );
+    },
+  );
+
+  test(
     'workspace storage persists current project and recent-open ordering',
     () async {
       final directory = await Directory.systemTemp.createTemp(
@@ -357,6 +399,7 @@ void main() {
       store.createProject();
       final newestProjectId = store.projects.first.id;
       store.openProject(originalProjectId);
+      await store.flushPersistence();
 
       final restoredStore = AppWorkspaceStore(storage: storage);
       addTearDown(restoredStore.dispose);
@@ -646,6 +689,7 @@ void main() {
         sceneId: 'scene-07-balcony-conflict',
         recentLocation: '第 3 章 / 场景 07 · 阳台争执',
       );
+      await store.flushPersistence();
 
       final restoredStore = AppWorkspaceStore(storage: storage);
       addTearDown(restoredStore.dispose);

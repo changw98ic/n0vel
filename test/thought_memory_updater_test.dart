@@ -57,7 +57,8 @@ void main() {
           ),
         ],
         prose: const SceneProseDraft(
-          text: 'The water cascaded over the ancient stones. Liu Xi reached through the curtain of mist.',
+          text:
+              'The water cascaded over the ancient stones. Liu Xi reached through the curtain of mist.',
           attempt: 1,
         ),
         review: SceneReviewResult(
@@ -253,7 +254,8 @@ void main() {
         projectId: 'p1',
         scopeId: 's1',
         thoughtType: ThoughtType.persona,
-        content: 'Liu Xi hides fear by asking procedural questions about the plan',
+        content:
+            'Liu Xi hides fear by asking procedural questions about the plan',
         confidence: 0.80,
         sourceRefs: [
           MemorySourceRef(
@@ -299,8 +301,7 @@ void main() {
           projectId: 'p1',
           scopeId: 's1',
           thoughtType: ThoughtType.persona,
-          content:
-              'Liu Xi discovers the hidden door behind the waterfall',
+          content: 'Liu Xi discovers the hidden door behind the waterfall',
           confidence: 0.80,
           sourceRefs: [
             MemorySourceRef(
@@ -457,10 +458,7 @@ void main() {
 
       expect(result.accepted, isNotEmpty);
       // Local extraction should have run
-      expect(
-        result.accepted.any((t) => t.content.contains('Liu Xi')),
-        isTrue,
-      );
+      expect(result.accepted.any((t) => t.content.contains('Liu Xi')), isTrue);
     });
 
     test('falls back to local on invalid JSON', () async {
@@ -533,10 +531,7 @@ void main() {
       );
 
       expect(result.accepted, isNotEmpty);
-      expect(
-        result.accepted.any((t) => t.content.contains('tension')),
-        isTrue,
-      );
+      expect(result.accepted.any((t) => t.content.contains('tension')), isTrue);
     });
   });
 }
@@ -549,7 +544,9 @@ class _RejectingGate extends MemoryWritebackGate {
     return WritebackResult(
       accepted: [],
       rejected: writes
-          .map((w) => RejectedWrite(write: w, reasons: ['blocked by test gate']))
+          .map(
+            (w) => RejectedWrite(write: w, reasons: ['blocked by test gate']),
+          )
           .toList(),
     );
   }

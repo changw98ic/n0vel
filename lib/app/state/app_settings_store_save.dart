@@ -1,6 +1,7 @@
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
+import '../logging/app_event_log_privacy.dart';
 import '../llm/app_llm_client.dart';
 import 'ai_request_service.dart';
 import 'app_settings_storage.dart';
@@ -51,7 +52,9 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     List<AppLlmRequestProviderRoute>? requestProviderRoutes,
     bool notify = true,
   }) async {
-    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(
+      model,
+    );
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
     storeHasLocalMutations = true;
@@ -100,11 +103,12 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     int? maxConcurrentRequests,
     int? maxTokens,
   }) async {
-    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(
+      model,
+    );
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
-    final correlationId =
-        storeEventLog.newCorrelationId('settings-save');
+    final correlationId = storeEventLog.newCorrelationId('settings-save');
     final metadata = settingsMetadata(
       providerName: providerName,
       baseUrl: baseUrl,
@@ -213,11 +217,12 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     int? maxConcurrentRequests,
     int? maxTokens,
   }) async {
-    final normalizedModel = storeAiRequestService.normalizeRequestedModel(model);
+    final normalizedModel = storeAiRequestService.normalizeRequestedModel(
+      model,
+    );
     final resolvedTimeout =
         timeout ?? AppLlmTimeoutConfig.uniform(timeoutMs ?? 30000);
-    final correlationId =
-        storeEventLog.newCorrelationId('settings-connection');
+    final correlationId = storeEventLog.newCorrelationId('settings-connection');
     final metadata = settingsMetadata(
       providerName: storeSnapshot.providerName,
       baseUrl: baseUrl,
@@ -300,8 +305,7 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       maxTokens: maxTokens ?? storeSnapshot.maxTokens,
       providerName: providerName ?? storeSnapshot.providerName,
     );
-    storeConnectionTestState =
-        storeAiRequestService.connectionStateFromResult(
+    storeConnectionTestState = storeAiRequestService.connectionStateFromResult(
       baseUrl: baseUrl,
       model: normalizedModel,
       result: result,
@@ -309,7 +313,8 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
     storeFeedback = AppSettingsFeedback(
       title: storeConnectionTestState.title,
       message: storeConnectionTestState.message,
-      tone: storeConnectionTestState.status ==
+      tone:
+          storeConnectionTestState.status ==
               AppSettingsConnectionTestStatus.success
           ? AppSettingsFeedbackTone.success
           : AppSettingsFeedbackTone.error,
@@ -331,7 +336,11 @@ mixin AppSettingsStoreSave on AppStoreListenable, AppSettingsStoreLogging {
       metadata: {
         ...metadata,
         if (result.latencyMs != null) 'latencyMs': result.latencyMs,
-        if (result.text != null) 'responsePreview': preview(result.text!, 80),
+        if (result.text != null)
+          ...AppEventLogPrivacy.textMetadata(
+            field: 'response',
+            value: result.text!,
+          ),
       },
     );
     notifyListeners();

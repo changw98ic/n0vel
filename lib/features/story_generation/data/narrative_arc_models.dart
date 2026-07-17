@@ -19,10 +19,7 @@ class PlotThread {
   final String introducedInScene;
   final String? resolvedInScene;
 
-  PlotThread copyWith({
-    PlotThreadStatus? status,
-    String? resolvedInScene,
-  }) {
+  PlotThread copyWith({PlotThreadStatus? status, String? resolvedInScene}) {
     return PlotThread(
       id: id,
       description: description,
@@ -51,10 +48,7 @@ class Foreshadowing {
   final String? resolvedInScene;
   final int urgency;
 
-  Foreshadowing copyWith({
-    String? resolvedInScene,
-    int? urgency,
-  }) {
+  Foreshadowing copyWith({String? resolvedInScene, int? urgency}) {
     return Foreshadowing(
       id: id,
       hint: hint,
@@ -103,7 +97,9 @@ class NarrativeArcState {
   String toPromptText() {
     final parts = <String>[];
     if (activeThreads.isNotEmpty) {
-      parts.add('活跃情节线：${activeThreads.map((t) => '${t.description}(${t.status.name})').join('；')}');
+      parts.add(
+        '活跃情节线：${activeThreads.map((t) => '${t.description}(${t.status.name})').join('；')}',
+      );
     }
     if (pendingForeshadowing.isNotEmpty) {
       final unresolved = pendingForeshadowing
@@ -111,7 +107,11 @@ class NarrativeArcState {
           .toList(growable: false);
       if (unresolved.isNotEmpty) {
         parts.add(
-          '待回收伏笔：${unresolved.map((f) => f.urgency >= 2 ? '【紧急】${f.hint}' : f.urgency == 1 ? '${f.hint}(应尽快回收)' : f.hint).join('；')}',
+          '待回收伏笔：${unresolved.map((f) => f.urgency >= 2
+              ? '【紧急】${f.hint}'
+              : f.urgency == 1
+              ? '${f.hint}(应尽快回收)'
+              : f.hint).join('；')}',
         );
       }
     }

@@ -7,6 +7,7 @@ import 'app_project_scoped_store.dart';
 import 'app_settings_store.dart';
 import 'app_simulation_storage.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 import 'simulation_models.dart';
 import 'simulation_real_agent_runner.dart';
 import 'simulation_serialization.dart';
@@ -22,18 +23,18 @@ class AppSimulationStore extends AppProjectScopedStore {
     super.workspaceStore,
     super.eventBus,
     AppEventLog? eventLog,
-  })  : _storage = storage ?? createDefaultAppSimulationStorage(),
-        _eventLog = eventLog,
-        _snapshot = AppSimulationSnapshot.empty(),
-        super(fallbackProjectId: 'project-yuechao') {
+  }) : _storage = storage ?? createDefaultAppSimulationStorage(),
+       _eventLog = eventLog,
+       _snapshot = AppSimulationSnapshot.empty(),
+       super(fallbackProjectId: 'project-yuechao') {
     onRestore();
   }
 
   AppSimulationStore.preview(SimulationStatus status)
-      : _storage = InMemoryAppSimulationStorage(),
-        _eventLog = null,
-        _snapshot = AppSimulationSnapshot.empty(),
-        super(fallbackProjectId: 'preview') {
+    : _storage = InMemoryAppSimulationStorage(),
+      _eventLog = null,
+      _snapshot = AppSimulationSnapshot.empty(),
+      super(fallbackProjectId: 'preview') {
     _template = _templateFromStatus(status);
     _snapshot = _buildSnapshot();
     _clearTimers();
@@ -54,6 +55,9 @@ class AppSimulationStore extends AppProjectScopedStore {
   final Map<SimulationParticipant, String> _promptOverrides = {};
   final List<SimulationChatMessage> _extraMessages = [];
   String? _activeRunCorrelationId;
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   // -- Public API --
 
@@ -213,10 +217,12 @@ class AppSimulationStore extends AppProjectScopedStore {
       ..clear()
       ..addAll(decodeMessages(data['extraMessages']));
     _snapshot = _buildSnapshot();
-    unawaited(safePersist(
-      () => _storage.save(_toJson(), projectId: activeProjectId),
-      eventBus: eventBus,
-    ));
+    unawaited(
+      safePersist(
+        () => _storage.save(_toJson(), projectId: activeProjectId),
+        eventBus: eventBus,
+      ),
+    );
     notifyListeners();
   }
 
@@ -402,13 +408,13 @@ class AppSimulationStore extends AppProjectScopedStore {
   }
 
   SimulationBuildContext get _buildContext => SimulationBuildContext(
-        runMode: _runMode,
-        promptOverrides: Map.unmodifiable(_promptOverrides),
-        extraMessages: List.unmodifiable(_extraMessages),
-        sceneLabel: _currentSceneLabel(),
-        currentSceneId: _currentSceneId,
-        completedRealRoundsLabel: completedRealRoundsLabel(_extraMessages),
-      );
+    runMode: _runMode,
+    promptOverrides: Map.unmodifiable(_promptOverrides),
+    extraMessages: List.unmodifiable(_extraMessages),
+    sceneLabel: _currentSceneLabel(),
+    currentSceneId: _currentSceneId,
+    completedRealRoundsLabel: completedRealRoundsLabel(_extraMessages),
+  );
 
   AppSimulationSnapshot _buildSnapshot() {
     final participants = buildParticipants(
@@ -425,19 +431,21 @@ class AppSimulationStore extends AppProjectScopedStore {
 
   void _rebuildSnapshot() {
     _snapshot = _buildSnapshot();
-    unawaited(safePersist(
-      () => _storage.save(_toJson(), projectId: activeProjectId),
-      eventBus: eventBus,
-    ));
+    unawaited(
+      safePersist(
+        () => _storage.save(_toJson(), projectId: activeProjectId),
+        eventBus: eventBus,
+      ),
+    );
     notifyListeners();
   }
 
   Map<String, Object?> _toJson() => encodeSimulationJson(
-        template: _template,
-        runMode: _runMode,
-        promptOverrides: _promptOverrides,
-        extraMessages: _extraMessages,
-      );
+    template: _template,
+    runMode: _runMode,
+    promptOverrides: _promptOverrides,
+    extraMessages: _extraMessages,
+  );
 
   String _currentSceneLabel() {
     final ws = workspaceStore;

@@ -163,12 +163,14 @@ class SqliteWritingStatsStorage implements WritingStatsStorage {
       final String sql;
       final List<Object?> params;
       if (projectId != null && projectId.isNotEmpty) {
-        sql = 'SELECT id, project_id, goal_type, target_value, period, '
+        sql =
+            'SELECT id, project_id, goal_type, target_value, period, '
             'enabled, created_at_ms FROM writing_goals '
             'WHERE project_id = ? OR project_id = \'\' ORDER BY created_at_ms';
         params = [projectId];
       } else {
-        sql = 'SELECT id, project_id, goal_type, target_value, period, '
+        sql =
+            'SELECT id, project_id, goal_type, target_value, period, '
             'enabled, created_at_ms FROM writing_goals ORDER BY created_at_ms';
         params = [];
       }
@@ -236,23 +238,21 @@ class SqliteWritingStatsStorage implements WritingStatsStorage {
     final db = _open();
     try {
       runInTransaction(db, () {
-        db.execute(
-          'DELETE FROM writing_daily_stats WHERE project_id = ?',
-          [projectId],
-        );
-        db.execute(
-          'DELETE FROM writing_project_stats WHERE project_id = ?',
-          [projectId],
-        );
-        db.execute(
-          'DELETE FROM writing_goals WHERE project_id = ?',
-          [projectId],
-        );
+        db.execute('DELETE FROM writing_daily_stats WHERE project_id = ?', [
+          projectId,
+        ]);
+        db.execute('DELETE FROM writing_project_stats WHERE project_id = ?', [
+          projectId,
+        ]);
+        db.execute('DELETE FROM writing_goals WHERE project_id = ?', [
+          projectId,
+        ]);
       });
     } finally {
       db.dispose();
     }
   }
 
-  sqlite3.Database _open() => openAuthoringDatabase(_dbPath);
+  sqlite3.Database _open() =>
+      openAuthoringDatabase(_dbPath, verifyIntegrity: false);
 }

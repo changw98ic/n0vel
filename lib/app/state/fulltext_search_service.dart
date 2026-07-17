@@ -48,8 +48,10 @@ class FulltextSearchService {
     int? pageSize,
     FulltextSortOrder sortOrder = FulltextSortOrder.relevance,
   }) async {
-    final effectivePageSize = (pageSize ?? _config.defaultPageSize)
-        .clamp(1, _config.maxPageSize);
+    final effectivePageSize = (pageSize ?? _config.defaultPageSize).clamp(
+      1,
+      _config.maxPageSize,
+    );
     final offset = page * effectivePageSize;
 
     final result = await _storage.search(
@@ -184,10 +186,7 @@ enum FulltextSortOrder {
 
 /// 待重试的索引任务。
 class _PendingIndexTask {
-  const _PendingIndexTask({
-    required this.entry,
-    required this.attempts,
-  });
+  const _PendingIndexTask({required this.entry, required this.attempts});
 
   final FulltextIndexEntry entry;
   final int attempts;

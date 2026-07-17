@@ -29,7 +29,8 @@ const String _llmSystemPrompt =
 
 /// Extracts Thought-Retriever-style thought atoms after scene acceptance.
 class ThoughtMemoryUpdater implements ThoughtMemoryService {
-  ThoughtMemoryUpdater({ // MemoryWritebackGate required
+  ThoughtMemoryUpdater({
+    // MemoryWritebackGate required
     required this.storage,
     required this.gate,
     StoryMemoryDedupe? dedupe,

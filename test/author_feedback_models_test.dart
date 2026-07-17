@@ -59,7 +59,10 @@ void main() {
       expect(restored.sourceReviewId, 'review-1');
       expect(restored.decisions, hasLength(2));
       expect(restored.decisions.first.status, AuthorFeedbackStatus.open);
-      expect(restored.decisions.last.status, AuthorFeedbackStatus.revisionRequested);
+      expect(
+        restored.decisions.last.status,
+        AuthorFeedbackStatus.revisionRequested,
+      );
       expect(restored.decisions.last.note, 'Ask the model for a tighter pass.');
     });
 
