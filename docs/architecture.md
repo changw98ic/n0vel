@@ -23,6 +23,9 @@ flowchart LR
         ReviewTasks["review_tasks\nReviewTaskPage"]
         Reading["reading\nReadingModePage"]
         Sandbox["sandbox\nSandboxMonitorPage"]
+        StoryArc["story_arc\nStoryArcTimelinePage"]
+        FulltextSearch["fulltext_search\nFulltextSearchPage"]
+        WritingStats["writing_stats\nWritingStatsPage"]
     end
 
     subgraph State["App State / Stores"]
@@ -124,6 +127,11 @@ flowchart LR
 | `work_settings_hub` | `WorkSettingsHubPage` | 工作流相关设置中心 |
 | `reading` | `ReadingModePage` | 低干扰通读 |
 | `sandbox` | `SandboxMonitorPage` | 模拟过程与运行快照回看 |
+| `story_arc` | `StoryArcTimelinePage` | 故事弧线、情节线与伏笔追踪 |
+| `fulltext_search` | `FulltextSearchPage` | 项目正文全文检索 |
+| `writing_stats` | `WritingStatsPage` | 写作统计与目标管理 |
+
+以上三项路由已经注册到应用路由表并有对应页面实现，但当前没有在默认项目导航中列为一级入口；它们属于已实现的扩展 surface，不等同于 README 中的默认写作路径。
 
 ## 3. 主数据流
 

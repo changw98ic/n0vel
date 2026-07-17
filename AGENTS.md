@@ -10,37 +10,13 @@ this repository — including trivial lookups and single-file edits.
 The user should not need to repeatedly say "use subagents" or
 paste the agent-workflow prompt.
 
-This is an explicit standing user request to prefer the flow project's
-process for non-trivial work. Simple queries and single-file edits may
-run solo without the full flow pattern.
-
-### Flow Project Declaration
-
-- **Location**: `/Users/chengwen/dev/flow`
-- **Entrypoint**: `/Users/chengwen/dev/flow/flow` (Bash CLI, v0.2.0)
-- **How to invoke**: `flow pipeline novel-writer "<task>"` runs the full
-  plan → execute → verify loop automatically. For manual control:
-  `flow plan novel-writer "<task>"` → `flow execute novel-writer <id>`
-  → `flow verify novel-writer <id>`. All commands assume `$PWD` or
-  `FLOW_ROOT` resolves to `/Users/chengwen/dev/flow`; use the absolute
-  path if the script is not on `$PATH`.
-- **Default behavior for Codex tasks**: When the leader classifies a task
-  as `flow`, run it through the flow CLI's `pipeline` command (or the
-  manual plan/execute/verify sequence) instead of raw subagent delegation.
-  The flow CLI handles ACP bridge dispatch, durable jobs, wiki handoff,
-  and verification — do not reimplement these.
-- **If flow is unavailable**: If `/Users/chengwen/dev/flow/flow` does not
-  exist or the CLI exits non-zero on invocation, fall back to native
-  Codex subagent lanes (explore → executor → verifier) as described
-  below. Report the fallback to the user so they know flow was skipped.
-
 Leader protocol:
-- First classify the task as `solo`, `flow`, or `OMX-runtime`.
+- First classify the task as `solo`, `multi-agent`, or `OMX-runtime`.
 - Use `solo` for simple lookups, single-file edits, or one-command
   verifications that do not require cross-module reasoning.
-- Use `flow` for tasks involving more than 3 files, multiple
+- Use `multi-agent` for tasks involving more than 3 files, multiple
   modules, command execution with side effects, or final verification
-  claims. These must follow the full classification, delegation, and
+  claims. These should follow the full classification, delegation, and
   verification pattern.
 - Use native subagents for bounded discovery, implementation, review, or
   verification lanes whenever a task requires repository inspection, command
@@ -58,13 +34,8 @@ Recommended lanes:
 
 Delegation rules:
 - Keep child-agent tasks bounded, independent, and verifiable.
-- The Codex leader must never execute shell commands or edit files directly.
-  All command execution and file edits must be delegated through
-  Claude ACP, using the flow project's ACP bridge rather than local
-  Claude/`ask-claude` print-mode execution.
-- If Claude ACP is unavailable or fails after one retry, the leader
-  must stop and report the failure to the user. Do not fall back to direct
-  execution. No exceptions.
+- The Codex leader should keep shell commands and file edits focused on the
+  current task and avoid broad, unbounded changes.
 - Do not use `worker` outside active OMX team/swarm runtime.
 - Prefer inherited model defaults; use role/effort before explicit model
   overrides.
@@ -96,7 +67,7 @@ Novel-generation quality defaults:
 
 ## RTK Command Prefix
 
-OMX agent-flow and auto-team workers use a `rtk_cmd()` helper that prefixes
+OMX runtime and auto-team workers use a `rtk_cmd()` helper that prefixes
 any shell tool command with `rtk` when the `rtk` binary is on `$PATH`; when
 `rtk` is not installed the original command runs unchanged (graceful
 degradation).
