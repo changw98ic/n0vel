@@ -85,24 +85,18 @@ void main() {
     test('save overwrites previous entries for same project', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '旧记录'},
-          ],
-        },
-        projectId: 'project-overwrite',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '旧记录'},
+        ],
+      }, projectId: 'project-overwrite');
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 2, 'mode': '续写', 'prompt': '新记录'},
-            {'sequence': 3, 'mode': '润色', 'prompt': '另一条'},
-          ],
-        },
-        projectId: 'project-overwrite',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 2, 'mode': '续写', 'prompt': '新记录'},
+          {'sequence': 3, 'mode': '润色', 'prompt': '另一条'},
+        ],
+      }, projectId: 'project-overwrite');
 
       final loaded = await storage.load(projectId: 'project-overwrite');
       final entries = loaded!['entries'] as List<Object?>;
@@ -114,34 +108,30 @@ void main() {
     test('different projects are fully isolated', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '项目 A 历史'},
-          ],
-        },
-        projectId: 'project-a',
-      );
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '续写', 'prompt': '项目 B 历史'},
-          ],
-        },
-        projectId: 'project-b',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '项目 A 历史'},
+        ],
+      }, projectId: 'project-a');
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '续写', 'prompt': '项目 B 历史'},
+        ],
+      }, projectId: 'project-b');
 
       final loadedA = await storage.load(projectId: 'project-a');
       final loadedB = await storage.load(projectId: 'project-b');
 
       expect(
         ((loadedA!['entries'] as List<Object?>).first
-            as Map<String, Object?>)['prompt'] as String,
+                as Map<String, Object?>)['prompt']
+            as String,
         contains('项目 A'),
       );
       expect(
         ((loadedB!['entries'] as List<Object?>).first
-            as Map<String, Object?>)['prompt'] as String,
+                as Map<String, Object?>)['prompt']
+            as String,
         contains('项目 B'),
       );
     });
@@ -149,51 +139,36 @@ void main() {
     test('clear with projectId removes only that project', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '保留我'},
-          ],
-        },
-        projectId: 'project-keep',
-      );
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '续写', 'prompt': '删除我'},
-          ],
-        },
-        projectId: 'project-delete',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '保留我'},
+        ],
+      }, projectId: 'project-keep');
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '续写', 'prompt': '删除我'},
+        ],
+      }, projectId: 'project-delete');
 
       await storage.clear(projectId: 'project-delete');
 
       expect(await storage.load(projectId: 'project-delete'), isNull);
-      expect(
-        await storage.load(projectId: 'project-keep'),
-        isNotNull,
-      );
+      expect(await storage.load(projectId: 'project-keep'), isNotNull);
     });
 
     test('clear without projectId removes all projects', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': 'A'},
-          ],
-        },
-        projectId: 'project-a',
-      );
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '续写', 'prompt': 'B'},
-          ],
-        },
-        projectId: 'project-b',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': 'A'},
+        ],
+      }, projectId: 'project-a');
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '续写', 'prompt': 'B'},
+        ],
+      }, projectId: 'project-b');
 
       await storage.clear();
 
@@ -204,19 +179,13 @@ void main() {
     test('save with empty entries list clears project data', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '初始数据'},
-          ],
-        },
-        projectId: 'project-empty',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '初始数据'},
+        ],
+      }, projectId: 'project-empty');
 
-      await storage.save(
-        {'entries': <Object?>[]},
-        projectId: 'project-empty',
-      );
+      await storage.save({'entries': <Object?>[]}, projectId: 'project-empty');
 
       // DELETE + INSERT with empty list → no rows → load returns null
       expect(await storage.load(projectId: 'project-empty'), isNull);
@@ -278,14 +247,11 @@ void main() {
     test('multiple storage instances share the same database', () async {
       final writer = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await writer.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '跨实例数据'},
-          ],
-        },
-        projectId: 'project-shared',
-      );
+      await writer.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '跨实例数据'},
+        ],
+      }, projectId: 'project-shared');
 
       final reader = SqliteAppAiHistoryStorage(dbPath: dbPath);
       final loaded = await reader.load(projectId: 'project-shared');
@@ -299,14 +265,11 @@ void main() {
     test('returned data is a defensive copy', () async {
       final storage = SqliteAppAiHistoryStorage(dbPath: dbPath);
 
-      await storage.save(
-        {
-          'entries': [
-            {'sequence': 1, 'mode': '改写', 'prompt': '原始'},
-          ],
-        },
-        projectId: 'project-clone',
-      );
+      await storage.save({
+        'entries': [
+          {'sequence': 1, 'mode': '改写', 'prompt': '原始'},
+        ],
+      }, projectId: 'project-clone');
 
       final first = await storage.load(projectId: 'project-clone');
       (first!['entries'] as List<Object?>).clear();

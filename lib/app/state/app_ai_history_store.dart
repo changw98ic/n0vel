@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'app_ai_history_storage.dart';
 import 'app_project_scoped_store.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 
 class AiHistoryEntry {
   const AiHistoryEntry({
@@ -20,7 +21,12 @@ class AiHistoryEntry {
   final String? response;
 
   Map<String, Object?> toJson() {
-    return {'sequence': sequence, 'mode': mode, 'prompt': prompt, 'response': response};
+    return {
+      'sequence': sequence,
+      'mode': mode,
+      'prompt': prompt,
+      'response': response,
+    };
   }
 
   static AiHistoryEntry fromJson(Map<Object?, Object?> json) {
@@ -34,27 +40,40 @@ class AiHistoryEntry {
 }
 
 class AppAiHistoryStore extends AppProjectScopedStore {
-  AppAiHistoryStore({AppAiHistoryStorage? storage, super.workspaceStore, super.eventBus})
-    : _storage =
-          storage ?? createDefaultAppAiHistoryStorage(),
-      super(fallbackProjectId: '') {
+  AppAiHistoryStore({
+    AppAiHistoryStorage? storage,
+    super.workspaceStore,
+    super.eventBus,
+  }) : _storage = storage ?? createDefaultAppAiHistoryStorage(),
+       super(fallbackProjectId: '') {
     onRestore();
   }
 
-  
   final AppAiHistoryStorage _storage;
   final Map<String, List<AiHistoryEntry>> _entriesByProjectId = {};
   final Map<String, int> _nextSequenceByProjectId = {};
 
+  @override
+  ProjectStorage get persistenceStorage => _storage;
+
   List<AiHistoryEntry> get entries =>
       List.unmodifiable(_entriesByProjectId[activeProjectId] ?? const []);
 
-  void addEntry({required String mode, required String prompt, String? response}) {
+  void addEntry({
+    required String mode,
+    required String prompt,
+    String? response,
+  }) {
     markMutated();
     final currentEntries = _entriesByProjectId[activeProjectId] ?? const [];
     final nextSequence = _nextSequenceByProjectId[activeProjectId] ?? 1;
     _entriesByProjectId[activeProjectId] = [
-      AiHistoryEntry(sequence: nextSequence, mode: mode, prompt: prompt, response: response),
+      AiHistoryEntry(
+        sequence: nextSequence,
+        mode: mode,
+        prompt: prompt,
+        response: response,
+      ),
       ...currentEntries,
     ].take(5).toList();
     _nextSequenceByProjectId[activeProjectId] = nextSequence + 1;

@@ -16,12 +16,15 @@ void main() {
     });
 
     test('allowedTools contains expected tools', () {
-      expect(RetrievalIntent.allowedTools, containsAll([
-        'character_profile',
-        'relationship_history',
-        'scene_context',
-        'world_rule',
-      ]));
+      expect(
+        RetrievalIntent.allowedTools,
+        containsAll([
+          'character_profile',
+          'relationship_history',
+          'scene_context',
+          'world_rule',
+        ]),
+      );
     });
 
     test('isToolAllowed returns true for valid tools', () {
@@ -76,14 +79,8 @@ void main() {
     });
 
     test('equality and hashCode work correctly', () {
-      final a = RetrievalIntent(
-        characterId: 'x',
-        toolName: 'scene_context',
-      );
-      final b = RetrievalIntent(
-        characterId: 'x',
-        toolName: 'scene_context',
-      );
+      final a = RetrievalIntent(characterId: 'x', toolName: 'scene_context');
+      final b = RetrievalIntent(characterId: 'x', toolName: 'scene_context');
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
     });
@@ -94,7 +91,10 @@ void main() {
         toolName: 'scene_context',
         parameters: {'key': 'value'},
       );
-      expect(() => intent.parameters['x'] = 'y', throwsA(isA<UnsupportedError>()));
+      expect(
+        () => intent.parameters['x'] = 'y',
+        throwsA(isA<UnsupportedError>()),
+      );
     });
   });
 
@@ -270,7 +270,8 @@ void main() {
       final budget = PromptBudget(maxChars: 1000);
       final capsule = compressor.compress(
         sourceTool: 'scene_context',
-        rawContent: 'This is a very long piece of content that should be truncated',
+        rawContent:
+            'This is a very long piece of content that should be truncated',
         budget: budget,
       );
       expect(capsule, isNotNull);
@@ -344,10 +345,7 @@ void main() {
     test('compressAll returns empty list for empty input', () {
       final compressor = ContextCapsuleCompressor();
       final budget = PromptBudget(maxChars: 1000);
-      final capsules = compressor.compressAll(
-        rawResults: [],
-        budget: budget,
-      );
+      final capsules = compressor.compressAll(rawResults: [], budget: budget);
       expect(capsules, isEmpty);
     });
 
@@ -458,10 +456,7 @@ void main() {
         succeeded: true,
         metadata: {'key': 'value'},
       );
-      expect(
-        () => entry.metadata['x'] = 'y',
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(() => entry.metadata['x'] = 'y', throwsA(isA<UnsupportedError>()));
     });
   });
 
@@ -567,7 +562,11 @@ void main() {
         RetrievalIntent(characterId: 'b', toolName: 'world_rule'),
       ];
       for (final intent in intents) {
-        expect(intent.isToolAllowed, isTrue, reason: '${intent.toolName} should be allowed');
+        expect(
+          intent.isToolAllowed,
+          isTrue,
+          reason: '${intent.toolName} should be allowed',
+        );
       }
     });
   });
@@ -575,10 +574,7 @@ void main() {
   group('CompressionStrategy', () {
     test('selectStrategy returns full when content fits', () {
       final compressor = ContextCapsuleCompressor();
-      expect(
-        compressor.selectStrategy('Short', 100),
-        CompressionStrategy.full,
-      );
+      expect(compressor.selectStrategy('Short', 100), CompressionStrategy.full);
     });
 
     test('selectStrategy returns sentenceBoundary for moderate pressure', () {
@@ -754,18 +750,9 @@ void main() {
       final budget = PromptBudget(maxChars: 200);
       final capsules = compressor.compressAll(
         rawResults: [
-          RawRetrievalResult(
-            sourceTool: 'first',
-            rawContent: 'First item',
-          ),
-          RawRetrievalResult(
-            sourceTool: 'second',
-            rawContent: 'Second item',
-          ),
-          RawRetrievalResult(
-            sourceTool: 'third',
-            rawContent: 'Third item',
-          ),
+          RawRetrievalResult(sourceTool: 'first', rawContent: 'First item'),
+          RawRetrievalResult(sourceTool: 'second', rawContent: 'Second item'),
+          RawRetrievalResult(sourceTool: 'third', rawContent: 'Third item'),
         ],
         budget: budget,
       );

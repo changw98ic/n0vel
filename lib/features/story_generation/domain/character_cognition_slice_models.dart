@@ -83,8 +83,8 @@ class RelationshipSlice {
     double trust = 0.5,
     double tension = 0.0,
     this.notes = '',
-  })  : trust = trust.clamp(0.0, 1.0),
-        tension = tension.clamp(0.0, 1.0);
+  }) : trust = trust.clamp(0.0, 1.0),
+       tension = tension.clamp(0.0, 1.0);
 
   final String characterId;
   final String otherId;
@@ -217,8 +217,7 @@ class SocialPositionSlice {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(characterId, contextId, role, rank, notes);
+  int get hashCode => Object.hash(characterId, contextId, role, rank, notes);
 }
 
 // ---------------------------------------------------------------------------
@@ -292,10 +291,10 @@ class PresentationState {
 
   @override
   int get hashCode => Object.hash(
-        characterId,
-        displayedEmotion,
-        hiddenEmotion,
-        deceptionTarget,
-        deceptionContent,
-      );
+    characterId,
+    displayedEmotion,
+    hiddenEmotion,
+    deceptionTarget,
+    deceptionContent,
+  );
 }

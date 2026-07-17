@@ -33,7 +33,8 @@ class ProseStyleFingerprint {
   final int paragraphCount;
 
   @override
-  String toString() => 'ProseStyleFingerprint('
+  String toString() =>
+      'ProseStyleFingerprint('
       'sentLen=$avgSentenceLength, '
       'sentVar=$sentenceLengthVariance, '
       'dialogue=$dialogueRatio, '
@@ -61,7 +62,8 @@ class ProseStyleDivergencePoint {
   final String description;
 
   @override
-  String toString() => '$metric: 生成=$generatedValue, 参考=$referenceValue — $description';
+  String toString() =>
+      '$metric: 生成=$generatedValue, 参考=$referenceValue — $description';
 }
 
 class ProseStyleDivergenceReport {
@@ -86,7 +88,9 @@ class ProseStyleDivergenceReport {
     if (divergencePoints.isNotEmpty) {
       buf.writeln('差异点：');
       for (final point in divergencePoints) {
-        buf.writeln('  - ${point.metric}：生成 ${point.generatedValue.toStringAsFixed(2)} vs 参考 ${point.referenceValue.toStringAsFixed(2)}');
+        buf.writeln(
+          '  - ${point.metric}：生成 ${point.generatedValue.toStringAsFixed(2)} vs 参考 ${point.referenceValue.toStringAsFixed(2)}',
+        );
       }
     }
     return buf.toString().trimRight();
@@ -96,7 +100,10 @@ class ProseStyleDivergenceReport {
 class ProseStyleAnalyzer {
   static final _sentenceSplitter = RegExp(r'[。！？…；\n]');
 
-  static final _dialogueQuotePattern = RegExp(r'[「」""'']');
+  static final _dialogueQuotePattern = RegExp(
+    r'[「」""'
+    ']',
+  );
 
   static final _adjectivePattern = RegExp(r'([一-鿿]{2,4}的)');
 
@@ -120,20 +127,19 @@ class ProseStyleAnalyzer {
     final sentVar = sentenceLengths.length <= 1
         ? 0.0
         : sentenceLengths
-                .map((l) => (l - avgSentLen) * (l - avgSentLen))
-                .reduce((a, b) => a + b) /
-            sentenceLengths.length;
+                  .map((l) => (l - avgSentLen) * (l - avgSentLen))
+                  .reduce((a, b) => a + b) /
+              sentenceLengths.length;
 
     final dialogueChars = _countDialogueChars(text);
-    final dialogueRatio =
-        chineseChars > 0 ? dialogueChars / chineseChars : 0.0;
+    final dialogueRatio = chineseChars > 0 ? dialogueChars / chineseChars : 0.0;
 
     final avgParaLen = paragraphs.isEmpty
         ? 0.0
         : paragraphs
-                .map((p) => _countChineseChars(p).toDouble())
-                .reduce((a, b) => a + b) /
-            paragraphs.length;
+                  .map((p) => _countChineseChars(p).toDouble())
+                  .reduce((a, b) => a + b) /
+              paragraphs.length;
 
     final punctCounts = _countPunctuation(text);
     final totalPunct = punctCounts.values.fold(0, (a, b) => a + b);
@@ -147,28 +153,28 @@ class ProseStyleAnalyzer {
     final totalSentences = sentences.length;
     final stmtRatio = totalSentences > 0
         ? sentences.where((s) => _extractSentenceTerminator(s) == '。').length /
-            totalSentences
+              totalSentences
         : 0.0;
     final qRatio = totalSentences > 0
         ? sentences.where((s) {
-            final t = _extractSentenceTerminator(s);
-            return t == '？' || t == '?';
-          }).length /
-            totalSentences
+                final t = _extractSentenceTerminator(s);
+                return t == '？' || t == '?';
+              }).length /
+              totalSentences
         : 0.0;
     final exclRatio = totalSentences > 0
         ? sentences.where((s) {
-            final t = _extractSentenceTerminator(s);
-            return t == '！' || t == '!';
-          }).length /
-            totalSentences
+                final t = _extractSentenceTerminator(s);
+                return t == '！' || t == '!';
+              }).length /
+              totalSentences
         : 0.0;
     final ellipRatio = totalSentences > 0
         ? sentences.where((s) {
-            final t = _extractSentenceTerminator(s);
-            return t == '…' || t == '……';
-          }).length /
-            totalSentences
+                final t = _extractSentenceTerminator(s);
+                return t == '…' || t == '……';
+              }).length /
+              totalSentences
         : 0.0;
 
     final adjectives = _extractTopPatterns(text, _adjectivePattern);
@@ -190,29 +196,27 @@ class ProseStyleAnalyzer {
     );
   }
 
-  double similarityTo(
-    ProseStyleFingerprint a,
-    ProseStyleFingerprint b,
-  ) {
+  double similarityTo(ProseStyleFingerprint a, ProseStyleFingerprint b) {
     final sentLenDiff = (a.avgSentenceLength - b.avgSentenceLength).abs();
     final sentLenScore = 1.0 - (sentLenDiff / 30.0).clamp(0.0, 1.0);
 
     final dialogueDiff = (a.dialogueRatio - b.dialogueRatio).abs();
     final dialogueScore = 1.0 - (dialogueDiff / 0.5).clamp(0.0, 1.0);
 
-    final varDiff =
-        (a.sentenceLengthVariance - b.sentenceLengthVariance).abs();
+    final varDiff = (a.sentenceLengthVariance - b.sentenceLengthVariance).abs();
     final varScore = 1.0 - (varDiff / 200.0).clamp(0.0, 1.0);
 
     final stmtDiff = (a.statementRatio - b.statementRatio).abs();
     final qDiff = (a.questionRatio - b.questionRatio).abs();
     final exclDiff = (a.exclamationRatio - b.exclamationRatio).abs();
     final ellipDiff = (a.ellipsisRatio - b.ellipsisRatio).abs();
-    final patternDist =
-        (stmtDiff + qDiff + exclDiff + ellipDiff) / 4.0;
+    final patternDist = (stmtDiff + qDiff + exclDiff + ellipDiff) / 4.0;
     final patternScore = 1.0 - (patternDist / 0.5).clamp(0.0, 1.0);
 
-    final punctKeys = <String>{...a.punctuationRatios.keys, ...b.punctuationRatios.keys};
+    final punctKeys = <String>{
+      ...a.punctuationRatios.keys,
+      ...b.punctuationRatios.keys,
+    };
     var punctDist = 0.0;
     for (final key in punctKeys) {
       final av = a.punctuationRatios[key] ?? 0.0;
@@ -240,19 +244,25 @@ class ProseStyleAnalyzer {
 
     void check(String name, double gen, double ref, double threshold) {
       if ((gen - ref).abs() > threshold) {
-        divergences.add(ProseStyleDivergencePoint(
-          metric: name,
-          generatedValue: gen,
-          referenceValue: ref,
-          description: gen > ref ? '生成偏高' : '生成偏低',
-        ));
+        divergences.add(
+          ProseStyleDivergencePoint(
+            metric: name,
+            generatedValue: gen,
+            referenceValue: ref,
+            description: gen > ref ? '生成偏高' : '生成偏低',
+          ),
+        );
       }
     }
 
     check('平均句长', genFp.avgSentenceLength, refFp.avgSentenceLength, 8.0);
     check('对话比率', genFp.dialogueRatio, refFp.dialogueRatio, 0.15);
-    check('句长方差', genFp.sentenceLengthVariance,
-        refFp.sentenceLengthVariance, 50.0);
+    check(
+      '句长方差',
+      genFp.sentenceLengthVariance,
+      refFp.sentenceLengthVariance,
+      50.0,
+    );
     check('陈述句占比', genFp.statementRatio, refFp.statementRatio, 0.2);
     check('疑问句占比', genFp.questionRatio, refFp.questionRatio, 0.1);
     check('感叹句占比', genFp.exclamationRatio, refFp.exclamationRatio, 0.1);
@@ -352,8 +362,10 @@ class ProseStyleAnalyzer {
     for (final rune in text.runes) {
       final ch = String.fromCharCode(rune);
       if (_dialogueQuotePattern.hasMatch(ch) ||
-          ch == '“' || ch == '”' ||
-          ch == '‘' || ch == '’') {
+          ch == '“' ||
+          ch == '”' ||
+          ch == '‘' ||
+          ch == '’') {
         inQuote = !inQuote;
         continue;
       }

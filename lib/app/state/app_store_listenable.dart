@@ -41,6 +41,18 @@ abstract class AppStoreListenable implements Listenable {
     }
   }
 
+  /// Waits for any asynchronous persistence queue owned by this store.
+  ///
+  /// Stores backed by synchronous persistence keep the default no-op.  The
+  /// app lifecycle and [ServiceRegistry] use this hook before closing shared
+  /// resources so debounced writes are not stranded by widget disposal.
+  Future<void> flushPersistence() async {}
+
+  /// Quiesces this store for disaster recovery without flushing pending edits.
+  /// Debounced project stores override this hook to wait for in-flight backend
+  /// calls before their owning database is replaced.
+  Future<void> quiescePersistence() async {}
+
   @mustCallSuper
   void dispose() {
     _disposed = true;

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import '../events/app_event_bus.dart';
+import '../logging/app_event_log.dart';
 import '../state/app_store_listenable.dart';
 
 typedef ServiceFactory<T> = T Function(ServiceRegistry registry);
@@ -95,6 +96,8 @@ class ServiceRegistry {
         instance.dispose();
       } else if (instance is AppEventBus) {
         instance.dispose();
+      } else if (instance is AppEventLog) {
+        instance.dispose();
       }
     }
     _instances.clear();
@@ -102,5 +105,87 @@ class ServiceRegistry {
     _creationOrder.clear();
     _resolving.clear();
     _borrowedInstances.clear();
+  }
+
+  /// Wait for asynchronous persistence queues owned by resolved stores.
+  ///
+  /// This is deliberately separate from [disposeAll]: Flutter's synchronous
+  /// `State.dispose` cannot await work, while closing the SQLite connection
+  /// before a debounced write completes would strand the newest snapshot.
+  /// Call [shutdown] from an app lifecycle boundary when the registry owns
+  /// the stores being closed.
+  Future<void> flushAll() async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    for (final type in _creationOrder.reversed) {
+      if (_borrowedInstances.contains(type)) {
+        continue;
+      }
+      final instance = _instances[type];
+      if (instance is AppStoreListenable) {
+        try {
+          await instance.flushPersistence();
+        } catch (error, stackTrace) {
+          // Give every store a chance to persist before the shared database
+          // is closed, while preserving the first actionable failure for the
+          // lifecycle caller.
+          firstError ??= error;
+          firstStackTrace ??= stackTrace;
+        }
+      } else if (instance is AppEventLog) {
+        try {
+          await instance.flushPersistence();
+        } catch (error, stackTrace) {
+          firstError ??= error;
+          firstStackTrace ??= stackTrace;
+        }
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
+
+  /// Quiesces stores for disaster recovery without flushing their pending
+  /// snapshots. Debounced backends discard those snapshots only after any
+  /// already-running delegate call has left the database critical section.
+  Future<void> quiesceAll() async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    for (final type in _creationOrder.reversed) {
+      if (_borrowedInstances.contains(type)) continue;
+      final instance = _instances[type];
+      if (instance is AppStoreListenable) {
+        try {
+          await instance.quiescePersistence();
+        } catch (error, stackTrace) {
+          firstError ??= error;
+          firstStackTrace ??= stackTrace;
+        }
+      } else if (instance is AppEventLog) {
+        try {
+          await instance.flushPersistence();
+        } catch (error, stackTrace) {
+          firstError ??= error;
+          firstStackTrace ??= stackTrace;
+        }
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
+
+  /// Flush pending store writes, then release registry-owned resources.
+  ///
+  /// The resource cleanup runs even when a write fails.  The error is
+  /// rethrown to the caller so a clean-shutdown marker is not written for a
+  /// session whose latest edit was not durable.
+  Future<void> shutdown() async {
+    try {
+      await flushAll();
+    } finally {
+      disposeAll();
+    }
   }
 }

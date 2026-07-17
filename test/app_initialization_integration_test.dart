@@ -11,6 +11,7 @@ import 'package:novel_writer/app/state/app_draft_store.dart';
 import 'package:novel_writer/app/state/app_scene_context_store.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
+import 'package:novel_writer/app/state/app_store_listenable.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/crash_detector.dart';
@@ -61,6 +62,13 @@ class _ThrowingRestoreBackupService implements AutoBackupService {
   Future<void> restoreBackup(String id) async {
     restoreAttempts++;
     throw StateError('restore failed');
+  }
+}
+
+class _FailingPersistenceStore extends AppStoreListenable {
+  @override
+  Future<void> flushPersistence() async {
+    throw StateError('flush failed');
   }
 }
 
@@ -284,7 +292,32 @@ void main() {
       expect(crashDetector.cleanShutdownMarks, 1);
     });
 
-    testWidgets('restore backup errors do not crash startup recovery overlay', (
+    testWidgets('failed shutdown flush keeps the session dirty', (
+      tester,
+    ) async {
+      final crashDetector = _FakeCrashDetector();
+      NovelWriterApp.debugRegistryOverride = createTestRegistry()
+        ..registerSingleton<_FailingPersistenceStore>(
+          _FailingPersistenceStore(),
+        );
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: crashDetector,
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pump();
+
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
+      await tester.pump();
+
+      expect(crashDetector.cleanShutdownMarks, 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('restore backup errors stay on a terminal recovery screen', (
       tester,
     ) async {
       final crashDetector = _FakeCrashDetector(dirtyShutdown: true);
@@ -305,7 +338,8 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(backupService.restoreAttempts, 1);
-      expect(find.text('ready'), findsOneWidget);
+      expect(find.text('恢复未完成'), findsOneWidget);
+      expect(find.text('ready'), findsNothing);
     });
   });
 }

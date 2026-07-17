@@ -8,53 +8,59 @@ void main() {
     const name = '柳溪';
     const role = '调查记者';
 
-    test('empty atoms list produces snapshot with character info but empty sections', () {
-      final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
-        characterId: characterId,
-        name: name,
-        role: role,
-        atoms: const [],
-      );
-
-      expect(snapshot.characterId, characterId);
-      expect(snapshot.name, name);
-      expect(snapshot.role, role);
-      expect(snapshot.beliefs, isEmpty);
-      expect(snapshot.relationships, isEmpty);
-      expect(snapshot.socialPositions, isEmpty);
-      expect(snapshot.presentation.characterId, characterId);
-      expect(snapshot.presentation.displayedEmotion, isEmpty);
-    });
-
-    test('perceivedEvent atoms produce belief entries with correct confidence', () {
-      final atoms = [
-        CharacterCognitionAtom.perceivedEvent(
-          id: 'atom-1',
-          projectId: 'project-1',
+    test(
+      'empty atoms list produces snapshot with character info but empty sections',
+      () {
+        final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
           characterId: characterId,
-          sceneId: 'scene-01',
-          sequence: 1,
-          content: '柳溪看到岳人把调度卡塞进袖口。',
-          sourceCharacterIds: ['character-yueren'],
-          certainty: 0.9,
-        ),
-      ];
+          name: name,
+          role: role,
+          atoms: const [],
+        );
 
-      final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
-        characterId: characterId,
-        name: name,
-        role: role,
-        atoms: atoms,
-      );
+        expect(snapshot.characterId, characterId);
+        expect(snapshot.name, name);
+        expect(snapshot.role, role);
+        expect(snapshot.beliefs, isEmpty);
+        expect(snapshot.relationships, isEmpty);
+        expect(snapshot.socialPositions, isEmpty);
+        expect(snapshot.presentation.characterId, characterId);
+        expect(snapshot.presentation.displayedEmotion, isEmpty);
+      },
+    );
 
-      expect(snapshot.beliefs.length, 1);
-      final belief = snapshot.beliefs.first;
-      expect(belief.subjectId, characterId);
-      expect(belief.targetId, 'character-yueren');
-      expect(belief.claim, '柳溪看到岳人把调度卡塞进袖口。');
-      expect(belief.confidence, closeTo(0.9, 1e-9));
-      expect(belief.source, 'atom-1');
-    });
+    test(
+      'perceivedEvent atoms produce belief entries with correct confidence',
+      () {
+        final atoms = [
+          CharacterCognitionAtom.perceivedEvent(
+            id: 'atom-1',
+            projectId: 'project-1',
+            characterId: characterId,
+            sceneId: 'scene-01',
+            sequence: 1,
+            content: '柳溪看到岳人把调度卡塞进袖口。',
+            sourceCharacterIds: ['character-yueren'],
+            certainty: 0.9,
+          ),
+        ];
+
+        final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
+          characterId: characterId,
+          name: name,
+          role: role,
+          atoms: atoms,
+        );
+
+        expect(snapshot.beliefs.length, 1);
+        final belief = snapshot.beliefs.first;
+        expect(belief.subjectId, characterId);
+        expect(belief.targetId, 'character-yueren');
+        expect(belief.claim, '柳溪看到岳人把调度卡塞进袖口。');
+        expect(belief.confidence, closeTo(0.9, 1e-9));
+        expect(belief.source, 'atom-1');
+      },
+    );
 
     test('reportedEvent atoms produce belief entries', () {
       final atoms = [
@@ -120,32 +126,35 @@ void main() {
       expect(snapshot.beliefs[1].confidence, closeTo(0.6, 1e-9));
     });
 
-    test('suspicion and uncertainty atoms produce beliefs with reduced confidence', () {
-      final atoms = [
-        CharacterCognitionAtom.suspicion(
-          id: 'atom-s1',
-          projectId: 'project-1',
+    test(
+      'suspicion and uncertainty atoms produce beliefs with reduced confidence',
+      () {
+        final atoms = [
+          CharacterCognitionAtom.suspicion(
+            id: 'atom-s1',
+            projectId: 'project-1',
+            characterId: characterId,
+            sceneId: 'scene-01',
+            sequence: 1,
+            content: '柳溪怀疑傅行舟安排了误导。',
+            sourceCharacterIds: ['character-fuxingzhou'],
+            certainty: 0.8,
+          ),
+        ];
+
+        final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
           characterId: characterId,
-          sceneId: 'scene-01',
-          sequence: 1,
-          content: '柳溪怀疑傅行舟安排了误导。',
-          sourceCharacterIds: ['character-fuxingzhou'],
-          certainty: 0.8,
-        ),
-      ];
+          name: name,
+          role: role,
+          atoms: atoms,
+        );
 
-      final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
-        characterId: characterId,
-        name: name,
-        role: role,
-        atoms: atoms,
-      );
-
-      expect(snapshot.beliefs.length, 1);
-      // Suspicion confidence should be halved
-      expect(snapshot.beliefs.first.confidence, closeTo(0.4, 1e-9));
-      expect(snapshot.beliefs.first.source, 'atom-s1');
-    });
+        expect(snapshot.beliefs.length, 1);
+        // Suspicion confidence should be halved
+        expect(snapshot.beliefs.first.confidence, closeTo(0.4, 1e-9));
+        expect(snapshot.beliefs.first.source, 'atom-s1');
+      },
+    );
 
     test('relationshipView atoms produce relationship slices', () {
       final atoms = [
@@ -333,28 +342,31 @@ void main() {
       expect(snapshot.relationships, isEmpty);
     });
 
-    test('atoms without sourceCharacterIds produce empty targetId in beliefs', () {
-      final atoms = [
-        CharacterCognitionAtom.perceivedEvent(
-          id: 'atom-no-target',
-          projectId: 'project-1',
+    test(
+      'atoms without sourceCharacterIds produce empty targetId in beliefs',
+      () {
+        final atoms = [
+          CharacterCognitionAtom.perceivedEvent(
+            id: 'atom-no-target',
+            projectId: 'project-1',
+            characterId: characterId,
+            sceneId: 'scene-01',
+            sequence: 1,
+            content: '码头灯闪烁。',
+            sourceCharacterIds: [],
+          ),
+        ];
+
+        final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
           characterId: characterId,
-          sceneId: 'scene-01',
-          sequence: 1,
-          content: '码头灯闪烁。',
-          sourceCharacterIds: [],
-        ),
-      ];
+          name: name,
+          role: role,
+          atoms: atoms,
+        );
 
-      final snapshot = CharacterCognitionSnapshotBuilder.buildSnapshot(
-        characterId: characterId,
-        name: name,
-        role: role,
-        atoms: atoms,
-      );
-
-      expect(snapshot.beliefs.first.targetId, isEmpty);
-    });
+        expect(snapshot.beliefs.first.targetId, isEmpty);
+      },
+    );
 
     test('mixed atom kinds populate all snapshot sections correctly', () {
       final atoms = [

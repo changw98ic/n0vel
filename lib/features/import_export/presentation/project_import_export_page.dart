@@ -45,7 +45,8 @@ class ProjectImportExportPage extends ConsumerStatefulWidget {
       _ProjectImportExportPageState();
 }
 
-class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPage> {
+class _ProjectImportExportPageState
+    extends ConsumerState<ProjectImportExportPage> {
   late final ProjectTransferService _service;
   ProjectPackageManifest? _manifest;
   String? _manifestPackagePath;
@@ -174,7 +175,9 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
                   const SizedBox(height: 6),
                   exportDisabled
                       ? Text('请先创建或导入项目', style: theme.textTheme.bodyMedium)
-                      : ImportExportPathValueText(value: _service.exportPackagePath),
+                      : ImportExportPathValueText(
+                          value: _service.exportPackagePath,
+                        ),
                 ],
               ),
             ),
@@ -259,7 +262,10 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
           children: [
             Text('导入工程', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            ImportExportFieldRow(label: '工程包', value: _service.importPackagePath),
+            ImportExportFieldRow(
+              label: '工程包',
+              value: _service.importPackagePath,
+            ),
             const SizedBox(height: 8),
             const ImportExportFieldRow(label: '导入方式', value: '导入为新项目'),
             const SizedBox(height: 12),
@@ -324,11 +330,20 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
           children: [
             Text('包信息 / 兼容性', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            ImportExportFieldRow(label: '包名', value: manifest?.packageName ?? '小说工程包'),
+            ImportExportFieldRow(
+              label: '包名',
+              value: manifest?.packageName ?? '小说工程包',
+            ),
             const SizedBox(height: 8),
-            ImportExportFieldRow(label: '包版本', value: manifest?.schemaLabel ?? 'v1.0'),
+            ImportExportFieldRow(
+              label: '包版本',
+              value: manifest?.schemaLabel ?? 'v1.0',
+            ),
             const SizedBox(height: 8),
-            ImportExportFieldRow(label: '项目', value: manifest?.projectTitle ?? '等待导入或导出'),
+            ImportExportFieldRow(
+              label: '项目',
+              value: manifest?.projectTitle ?? '等待导入或导出',
+            ),
             const SizedBox(height: 8),
             ImportExportFieldRow(
               label: '内容摘要',
@@ -664,15 +679,15 @@ class _ProjectImportExportPageState extends ConsumerState<ProjectImportExportPag
   }
 
   Future<void> _handleExport(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('导出功能开发中')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('导出功能开发中')));
   }
 
   Future<void> _handleFormatExport(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('稿件导出功能开发中')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('稿件导出功能开发中')));
   }
 
   Future<void> _handleImport(BuildContext context) async {

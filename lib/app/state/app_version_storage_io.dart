@@ -110,7 +110,7 @@ class SqliteAppVersionStorage implements AppVersionStorage {
   }
 
   sqlite3.Database _openDatabase() {
-    final database = openAuthoringDatabase(_dbPath);
+    final database = openAuthoringDatabase(_dbPath, verifyIntegrity: false);
     _migrateLegacySchema(database);
     database.execute('''
       CREATE TABLE IF NOT EXISTS version_entries (

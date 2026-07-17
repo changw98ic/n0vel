@@ -22,13 +22,10 @@ void main() {
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appEventBusProvider.overrideWithValue(eventBus),
-        ],
+        overrides: [appEventBusProvider.overrideWithValue(eventBus)],
         child: MaterialApp(
           theme: AppTheme.light(),
-          builder: (context, child) =>
-              AppNotificationOverlay(child: child!),
+          builder: (context, child) => AppNotificationOverlay(child: child!),
           home: const Scaffold(body: SizedBox.shrink()),
         ),
       ),
@@ -149,11 +146,7 @@ void main() {
     await pumpApp(tester);
 
     final context = tester.element(find.byType(Scaffold).first);
-    showAppNotification(
-      context,
-      title: '无障碍测试',
-      message: '详细信息',
-    );
+    showAppNotification(context, title: '无障碍测试', message: '详细信息');
     await tester.pumpAndSettle();
 
     final semantics = tester.getSemantics(find.text('无障碍测试').first);
@@ -164,13 +157,10 @@ void main() {
   testWidgets('publishes event via event bus directly', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appEventBusProvider.overrideWithValue(eventBus),
-        ],
+        overrides: [appEventBusProvider.overrideWithValue(eventBus)],
         child: MaterialApp(
           theme: AppTheme.light(),
-          builder: (context, child) =>
-              AppNotificationOverlay(child: child!),
+          builder: (context, child) => AppNotificationOverlay(child: child!),
           home: const Scaffold(body: Text('test')),
         ),
       ),

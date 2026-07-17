@@ -17,10 +17,9 @@ class CharacterCognitionSnapshotBuilder {
       beliefs: beliefs,
       relationships: relationships,
       socialPositions: socialPositions,
-      presentation:
-          presentation.characterId.isEmpty
-              ? PresentationState(characterId: record.id)
-              : presentation,
+      presentation: presentation.characterId.isEmpty
+          ? PresentationState(characterId: record.id)
+          : presentation,
     );
   }
 
@@ -65,13 +64,12 @@ class CharacterCognitionSnapshotBuilder {
           role: record.role,
           beliefs: beliefIndex[record.id] ?? const [],
           relationships: relIndex[record.id] ?? const [],
-          socialPositions:
-              (posIndex[record.id] ?? const [])
-                  .where((p) => p.contextId == sceneId || p.contextId.isEmpty)
-                  .toList(),
-          presentation: presIndex[record.id]?.firstOrNull ?? PresentationState(
-            characterId: record.id,
-          ),
+          socialPositions: (posIndex[record.id] ?? const [])
+              .where((p) => p.contextId == sceneId || p.contextId.isEmpty)
+              .toList(),
+          presentation:
+              presIndex[record.id]?.firstOrNull ??
+              PresentationState(characterId: record.id),
         ),
     ];
   }
@@ -114,58 +112,66 @@ class CharacterCognitionSnapshotBuilder {
       switch (atom.kind) {
         case CognitionKind.perceivedEvent:
         case CognitionKind.reportedEvent:
-          beliefs.add(CharacterBelief(
-            subjectId: characterId,
-            targetId: _firstOrEmpty(atom.sourceCharacterIds),
-            claim: atom.content,
-            confidence: atom.certainty,
-            source: atom.id,
-          ));
+          beliefs.add(
+            CharacterBelief(
+              subjectId: characterId,
+              targetId: _firstOrEmpty(atom.sourceCharacterIds),
+              claim: atom.content,
+              confidence: atom.certainty,
+              source: atom.id,
+            ),
+          );
 
         case CognitionKind.acceptedBelief:
         case CognitionKind.inference:
-          beliefs.add(CharacterBelief(
-            subjectId: characterId,
-            targetId: _firstOrEmpty(atom.sourceCharacterIds),
-            claim: atom.content,
-            confidence: atom.certainty,
-            source: atom.id,
-          ));
+          beliefs.add(
+            CharacterBelief(
+              subjectId: characterId,
+              targetId: _firstOrEmpty(atom.sourceCharacterIds),
+              claim: atom.content,
+              confidence: atom.certainty,
+              source: atom.id,
+            ),
+          );
 
         case CognitionKind.suspicion:
         case CognitionKind.uncertainty:
-          beliefs.add(CharacterBelief(
-            subjectId: characterId,
-            targetId: _firstOrEmpty(atom.sourceCharacterIds),
-            claim: atom.content,
-            confidence: atom.certainty * 0.5,
-            source: atom.id,
-          ));
+          beliefs.add(
+            CharacterBelief(
+              subjectId: characterId,
+              targetId: _firstOrEmpty(atom.sourceCharacterIds),
+              claim: atom.content,
+              confidence: atom.certainty * 0.5,
+              source: atom.id,
+            ),
+          );
 
         case CognitionKind.goal:
         case CognitionKind.intent:
-          beliefs.add(CharacterBelief(
-            subjectId: characterId,
-            targetId: '',
-            claim: atom.content,
-            confidence: atom.certainty,
-            source: '${atom.kind.name}:${atom.id}',
-          ));
+          beliefs.add(
+            CharacterBelief(
+              subjectId: characterId,
+              targetId: '',
+              claim: atom.content,
+              confidence: atom.certainty,
+              source: '${atom.kind.name}:${atom.id}',
+            ),
+          );
 
         case CognitionKind.relationshipView:
-          relationships.add(RelationshipSlice(
-            characterId: characterId,
-            otherId: _firstOrEmpty(atom.sourceCharacterIds),
-            kind: atom.kind.name,
-            trust: atom.certainty,
-            tension: 1.0 - atom.certainty,
-            notes: atom.content,
-          ));
+          relationships.add(
+            RelationshipSlice(
+              characterId: characterId,
+              otherId: _firstOrEmpty(atom.sourceCharacterIds),
+              kind: atom.kind.name,
+              trust: atom.certainty,
+              tension: 1.0 - atom.certainty,
+              notes: atom.content,
+            ),
+          );
 
         case CognitionKind.selfState:
-          presentation = presentation.copyWith(
-            displayedEmotion: atom.content,
-          );
+          presentation = presentation.copyWith(displayedEmotion: atom.content);
 
         case CognitionKind.presentation:
         case CognitionKind.memory:

@@ -46,6 +46,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
     _actionsScrollController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -194,7 +195,8 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
                       label:
                           '${issues[index].title} · ${_statusLabel(issues[index].status)}',
                       selected: store.selectedAuditIssue.id == issues[index].id,
-                      onPressed: () => store.selectAuditIssueById(issues[index].id),
+                      onPressed: () =>
+                          store.selectAuditIssueById(issues[index].id),
                     ),
                     if (index < issues.length - 1) const SizedBox(height: 8),
                   ],

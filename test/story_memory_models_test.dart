@@ -37,7 +37,10 @@ void main() {
         kind: MemorySourceKind.worldFact,
         content: 'Magic requires a catalyst stone.',
         sourceRefs: [
-          MemorySourceRef(sourceId: 'world-1', sourceType: MemorySourceKind.worldFact),
+          MemorySourceRef(
+            sourceId: 'world-1',
+            sourceType: MemorySourceKind.worldFact,
+          ),
         ],
         rootSourceIds: ['world-1'],
         visibility: MemoryVisibility.publicObservable,
@@ -108,7 +111,10 @@ void main() {
         confidence: 0.86,
         abstractionLevel: 2.0,
         sourceRefs: [
-          MemorySourceRef(sourceId: 'scene-1', sourceType: MemorySourceKind.sceneSummary),
+          MemorySourceRef(
+            sourceId: 'scene-1',
+            sourceType: MemorySourceKind.sceneSummary,
+          ),
         ],
         rootSourceIds: ['scene-1:beat-2'],
         tags: ['char-liuxi', 'persona'],

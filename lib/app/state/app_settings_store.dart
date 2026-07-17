@@ -1,4 +1,3 @@
-
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
@@ -36,10 +35,8 @@ class AppSettingsStore extends AppStoreListenable
     AppEventLog? eventLog,
     AppEventBus? eventBus,
     AppLlmCallTraceSink? llmTraceSink,
-  }) : _storage =
-           storage ?? createDefaultAppSettingsStorage(),
-       _llmClient =
-           llmClient ?? createDefaultAppLlmClient(),
+  }) : _storage = storage ?? createDefaultAppSettingsStorage(),
+       _llmClient = llmClient ?? createDefaultAppLlmClient(),
        _requestPool = requestPool ?? AppLlmRequestPool(maxConcurrent: 3),
        _eventLog = eventLog ?? AppEventLog(),
        _eventBus = eventBus,
@@ -155,6 +152,7 @@ class AppSettingsStore extends AppStoreListenable
       notify: notify,
     );
   }
+
   @override
   bool storeIsSupportedModel(String model) => isSupportedModelFromUtils(model);
   @override
@@ -193,8 +191,7 @@ class AppSettingsStore extends AppStoreListenable
   bool get _hasRequiredApiKey =>
       _snapshot.apiKey.trim().isNotEmpty || _allowsEmptyApiKey;
 
-  bool isSupportedModel(String model) =>
-      isSupportedModelFromUtils(model);
+  bool isSupportedModel(String model) => isSupportedModelFromUtils(model);
 
   bool get hasSupportedModel =>
       isSupportedModel(_snapshot.model) || _allowsEmptyApiKey;

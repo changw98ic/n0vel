@@ -22,38 +22,41 @@ void main() {
   });
 
   group('saveAcceptedDeltas + loadCharacterMemories', () {
-    test('character-tier roleplay delta is returned for matching tier', () async {
-      final delta = CharacterMemoryDelta(
-        deltaId: 'd1',
-        characterId: 'char-A',
-        kind: CharacterMemoryDeltaKind.belief,
-        content: 'The old man cannot be trusted.',
-        acl: VisibilityAcl.characters({'char-A'}),
-        sourceRound: 1,
-        sourceTurnId: 'turn-1',
-        confidence: 0.9,
-        accepted: true,
-      );
+    test(
+      'character-tier roleplay delta is returned for matching tier',
+      () async {
+        final delta = CharacterMemoryDelta(
+          deltaId: 'd1',
+          characterId: 'char-A',
+          kind: CharacterMemoryDeltaKind.belief,
+          content: 'The old man cannot be trusted.',
+          acl: VisibilityAcl.characters({'char-A'}),
+          sourceRound: 1,
+          sourceTurnId: 'turn-1',
+          confidence: 0.9,
+          accepted: true,
+        );
 
-      await store.saveAcceptedDeltas(
-        projectId: 'proj-1',
-        chapterId: 'ch-1',
-        sceneId: 'sc-1',
-        tier: MemoryTier.character,
-        producer: 'roleplay',
-        deltas: [delta],
-      );
+        await store.saveAcceptedDeltas(
+          projectId: 'proj-1',
+          chapterId: 'ch-1',
+          sceneId: 'sc-1',
+          tier: MemoryTier.character,
+          producer: 'roleplay',
+          deltas: [delta],
+        );
 
-      final loaded = await store.loadCharacterMemories(
-        projectId: 'proj-1',
-        characterId: 'char-A',
-        tier: MemoryTier.character,
-      );
+        final loaded = await store.loadCharacterMemories(
+          projectId: 'proj-1',
+          characterId: 'char-A',
+          tier: MemoryTier.character,
+        );
 
-      expect(loaded, hasLength(1));
-      expect(loaded.first.deltaId, 'd1');
-      expect(loaded.first.content, 'The old man cannot be trusted.');
-    });
+        expect(loaded, hasLength(1));
+        expect(loaded.first.deltaId, 'd1');
+        expect(loaded.first.content, 'The old man cannot be trusted.');
+      },
+    );
 
     test('scene tier does not return character-tier deltas', () async {
       final delta = CharacterMemoryDelta(
@@ -154,9 +157,11 @@ void main() {
   });
 
   group('migration', () {
-    test('adds tier and producer columns with defaults to legacy table', () async {
-      // Simulate legacy schema without tier/producer.
-      db.execute('''
+    test(
+      'adds tier and producer columns with defaults to legacy table',
+      () async {
+        // Simulate legacy schema without tier/producer.
+        db.execute('''
         CREATE TABLE character_memories (
           id TEXT PRIMARY KEY,
           project_id TEXT NOT NULL,
@@ -172,106 +177,112 @@ void main() {
         )
       ''');
 
-      final legacyData = jsonEncode(CharacterMemoryDelta(
-        deltaId: 'legacy-1',
-        characterId: 'char-X',
-        kind: CharacterMemoryDeltaKind.belief,
-        content: 'Old belief.',
-        acl: VisibilityAcl.characters({'char-X'}),
-        sourceRound: 1,
-        accepted: true,
-      ).toJson());
+        final legacyData = jsonEncode(
+          CharacterMemoryDelta(
+            deltaId: 'legacy-1',
+            characterId: 'char-X',
+            kind: CharacterMemoryDeltaKind.belief,
+            content: 'Old belief.',
+            acl: VisibilityAcl.characters({'char-X'}),
+            sourceRound: 1,
+            accepted: true,
+          ).toJson(),
+        );
 
-      db.execute(
-        '''
+        db.execute(
+          '''
         INSERT INTO character_memories (
           id, project_id, chapter_id, scene_id, character_id, kind, content,
           source_round, source_turn_id, confidence, data
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''',
-        [
-          'proj-m:ch-m:sc-m:legacy-1',
-          'proj-m',
-          'ch-m',
-          'sc-m',
-          'char-X',
-          'belief',
-          'Old belief.',
-          1,
-          '',
-          1.0,
-          legacyData,
-        ],
-      );
+          [
+            'proj-m:ch-m:sc-m:legacy-1',
+            'proj-m',
+            'ch-m',
+            'sc-m',
+            'char-X',
+            'belief',
+            'Old belief.',
+            1,
+            '',
+            1.0,
+            legacyData,
+          ],
+        );
 
-      // Run migration via ensureTables.
-      await store.ensureTables();
+        // Run migration via ensureTables.
+        await store.ensureTables();
 
-      final rows = db.select(
-        'SELECT tier, producer FROM character_memories WHERE id = ?',
-        ['proj-m:ch-m:sc-m:legacy-1'],
-      );
-      expect(rows, hasLength(1));
-      expect(rows.first['tier'], 'character');
-      expect(rows.first['producer'], '');
-    });
+        final rows = db.select(
+          'SELECT tier, producer FROM character_memories WHERE id = ?',
+          ['proj-m:ch-m:sc-m:legacy-1'],
+        );
+        expect(rows, hasLength(1));
+        expect(rows.first['tier'], 'character');
+        expect(rows.first['producer'], '');
+      },
+    );
   });
 
   group('export/import', () {
-    test('exportProjectJson includes tier and producer; importProjectJson preserves them', () async {
-      final delta = CharacterMemoryDelta(
-        deltaId: 'exp-1',
-        characterId: 'char-Y',
-        kind: CharacterMemoryDeltaKind.emotion,
-        content: 'A wave of nostalgia.',
-        acl: VisibilityAcl.characters({'char-Y'}),
-        sourceRound: 2,
-        sourceTurnId: 'turn-2',
-        confidence: 0.8,
-        accepted: true,
-      );
-
-      await store.saveAcceptedDeltas(
-        projectId: 'proj-e',
-        chapterId: 'ch-e',
-        sceneId: 'sc-e',
-        tier: MemoryTier.character,
-        producer: 'roleplay',
-        deltas: [delta],
-      );
-
-      final exported = await store.exportProjectJson('proj-e');
-      expect(exported, isNotNull);
-      final memories = exported!['memories'] as List;
-      expect(memories, hasLength(1));
-      expect(memories.first['tier'], 'character');
-      expect(memories.first['producer'], 'roleplay');
-
-      // Import into a fresh database.
-      final db2 = sqlite3.openInMemory();
-      final store2 = CharacterMemoryStoreIO(db: db2);
-      try {
-        await store2.importProjectJson('proj-e', exported);
-
-        final loaded = await store2.loadCharacterMemories(
-          projectId: 'proj-e',
+    test(
+      'exportProjectJson includes tier and producer; importProjectJson preserves them',
+      () async {
+        final delta = CharacterMemoryDelta(
+          deltaId: 'exp-1',
           characterId: 'char-Y',
-          tier: MemoryTier.character,
+          kind: CharacterMemoryDeltaKind.emotion,
+          content: 'A wave of nostalgia.',
+          acl: VisibilityAcl.characters({'char-Y'}),
+          sourceRound: 2,
+          sourceTurnId: 'turn-2',
+          confidence: 0.8,
+          accepted: true,
         );
-        expect(loaded, hasLength(1));
-        expect(loaded.first.deltaId, 'exp-1');
-        expect(loaded.first.content, 'A wave of nostalgia.');
 
-        // Verify tier persisted through round-trip.
-        final rows = db2.select(
-          'SELECT tier, producer FROM character_memories WHERE id = ?',
-          ['proj-e:ch-e:sc-e:exp-1'],
+        await store.saveAcceptedDeltas(
+          projectId: 'proj-e',
+          chapterId: 'ch-e',
+          sceneId: 'sc-e',
+          tier: MemoryTier.character,
+          producer: 'roleplay',
+          deltas: [delta],
         );
-        expect(rows.first['tier'], 'character');
-        expect(rows.first['producer'], 'roleplay');
-      } finally {
-        db2.dispose();
-      }
-    });
+
+        final exported = await store.exportProjectJson('proj-e');
+        expect(exported, isNotNull);
+        final memories = exported!['memories'] as List;
+        expect(memories, hasLength(1));
+        expect(memories.first['tier'], 'character');
+        expect(memories.first['producer'], 'roleplay');
+
+        // Import into a fresh database.
+        final db2 = sqlite3.openInMemory();
+        final store2 = CharacterMemoryStoreIO(db: db2);
+        try {
+          await store2.importProjectJson('proj-e', exported);
+
+          final loaded = await store2.loadCharacterMemories(
+            projectId: 'proj-e',
+            characterId: 'char-Y',
+            tier: MemoryTier.character,
+          );
+          expect(loaded, hasLength(1));
+          expect(loaded.first.deltaId, 'exp-1');
+          expect(loaded.first.content, 'A wave of nostalgia.');
+
+          // Verify tier persisted through round-trip.
+          final rows = db2.select(
+            'SELECT tier, producer FROM character_memories WHERE id = ?',
+            ['proj-e:ch-e:sc-e:exp-1'],
+          );
+          expect(rows.first['tier'], 'character');
+          expect(rows.first['producer'], 'roleplay');
+        } finally {
+          db2.dispose();
+        }
+      },
+    );
   });
 }

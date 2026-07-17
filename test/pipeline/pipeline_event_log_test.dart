@@ -18,22 +18,28 @@ void main() {
     });
 
     test('emit and query events', () {
-      log.emit(const PipelineEvent(
-        timestampMs: 100,
-        stageId: 'director',
-        eventType: 'started',
-      ));
-      log.emit(const PipelineEvent(
-        timestampMs: 200,
-        stageId: 'review',
-        eventType: 'failed',
-        failureCode: FailureCode.qualityFail,
-      ));
-      log.emit(const PipelineEvent(
-        timestampMs: 300,
-        stageId: 'review',
-        eventType: 'completed',
-      ));
+      log.emit(
+        const PipelineEvent(
+          timestampMs: 100,
+          stageId: 'director',
+          eventType: 'started',
+        ),
+      );
+      log.emit(
+        const PipelineEvent(
+          timestampMs: 200,
+          stageId: 'review',
+          eventType: 'failed',
+          failureCode: FailureCode.qualityFail,
+        ),
+      );
+      log.emit(
+        const PipelineEvent(
+          timestampMs: 300,
+          stageId: 'review',
+          eventType: 'completed',
+        ),
+      );
 
       expect(log.query(stageId: 'review'), hasLength(2));
       expect(log.query(eventType: 'started'), hasLength(1));
@@ -44,22 +50,18 @@ void main() {
     test('ring buffer evicts oldest when full', () {
       log = PipelineEventLogImpl(ringBufferSize: 3);
       for (var i = 0; i < 5; i++) {
-        log.emit(PipelineEvent(
-          timestampMs: i,
-          stageId: 'stage$i',
-          eventType: 'tick',
-        ));
+        log.emit(
+          PipelineEvent(timestampMs: i, stageId: 'stage$i', eventType: 'tick'),
+        );
       }
       expect(log.query(), hasLength(3));
       expect(log.query().first.stageId, 'stage2');
     });
 
     test('query with no matches returns empty', () {
-      log.emit(const PipelineEvent(
-        timestampMs: 1,
-        stageId: 'a',
-        eventType: 'b',
-      ));
+      log.emit(
+        const PipelineEvent(timestampMs: 1, stageId: 'a', eventType: 'b'),
+      );
       expect(log.query(stageId: 'nonexistent'), isEmpty);
     });
 
@@ -79,12 +81,14 @@ void main() {
 
       test('writes events to JSONL file', () async {
         log = PipelineEventLogImpl(jsonlPath: jsonlPath);
-        log.emit(const PipelineEvent(
-          timestampMs: 42,
-          stageId: 'director',
-          eventType: 'started',
-          artifactType: ArtifactType.directorPlan,
-        ));
+        log.emit(
+          const PipelineEvent(
+            timestampMs: 42,
+            stageId: 'director',
+            eventType: 'started',
+            artifactType: ArtifactType.directorPlan,
+          ),
+        );
         await log.flush();
 
         final content = await File(jsonlPath).readAsString();

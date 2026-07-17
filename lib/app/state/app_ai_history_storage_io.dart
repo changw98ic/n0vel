@@ -114,7 +114,7 @@ class SqliteAppAiHistoryStorage implements AppAiHistoryStorage {
   }
 
   sqlite3.Database _openDatabase() {
-    final database = openAuthoringDatabase(_dbPath);
+    final database = openAuthoringDatabase(_dbPath, verifyIntegrity: false);
     database.execute('''
       CREATE TABLE IF NOT EXISTS ai_history_entries (
         project_id TEXT NOT NULL,

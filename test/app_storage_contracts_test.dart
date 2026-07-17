@@ -247,22 +247,13 @@ void main() {
         createDefaultAppWorkspaceStorage(),
         isA<SqliteAppWorkspaceStorage>(),
       );
-      expect(
-        createDefaultAppAiHistoryStorage(),
-        isA<AppAiHistoryStorage>(),
-      );
+      expect(createDefaultAppAiHistoryStorage(), isA<AppAiHistoryStorage>());
       expect(
         createDefaultAppSceneContextStorage(),
         isA<AppSceneContextStorage>(),
       );
-      expect(
-        createDefaultAppSimulationStorage(),
-        isA<AppSimulationStorage>(),
-      );
-      expect(
-        createDefaultStoryOutlineStorage(),
-        isA<StoryOutlineStorage>(),
-      );
+      expect(createDefaultAppSimulationStorage(), isA<AppSimulationStorage>());
+      expect(createDefaultStoryOutlineStorage(), isA<StoryOutlineStorage>());
     },
   );
 }

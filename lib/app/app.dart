@@ -44,8 +44,10 @@ class _NovelWriterAppState extends State<NovelWriterApp>
   late final CrashDetector _crashDetector;
   bool _crashDetected = false;
   bool _dbCorrupted = false;
-  bool _restoringBackup = false;
   bool _cleanShutdownMarked = false;
+  bool _servicesClosedForRecovery = false;
+  Future<void>? _shutdownFuture;
+  BackupRecoveryState? _recoveryState;
 
   @override
   void initState() {
@@ -59,6 +61,13 @@ class _NovelWriterAppState extends State<NovelWriterApp>
     _registry = NovelWriterApp.debugRegistryOverride ?? ServiceRegistry();
     if (NovelWriterApp.debugRegistryOverride == null) {
       try {
+        // Establish an integrity-checked authoring connection before any
+        // lazy provider can open a secondary connection with the fast
+        // `verifyIntegrity: false` path. Corruption must select the recovery
+        // surface synchronously instead of escaping from an unawaited store
+        // restore later in the first frame.
+        final startupDatabase = openAuthoringDatabase(resolveAuthoringDbPath());
+        startupDatabase.dispose();
         registerAppServices(_registry);
       } on DatabaseCorruptedException {
         // DB corruption triggers the same recovery flow as a crash.
@@ -70,9 +79,10 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 
   @override
   void dispose() {
-    _markCleanShutdownOnce();
     WidgetsBinding.instance.removeObserver(this);
-    _registry.disposeAll();
+    if (!_servicesClosedForRecovery) {
+      _beginNormalShutdown();
+    }
     super.dispose();
   }
 
@@ -80,8 +90,25 @@ class _NovelWriterAppState extends State<NovelWriterApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Backgrounding, hiding, or pausing is not a clean process shutdown.
     if (state == AppLifecycleState.detached) {
-      _markCleanShutdownOnce();
+      _beginNormalShutdown();
     }
+  }
+
+  /// Flushes debounced project writes before closing the registry.  The
+  /// clean-shutdown marker is written only after that Future succeeds; a
+  /// failed flush therefore remains eligible for crash recovery on the next
+  /// startup.
+  void _beginNormalShutdown() {
+    if (_shutdownFuture != null || _servicesClosedForRecovery) {
+      return;
+    }
+    final future = _registry.shutdown();
+    _shutdownFuture = future.then<void>(
+      (_) => _markCleanShutdownOnce(),
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('正常关闭时持久化失败，保留崩溃恢复标记：$error');
+      },
+    );
   }
 
   void _markCleanShutdownOnce() {
@@ -94,6 +121,10 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 
   @override
   Widget build(BuildContext context) {
+    final recoveryState = _recoveryState;
+    if (recoveryState?.isTerminal ?? false) {
+      return _buildRecoveryOutcome(context, recoveryState!);
+    }
     if (_dbCorrupted) {
       return _buildCorruptionRecovery(context);
     }
@@ -112,12 +143,8 @@ class _NovelWriterAppState extends State<NovelWriterApp>
             builder: (context, child) {
               return _CrashRecoveryOverlay(
                 crashDetected: _crashDetected,
-                restoringBackup: _restoringBackup,
-                onRestoreComplete: () {
-                  setState(() {
-                    _restoringBackup = false;
-                  });
-                },
+                prepareForRestore: _prepareForRecovery,
+                onRecoveryComplete: _completeRecovery,
                 child: child!,
               );
             },
@@ -134,12 +161,50 @@ class _NovelWriterAppState extends State<NovelWriterApp>
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       home: _CorruptionRecoveryScreen(
-        onRestoreComplete: () {
-          // After backup restore, user must restart the app.
-          // A full hot-restart is needed to re-register services.
-        },
+        prepareForRestore: _prepareForRecovery,
+        onRecoveryComplete: _completeRecovery,
       ),
     );
+  }
+
+  Widget _buildRecoveryOutcome(
+    BuildContext context,
+    BackupRecoveryState recoveryState,
+  ) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: '小说工作台恢复',
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      home: _RecoveryOutcomeScreen(state: recoveryState),
+    );
+  }
+
+  Future<void> _prepareForRecovery() async {
+    if (_servicesClosedForRecovery) return;
+    _servicesClosedForRecovery = true;
+    // Disaster recovery deliberately does not flush pending writes. The
+    // selected backup is authoritative, and writes that were in flight may
+    // be the corrupted state we are discarding.
+    try {
+      await _registry.quiesceAll();
+    } finally {
+      _registry.disposeAll();
+    }
+  }
+
+  void _completeRecovery(BackupRecoveryState state) {
+    if (!mounted) return;
+    setState(() {
+      _recoveryState = state;
+      if (state.phase == BackupRecoveryPhase.succeeded) {
+        _dbCorrupted = false;
+        // The restored target has been integrity-checked and no old registry
+        // remains in use. Mark this recovery session clean so closing the
+        // terminal screen does not trigger the same crash prompt again.
+        _markCleanShutdownOnce();
+      }
+    });
   }
 }
 
@@ -148,14 +213,14 @@ class _NovelWriterAppState extends State<NovelWriterApp>
 class _CrashRecoveryOverlay extends StatefulWidget {
   const _CrashRecoveryOverlay({
     required this.crashDetected,
-    required this.restoringBackup,
-    required this.onRestoreComplete,
+    required this.prepareForRestore,
+    required this.onRecoveryComplete,
     required this.child,
   });
 
   final bool crashDetected;
-  final bool restoringBackup;
-  final VoidCallback onRestoreComplete;
+  final Future<void> Function() prepareForRestore;
+  final ValueChanged<BackupRecoveryState> onRecoveryComplete;
   final Widget child;
 
   @override
@@ -176,7 +241,21 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 
   Future<void> _offerRecovery() async {
     final backupService = NovelWriterApp.debugCreateAutoBackupService();
-    final backups = await backupService.listBackups();
+    late final List<BackupEntry> backups;
+    try {
+      backups = await backupService.listBackups();
+    } catch (error, stackTrace) {
+      if (mounted) {
+        widget.onRecoveryComplete(
+          BackupRecoveryState(
+            phase: BackupRecoveryPhase.failed,
+            error: error,
+            stackTrace: stackTrace,
+          ),
+        );
+      }
+      return;
+    }
     if (backups.isEmpty || !mounted) return;
 
     final shouldRestore = await NovelWriterApp.debugShowRecoveryDialog(
@@ -187,15 +266,13 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 
     if (shouldRestore) {
       final latest = backups.first;
-      try {
-        await backupService.restoreBackup(latest.id);
-      } catch (_) {
-        // A failed restore should leave the app running on the current data.
-      }
-      if (!mounted) return;
+      final coordinator = BackupRecoveryCoordinator(
+        prepare: widget.prepareForRestore,
+        restore: () => backupService.restoreBackup(latest.id),
+      );
+      final result = await coordinator.recover();
+      if (mounted) widget.onRecoveryComplete(result);
     }
-
-    widget.onRestoreComplete();
   }
 
   @override
@@ -208,9 +285,13 @@ class _CrashRecoveryOverlayState extends State<_CrashRecoveryOverlay> {
 ///
 /// Lists available backups and offers one-click restore + restart.
 class _CorruptionRecoveryScreen extends StatefulWidget {
-  const _CorruptionRecoveryScreen({required this.onRestoreComplete});
+  const _CorruptionRecoveryScreen({
+    required this.prepareForRestore,
+    required this.onRecoveryComplete,
+  });
 
-  final VoidCallback onRestoreComplete;
+  final Future<void> Function() prepareForRestore;
+  final ValueChanged<BackupRecoveryState> onRecoveryComplete;
 
   @override
   State<_CorruptionRecoveryScreen> createState() =>
@@ -250,16 +331,18 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
   Future<void> _restore(BackupEntry backup) async {
     setState(() => _restoring = true);
     final service = NovelWriterApp.debugCreateAutoBackupService();
-    try {
-      await service.restoreBackup(backup.id);
-      if (!mounted) return;
-      setState(() => _restoring = false);
-      widget.onRestoreComplete();
-    } catch (e) {
+    final coordinator = BackupRecoveryCoordinator(
+      prepare: widget.prepareForRestore,
+      restore: () => service.restoreBackup(backup.id),
+    );
+    final result = await coordinator.recover();
+    if (result.phase == BackupRecoveryPhase.succeeded) {
+      if (mounted) widget.onRecoveryComplete(result);
+    } else {
       if (!mounted) return;
       setState(() {
         _restoring = false;
-        _error = '恢复失败：$e';
+        _error = '恢复失败：${result.error}';
       });
     }
   }
@@ -288,7 +371,10 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ],
                   const SizedBox(height: 20),
                   if (_loading)
@@ -301,23 +387,27 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
                   else ...[
                     Text('可用备份：', style: theme.textTheme.titleSmall),
                     const SizedBox(height: 8),
-                    ..._backups.take(5).map(
-                      (b) => ListTile(
-                        dense: true,
-                        title: Text(_formatBackupTime(b.createdAtMs)),
-                        subtitle: Text(_formatSize(b.sizeBytes)),
-                        trailing: _restoring
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : FilledButton(
-                                onPressed: () => _restore(b),
-                                child: const Text('恢复'),
-                              ),
-                      ),
-                    ),
+                    ..._backups
+                        .take(5)
+                        .map(
+                          (b) => ListTile(
+                            dense: true,
+                            title: Text(_formatBackupTime(b.createdAtMs)),
+                            subtitle: Text(_formatSize(b.sizeBytes)),
+                            trailing: _restoring
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : FilledButton(
+                                    onPressed: () => _restore(b),
+                                    child: const Text('恢复'),
+                                  ),
+                          ),
+                        ),
                   ],
                 ],
               ),
@@ -342,5 +432,59 @@ class _CorruptionRecoveryScreenState extends State<_CorruptionRecoveryScreen> {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+/// Terminal screen shown after a recovery attempt.
+///
+/// The old ProviderScope and its stores are intentionally not rebuilt after a
+/// restore. A process restart is required to create fresh SQLite connections
+/// and reload store snapshots from the restored database.
+class _RecoveryOutcomeScreen extends StatelessWidget {
+  const _RecoveryOutcomeScreen({required this.state});
+
+  final BackupRecoveryState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final succeeded = state.phase == BackupRecoveryPhase.succeeded;
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: Card(
+          margin: const EdgeInsets.all(32),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    succeeded ? '恢复完成' : '恢复未完成',
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    succeeded
+                        ? '备份已通过完整性校验并替换当前数据库。请重新打开应用以加载恢复后的内容。'
+                        : '应用已停止使用当前工作台状态。请重新打开应用后重试恢复；恢复错误如下：',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (!succeeded && state.error != null) ...[
+                    const SizedBox(height: 12),
+                    SelectableText(
+                      state.error.toString(),
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

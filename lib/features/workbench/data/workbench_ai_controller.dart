@@ -1,4 +1,5 @@
 import '../../../app/logging/app_event_log.dart';
+import '../../../app/logging/app_event_log_privacy.dart';
 import '../../../app/llm/app_llm_client.dart';
 import '../../../app/llm/app_product_prompt_registry.dart';
 import '../../../app/state/app_scene_context_store.dart';
@@ -342,14 +343,9 @@ class WorkbenchAiController {
       'provider': metadata.providerSummary,
       'endpoint': metadata.endpointLabel,
       'taskType': taskType,
-      'promptLength': prompt.length,
-      'promptPreview': WorkbenchAiRevisionHelpers.previewText(prompt, 160),
-      if (response != null) 'responseLength': response.length,
+      ...AppEventLogPrivacy.textMetadata(field: 'prompt', value: prompt),
       if (response != null)
-        'responsePreview': WorkbenchAiRevisionHelpers.previewText(
-          response,
-          160,
-        ),
+        ...AppEventLogPrivacy.textMetadata(field: 'response', value: response),
     };
   }
 }

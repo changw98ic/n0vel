@@ -151,8 +151,8 @@ Future<Map<String, Object?>?> exportRoleplayStateForProject(
       return null;
     }
     return {
-      'roleplaySessions':? roleplayData,
-      'characterMemories':? memoryData,
+      'roleplaySessions': ?roleplayData,
+      'characterMemories': ?memoryData,
       if (auditReports.isNotEmpty)
         'auditReports': [for (final report in auditReports) report.toJson()],
       if (auditReports.isNotEmpty)

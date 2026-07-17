@@ -38,8 +38,9 @@ class ToolIntentParser {
     for (final pair in paramsStr.split(',')) {
       final eqIndex = pair.indexOf('=');
       if (eqIndex > 0) {
-        parameters[pair.substring(0, eqIndex).trim()] =
-            pair.substring(eqIndex + 1).trim();
+        parameters[pair.substring(0, eqIndex).trim()] = pair
+            .substring(eqIndex + 1)
+            .trim();
       }
     }
 

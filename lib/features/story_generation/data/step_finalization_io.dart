@@ -57,7 +57,10 @@ class FinalizationInput extends TypedArtifact {
 }
 
 class FinalizationOutput extends TypedArtifact {
-  const FinalizationOutput({required this.output, required this.retrievalTrace});
+  const FinalizationOutput({
+    required this.output,
+    required this.retrievalTrace,
+  });
 
   final SceneRuntimeOutput output;
   final RetrievalTrace retrievalTrace;

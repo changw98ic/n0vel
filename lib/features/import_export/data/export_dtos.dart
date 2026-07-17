@@ -143,9 +143,7 @@ class ExportFilter {
     if (entriesKey != null) {
       final rawEntries = payload[entriesKey];
       if (rawEntries is List) {
-        return {
-          entriesKey: _filterList(rawEntries, entityType, config),
-        };
+        return {entriesKey: _filterList(rawEntries, entityType, config)};
       }
     }
 

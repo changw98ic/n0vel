@@ -40,7 +40,7 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
       ),
       const SizedBox(height: 6),
       Text(
-        '选段 · 续写 · 润色 · 对话',
+        '选段 · 改写 · 续写',
         style: theme.textTheme.bodySmall?.copyWith(
           color: const Color(0xFFDDE5D8),
           height: 1.45,
@@ -51,18 +51,20 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
         children: [
           Expanded(
             child: _AiModeTab(
-              label: '续写',
-              isActive: panel.aiToolMode == AiToolMode.continueWriting,
-              onTap: () => panel.onSelectAiMode(AiToolMode.continueWriting),
+              key: WorkbenchShellPage.aiRewriteModeButtonKey,
+              label: '改写',
+              isActive: panel.aiToolMode == AiToolMode.rewrite,
+              onTap: () => panel.onSelectAiMode(AiToolMode.rewrite),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _AiModeTab(label: '润色', isActive: false, onTap: () {}),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _AiModeTab(label: '对话', isActive: false, onTap: () {}),
+            child: _AiModeTab(
+              key: WorkbenchShellPage.aiContinueModeButtonKey,
+              label: '续写',
+              isActive: panel.aiToolMode == AiToolMode.continueWriting,
+              onTap: () => panel.onSelectAiMode(AiToolMode.continueWriting),
+            ),
           ),
         ],
       ),
@@ -163,6 +165,14 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
             if (panel.candidatePresentation.state !=
                 StoryGenerationCandidatePresentationState.none) ...[
               const SizedBox(height: 12),
+              if (panel.storyRunSnapshot.hasRun) ...[
+                _RunStatusCard(
+                  snapshot: panel.storyRunSnapshot,
+                  onCancel: panel.onCancelRun,
+                  onRetry: panel.onRetryRun,
+                ),
+                const SizedBox(height: 12),
+              ],
               WorkbenchCandidatePanel(
                 presentation: panel.candidatePresentation,
                 actionFeedback: panel.candidateActionFeedback,
@@ -412,66 +422,40 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
                 ),
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      key: WorkbenchShellPage.aiGenerateButtonKey,
-                      onTap: panel.isGeneratingAi
-                          ? null
-                          : panel.onGenerateAiSuggestion,
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(
-                            AppDesignTokens.radiusFull,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: panel.isGeneratingAi
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF243226),
-                                ),
-                              )
-                            : Text(
-                                '插入正文',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFF243226),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  key: WorkbenchShellPage.aiGenerateButtonKey,
+                  onTap: panel.isGeneratingAi
+                      ? null
+                      : panel.onGenerateAiSuggestion,
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusFull,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0x14FFFFFF),
-                          borderRadius: BorderRadius.circular(
-                            AppDesignTokens.radiusFull,
+                    alignment: Alignment.center,
+                    child: panel.isGeneratingAi
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF243226),
+                            ),
+                          )
+                        : Text(
+                            '生成候选稿',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF243226),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          border: Border.all(color: const Color(0x24FFFFFF)),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '对比版本',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -480,8 +464,174 @@ Widget _buildAiPanel(ToolWindowPanel panel, BuildContext context) {
   );
 }
 
+class _RunStatusCard extends StatefulWidget {
+  const _RunStatusCard({
+    required this.snapshot,
+    required this.onCancel,
+    required this.onRetry,
+  });
+
+  final StoryGenerationRunSnapshot snapshot;
+  final Future<bool> Function() onCancel;
+  final Future<void> Function() onRetry;
+
+  @override
+  State<_RunStatusCard> createState() => _RunStatusCardState();
+}
+
+class _RunStatusCardState extends State<_RunStatusCard> {
+  bool _busy = false;
+
+  bool get _canRetry => switch (widget.snapshot.status) {
+    StoryGenerationRunStatus.failed ||
+    StoryGenerationRunStatus.preliminaryReviewBlocked ||
+    StoryGenerationRunStatus.finalReviewBlocked ||
+    StoryGenerationRunStatus.qualityBlocked ||
+    StoryGenerationRunStatus.budgetBlocked ||
+    StoryGenerationRunStatus.conflict => true,
+    _ => false,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final snapshot = widget.snapshot;
+    final isRunning = snapshot.status == StoryGenerationRunStatus.running;
+    final errorDetail =
+        AppEventLogPrivacy.sanitizeErrorDetail(snapshot.errorDetail.trim()) ??
+        '';
+    final lastError = snapshot.messages
+        .where((message) => message.kind == StoryGenerationRunMessageKind.error)
+        .lastOrNull
+        ?.body
+        .trim();
+    final detail = errorDetail.isNotEmpty
+        ? errorDetail
+        : AppEventLogPrivacy.sanitizeErrorDetail(lastError) ??
+              AppEventLogPrivacy.sanitizeErrorDetail(snapshot.summary.trim()) ??
+              '';
+
+    return Container(
+      key: WorkbenchShellPage.runSnapshotPanelKey,
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0x14FFFFFF),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
+        border: Border.all(
+          color: isRunning ? const Color(0x55C9D2C4) : const Color(0x30FFFFFF),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _runStatusHeadline(snapshot),
+            key: WorkbenchShellPage.runSnapshotHeadlineKey,
+            style: theme.textTheme.titleSmall?.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            snapshot.stageSummary.trim().isEmpty
+                ? _runPhaseLabel(snapshot.phase)
+                : snapshot.stageSummary,
+            key: WorkbenchShellPage.runSnapshotStageKey,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFFDDE5D8),
+            ),
+          ),
+          if (detail.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              detail,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: snapshot.status == StoryGenerationRunStatus.failed
+                    ? const Color(0xFFFFB4AB)
+                    : const Color(0xFFC9D2C4),
+                height: 1.35,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (isRunning || _canRetry) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (isRunning)
+                  OutlinedButton(
+                    key: WorkbenchShellPage.cancelRunButtonKey,
+                    onPressed: _busy ? null : _cancel,
+                    child: Text(_busy ? '取消中…' : '取消运行'),
+                  ),
+                if (_canRetry)
+                  FilledButton(
+                    key: WorkbenchShellPage.runSimulationButtonKey,
+                    onPressed: _busy ? null : _retry,
+                    child: Text(_busy ? '重新生成中…' : '重新生成'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancel() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onCancel();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _retry() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onRetry();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+}
+
+String _runStatusHeadline(StoryGenerationRunSnapshot snapshot) {
+  final headline = snapshot.headline.trim();
+  if (headline.isNotEmpty) return headline;
+  return switch (snapshot.status) {
+    StoryGenerationRunStatus.running => 'AI 试写进行中',
+    StoryGenerationRunStatus.failed => 'AI 试写失败',
+    StoryGenerationRunStatus.cancelled => 'AI 试写已取消',
+    StoryGenerationRunStatus.completed => 'AI 试写已完成',
+    _ => 'AI 试写运行详情',
+  };
+}
+
+String _runPhaseLabel(StoryGenerationRunPhase phase) {
+  return switch (phase) {
+    StoryGenerationRunPhase.draft => '准备候选稿',
+    StoryGenerationRunPhase.candidate => '候选稿阶段',
+    StoryGenerationRunPhase.feedback => '等待作者反馈',
+    StoryGenerationRunPhase.check => '质量检查',
+    StoryGenerationRunPhase.commit => '提交采纳结果',
+    StoryGenerationRunPhase.fail => '失败',
+    StoryGenerationRunPhase.cancel => '已取消',
+    StoryGenerationRunPhase.resume => '恢复运行',
+    StoryGenerationRunPhase.preliminaryReviewBlocked => '初审阻断',
+    StoryGenerationRunPhase.finalReviewBlocked => '终审阻断',
+    StoryGenerationRunPhase.qualityBlocked => '质量阻断',
+    StoryGenerationRunPhase.budgetBlocked => '预算阻断',
+    StoryGenerationRunPhase.conflict => '资料冲突',
+  };
+}
+
 class _AiModeTab extends StatelessWidget {
   const _AiModeTab({
+    super.key,
     required this.label,
     required this.isActive,
     required this.onTap,

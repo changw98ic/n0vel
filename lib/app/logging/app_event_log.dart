@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app_event_log_storage.dart';
 import 'app_event_log_types.dart';
 import 'app_log.dart';
+import 'app_event_log_privacy.dart';
 
 export 'app_event_log_types.dart';
 
@@ -14,18 +15,50 @@ class AppEventLog {
     String? sessionId,
     AppEventLogNowProvider? nowProvider,
   }) : _nowProvider = nowProvider ?? DateTime.now,
-       _storage =
-           storage ?? createDefaultAppEventLogStorage(),
+       _storage = storage ?? createDefaultAppEventLogStorage(),
        sessionId =
            sessionId ?? _generateId('session', (nowProvider ?? DateTime.now)());
 
-  
   final AppEventLogNowProvider _nowProvider;
   final AppEventLogStorage _storage;
   final String sessionId;
 
   Future<void> write(AppEventLogEntry entry) {
     return _storage.write(entry);
+  }
+
+  /// Explicit user-controlled cleanup for locally retained diagnostics.
+  Future<void> clearStoredEvents() {
+    final maintenance = _storage;
+    if (maintenance case final AppEventLogMaintenance sink) {
+      return sink.clear();
+    }
+    return Future<void>.value();
+  }
+
+  /// Applies the local diagnostics retention cutoff to every configured sink.
+  Future<void> pruneStoredEventsBefore(DateTime cutoff) {
+    final maintenance = _storage;
+    if (maintenance case final AppEventLogMaintenance sink) {
+      return sink.pruneBefore(cutoff);
+    }
+    return Future<void>.value();
+  }
+
+  /// Waits for queued local event writes before a controlled shutdown.
+  Future<void> flushPersistence() {
+    final lifecycle = _storage;
+    if (lifecycle case final AppEventLogStorageLifecycle sink) {
+      return sink.flush();
+    }
+    return Future<void>.value();
+  }
+
+  void dispose() {
+    final lifecycle = _storage;
+    if (lifecycle case final AppEventLogStorageLifecycle sink) {
+      sink.dispose();
+    }
   }
 
   Future<void> logBestEffort({
@@ -52,8 +85,8 @@ class AppEventLog {
         projectId: projectId,
         sceneId: sceneId,
         errorCode: errorCode,
-        errorDetail: errorDetail,
-        metadata: metadata,
+        errorDetail: AppEventLogPrivacy.sanitizeErrorDetail(errorDetail),
+        metadata: AppEventLogPrivacy.sanitizeMetadata(metadata),
       );
     } catch (error) {
       AppLog.e('logBestEffort swallowed error', tag: 'EventLog', error: error);
@@ -92,8 +125,8 @@ class AppEventLog {
         sceneId: sceneId,
         message: message,
         errorCode: errorCode,
-        errorDetail: errorDetail,
-        metadata: metadata,
+        errorDetail: AppEventLogPrivacy.sanitizeErrorDetail(errorDetail),
+        metadata: AppEventLogPrivacy.sanitizeMetadata(metadata),
       ),
     );
   }

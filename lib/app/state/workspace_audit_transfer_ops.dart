@@ -192,9 +192,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       _projectTransferState = decodeProjectTransferState(
         data['projectTransferState'],
       );
-      _hasLocalMutations = true;
-      unawaited(safePersist(_persist, eventBus: _eventBus));
-      notifyListeners();
+      _commitMutation();
       return;
     }
 
@@ -235,9 +233,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
       preferredProjectId: data['currentProjectId']?.toString(),
       projects: _projects,
     );
-    _hasLocalMutations = true;
-    unawaited(safePersist(_persist, eventBus: _eventBus));
-    notifyListeners();
+    _commitMutation();
   }
 
   void importProjectJson(
@@ -248,9 +244,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
     if (rawProjects is! List) {
       if (_projects.isEmpty) {
         _healEmptyDecodedWorkspace();
-        _hasLocalMutations = true;
-        unawaited(safePersist(_persist, eventBus: _eventBus));
-        notifyListeners();
+        _commitMutation();
       }
       return;
     }
@@ -262,9 +256,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
     if (incomingProjects.isEmpty) {
       if (_projects.isEmpty) {
         _healEmptyDecodedWorkspace();
-        _hasLocalMutations = true;
-        unawaited(safePersist(_persist, eventBus: _eventBus));
-        notifyListeners();
+        _commitMutation();
       }
       return;
     }
@@ -334,9 +326,7 @@ mixin _AuditTransferOps on _WorkspaceCodec {
         );
 
     _currentProjectId = incomingProject.id;
-    _hasLocalMutations = true;
-    unawaited(safePersist(_persist, eventBus: _eventBus));
-    notifyListeners();
+    _commitMutation();
   }
 
   // ---------------------------------------------------------------------------

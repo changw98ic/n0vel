@@ -47,9 +47,7 @@ String characterAnchorsText(List<StructuredProfile> profiles) {
       );
     }
     if (profile.soul.coreValues.isNotEmpty) {
-      buffer.writeln(
-        '  核心价值：${profile.soul.coreValues.take(3).join('；')}',
-      );
+      buffer.writeln('  核心价值：${profile.soul.coreValues.take(3).join('；')}');
     }
   }
   return buffer.toString().trimRight();

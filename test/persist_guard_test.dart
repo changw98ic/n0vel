@@ -64,28 +64,27 @@ void main() {
       );
     });
 
-    test('does not notify when first attempt fails but retry succeeds',
-        () async {
-      final bus = AppEventBus();
-      var notified = false;
-      final sub = bus.on<NotificationRequestedEvent>().listen((_) {
-        notified = true;
-      });
+    test(
+      'does not notify when first attempt fails but retry succeeds',
+      () async {
+        final bus = AppEventBus();
+        var notified = false;
+        final sub = bus.on<NotificationRequestedEvent>().listen((_) {
+          notified = true;
+        });
 
-      var callCount = 0;
-      await safePersist(
-        () async {
+        var callCount = 0;
+        await safePersist(() async {
           callCount++;
           if (callCount == 1) throw Exception('transient');
-        },
-        eventBus: bus,
-      );
+        }, eventBus: bus);
 
-      expect(callCount, 2);
-      expect(notified, isFalse);
+        expect(callCount, 2);
+        expect(notified, isFalse);
 
-      await sub.cancel();
-      bus.dispose();
-    });
+        await sub.cancel();
+        bus.dispose();
+      },
+    );
   });
 }

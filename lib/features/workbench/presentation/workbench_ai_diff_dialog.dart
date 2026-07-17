@@ -4,10 +4,7 @@ import '../../../app/widgets/desktop_shell.dart';
 import 'workbench_ai_revision_helpers.dart';
 
 class WorkbenchAiDiffDialog extends StatelessWidget {
-  const WorkbenchAiDiffDialog({
-    required this.blocks,
-    super.key,
-  });
+  const WorkbenchAiDiffDialog({required this.blocks, super.key});
 
   final List<WorkbenchAiReviewBlock> blocks;
 
@@ -22,9 +19,7 @@ class WorkbenchAiDiffDialog extends StatelessWidget {
       body: SizedBox(
         height: 480,
         child: blocks.isEmpty
-            ? const Center(
-                child: Text('暂无已生成的 AI 建议进行比对。'),
-              )
+            ? const Center(child: Text('暂无已生成的 AI 建议进行比对。'))
             : ListView.separated(
                 itemCount: blocks.length,
                 separatorBuilder: (context, index) => const Padding(
@@ -33,36 +28,45 @@ class WorkbenchAiDiffDialog extends StatelessWidget {
                 ),
                 itemBuilder: (context, index) {
                   final block = blocks[index];
-                  final diffs = dmp.diff(block.originalText, block.suggestionText);
+                  final diffs = dmp.diff(
+                    block.originalText,
+                    block.suggestionText,
+                  );
                   dmp.diffCleanupSemantic(diffs);
 
                   final spans = <TextSpan>[];
                   for (final diff in diffs) {
                     if (diff.operation == DIFF_EQUAL) {
-                      spans.add(TextSpan(
-                        text: diff.text,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF243226),
+                      spans.add(
+                        TextSpan(
+                          text: diff.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF243226),
+                          ),
                         ),
-                      ));
+                      );
                     } else if (diff.operation == DIFF_INSERT) {
-                      spans.add(TextSpan(
-                        text: diff.text,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF2E7D32),
-                          backgroundColor: const Color(0xFFE8F5E9),
-                          fontWeight: FontWeight.w600,
+                      spans.add(
+                        TextSpan(
+                          text: diff.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2E7D32),
+                            backgroundColor: const Color(0xFFE8F5E9),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ));
+                      );
                     } else if (diff.operation == DIFF_DELETE) {
-                      spans.add(TextSpan(
-                        text: diff.text,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFC62828),
-                          backgroundColor: const Color(0xFFFFEBEE),
-                          decoration: TextDecoration.lineThrough,
+                      spans.add(
+                        TextSpan(
+                          text: diff.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFFC62828),
+                            backgroundColor: const Color(0xFFFFEBEE),
+                            decoration: TextDecoration.lineThrough,
+                          ),
                         ),
-                      ));
+                      );
                     }
                   }
 
@@ -94,9 +98,7 @@ class WorkbenchAiDiffDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFE8E2D6)),
                         ),
-                        child: RichText(
-                          text: TextSpan(children: spans),
-                        ),
+                        child: RichText(text: TextSpan(children: spans)),
                       ),
                     ],
                   );

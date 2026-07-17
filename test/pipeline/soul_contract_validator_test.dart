@@ -1,6 +1,7 @@
 import 'package:novel_writer/features/story_generation/data/profile_structured_store.dart';
 import 'package:novel_writer/features/story_generation/data/soul_contract_validator.dart';
-import 'package:novel_writer/features/story_generation/domain/contracts/memory_writeback_gate.dart' as gate;
+import 'package:novel_writer/features/story_generation/domain/contracts/memory_writeback_gate.dart'
+    as gate;
 import 'package:novel_writer/features/story_generation/domain/contracts/soul_contract.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/structured_profile.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -65,7 +66,10 @@ void main() {
       expect(loaded.name, '林月');
       expect(loaded.personality.openness, 0.8);
       expect(loaded.voicePrint.vocabularyLevel, 'literary');
-      expect(loaded.voicePrint.speakingPatterns, ['uses metaphors', 'pauses before answering']);
+      expect(loaded.voicePrint.speakingPatterns, [
+        'uses metaphors',
+        'pauses before answering',
+      ]);
       expect(loaded.voicePrint.catchphrases, ['如你所见']);
       expect(loaded.behaviorBounds.forbiddenActions, ['kill', 'betray allies']);
       expect(loaded.behaviorBounds.emotionalRange.maxIntensity, 0.8);
@@ -83,7 +87,10 @@ void main() {
       await store.saveProfile(projectId: 'proj-X', profile: v1);
       await store.saveProfile(projectId: 'proj-X', profile: v2);
 
-      final loaded = await store.loadProfile(projectId: 'proj-X', profileId: 'p1');
+      final loaded = await store.loadProfile(
+        projectId: 'proj-X',
+        profileId: 'p1',
+      );
       expect(loaded!.name, 'Version 2');
     });
 
@@ -177,9 +184,7 @@ void main() {
     });
 
     test('catches forbidden action violations', () {
-      const contract = SoulContract(
-        forbiddenActions: ['kill'],
-      );
+      const contract = SoulContract(forbiddenActions: ['kill']);
       const validator = SoulContractValidator(contract);
 
       final violations = validator.validate('he decided to kill the enemy');
@@ -189,9 +194,7 @@ void main() {
     });
 
     test('catches core value contradictions', () {
-      const contract = SoulContract(
-        coreValues: ['善良'],
-      );
+      const contract = SoulContract(coreValues: ['善良']);
       const validator = SoulContractValidator(contract);
 
       final violations = validator.validate('他不善良');
@@ -201,9 +204,7 @@ void main() {
 
     test('catches forbidden emotions', () {
       const contract = SoulContract(
-        emotionalRange: EmotionalContract(
-          forbiddenEmotions: ['rage'],
-        ),
+        emotionalRange: EmotionalContract(forbiddenEmotions: ['rage']),
       );
       const validator = SoulContractValidator(contract);
 
@@ -213,9 +214,7 @@ void main() {
     });
 
     test('catches broken promises', () {
-      const contract = SoulContract(
-        unbreakablePromises: ['保护妹妹'],
-      );
+      const contract = SoulContract(unbreakablePromises: ['保护妹妹']);
       const validator = SoulContractValidator(contract);
 
       final violations = validator.validate('他违背保护妹妹的誓言');
@@ -242,9 +241,7 @@ void main() {
     });
 
     test('writeback adapter returns empty list for valid content', () {
-      const contract = SoulContract(
-        forbiddenActions: ['kill'],
-      );
+      const contract = SoulContract(forbiddenActions: ['kill']);
       const validator = SoulContractValidator(contract);
       final adapter = validator.asWritebackValidator();
 

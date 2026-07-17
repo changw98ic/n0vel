@@ -6,16 +6,19 @@ void main() {
   group('FailureCode', () {
     test('has all expected values', () {
       expect(FailureCode.values, hasLength(8));
-      expect(FailureCode.values, containsAll([
-        FailureCode.recoverable,
-        FailureCode.qualityFail,
-        FailureCode.canonViolation,
-        FailureCode.soulViolation,
-        FailureCode.memoryCorrupted,
-        FailureCode.budgetExceeded,
-        FailureCode.blocked,
-        FailureCode.fatal,
-      ]));
+      expect(
+        FailureCode.values,
+        containsAll([
+          FailureCode.recoverable,
+          FailureCode.qualityFail,
+          FailureCode.canonViolation,
+          FailureCode.soulViolation,
+          FailureCode.memoryCorrupted,
+          FailureCode.budgetExceeded,
+          FailureCode.blocked,
+          FailureCode.fatal,
+        ]),
+      );
     });
 
     test('name property is stable', () {

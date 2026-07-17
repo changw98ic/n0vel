@@ -17,33 +17,40 @@ class SceneBeatResolver {
     for (final beat in beats) {
       final targetId = beat.targetId;
       if (targetId == null) {
-        resolved.add(ResolvedBeat(
-          beat: beat,
-          resolution: BeatResolution.accepted,
-          reason: 'No target conflict',
-        ));
+        resolved.add(
+          ResolvedBeat(
+            beat: beat,
+            resolution: BeatResolution.accepted,
+            reason: 'No target conflict',
+          ),
+        );
         continue;
       }
 
       final group = conflictGroups[targetId];
       if (group == null || group.length <= maxTargetConflicts) {
-        resolved.add(ResolvedBeat(
-          beat: beat,
-          resolution: BeatResolution.accepted,
-          reason: 'No conflict',
-        ));
+        resolved.add(
+          ResolvedBeat(
+            beat: beat,
+            resolution: BeatResolution.accepted,
+            reason: 'No conflict',
+          ),
+        );
         continue;
       }
 
       final isFirstForTarget = group.first == beat;
-      resolved.add(ResolvedBeat(
-        beat: beat,
-        resolution:
-            isFirstForTarget ? BeatResolution.accepted : BeatResolution.rejected,
-        reason: isFirstForTarget
-            ? 'Accepted as primary action on target $targetId'
-            : 'Rejected: conflicts with earlier action on target $targetId',
-      ));
+      resolved.add(
+        ResolvedBeat(
+          beat: beat,
+          resolution: isFirstForTarget
+              ? BeatResolution.accepted
+              : BeatResolution.rejected,
+          reason: isFirstForTarget
+              ? 'Accepted as primary action on target $targetId'
+              : 'Rejected: conflicts with earlier action on target $targetId',
+        ),
+      );
     }
 
     return SceneStateDelta(resolvedBeats: resolved);
@@ -63,13 +70,15 @@ class SceneBeatResolver {
     for (final rb in delta.rejectedBeats) {
       final accepted = _findAcceptedCompetitor(delta, rb.beat);
       if (accepted != null && updateReason != null) {
-        beliefUpdates.add(BeliefUpdate(
-          characterId: rb.beat.characterId,
-          targetId: rb.beat.targetId ?? accepted.beat.characterId,
-          oldClaim: rb.beat.action,
-          newClaim: accepted.beat.action,
-          reason: updateReason(rb.beat, accepted.beat),
-        ));
+        beliefUpdates.add(
+          BeliefUpdate(
+            characterId: rb.beat.characterId,
+            targetId: rb.beat.targetId ?? accepted.beat.characterId,
+            oldClaim: rb.beat.action,
+            newClaim: accepted.beat.action,
+            reason: updateReason(rb.beat, accepted.beat),
+          ),
+        );
       }
     }
 

@@ -95,9 +95,7 @@ void main() {
 
     test('delegates request to underlying client', () async {
       final fake = _RecordingFakeLlmClient();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'ok'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'ok')]);
 
       final middleware = AppLlmLoggingMiddleware(delegate: fake);
       await middleware.chat(_makeRequest(model: 'gpt-5.4'));
@@ -113,17 +111,12 @@ void main() {
 
       final middleware = AppLlmLoggingMiddleware(delegate: fake);
 
-      expect(
-        () => middleware.chat(_makeRequest()),
-        throwsStateError,
-      );
+      expect(() => middleware.chat(_makeRequest()), throwsStateError);
     });
 
     test('works without event log', () async {
       final fake = _RecordingFakeLlmClient();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'no-log'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'no-log')]);
 
       final middleware = AppLlmLoggingMiddleware(delegate: fake);
       final result = await middleware.chat(_makeRequest());
@@ -137,10 +130,7 @@ void main() {
         const AppLlmChatResult.success(text: 'logged', latencyMs: 100),
       ]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,
@@ -170,10 +160,7 @@ void main() {
         ),
       ]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,
@@ -192,14 +179,9 @@ void main() {
 
     test('uses stopwatch latency when result has none', () async {
       final fake = _RecordingFakeLlmClient();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'no-latency'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'no-latency')]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,
@@ -214,44 +196,30 @@ void main() {
 
     test('extracts host from base URL', () async {
       final fake = _RecordingFakeLlmClient();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'ok'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'ok')]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,
         eventLog: eventLog,
       );
-      await middleware.chat(
-        _makeRequest(baseUrl: 'https://my-llm.host.io/v1'),
-      );
+      await middleware.chat(_makeRequest(baseUrl: 'https://my-llm.host.io/v1'));
 
       expect(storage.entries.first.metadata['host'], 'my-llm.host.io');
     });
 
     test('falls back to raw baseUrl when host is unparseable', () async {
       final fake = _RecordingFakeLlmClient();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'ok'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'ok')]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,
         eventLog: eventLog,
       );
-      await middleware.chat(
-        _makeRequest(baseUrl: 'not-a-url'),
-      );
+      await middleware.chat(_makeRequest(baseUrl: 'not-a-url'));
 
       expect(storage.entries.first.metadata['host'], 'not-a-url');
     });
@@ -266,10 +234,7 @@ void main() {
         ),
       ]);
       final storage = _InMemoryEventLogStorage();
-      final eventLog = AppEventLog(
-        storage: storage,
-        sessionId: 'test-session',
-      );
+      final eventLog = AppEventLog(storage: storage, sessionId: 'test-session');
 
       final middleware = AppLlmLoggingMiddleware(
         delegate: fake,

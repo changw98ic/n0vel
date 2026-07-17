@@ -84,8 +84,7 @@ class LlmTraceRecord {
     return LlmTraceRecord(
       id: json['id'] as String,
       timestamp: DateTime.parse(json['timestamp'] as String),
-      promptVersion:
-          pvJson != null ? PromptVersion.fromJson(pvJson) : null,
+      promptVersion: pvJson != null ? PromptVersion.fromJson(pvJson) : null,
       providerId: json['providerId'] as String,
       model: json['model'] as String,
       schemaType: json['schemaType'] as String?,

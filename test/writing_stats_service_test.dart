@@ -101,12 +101,14 @@ void main() {
     setUp(() => ensureSchema());
 
     test('handleDraftUpdated creates daily stat with correct delta', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '你好世界', // 4 个非空白字符
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '你好世界', // 4 个非空白字符
+        ),
+      );
 
       final stats = await storage.loadDailyStats(projectId: 'proj-1');
       expect(stats, hasLength(1));
@@ -117,19 +119,23 @@ void main() {
 
     test('handleDraftUpdated accumulates delta for same day', () async {
       // 第一次写入
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '你好', // +2
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '你好', // +2
+        ),
+      );
       // 第二次写入
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '你好',
-        currentText: '你好世界测试', // +4
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '你好',
+          currentText: '你好世界测试', // +4
+        ),
+      );
 
       final stats = await storage.loadDailyStats(projectId: 'proj-1');
       expect(stats, hasLength(1));
@@ -138,24 +144,28 @@ void main() {
     });
 
     test('handleDraftUpdated skips when delta is zero', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '你好',
-        currentText: '你好',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '你好',
+          currentText: '你好',
+        ),
+      );
 
       final stats = await storage.loadDailyStats(projectId: 'proj-1');
       expect(stats, isEmpty);
     });
 
     test('handleDraftUpdated creates project stat on first write', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '测试内容',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '测试内容',
+        ),
+      );
 
       final projectStat = await storage.loadProjectStat(projectId: 'proj-1');
       expect(projectStat, isNotNull);
@@ -166,12 +176,14 @@ void main() {
 
     test('handleDraftUpdated tracks best day', () async {
       // 第一天大量写作
-      await service.handleDraftUpdated(DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: 'a' * 5000,
-      ));
+      await service.handleDraftUpdated(
+        DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: 'a' * 5000,
+        ),
+      );
 
       final projectStat = await storage.loadProjectStat(projectId: 'proj-1');
       expect(projectStat, isNotNull);
@@ -180,12 +192,14 @@ void main() {
 
     test('handleChapterCompleted increments chapter count', () async {
       // 先创建日级记录
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '内容',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '内容',
+        ),
+      );
       await service.handleChapterCompleted(
         projectId: 'proj-1',
         sceneScopeId: 'proj-1::scene-01',
@@ -199,18 +213,22 @@ void main() {
     });
 
     test('multiple scene scopes tracked separately', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '场景一',
-      ));
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-02',
-        previousText: '',
-        currentText: '场景二内容',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '场景一',
+        ),
+      );
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-02',
+          previousText: '',
+          currentText: '场景二内容',
+        ),
+      );
 
       final stats = await storage.loadDailyStats(projectId: 'proj-1');
       expect(stats, hasLength(2));
@@ -226,19 +244,23 @@ void main() {
 
     test('negative delta (deletion) is tracked correctly', () async {
       // 先写入
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '你好世界测试内容',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '你好世界测试内容',
+        ),
+      );
       // 删除部分内容
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '你好世界测试内容',
-        currentText: '你好',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '你好世界测试内容',
+          currentText: '你好',
+        ),
+      );
 
       final stats = await storage.loadDailyStats(projectId: 'proj-1');
       expect(stats.first['deltaChars'], 2); // 6 + (-4) = 2 净增
@@ -254,12 +276,14 @@ void main() {
     setUp(() => ensureSchema());
 
     test('loadSnapshot returns correct aggregated values', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '你好世界',
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '你好世界',
+        ),
+      );
 
       final snapshot = await service.loadSnapshot(projectId: 'proj-1');
       expect(snapshot.todayDeltaChars, 4);
@@ -324,15 +348,17 @@ void main() {
     });
 
     test('delete goal', () async {
-      await service.saveGoal(const WritingGoal(
-        id: 'goal-1',
-        projectId: 'proj-1',
-        goalType: WritingGoalType.dailyChars,
-        targetValue: 2000,
-        period: WritingGoalPeriod.daily,
-        enabled: true,
-        createdAtMs: 1000,
-      ));
+      await service.saveGoal(
+        const WritingGoal(
+          id: 'goal-1',
+          projectId: 'proj-1',
+          goalType: WritingGoalType.dailyChars,
+          targetValue: 2000,
+          period: WritingGoalPeriod.daily,
+          enabled: true,
+          createdAtMs: 1000,
+        ),
+      );
       await service.deleteGoal('goal-1');
 
       final goals = await service.loadGoals(projectId: 'proj-1');
@@ -340,15 +366,17 @@ void main() {
     });
 
     test('global goal (empty projectId) visible for all projects', () async {
-      await service.saveGoal(const WritingGoal(
-        id: 'global-goal',
-        projectId: '',
-        goalType: WritingGoalType.dailyChars,
-        targetValue: 1000,
-        period: WritingGoalPeriod.daily,
-        enabled: true,
-        createdAtMs: 1000,
-      ));
+      await service.saveGoal(
+        const WritingGoal(
+          id: 'global-goal',
+          projectId: '',
+          goalType: WritingGoalType.dailyChars,
+          targetValue: 1000,
+          period: WritingGoalPeriod.daily,
+          enabled: true,
+          createdAtMs: 1000,
+        ),
+      );
 
       final goals = await service.loadGoals(projectId: 'proj-1');
       expect(goals, hasLength(1));
@@ -356,21 +384,25 @@ void main() {
     });
 
     test('clearProject removes all stats and goals', () async {
-      await service.handleDraftUpdated(const DraftUpdatedEvent(
-        projectId: 'proj-1',
-        sceneScopeId: 'proj-1::scene-01',
-        previousText: '',
-        currentText: '内容',
-      ));
-      await service.saveGoal(const WritingGoal(
-        id: 'goal-1',
-        projectId: 'proj-1',
-        goalType: WritingGoalType.dailyChars,
-        targetValue: 1000,
-        period: WritingGoalPeriod.daily,
-        enabled: true,
-        createdAtMs: 1000,
-      ));
+      await service.handleDraftUpdated(
+        const DraftUpdatedEvent(
+          projectId: 'proj-1',
+          sceneScopeId: 'proj-1::scene-01',
+          previousText: '',
+          currentText: '内容',
+        ),
+      );
+      await service.saveGoal(
+        const WritingGoal(
+          id: 'goal-1',
+          projectId: 'proj-1',
+          goalType: WritingGoalType.dailyChars,
+          targetValue: 1000,
+          period: WritingGoalPeriod.daily,
+          enabled: true,
+          createdAtMs: 1000,
+        ),
+      );
 
       await service.clearProject('proj-1');
 

@@ -11,9 +11,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AppLoadingIndicator(),
-          ),
+          home: const Scaffold(body: AppLoadingIndicator()),
         ),
       );
 
@@ -24,9 +22,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AppLoadingIndicator(),
-          ),
+          home: const Scaffold(body: AppLoadingIndicator()),
         ),
       );
 
@@ -36,7 +32,9 @@ void main() {
       expect(indicator.color, appPrimaryColor);
     });
 
-    testWidgets('inline variant is smaller than overlay variant', (tester) async {
+    testWidgets('inline variant is smaller than overlay variant', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
@@ -63,10 +61,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: const Scaffold(
-            body: AppLoadingOverlay(
-              isLoading: false,
-              child: Text('content'),
-            ),
+            body: AppLoadingOverlay(isLoading: false, child: Text('content')),
           ),
         ),
       );
@@ -75,8 +70,9 @@ void main() {
       expect(find.byType(AppLoadingIndicator), findsNothing);
     });
 
-    testWidgets('shows spinner and optional message when isLoading is true',
-        (tester) async {
+    testWidgets('shows spinner and optional message when isLoading is true', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
@@ -102,10 +98,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: const Scaffold(
-            body: AppLoadingOverlay(
-              isLoading: true,
-              child: SizedBox.expand(),
-            ),
+            body: AppLoadingOverlay(isLoading: true, child: SizedBox.expand()),
           ),
         ),
       );
@@ -127,10 +120,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: Scaffold(
-            body: AppLoadingButton(
-              onPressed: () {},
-              child: const Text('Save'),
-            ),
+            body: AppLoadingButton(onPressed: () {}, child: const Text('Save')),
           ),
         ),
       );
@@ -139,8 +129,9 @@ void main() {
       expect(find.byType(AppLoadingIndicator), findsNothing);
     });
 
-    testWidgets('renders spinner and disables button when loading',
-        (tester) async {
+    testWidgets('renders spinner and disables button when loading', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
@@ -186,9 +177,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AppSkeletonLine(),
-          ),
+          home: const Scaffold(body: AppSkeletonLine()),
         ),
       );
 
@@ -202,9 +191,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AppSkeletonLine(),
-          ),
+          home: const Scaffold(body: AppSkeletonLine()),
         ),
       );
 
@@ -219,9 +206,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AppSkeletonCard(lineCount: 3),
-          ),
+          home: const Scaffold(body: AppSkeletonCard(lineCount: 3)),
         ),
       );
 
@@ -234,14 +219,14 @@ void main() {
           theme: AppTheme.light(),
           home: const SizedBox(
             width: 400,
-            child: Scaffold(
-              body: AppSkeletonCard(lineCount: 2),
-            ),
+            child: Scaffold(body: AppSkeletonCard(lineCount: 2)),
           ),
         ),
       );
 
-      final lines = tester.widgetList<AppSkeletonLine>(find.byType(AppSkeletonLine));
+      final lines = tester.widgetList<AppSkeletonLine>(
+        find.byType(AppSkeletonLine),
+      );
       final last = lines.last;
       expect(last.widthFactor, lessThan(1.0));
     });
@@ -253,10 +238,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: const Scaffold(
-            body: AppSkeletonLoader(
-              isLoading: true,
-              child: Text('loaded'),
-            ),
+            body: AppSkeletonLoader(isLoading: true, child: Text('loaded')),
           ),
         ),
       );
@@ -270,10 +252,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: const Scaffold(
-            body: AppSkeletonLoader(
-              isLoading: false,
-              child: Text('loaded'),
-            ),
+            body: AppSkeletonLoader(isLoading: false, child: Text('loaded')),
           ),
         ),
       );

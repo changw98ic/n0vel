@@ -39,7 +39,8 @@ class AppNoticeBanner extends StatelessWidget {
 
     return Semantics(
       liveRegion: true,
-      label: '$title${message != null && message!.isNotEmpty ? '：$message' : ''}',
+      label:
+          '$title${message != null && message!.isNotEmpty ? '：$message' : ''}',
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
@@ -54,41 +55,41 @@ class AppNoticeBanner extends StatelessWidget {
             ExcludeSemantics(
               child: Icon(_resolveIcon(), color: accent, size: 18),
             ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleMedium),
-                if (message != null && message!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(message!, style: theme.textTheme.bodySmall),
-                ],
-              ],
-            ),
-          ),
-          if (_hasActions) ...[
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (actionLabel != null && onAction != null)
-                  TextButton(
-                    key: actionKey,
-                    onPressed: onAction,
-                    child: Text(actionLabel!),
-                  ),
-                if (secondaryActionLabel != null && onSecondaryAction != null)
-                  TextButton(
-                    key: secondaryActionKey,
-                    onPressed: onSecondaryAction,
-                    child: Text(secondaryActionLabel!),
-                  ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  if (message != null && message!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(message!, style: theme.textTheme.bodySmall),
+                  ],
+                ],
+              ),
             ),
+            if (_hasActions) ...[
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (actionLabel != null && onAction != null)
+                    TextButton(
+                      key: actionKey,
+                      onPressed: onAction,
+                      child: Text(actionLabel!),
+                    ),
+                  if (secondaryActionLabel != null && onSecondaryAction != null)
+                    TextButton(
+                      key: secondaryActionKey,
+                      onPressed: onSecondaryAction,
+                      child: Text(secondaryActionLabel!),
+                    ),
+                ],
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/logging/app_event_log.dart';
+import '../../../app/logging/app_event_log_privacy.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_draft_store.dart';
 import '../../../app/state/app_version_store.dart';
@@ -204,9 +205,9 @@ Future<void> showAiReviewDialog({
       'reviewTitle': reviewTitle,
       'blockCount': blocks.length,
       'continueMode': continueMode,
-      'historyPromptPreview': WorkbenchAiRevisionHelpers.previewText(
-        historyPrompt,
-        160,
+      ...AppEventLogPrivacy.textMetadata(
+        field: 'historyPrompt',
+        value: historyPrompt,
       ),
     },
   );

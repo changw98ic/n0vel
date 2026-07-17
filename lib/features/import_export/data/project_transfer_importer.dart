@@ -34,11 +34,11 @@ class ProjectTransferImporter {
 
   /// Optional callback to import story memory data for a project.
   final Future<void> Function(String projectId, Map<String, Object?> data)?
-      storyMemoryImport;
+  storyMemoryImport;
 
   /// Optional callback to import roleplay sessions and character memories.
   final Future<void> Function(String projectId, Map<String, Object?> data)?
-      roleplayStateImport;
+  roleplayStateImport;
 
   String get importPackagePath =>
       '${_importsDirectory.path}/$projectTransferPackageFilename';
@@ -55,7 +55,7 @@ class ProjectTransferImporter {
     );
     if (!await packageFile.exists()) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.inspect.failed',
         status: AppEventLogStatus.failed,
         message:
@@ -70,11 +70,14 @@ class ProjectTransferImporter {
       );
     }
 
-    final extraction = await extractTransferPackage(packageFile, _unzipExecutable);
+    final extraction = await extractTransferPackage(
+      packageFile,
+      _unzipExecutable,
+    );
     try {
       if (extraction == null) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.inspect.failed',
           status: AppEventLogStatus.failed,
           message: 'Project package inspection failed during extraction.',
@@ -91,7 +94,7 @@ class ProjectTransferImporter {
       final manifestFile = File('${extraction.path}/manifest.json');
       if (!await manifestFile.exists()) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.inspect.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -110,7 +113,7 @@ class ProjectTransferImporter {
       final manifestJson = jsonDecode(manifestRaw);
       if (manifestJson is! Map<String, Object?>) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.inspect.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -128,7 +131,7 @@ class ProjectTransferImporter {
       final manifest = ProjectPackageManifest.fromJson(manifestJson);
       if (manifest.schemaMajor != projectTransferSchemaMajor) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.inspect.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -150,7 +153,7 @@ class ProjectTransferImporter {
 
       if (manifest.schemaMinor != projectTransferSchemaMinor) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.inspect.warning',
           status: AppEventLogStatus.warning,
           message:
@@ -170,7 +173,7 @@ class ProjectTransferImporter {
       }
 
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.inspect.succeeded',
         status: AppEventLogStatus.succeeded,
         message: 'Project package inspection completed successfully.',
@@ -188,7 +191,7 @@ class ProjectTransferImporter {
       );
     } on FormatException {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.inspect.failed',
         status: AppEventLogStatus.failed,
         message:
@@ -236,7 +239,7 @@ class ProjectTransferImporter {
     if (inspection.state != ProjectTransferState.ready &&
         inspection.state != ProjectTransferState.minorVersionWarning) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.failed',
         status: inspection.state == ProjectTransferState.overwriteConfirm
             ? AppEventLogStatus.warning
@@ -264,7 +267,7 @@ class ProjectTransferImporter {
         workspaceStore.hasProjectWithId(manifest.projectId) &&
         !overwriteExisting) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.warning',
         status: AppEventLogStatus.warning,
         message: 'Project import requires overwrite confirmation.',
@@ -279,11 +282,14 @@ class ProjectTransferImporter {
       );
     }
 
-    final extraction = await extractTransferPackage(packageFile, _unzipExecutable);
+    final extraction = await extractTransferPackage(
+      packageFile,
+      _unzipExecutable,
+    );
     try {
       if (extraction == null) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.failed',
           status: AppEventLogStatus.failed,
           message: 'Project import failed during package extraction.',
@@ -301,16 +307,13 @@ class ProjectTransferImporter {
       final workspaceFile = File('${extraction.path}/workspace.json');
       final requiredStorePayloads =
           ProjectTransferExporter.requiredStorePayloadContributors(
-        draftStore: draftStore,
-        versionStore: versionStore,
-      );
+            draftStore: draftStore,
+            versionStore: versionStore,
+          );
       if (!await workspaceFile.exists() ||
-          !await hasRequiredStorePayloads(
-            extraction,
-            requiredStorePayloads,
-          )) {
+          !await hasRequiredStorePayloads(extraction, requiredStorePayloads)) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -329,7 +332,7 @@ class ProjectTransferImporter {
 
       if (!await verifyPackageChecksums(extraction)) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -355,7 +358,7 @@ class ProjectTransferImporter {
       );
       if (validationErrors.hasErrors) {
         await logTransferEvent(
-      _eventLog,
+          _eventLog,
           action: 'project.import.failed',
           status: AppEventLogStatus.failed,
           message:
@@ -397,7 +400,7 @@ class ProjectTransferImporter {
       );
 
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.succeeded',
         status: AppEventLogStatus.succeeded,
         message: overwriteExisting
@@ -419,7 +422,7 @@ class ProjectTransferImporter {
       );
     } on FormatException catch (error) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.failed',
         status: AppEventLogStatus.failed,
         message: 'Project import failed because one payload file is malformed.',
@@ -436,7 +439,7 @@ class ProjectTransferImporter {
       );
     } catch (error) {
       await logTransferEvent(
-      _eventLog,
+        _eventLog,
         action: 'project.import.failed',
         status: AppEventLogStatus.failed,
         message: 'Project import failed unexpectedly.',

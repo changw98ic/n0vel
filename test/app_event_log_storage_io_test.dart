@@ -650,6 +650,61 @@ void main() {
     final jsonlEvents = await _readJsonlEvents(logsDirectory);
     expect(jsonlEvents, hasLength(entries.length));
   });
+
+  test(
+    'event log storage exposes explicit clear and retention cleanup',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_event_log_cleanup_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+
+      final logsDirectory = Directory('${directory.path}/logs');
+      final storage = createTestAppEventLogStorage(
+        sqlitePath: '${directory.path}/telemetry.db',
+        logsDirectory: logsDirectory,
+      );
+
+      Future<void> writeEntry(String id, DateTime timestamp) {
+        return storage.write(
+          AppEventLogEntry(
+            eventId: id,
+            timestampMs: timestamp.millisecondsSinceEpoch,
+            level: AppEventLogLevel.info,
+            category: AppEventLogCategory.app,
+            action: 'app.cleanup.test',
+            status: AppEventLogStatus.succeeded,
+            sessionId: 'cleanup-session',
+            message: id,
+          ),
+        );
+      }
+
+      await writeEntry('evt-old', DateTime(2026, 4, 1, 8));
+      await writeEntry('evt-new', DateTime(2026, 4, 2, 8));
+      await storage.pruneBefore(DateTime(2026, 4, 2));
+
+      final retainedRows = _readLoggedEventsFromSqlite(
+        '${directory.path}/telemetry.db',
+      );
+      expect(retainedRows.map((row) => row['event_id']), ['evt-new']);
+      expect(
+        (await _readJsonlEvents(logsDirectory)).map((row) => row['eventId']),
+        ['evt-new'],
+      );
+
+      await storage.clear();
+      expect(
+        _readLoggedEventsFromSqlite('${directory.path}/telemetry.db'),
+        isEmpty,
+      );
+      expect(await _readJsonlEvents(logsDirectory), isEmpty);
+    },
+  );
 }
 
 List<Map<String, Object?>> _readLoggedEventsFromSqlite(String dbPath) {

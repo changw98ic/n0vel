@@ -138,10 +138,12 @@ void main() {
 
   group('ReviewTaskStore state management', () {
     test('replaceAll overwrites all tasks', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1'),
-        _task(id: 'task-2'),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1'),
+          _task(id: 'task-2'),
+        ],
+      );
 
       store.replaceAll([_task(id: 'task-3')]);
 
@@ -150,9 +152,9 @@ void main() {
     });
 
     test('upsertAll inserts new tasks and preserves existing status', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.resolved),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [_task(id: 'task-1', status: ReviewTaskStatus.resolved)],
+      );
 
       store.upsertAll([
         _task(id: 'task-1', status: ReviewTaskStatus.open),
@@ -160,13 +162,9 @@ void main() {
       ]);
 
       expect(store.tasks, hasLength(2));
-      final task1 =
-          store.tasks.firstWhere((t) => t.id == 'task-1');
+      final task1 = store.tasks.firstWhere((t) => t.id == 'task-1');
       expect(task1.status, ReviewTaskStatus.resolved);
-      expect(
-        store.tasks.any((t) => t.id == 'task-2'),
-        isTrue,
-      );
+      expect(store.tasks.any((t) => t.id == 'task-2'), isTrue);
     });
 
     test('upsertAll is a no-op for empty input', () {
@@ -190,42 +188,52 @@ void main() {
     });
 
     test('updateStatus updates timestamp', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', createdAt: DateTime.utc(2026, 1, 1)),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1', createdAt: DateTime.utc(2026, 1, 1)),
+        ],
+      );
       final newTime = DateTime.utc(2026, 6, 15);
 
-      store.updateStatus('task-1', ReviewTaskStatus.inProgress, updatedAt: newTime);
+      store.updateStatus(
+        'task-1',
+        ReviewTaskStatus.inProgress,
+        updatedAt: newTime,
+      );
 
       expect(store.tasks.first.status, ReviewTaskStatus.inProgress);
       expect(store.tasks.first.updatedAt, newTime);
     });
 
     test('openCount counts open and in-progress tasks', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.open),
-        _task(id: 'task-2', status: ReviewTaskStatus.inProgress),
-        _task(id: 'task-3', status: ReviewTaskStatus.resolved),
-        _task(id: 'task-4', status: ReviewTaskStatus.ignored),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1', status: ReviewTaskStatus.open),
+          _task(id: 'task-2', status: ReviewTaskStatus.inProgress),
+          _task(id: 'task-3', status: ReviewTaskStatus.resolved),
+          _task(id: 'task-4', status: ReviewTaskStatus.ignored),
+        ],
+      );
 
       expect(store.openCount, 2);
     });
 
     test('openCount is zero when no open tasks', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.resolved),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [_task(id: 'task-1', status: ReviewTaskStatus.resolved)],
+      );
 
       expect(store.openCount, 0);
     });
 
     test('groupedByStatus returns all statuses with correct assignments', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.open),
-        _task(id: 'task-2', status: ReviewTaskStatus.open),
-        _task(id: 'task-3', status: ReviewTaskStatus.resolved),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1', status: ReviewTaskStatus.open),
+          _task(id: 'task-2', status: ReviewTaskStatus.open),
+          _task(id: 'task-3', status: ReviewTaskStatus.resolved),
+        ],
+      );
 
       final grouped = store.groupedByStatus();
 
@@ -236,16 +244,21 @@ void main() {
     });
 
     test('tasksForStatus returns filtered list', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.resolved),
-        _task(id: 'task-2', status: ReviewTaskStatus.open),
-        _task(id: 'task-3', status: ReviewTaskStatus.resolved),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1', status: ReviewTaskStatus.resolved),
+          _task(id: 'task-2', status: ReviewTaskStatus.open),
+          _task(id: 'task-3', status: ReviewTaskStatus.resolved),
+        ],
+      );
 
       final resolved = store.tasksForStatus(ReviewTaskStatus.resolved);
 
       expect(resolved, hasLength(2));
-      expect(resolved.every((t) => t.status == ReviewTaskStatus.resolved), isTrue);
+      expect(
+        resolved.every((t) => t.status == ReviewTaskStatus.resolved),
+        isTrue,
+      );
     });
   });
 
@@ -255,10 +268,12 @@ void main() {
 
   group('ReviewTaskStore export/import', () {
     test('exportJson and importJson round-trip preserves all tasks', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1', status: ReviewTaskStatus.open),
-        _task(id: 'task-2', status: ReviewTaskStatus.resolved),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1', status: ReviewTaskStatus.open),
+          _task(id: 'task-2', status: ReviewTaskStatus.resolved),
+        ],
+      );
 
       final exported = store.exportJson();
       final restored = ReviewTaskStore();
@@ -266,11 +281,15 @@ void main() {
 
       expect(restored.tasks, hasLength(2));
       expect(
-        restored.tasks.any((t) => t.id == 'task-1' && t.status == ReviewTaskStatus.open),
+        restored.tasks.any(
+          (t) => t.id == 'task-1' && t.status == ReviewTaskStatus.open,
+        ),
         isTrue,
       );
       expect(
-        restored.tasks.any((t) => t.id == 'task-2' && t.status == ReviewTaskStatus.resolved),
+        restored.tasks.any(
+          (t) => t.id == 'task-2' && t.status == ReviewTaskStatus.resolved,
+        ),
         isTrue,
       );
     });
@@ -278,17 +297,23 @@ void main() {
     test('importJson ignores data without tasks list', () {
       final store = ReviewTaskStore(initialTasks: [_task(id: 'task-1')]);
 
-      store.importJson({'items': [{'id': 'wrong'}]});
+      store.importJson({
+        'items': [
+          {'id': 'wrong'},
+        ],
+      });
 
       expect(store.tasks, hasLength(1));
       expect(store.tasks.single.id, 'task-1');
     });
 
     test('fromJson static constructor restores tasks from JSON list', () {
-      final store = ReviewTaskStore(initialTasks: [
-        _task(id: 'task-1'),
-        _task(id: 'task-2', severity: ReviewTaskSeverity.critical),
-      ]);
+      final store = ReviewTaskStore(
+        initialTasks: [
+          _task(id: 'task-1'),
+          _task(id: 'task-2', severity: ReviewTaskSeverity.critical),
+        ],
+      );
 
       final json = store.toJson();
       final restored = ReviewTaskStore.fromJson(json);

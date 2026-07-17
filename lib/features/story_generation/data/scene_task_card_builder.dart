@@ -1,6 +1,9 @@
 import 'scene_context_models.dart' show ResolvedSceneCastMember;
-import 'scene_pipeline_models.dart' as pipeline show SceneTaskCard, KnowledgeSnippet;
-import '../domain/character_cognition_models.dart' show CharacterBelief, RelationshipSlice, SocialPositionSlice;
+import 'scene_pipeline_models.dart'
+    as pipeline
+    show SceneTaskCard, KnowledgeSnippet;
+import '../domain/character_cognition_models.dart'
+    show CharacterBelief, RelationshipSlice, SocialPositionSlice;
 import 'scene_runtime_models.dart' show SceneBrief, SceneDirectorOutput;
 
 /// Builds a [pipeline.SceneTaskCard] from a scene brief, resolved cast, and
@@ -116,9 +119,7 @@ class SceneTaskCardBuilder {
     ];
   }
 
-  List<SocialPositionSlice> socialPositionsFromBrief(
-    SceneBrief brief,
-  ) {
+  List<SocialPositionSlice> socialPositionsFromBrief(SceneBrief brief) {
     return [
       for (final position in brief.socialPositions)
         SocialPositionSlice(

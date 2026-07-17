@@ -76,16 +76,8 @@ void main() {
     });
 
     test('equality and hashCode work correctly', () {
-      final a = CharacterBelief(
-        subjectId: 'x',
-        targetId: 'y',
-        claim: 'z',
-      );
-      final b = CharacterBelief(
-        subjectId: 'x',
-        targetId: 'y',
-        claim: 'z',
-      );
+      final a = CharacterBelief(subjectId: 'x', targetId: 'y', claim: 'z');
+      final b = CharacterBelief(subjectId: 'x', targetId: 'y', claim: 'z');
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
     });
@@ -243,11 +235,12 @@ void main() {
         ],
       );
       expect(snapshot.beliefs.length, 1);
-      expect(() => (snapshot.beliefs as List).add(CharacterBelief(
-        subjectId: '',
-        targetId: '',
-        claim: '',
-      )), throwsA(isA<UnsupportedError>()));
+      expect(
+        () => (snapshot.beliefs as List).add(
+          CharacterBelief(subjectId: '', targetId: '', claim: ''),
+        ),
+        throwsA(isA<UnsupportedError>()),
+      );
     });
 
     test('defaults presentation to characterId when empty', () {
@@ -414,20 +407,12 @@ void main() {
         name: '柳溪',
         role: '调查记者',
         beliefs: [
-          CharacterBelief(
-            subjectId: 'liuxi',
-            targetId: 'yueren',
-            claim: '旧信念',
-          ),
+          CharacterBelief(subjectId: 'liuxi', targetId: 'yueren', claim: '旧信念'),
         ],
       );
       final copied = original.copyWith(
         beliefs: [
-          CharacterBelief(
-            subjectId: 'liuxi',
-            targetId: 'yueren',
-            claim: '新信念',
-          ),
+          CharacterBelief(subjectId: 'liuxi', targetId: 'yueren', claim: '新信念'),
         ],
       );
       expect(copied.characterId, 'liuxi');

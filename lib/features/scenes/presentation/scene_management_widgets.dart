@@ -89,11 +89,7 @@ class SceneDetailField extends StatelessWidget {
 }
 
 class SceneActionRow extends StatelessWidget {
-  const SceneActionRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const SceneActionRow({super.key, required this.label, required this.value});
 
   final String label;
   final String value;
@@ -119,11 +115,7 @@ class SceneActionRow extends StatelessWidget {
 }
 
 class SceneDialogField extends StatelessWidget {
-  const SceneDialogField({
-    super.key,
-    required this.label,
-    required this.child,
-  });
+  const SceneDialogField({super.key, required this.label, required this.child});
 
   final String label;
   final Widget child;
@@ -150,12 +142,8 @@ class SceneDialogField extends StatelessWidget {
 }
 
 class SceneChapterGroup {
-  const SceneChapterGroup({
-    required this.chapterLabel,
-    required this.scenes,
-  });
+  const SceneChapterGroup({required this.chapterLabel, required this.scenes});
 
   final String chapterLabel;
   final List<SceneRecord> scenes;
 }
-

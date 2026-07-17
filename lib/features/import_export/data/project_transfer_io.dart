@@ -35,8 +35,9 @@ Future<Directory?> extractTransferPackage(
 /// Returns `true` when all recorded checksums match, or when no checksums
 /// file exists (treated as OK for forward compatibility).
 Future<bool> verifyPackageChecksums(Directory extraction) async {
-  final checksumsFile =
-      File('${extraction.path}/$projectTransferChecksumsFilename');
+  final checksumsFile = File(
+    '${extraction.path}/$projectTransferChecksumsFilename',
+  );
   if (!await checksumsFile.exists()) return true;
   final checksumsMap = decodeProjectTransferObjectMap(
     jsonDecode(await checksumsFile.readAsString()),
@@ -101,9 +102,7 @@ Future<DecodedStorePayload?> _readStorePayload(
   if (!await file.exists()) return null;
   return DecodedStorePayload(
     payload: payload,
-    data: decodeProjectTransferObjectMap(
-      jsonDecode(await file.readAsString()),
-    ),
+    data: decodeProjectTransferObjectMap(jsonDecode(await file.readAsString())),
   );
 }
 
@@ -116,8 +115,6 @@ Future<void> _readAsyncStorePayload(
   if (!await file.exists()) return;
   await payload.importJson(
     projectId,
-    decodeProjectTransferObjectMap(
-      jsonDecode(await file.readAsString()),
-    ),
+    decodeProjectTransferObjectMap(jsonDecode(await file.readAsString())),
   );
 }

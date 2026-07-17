@@ -3,6 +3,7 @@ import '../events/app_event_bus.dart';
 import '../llm/app_llm_client.dart';
 import '../llm/app_llm_request_pool.dart';
 import '../state/app_ai_history_store.dart';
+import '../state/app_auto_backup.dart';
 import '../state/app_draft_store.dart';
 import '../state/app_scene_context_store.dart';
 import '../state/app_settings_store.dart';
@@ -13,6 +14,8 @@ import '../state/story_generation_store.dart';
 import '../state/story_outline_store.dart';
 import '../state/story_arc_store.dart';
 import '../../features/writing_stats/data/writing_stats_store.dart';
+import '../../features/author_feedback/data/author_feedback_store.dart';
+import '../../features/review_tasks/data/review_task_store.dart';
 import '../../features/story_generation/data/character_memory_store.dart';
 import '../../features/story_generation/data/roleplay_session_store.dart';
 import '../../features/story_generation/data/story_memory_storage.dart';
@@ -24,6 +27,20 @@ void registerCoreServices(ServiceRegistry registry) {
   registry.registerFactory<AppWorkspaceStore>(
     (r) => AppWorkspaceStore(
       eventBus: r.resolve<AppEventBus>(),
+      prepareProjectDeletionFlush: () async {
+        await Future.wait([
+          r.resolve<AppDraftStore>().flushPersistence(),
+          r.resolve<AppVersionStore>().flushPersistence(),
+          r.resolve<AppAiHistoryStore>().flushPersistence(),
+          r.resolve<AppSceneContextStore>().flushPersistence(),
+          r.resolve<StoryOutlineStore>().flushPersistence(),
+          r.resolve<StoryGenerationStore>().flushPersistence(),
+          r.resolve<StoryArcStore>().flushPersistence(),
+          r.resolve<WritingStatsStore>().flushPersistence(),
+          r.resolve<AuthorFeedbackStore>().flushPersistence(),
+          r.resolve<ReviewTaskStore>().flushPersistence(),
+        ]);
+      },
       projectDeletionCleaners: [
         (projectId) =>
             r.resolve<RoleplaySessionStore>().clearProject(projectId),
@@ -41,6 +58,11 @@ void registerCoreServices(ServiceRegistry registry) {
           ]);
         },
       ],
+      prepareProjectDeletionBackup: () async {
+        final backupService = createDefaultAutoBackupService();
+        await backupService.createBackup();
+        await backupService.pruneBackups(keepCount: 10);
+      },
     ),
   );
 

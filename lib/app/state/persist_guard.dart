@@ -10,6 +10,7 @@ import '../events/app_event_bus.dart';
 Future<void> safePersist(
   Future<void> Function() persistFn, {
   AppEventBus? eventBus,
+  bool rethrowOnFailure = false,
 }) async {
   try {
     await persistFn();
@@ -17,8 +18,11 @@ Future<void> safePersist(
     try {
       await Future<void>.delayed(const Duration(milliseconds: 200));
       await persistFn();
-    } catch (_) {
+    } catch (error, stackTrace) {
       _notifyFailure(eventBus);
+      if (rethrowOnFailure) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
     }
   }
 }

@@ -1,5 +1,24 @@
 part of 'app_workspace_store.dart';
 
+enum DeleteProjectStatus { deleted, notFound, failed }
+
+/// Outcome of the awaitable project-deletion workflow.
+class DeleteProjectResult {
+  const DeleteProjectResult({
+    required this.status,
+    required this.projectId,
+    this.error,
+    this.stackTrace,
+  });
+
+  final DeleteProjectStatus status;
+  final String projectId;
+  final Object? error;
+  final StackTrace? stackTrace;
+
+  bool get succeeded => status == DeleteProjectStatus.deleted;
+}
+
 mixin _ProjectSceneOps on _WorkspaceFields {
   // ---------------------------------------------------------------------------
   // Project CRUD
@@ -59,6 +78,129 @@ mixin _ProjectSceneOps on _WorkspaceFields {
     for (final cleaner in _projectDeletionCleaners) {
       unawaited(cleaner(project.id));
     }
+  }
+
+  /// Deletes a project only after all external project cleaners complete.
+  ///
+  /// The legacy [deleteProject] method remains synchronous for callers that
+  /// only need the in-memory projection. Product deletion flows should use
+  /// this method so a cleaner failure leaves the workspace intact and the
+  /// operation can be retried without duplicating work.
+  Future<DeleteProjectResult> deleteProjectAndWait(ProjectRecord project) {
+    final existing = _projectDeletionOperations[project.id];
+    if (existing != null) return existing;
+    final operation = _deleteProjectAndWait(project);
+    _projectDeletionOperations[project.id] = operation;
+    return operation.whenComplete(() {
+      if (identical(_projectDeletionOperations[project.id], operation)) {
+        _projectDeletionOperations.remove(project.id);
+      }
+    });
+  }
+
+  Future<DeleteProjectResult> _deleteProjectAndWait(
+    ProjectRecord project,
+  ) async {
+    if (!_projects.any((candidate) => candidate.id == project.id)) {
+      return DeleteProjectResult(
+        status: DeleteProjectStatus.notFound,
+        projectId: project.id,
+      );
+    }
+
+    final projectionBeforeDelete = _ProjectProjectionSnapshot.capture(this);
+    final startedAtMs = DateTime.now().millisecondsSinceEpoch;
+    final existingTombstone = _projectDeletionTombstones[project.id];
+    try {
+      await flushPersistence();
+      await _prepareProjectDeletionFlush?.call();
+      await _prepareProjectDeletionBackup?.call();
+      _projectDeletionTombstones[project.id] = {
+        ...?existingTombstone,
+        'status': 'pending',
+        'startedAtMs': existingTombstone?['startedAtMs'] ?? startedAtMs,
+        'lastAttemptAtMs': startedAtMs,
+        'lastError': null,
+      };
+      _commitMutation();
+      await flushPersistence();
+      await Future.wait([
+        for (final cleaner in _projectDeletionCleaners) cleaner(project.id),
+      ]);
+    } catch (error, stackTrace) {
+      _projectDeletionTombstones[project.id] = {
+        ...?existingTombstone,
+        'status': 'failed',
+        'startedAtMs': existingTombstone?['startedAtMs'] ?? startedAtMs,
+        'lastAttemptAtMs': startedAtMs,
+        'lastError': error.toString(),
+      };
+      _commitMutation();
+      unawaited(flushPersistence());
+      return DeleteProjectResult(
+        status: DeleteProjectStatus.failed,
+        projectId: project.id,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    _removeProjectProjection(project);
+    _projectDeletionTombstones.remove(project.id);
+    _commitMutation();
+    try {
+      await flushPersistence();
+    } catch (error, stackTrace) {
+      _restoreProjectProjection(projectionBeforeDelete);
+      _projectDeletionTombstones[project.id] = {
+        ...?existingTombstone,
+        'status': 'failed',
+        'startedAtMs': existingTombstone?['startedAtMs'] ?? startedAtMs,
+        'lastAttemptAtMs': DateTime.now().millisecondsSinceEpoch,
+        'lastError': error.toString(),
+      };
+      _commitMutation();
+      return DeleteProjectResult(
+        status: DeleteProjectStatus.failed,
+        projectId: project.id,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    _publishWorkspaceEvent(ProjectDeletedEvent(projectId: project.id));
+    return DeleteProjectResult(
+      status: DeleteProjectStatus.deleted,
+      projectId: project.id,
+    );
+  }
+
+  void _removeProjectProjection(ProjectRecord project) {
+    _projects = _projects
+        .where((candidate) => candidate.id != project.id)
+        .toList(growable: false);
+    _charactersByProjectId.remove(project.id);
+    _scenesByProjectId.remove(project.id);
+    _worldNodesByProjectId.remove(project.id);
+    _auditIssuesByProjectId.remove(project.id);
+    _styleByProjectId.remove(project.id);
+    _auditUiByProjectId.remove(project.id);
+    _currentProjectId = _normalizeCurrentProjectId(
+      preferredProjectId: _currentProjectId == project.id
+          ? null
+          : _currentProjectId,
+      projects: _projects,
+    );
+  }
+
+  void _restoreProjectProjection(_ProjectProjectionSnapshot snapshot) {
+    _projects = snapshot.projects;
+    _charactersByProjectId = snapshot.charactersByProjectId;
+    _scenesByProjectId = snapshot.scenesByProjectId;
+    _worldNodesByProjectId = snapshot.worldNodesByProjectId;
+    _auditIssuesByProjectId = snapshot.auditIssuesByProjectId;
+    _styleByProjectId = snapshot.styleByProjectId;
+    _auditUiByProjectId = snapshot.auditUiByProjectId;
+    _currentProjectId = snapshot.currentProjectId;
   }
 
   void selectProject(String projectId) {
@@ -411,5 +553,56 @@ mixin _ProjectSceneOps on _WorkspaceFields {
 
   bool _titleLooksLikeChapterHeading(String title) {
     return RegExp(r'^第[一二三四五六七八九十百千万零〇两0-9]+章').hasMatch(title.trim());
+  }
+}
+
+class _ProjectProjectionSnapshot {
+  const _ProjectProjectionSnapshot({
+    required this.projects,
+    required this.charactersByProjectId,
+    required this.scenesByProjectId,
+    required this.worldNodesByProjectId,
+    required this.auditIssuesByProjectId,
+    required this.styleByProjectId,
+    required this.auditUiByProjectId,
+    required this.currentProjectId,
+  });
+
+  final List<ProjectRecord> projects;
+  final Map<String, List<CharacterRecord>> charactersByProjectId;
+  final Map<String, List<SceneRecord>> scenesByProjectId;
+  final Map<String, List<WorldNodeRecord>> worldNodesByProjectId;
+  final Map<String, List<AuditIssueRecord>> auditIssuesByProjectId;
+  final Map<String, ProjectStyleState> styleByProjectId;
+  final Map<String, ProjectAuditUiState> auditUiByProjectId;
+  final String currentProjectId;
+
+  static _ProjectProjectionSnapshot capture(_WorkspaceFields fields) {
+    return _ProjectProjectionSnapshot(
+      projects: List<ProjectRecord>.of(fields._projects),
+      charactersByProjectId: {
+        for (final entry in fields._charactersByProjectId.entries)
+          entry.key: List<CharacterRecord>.of(entry.value),
+      },
+      scenesByProjectId: {
+        for (final entry in fields._scenesByProjectId.entries)
+          entry.key: List<SceneRecord>.of(entry.value),
+      },
+      worldNodesByProjectId: {
+        for (final entry in fields._worldNodesByProjectId.entries)
+          entry.key: List<WorldNodeRecord>.of(entry.value),
+      },
+      auditIssuesByProjectId: {
+        for (final entry in fields._auditIssuesByProjectId.entries)
+          entry.key: List<AuditIssueRecord>.of(entry.value),
+      },
+      styleByProjectId: Map<String, ProjectStyleState>.of(
+        fields._styleByProjectId,
+      ),
+      auditUiByProjectId: Map<String, ProjectAuditUiState>.of(
+        fields._auditUiByProjectId,
+      ),
+      currentProjectId: fields._currentProjectId,
+    );
   }
 }

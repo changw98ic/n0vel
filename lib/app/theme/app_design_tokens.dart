@@ -24,14 +24,18 @@ class AppDesignTokens {
   static const double radiusXLarge = 18;
   static const double radiusFull = 9999;
 
-  static final BorderRadius borderRadiusSmall =
-      BorderRadius.circular(radiusSmall);
-  static final BorderRadius borderRadiusMedium =
-      BorderRadius.circular(radiusMedium);
-  static final BorderRadius borderRadiusLarge =
-      BorderRadius.circular(radiusLarge);
-  static final BorderRadius borderRadiusXLarge =
-      BorderRadius.circular(radiusXLarge);
+  static final BorderRadius borderRadiusSmall = BorderRadius.circular(
+    radiusSmall,
+  );
+  static final BorderRadius borderRadiusMedium = BorderRadius.circular(
+    radiusMedium,
+  );
+  static final BorderRadius borderRadiusLarge = BorderRadius.circular(
+    radiusLarge,
+  );
+  static final BorderRadius borderRadiusXLarge = BorderRadius.circular(
+    radiusXLarge,
+  );
 
   // ── Icon Sizes ──
   static const double iconSmall = 16;

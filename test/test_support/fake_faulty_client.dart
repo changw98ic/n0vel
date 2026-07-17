@@ -101,15 +101,13 @@ class FakeFaultyClient implements AppLlmClient {
 }
 
 /// 构建一个用于测试的标准 [AppLlmChatRequest]。
-AppLlmChatRequest testChatRequest({
-  List<AppLlmChatMessage>? messages,
-}) {
+AppLlmChatRequest testChatRequest({List<AppLlmChatMessage>? messages}) {
   return AppLlmChatRequest(
     baseUrl: 'http://localhost:11434/v1',
     apiKey: 'test-key',
     model: 'test-model',
     timeout: const AppLlmTimeoutConfig.uniform(1000),
-    messages: messages ??
-        const [AppLlmChatMessage(role: 'user', content: '测试消息')],
+    messages:
+        messages ?? const [AppLlmChatMessage(role: 'user', content: '测试消息')],
   );
 }

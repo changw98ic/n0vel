@@ -46,6 +46,12 @@ mixin _WorkspaceCodec on _WorkspaceFields {
       legacyRaw: restored,
       projects: _projects,
     );
+    _projectDeletionTombstones = _decodeProjectDeletionTombstones(
+      restored['projectDeletionTombstones'],
+    );
+    _projectDeletionTombstones.removeWhere(
+      (projectId, _) => !_projects.any((project) => project.id == projectId),
+    );
     _projectTransferState = decodeProjectTransferState(
       restored['projectTransferState'],
     );
@@ -70,6 +76,7 @@ mixin _WorkspaceCodec on _WorkspaceFields {
     _auditIssuesByProjectId = buildDefaultProjectAuditIssues(projects);
     _styleByProjectId = buildDefaultProjectStyles(projects);
     _auditUiByProjectId = buildDefaultProjectAuditUi(projects);
+    _projectDeletionTombstones = {};
     _currentProjectId = _normalizeCurrentProjectId(
       preferredProjectId: null,
       projects: projects,
@@ -273,6 +280,23 @@ mixin _WorkspaceCodec on _WorkspaceFields {
           defaultAuditActionFeedback,
     );
     return {for (final project in projects) project.id: fallback};
+  }
+
+  Map<String, Map<String, Object?>> _decodeProjectDeletionTombstones(
+    Object? raw,
+  ) {
+    if (raw is! Map) return {};
+    final result = <String, Map<String, Object?>>{};
+    for (final entry in raw.entries) {
+      if (entry.value is! Map) continue;
+      final projectId = entry.key.toString().trim();
+      if (projectId.isEmpty) continue;
+      result[projectId] = {
+        for (final item in (entry.value as Map).entries)
+          item.key.toString(): item.value,
+      };
+    }
+    return result;
   }
 
   // ---------------------------------------------------------------------------

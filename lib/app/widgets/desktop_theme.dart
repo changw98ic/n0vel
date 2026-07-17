@@ -258,12 +258,32 @@ class DesktopPalette extends ThemeExtension<DesktopPalette> {
       accentPrimary: Color.lerp(accentPrimary, other.accentPrimary, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       surfaceInverse: Color.lerp(surfaceInverse, other.surfaceInverse, t)!,
-      foregroundPrimary: Color.lerp(foregroundPrimary, other.foregroundPrimary, t)!,
+      foregroundPrimary: Color.lerp(
+        foregroundPrimary,
+        other.foregroundPrimary,
+        t,
+      )!,
       foregroundMuted: Color.lerp(foregroundMuted, other.foregroundMuted, t)!,
-      foregroundInverse: Color.lerp(foregroundInverse, other.foregroundInverse, t)!,
-      buttonPrimaryFill: Color.lerp(buttonPrimaryFill, other.buttonPrimaryFill, t)!,
-      buttonSecondaryFill: Color.lerp(buttonSecondaryFill, other.buttonSecondaryFill, t)!,
-      buttonSecondaryBorder: Color.lerp(buttonSecondaryBorder, other.buttonSecondaryBorder, t)!,
+      foregroundInverse: Color.lerp(
+        foregroundInverse,
+        other.foregroundInverse,
+        t,
+      )!,
+      buttonPrimaryFill: Color.lerp(
+        buttonPrimaryFill,
+        other.buttonPrimaryFill,
+        t,
+      )!,
+      buttonSecondaryFill: Color.lerp(
+        buttonSecondaryFill,
+        other.buttonSecondaryFill,
+        t,
+      )!,
+      buttonSecondaryBorder: Color.lerp(
+        buttonSecondaryBorder,
+        other.buttonSecondaryBorder,
+        t,
+      )!,
     );
   }
 }
@@ -272,17 +292,17 @@ DesktopPalette desktopPalette(BuildContext context) =>
     Theme.of(context).extension<DesktopPalette>()!;
 
 List<BoxShadow> _dualShadow(Color base, {double alphaScale = 1.0}) => [
-      BoxShadow(
-        color: base.withValues(alpha: 0.10 * alphaScale),
-        blurRadius: 28,
-        offset: const Offset(0, 12),
-      ),
-      BoxShadow(
-        color: base.withValues(alpha: 0.06 * alphaScale),
-        blurRadius: 12,
-        offset: const Offset(0, 4),
-      ),
-    ];
+  BoxShadow(
+    color: base.withValues(alpha: 0.10 * alphaScale),
+    blurRadius: 28,
+    offset: const Offset(0, 12),
+  ),
+  BoxShadow(
+    color: base.withValues(alpha: 0.06 * alphaScale),
+    blurRadius: 12,
+    offset: const Offset(0, 4),
+  ),
+];
 
 BoxDecoration appPanelDecoration(BuildContext context, {Color? color}) {
   final palette = desktopPalette(context);

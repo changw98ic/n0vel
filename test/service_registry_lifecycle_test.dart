@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import 'package:novel_writer/app/di/service_registry.dart';
+import 'package:novel_writer/app/state/app_store_listenable.dart';
+
+class _FlushTrackingStore extends AppStoreListenable {
+  _FlushTrackingStore(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> flushPersistence() async {
+    events.add('flush');
+  }
+
+  @override
+  void dispose() {
+    events.add('dispose');
+    super.dispose();
+  }
+}
 
 void main() {
   test('borrowed database remains usable after registry disposal', () {
@@ -53,5 +71,15 @@ void main() {
     );
     registry.disposeAll();
     registry.disposeAll();
+  });
+
+  test('shutdown flushes stores before disposing them', () async {
+    final events = <String>[];
+    final registry = ServiceRegistry()
+      ..registerSingleton<_FlushTrackingStore>(_FlushTrackingStore(events));
+
+    await registry.shutdown();
+
+    expect(events, ['flush', 'dispose']);
   });
 }

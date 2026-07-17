@@ -55,9 +55,7 @@ class CharacterRelationStorageIO implements CharacterRelationStorage {
   }
 
   @override
-  Future<List<CharacterRelationRecord>> loadByProject(
-    String projectId,
-  ) async {
+  Future<List<CharacterRelationRecord>> loadByProject(String projectId) async {
     final rows = db.select(
       '''
       SELECT id, project_id, from_character_id, to_character_id,
@@ -149,17 +147,13 @@ class CharacterRelationStorageIO implements CharacterRelationStorage {
 
   @override
   Future<void> clearProject(String projectId) async {
-    db.execute(
-      'DELETE FROM character_relations WHERE project_id = ?',
-      [projectId],
-    );
+    db.execute('DELETE FROM character_relations WHERE project_id = ?', [
+      projectId,
+    ]);
   }
 
   @override
-  Future<int> clearForCharacter(
-    String projectId,
-    String characterId,
-  ) async {
+  Future<int> clearForCharacter(String projectId, String characterId) async {
     final before = db.select(
       'SELECT COUNT(*) AS cnt FROM character_relations '
       'WHERE project_id = ? AND (from_character_id = ? OR to_character_id = ?)',

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'app_project_scoped_store.dart';
 import 'app_version_storage.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 
 class VersionEntry {
   const VersionEntry({required this.label, required this.content});
@@ -44,6 +45,9 @@ class AppVersionStore extends AppProjectScopedStore {
 
   final AppVersionStorage _storage;
   List<VersionEntry> _entries;
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   List<VersionEntry> get entries => List.unmodifiable(_entries);
 

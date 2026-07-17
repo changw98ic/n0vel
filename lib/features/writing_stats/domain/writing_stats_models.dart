@@ -259,10 +259,9 @@ class WritingStatsSnapshot {
 
   /// 今日是否达成所有 daily 目标。
   bool get todayGoalsReached {
-    final dailyGoals =
-        goals
-            .where((g) => g.enabled && g.period == WritingGoalPeriod.daily)
-            .toList();
+    final dailyGoals = goals
+        .where((g) => g.enabled && g.period == WritingGoalPeriod.daily)
+        .toList();
     if (dailyGoals.isEmpty) return false;
     return dailyGoals.every((g) => _isGoalMet(g));
   }
@@ -282,9 +281,10 @@ class WritingStatsSnapshot {
       WritingGoalType.dailyChars => todayDeltaChars,
       WritingGoalType.weeklyChars => weekCharCount,
       WritingGoalType.projectTotalChars => projectStat.totalDeltaChars,
-      WritingGoalType.dailyChapters => dailyStats
-          .where((s) => s.date == _todayString())
-          .fold(0, (sum, s) => sum + s.chaptersCompleted),
+      WritingGoalType.dailyChapters =>
+        dailyStats
+            .where((s) => s.date == _todayString())
+            .fold(0, (sum, s) => sum + s.chaptersCompleted),
     };
   }
 

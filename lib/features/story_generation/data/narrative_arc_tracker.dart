@@ -5,8 +5,7 @@ class NarrativeArcTracker {
     required NarrativeArcState current,
     required SceneRuntimeOutput output,
   }) {
-    final sceneKey =
-        '${output.brief.chapterId}/${output.brief.sceneId}';
+    final sceneKey = '${output.brief.chapterId}/${output.brief.sceneId}';
     final newThreads = <PlotThread>[];
     final updatedThreads = <PlotThread>[...current.activeThreads];
     final closedThreads = <PlotThread>[...current.closedThreads];
@@ -49,33 +48,29 @@ class NarrativeArcTracker {
     required List<PlotThread> updatedThreads,
     required List<PlotThread> closedThreads,
   }) {
-    final sceneKey =
-        '${output.brief.chapterId}/${output.brief.sceneId}';
-    final resolvedDeltas =
-        output.sceneState?.acceptedStateDeltas ?? const [];
+    final sceneKey = '${output.brief.chapterId}/${output.brief.sceneId}';
+    final resolvedDeltas = output.sceneState?.acceptedStateDeltas ?? const [];
 
     for (final delta in resolvedDeltas) {
       if (delta.kind == SceneStateDeltaKind.alliance) {
-        final involved = _charactersInText(
-          delta.value,
-          output.resolvedCast,
+        final involved = _charactersInText(delta.value, output.resolvedCast);
+        final threadId =
+            'thread-$sceneKey-${delta.kind.name}-${involved.join('-')}';
+        newThreads.add(
+          PlotThread(
+            id: threadId,
+            description: delta.value,
+            status: PlotThreadStatus.rising,
+            involvedCharacters: involved,
+            introducedInScene: sceneKey,
+          ),
         );
-        final threadId = 'thread-$sceneKey-${delta.kind.name}-${involved.join('-')}';
-        newThreads.add(PlotThread(
-          id: threadId,
-          description: delta.value,
-          status: PlotThreadStatus.rising,
-          involvedCharacters: involved,
-          introducedInScene: sceneKey,
-        ));
       }
 
       if (delta.kind == SceneStateDeltaKind.exposure) {
-        final involved = _charactersInText(
-          delta.value,
-          output.resolvedCast,
-        );
-        final threadId = 'thread-$sceneKey-${delta.kind.name}-${involved.join('-')}';
+        final involved = _charactersInText(delta.value, output.resolvedCast);
+        final threadId =
+            'thread-$sceneKey-${delta.kind.name}-${involved.join('-')}';
         final existing = updatedThreads
             .where((t) => t.description.contains(delta.value))
             .toList(growable: false);
@@ -85,36 +80,39 @@ class NarrativeArcTracker {
             status: PlotThreadStatus.climax,
           );
         } else {
-          newThreads.add(PlotThread(
-            id: threadId,
-            description: delta.value,
-            status: PlotThreadStatus.climax,
-            involvedCharacters: involved,
-            introducedInScene: sceneKey,
-          ));
+          newThreads.add(
+            PlotThread(
+              id: threadId,
+              description: delta.value,
+              status: PlotThreadStatus.climax,
+              involvedCharacters: involved,
+              introducedInScene: sceneKey,
+            ),
+          );
         }
       }
 
       if (delta.kind == SceneStateDeltaKind.control) {
         final existing = updatedThreads
-            .where((t) =>
-                t.status != PlotThreadStatus.resolved &&
-                _overlapsCharacters(
-                  t.involvedCharacters,
-                  _charactersInText(
-                    delta.value,
-                    output.resolvedCast,
+            .where(
+              (t) =>
+                  t.status != PlotThreadStatus.resolved &&
+                  _overlapsCharacters(
+                    t.involvedCharacters,
+                    _charactersInText(delta.value, output.resolvedCast),
                   ),
-                ))
+            )
             .toList(growable: false);
         for (final thread in existing) {
           final idx = updatedThreads.indexOf(thread);
           if (thread.status == PlotThreadStatus.falling) {
             updatedThreads.removeAt(idx);
-            closedThreads.add(thread.copyWith(
-              status: PlotThreadStatus.resolved,
-              resolvedInScene: sceneKey,
-            ));
+            closedThreads.add(
+              thread.copyWith(
+                status: PlotThreadStatus.resolved,
+                resolvedInScene: sceneKey,
+              ),
+            );
           } else {
             updatedThreads[idx] = thread.copyWith(
               status: PlotThreadStatus.falling,
@@ -140,28 +138,31 @@ class NarrativeArcTracker {
     required List<Foreshadowing> updatedForeshadowing,
     required List<Foreshadowing> currentForeshadowing,
   }) {
-    final sceneKey =
-        '${output.brief.chapterId}/${output.brief.sceneId}';
+    final sceneKey = '${output.brief.chapterId}/${output.brief.sceneId}';
 
     for (final turn in output.roleTurns) {
       for (final withheld in turn.withheldInfo) {
         if (withheld.trim().isEmpty) continue;
-        newForeshadowing.add(Foreshadowing(
-          id: 'foreshadow-$sceneKey-${turn.characterId}-${newForeshadowing.length}',
-          hint: withheld.trim(),
-          plantedInScene: sceneKey,
-          plannedPayoff: turn.intent.trim(),
-          urgency: 0,
-        ));
+        newForeshadowing.add(
+          Foreshadowing(
+            id: 'foreshadow-$sceneKey-${turn.characterId}-${newForeshadowing.length}',
+            hint: withheld.trim(),
+            plantedInScene: sceneKey,
+            plannedPayoff: turn.intent.trim(),
+            urgency: 0,
+          ),
+        );
       }
       if (turn.riskTaken.trim().isNotEmpty) {
-        newForeshadowing.add(Foreshadowing(
-          id: 'foreshadow-$sceneKey-${turn.characterId}-risk-${newForeshadowing.length}',
-          hint: turn.riskTaken.trim(),
-          plantedInScene: sceneKey,
-          plannedPayoff: turn.intent.trim(),
-          urgency: 1,
-        ));
+        newForeshadowing.add(
+          Foreshadowing(
+            id: 'foreshadow-$sceneKey-${turn.characterId}-risk-${newForeshadowing.length}',
+            hint: turn.riskTaken.trim(),
+            plantedInScene: sceneKey,
+            plannedPayoff: turn.intent.trim(),
+            urgency: 1,
+          ),
+        );
       }
     }
 
@@ -172,12 +173,11 @@ class NarrativeArcTracker {
         continue;
       }
       final isResolved = openThreats.any(
-        (threat) => threat.contains(existing.hint) || existing.hint.contains(threat),
+        (threat) =>
+            threat.contains(existing.hint) || existing.hint.contains(threat),
       );
       if (isResolved) {
-        updatedForeshadowing.add(existing.copyWith(
-          resolvedInScene: sceneKey,
-        ));
+        updatedForeshadowing.add(existing.copyWith(resolvedInScene: sceneKey));
       } else {
         final newUrgency = existing.urgency < 2 ? existing.urgency + 1 : 2;
         updatedForeshadowing.add(existing.copyWith(urgency: newUrgency));
@@ -197,13 +197,15 @@ class NarrativeArcTracker {
         for (final pattern in foreshadowPatterns) {
           final match = pattern.firstMatch(text);
           if (match != null) {
-            newForeshadowing.add(Foreshadowing(
-              id: 'foreshadow-$sceneKey-prose-${newForeshadowing.length}',
-              hint: match.group(0)!,
-              plantedInScene: sceneKey,
-              plannedPayoff: output.brief.sceneSummary,
-              urgency: 1,
-            ));
+            newForeshadowing.add(
+              Foreshadowing(
+                id: 'foreshadow-$sceneKey-prose-${newForeshadowing.length}',
+                hint: match.group(0)!,
+                plantedInScene: sceneKey,
+                plannedPayoff: output.brief.sceneSummary,
+                urgency: 1,
+              ),
+            );
             break;
           }
         }
@@ -244,15 +246,18 @@ class NarrativeArcTracker {
 
     for (final (keyword, status) in plotMarkers) {
       if (text.contains(keyword)) {
-        final threadId = 'thread-$sceneKey-prose-$keyword-${involved.join('-')}';
+        final threadId =
+            'thread-$sceneKey-prose-$keyword-${involved.join('-')}';
         if (!newThreads.any((t) => t.id == threadId)) {
-          newThreads.add(PlotThread(
-            id: threadId,
-            description: '$keyword: ${output.brief.sceneSummary}',
-            status: status,
-            involvedCharacters: involved,
-            introducedInScene: sceneKey,
-          ));
+          newThreads.add(
+            PlotThread(
+              id: threadId,
+              description: '$keyword: ${output.brief.sceneSummary}',
+              status: status,
+              involvedCharacters: involved,
+              introducedInScene: sceneKey,
+            ),
+          );
         }
         break; // One prose-derived thread per scene is sufficient
       }
@@ -277,12 +282,16 @@ class NarrativeArcTracker {
     required List<PlotThread> closedThreads,
   }) {
     const resolutionMarkers = [
-      '真相大白', '水落石出', '终于明白', '谜底揭晓',
-      '原来如此', '一切都清楚了', '找到了答案', '尘埃落定',
+      '真相大白',
+      '水落石出',
+      '终于明白',
+      '谜底揭晓',
+      '原来如此',
+      '一切都清楚了',
+      '找到了答案',
+      '尘埃落定',
     ];
-    const fallingMarkers = [
-      '撤退', '放弃', '妥协', '让步', '逃离', '消失在',
-    ];
+    const fallingMarkers = ['撤退', '放弃', '妥协', '让步', '逃离', '消失在'];
 
     final hasResolution = resolutionMarkers.any((m) => prose.contains(m));
     final hasFalling = fallingMarkers.any((m) => prose.contains(m));
@@ -293,14 +302,14 @@ class NarrativeArcTracker {
       if (thread.resolvedInScene != null) continue;
       if (hasResolution && thread.status == PlotThreadStatus.falling) {
         updatedThreads.removeAt(i);
-        closedThreads.add(thread.copyWith(
-          status: PlotThreadStatus.resolved,
-          resolvedInScene: sceneKey,
-        ));
-      } else if (hasFalling && thread.status == PlotThreadStatus.climax) {
-        updatedThreads[i] = thread.copyWith(
-          status: PlotThreadStatus.falling,
+        closedThreads.add(
+          thread.copyWith(
+            status: PlotThreadStatus.resolved,
+            resolvedInScene: sceneKey,
+          ),
         );
+      } else if (hasFalling && thread.status == PlotThreadStatus.climax) {
+        updatedThreads[i] = thread.copyWith(status: PlotThreadStatus.falling);
       }
     }
   }

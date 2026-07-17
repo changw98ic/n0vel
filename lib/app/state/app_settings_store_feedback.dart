@@ -7,7 +7,8 @@ import 'settings/settings_models.dart';
   String? detail,
   String? summary,
   AppSettingsFeedback feedback,
-}) feedbackForSaveResult(AppSettingsSaveResult result) {
+})
+feedbackForSaveResult(AppSettingsSaveResult result) {
   switch (result.issue) {
     case AppSettingsPersistenceIssue.none:
       return (
@@ -38,10 +39,7 @@ import 'settings/settings_models.dart';
         summary: '本地配置文件写入失败，本次修改未能保存。',
         feedback: AppSettingsFeedback(
           title: '设置保存失败',
-          message: withDetail(
-            '本地配置文件写入失败，本次修改未能保存。',
-            result.detail,
-          ),
+          message: withDetail('本地配置文件写入失败，本次修改未能保存。', result.detail),
           tone: AppSettingsFeedbackTone.error,
         ),
       );
@@ -53,10 +51,8 @@ import 'settings/settings_models.dart';
   String? detail,
   String? summary,
   AppSettingsFeedback feedback,
-}) feedbackForLoadIssue(
-  AppSettingsPersistenceIssue issue,
-  String? detail,
-) {
+})
+feedbackForLoadIssue(AppSettingsPersistenceIssue issue, String? detail) {
   switch (issue) {
     case AppSettingsPersistenceIssue.none:
       return (

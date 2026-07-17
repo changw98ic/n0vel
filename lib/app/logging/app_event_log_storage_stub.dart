@@ -8,7 +8,23 @@ AppEventLogStorage createAppEventLogStorage({
   return _NoopAppEventLogStorage();
 }
 
-class _NoopAppEventLogStorage implements AppEventLogStorage {
+class _NoopAppEventLogStorage
+    implements
+        AppEventLogStorage,
+        AppEventLogMaintenance,
+        AppEventLogStorageLifecycle {
   @override
   Future<void> write(AppEventLogEntry entry) async {}
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<void> pruneBefore(DateTime cutoff) async {}
+
+  @override
+  Future<void> flush() => Future<void>.value();
+
+  @override
+  void dispose() {}
 }

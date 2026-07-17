@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -405,6 +406,44 @@ void main() {
           isNot(contains(deletedProject.id)),
         );
         expect(cleanedExternalProjects, contains(deletedProject.id));
+      },
+    );
+
+    test(
+      'awaitable project deletion keeps projection until cleaners succeed',
+      () async {
+        var failFirstAttempt = true;
+        final cleanerGate = Completer<void>();
+        final store = AppWorkspaceStore(
+          storage: InMemoryAppWorkspaceStorage(),
+          projectDeletionCleaners: [
+            (projectId) async {
+              if (failFirstAttempt) {
+                failFirstAttempt = false;
+                throw StateError('cleaner unavailable');
+              }
+              await cleanerGate.future;
+            },
+          ],
+        );
+        addTearDown(store.dispose);
+        store.createProject(projectName: '可重试删除');
+        final project = store.currentProject;
+
+        final failed = await store.deleteProjectAndWait(project);
+        expect(failed.status, DeleteProjectStatus.failed);
+        expect(store.hasProjectWithId(project.id), isTrue);
+        expect(store.pendingProjectDeletionIds, contains(project.id));
+
+        final retryFuture = store.deleteProjectAndWait(project);
+        await Future<void>.delayed(Duration.zero);
+        expect(store.hasProjectWithId(project.id), isTrue);
+        cleanerGate.complete();
+
+        final deleted = await retryFuture;
+        expect(deleted.status, DeleteProjectStatus.deleted);
+        expect(store.hasProjectWithId(project.id), isFalse);
+        expect(store.pendingProjectDeletionIds, isEmpty);
       },
     );
 

@@ -24,16 +24,11 @@ void main() {
     test('detects cliched phrase 心中一凛', () {
       final report = detector.detect('他心中一凛，感觉事情不对。');
       expect(report.findings, isNotEmpty);
-      expect(
-        report.findings.any((f) => f.matched == '心中一凛'),
-        isTrue,
-      );
+      expect(report.findings.any((f) => f.matched == '心中一凛'), isTrue);
     });
 
     test('detects multiple cliched phrases', () {
-      final report = detector.detect(
-        '她心中一凛。他恍然大悟。此情此景令人不禁感慨。',
-      );
+      final report = detector.detect('她心中一凛。他恍然大悟。此情此景令人不禁感慨。');
       final phrases = report.findingsOf(AiClicheKind.clichedPhrase);
       expect(phrases.length, greaterThanOrEqualTo(3));
     });
@@ -46,9 +41,7 @@ void main() {
     });
 
     test('detects repeated adjectives (same X的 appearing >2 times)', () {
-      final report = detector.detect(
-        '美丽的花。美丽的树。美丽的人。美丽的风景。',
-      );
+      final report = detector.detect('美丽的花。美丽的树。美丽的人。美丽的风景。');
       final adjs = report.findingsOf(AiClicheKind.repeatedAdjective);
       expect(adjs, isNotEmpty);
       expect(adjs.any((f) => f.matched.contains('美丽的')), isTrue);
@@ -75,9 +68,7 @@ void main() {
     });
 
     test('detects excessive adverb (>=3 occurrences)', () {
-      final report = detector.detect(
-        '他渐渐地走近。她渐渐地放松。天空渐渐地亮了。一切渐渐地恢复。',
-      );
+      final report = detector.detect('他渐渐地走近。她渐渐地放松。天空渐渐地亮了。一切渐渐地恢复。');
       final adverbs = report.findingsOf(AiClicheKind.excessiveAdverb);
       expect(adverbs, isNotEmpty);
       expect(adverbs.any((f) => f.matched == '渐渐地'), isTrue);
@@ -123,14 +114,18 @@ void main() {
     });
 
     test('findingsOf filters by kind correctly', () {
-      final report = detector.detect(
-        '他心中一凛。她恍然大悟。',
-      );
+      final report = detector.detect('他心中一凛。她恍然大悟。');
       final phrases = report.findingsOf(AiClicheKind.clichedPhrase);
       final adjs = report.findingsOf(AiClicheKind.repeatedAdjective);
       expect(phrases, isNotEmpty);
-      expect(phrases.every((f) => f.kind == AiClicheKind.clichedPhrase), isTrue);
-      expect(adjs.every((f) => f.kind == AiClicheKind.repeatedAdjective), isTrue);
+      expect(
+        phrases.every((f) => f.kind == AiClicheKind.clichedPhrase),
+        isTrue,
+      );
+      expect(
+        adjs.every((f) => f.kind == AiClicheKind.repeatedAdjective),
+        isTrue,
+      );
     });
   });
 }

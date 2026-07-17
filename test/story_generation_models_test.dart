@@ -269,10 +269,7 @@ void main() {
         SceneReviewStatus.values,
         contains(SceneReviewStatus.rewriteProse),
       );
-      expect(
-        SceneReviewStatus.values,
-        contains(SceneReviewStatus.replanScene),
-      );
+      expect(SceneReviewStatus.values, contains(SceneReviewStatus.replanScene));
     });
   });
 
@@ -387,46 +384,42 @@ void main() {
   // ===========================================================================
   group('SceneRuntimeOutput', () {
     SceneRuntimeOutput makeOutput() => SceneRuntimeOutput(
-          brief: SceneBrief(
-            chapterId: 'ch-01',
-            chapterTitle: '第一章',
-            sceneId: 'sc-01',
-            sceneTitle: '仓库门外',
-            sceneSummary: '摘要',
-          ),
-          resolvedCast: [
-            ResolvedSceneCastMember(
-              characterId: 'c1',
-              name: '柳溪',
-              role: '调查记者',
-              contributions: const [SceneCastContribution.action],
-            ),
-          ],
-          director: const SceneDirectorOutput(text: '导演计划'),
-          roleOutputs: const [
-            DynamicRoleAgentOutput(
-              characterId: 'c1',
-              name: '柳溪',
-              text: '立场：压迫',
-            ),
-          ],
-          prose: const SceneProseDraft(text: '正文', attempt: 1),
-          review: const SceneReviewResult(
-            judge: SceneReviewPassResult(
-              status: SceneReviewStatus.pass,
-              reason: '通过',
-              rawText: '',
-            ),
-            consistency: SceneReviewPassResult(
-              status: SceneReviewStatus.pass,
-              reason: '一致',
-              rawText: '',
-            ),
-            decision: SceneReviewDecision.pass,
-          ),
-          proseAttempts: 1,
-          softFailureCount: 0,
-        );
+      brief: SceneBrief(
+        chapterId: 'ch-01',
+        chapterTitle: '第一章',
+        sceneId: 'sc-01',
+        sceneTitle: '仓库门外',
+        sceneSummary: '摘要',
+      ),
+      resolvedCast: [
+        ResolvedSceneCastMember(
+          characterId: 'c1',
+          name: '柳溪',
+          role: '调查记者',
+          contributions: const [SceneCastContribution.action],
+        ),
+      ],
+      director: const SceneDirectorOutput(text: '导演计划'),
+      roleOutputs: const [
+        DynamicRoleAgentOutput(characterId: 'c1', name: '柳溪', text: '立场：压迫'),
+      ],
+      prose: const SceneProseDraft(text: '正文', attempt: 1),
+      review: const SceneReviewResult(
+        judge: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '通过',
+          rawText: '',
+        ),
+        consistency: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '一致',
+          rawText: '',
+        ),
+        decision: SceneReviewDecision.pass,
+      ),
+      proseAttempts: 1,
+      softFailureCount: 0,
+    );
 
     test('stores all fields', () {
       final output = makeOutput();
@@ -479,20 +472,24 @@ void main() {
         softFailureCount: 0,
       );
 
-      cast.add(ResolvedSceneCastMember(
-        characterId: 'c2',
-        name: 'B',
-        role: 'R',
-        contributions: const [],
-      ));
-      expect(output.resolvedCast, hasLength(1));
-      expect(
-        () => output.resolvedCast.add(ResolvedSceneCastMember(
-          characterId: 'c3',
-          name: 'C',
+      cast.add(
+        ResolvedSceneCastMember(
+          characterId: 'c2',
+          name: 'B',
           role: 'R',
           contributions: const [],
-        )),
+        ),
+      );
+      expect(output.resolvedCast, hasLength(1));
+      expect(
+        () => output.resolvedCast.add(
+          ResolvedSceneCastMember(
+            characterId: 'c3',
+            name: 'C',
+            role: 'R',
+            contributions: const [],
+          ),
+        ),
         throwsUnsupportedError,
       );
     });
@@ -534,18 +531,14 @@ void main() {
         softFailureCount: 0,
       );
 
-      roles.add(const DynamicRoleAgentOutput(
-        characterId: 'c2',
-        name: 'B',
-        text: 't',
-      ));
+      roles.add(
+        const DynamicRoleAgentOutput(characterId: 'c2', name: 'B', text: 't'),
+      );
       expect(output.roleOutputs, hasLength(1));
       expect(
-        () => output.roleOutputs.add(const DynamicRoleAgentOutput(
-          characterId: 'c3',
-          name: 'C',
-          text: 't',
-        )),
+        () => output.roleOutputs.add(
+          const DynamicRoleAgentOutput(characterId: 'c3', name: 'C', text: 't'),
+        ),
         throwsUnsupportedError,
       );
     });

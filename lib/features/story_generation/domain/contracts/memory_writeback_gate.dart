@@ -17,10 +17,7 @@ class ProposedWrite {
 
 /// Result of validating a batch of proposed writes.
 class WritebackResult {
-  const WritebackResult({
-    required this.accepted,
-    required this.rejected,
-  });
+  const WritebackResult({required this.accepted, required this.rejected});
 
   /// Writes that passed the gate.
   final List<ProposedWrite> accepted;
@@ -33,10 +30,7 @@ class WritebackResult {
 
 /// A write rejected by the gate, with the reason.
 class RejectedWrite {
-  const RejectedWrite({
-    required this.write,
-    required this.reasons,
-  });
+  const RejectedWrite({required this.write, required this.reasons});
 
   final ProposedWrite write;
   final List<String> reasons;
@@ -68,10 +62,7 @@ abstract class MemoryWritebackGate {
 /// Enforces tier hierarchy rules but delegates soul/canon validation
 /// to optional callbacks.
 class BasicMemoryWritebackGate extends MemoryWritebackGate {
-  const BasicMemoryWritebackGate({
-    this.soulValidator,
-    this.canonKeeper,
-  });
+  const BasicMemoryWritebackGate({this.soulValidator, this.canonKeeper});
 
   /// Optional soul contract validator. If null, soul validation is skipped.
   final SoulContractValidator? soulValidator;
@@ -88,7 +79,8 @@ class BasicMemoryWritebackGate extends MemoryWritebackGate {
       final reasons = <String>[];
 
       // Rule 1: Draft cannot be promoted to canon or character directly.
-      if (write.tier == MemoryTier.canon || write.tier == MemoryTier.character) {
+      if (write.tier == MemoryTier.canon ||
+          write.tier == MemoryTier.character) {
         if (soulValidator != null) {
           final violations = soulValidator!(write.content);
           if (violations.isNotEmpty) {
@@ -103,9 +95,7 @@ class BasicMemoryWritebackGate extends MemoryWritebackGate {
       if (write.tier == MemoryTier.canon && canonKeeper != null) {
         final contradictions = canonKeeper!(write);
         if (contradictions.isNotEmpty) {
-          reasons.add(
-            'Canon contradiction: ${contradictions.join("; ")}',
-          );
+          reasons.add('Canon contradiction: ${contradictions.join("; ")}');
         }
       }
 

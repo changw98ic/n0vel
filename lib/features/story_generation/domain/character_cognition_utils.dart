@@ -16,10 +16,7 @@ int parseIntOrFallback(Object? raw, {required int fallback}) {
 }
 
 /// Parses a JSON list into a typed list using [decoder].
-List<T> decodeList<T>(
-  Object? raw,
-  T Function(Map<Object?, Object?>) decoder,
-) {
+List<T> decodeList<T>(Object? raw, T Function(Map<Object?, Object?>) decoder) {
   if (raw is! List) return const [];
   return [
     for (final item in raw)

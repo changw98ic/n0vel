@@ -36,10 +36,8 @@ class TokenEstimator {
   int estimateJoined(List<String> texts, {String separator = '\n'}) {
     if (texts.isEmpty) return 0;
     if (texts.length == 1) return estimate(texts.first);
-    final joinedLength = texts.fold<int>(
-      0,
-      (sum, t) => sum + t.length,
-    ) +
+    final joinedLength =
+        texts.fold<int>(0, (sum, t) => sum + t.length) +
         separator.length * (texts.length - 1);
     if (joinedLength == 0) return 0;
     return (joinedLength / charsPerToken).ceil();

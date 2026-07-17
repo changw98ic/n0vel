@@ -8,10 +8,7 @@ void main() {
         NarrativeArcPhase.fromString('risingAction'),
         NarrativeArcPhase.risingAction,
       );
-      expect(
-        NarrativeArcPhase.fromString('climax'),
-        NarrativeArcPhase.climax,
-      );
+      expect(NarrativeArcPhase.fromString('climax'), NarrativeArcPhase.climax);
       expect(
         NarrativeArcPhase.fromString('resolution'),
         NarrativeArcPhase.resolution,
@@ -166,10 +163,7 @@ void main() {
         () => pp.precedingPlotPointIds.add('x'),
         throwsA(isA<UnsupportedError>()),
       );
-      expect(
-        () => pp.metadata['k'] = 'y',
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(() => pp.metadata['k'] = 'y', throwsA(isA<UnsupportedError>()));
     });
   });
 
@@ -240,16 +234,8 @@ void main() {
     });
 
     test('equality and hashCode work correctly', () {
-      final a = CharacterArc(
-        characterId: 'x',
-        startState: 'a',
-        endState: 'b',
-      );
-      final b = CharacterArc(
-        characterId: 'x',
-        startState: 'a',
-        endState: 'b',
-      );
+      final a = CharacterArc(characterId: 'x', startState: 'a', endState: 'b');
+      final b = CharacterArc(characterId: 'x', startState: 'a', endState: 'b');
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
     });
@@ -319,44 +305,52 @@ void main() {
     });
 
     test('peakTension returns highest tension value', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.3),
-        const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.8),
-        const NarrativeTensionPoint(chapterId: 'ch-3', tension: 0.5),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [
+          const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.3),
+          const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.8),
+          const NarrativeTensionPoint(chapterId: 'ch-3', tension: 0.5),
+        ],
+      );
       expect(curve.peakTension, 0.8);
     });
 
     test('averageTension computes mean', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.2),
-        const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.6),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [
+          const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.2),
+          const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.6),
+        ],
+      );
       expect(curve.averageTension, closeTo(0.4, 0.001));
     });
 
     test('pointAtChapter finds matching chapter', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.3),
-        const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.7),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [
+          const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.3),
+          const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.7),
+        ],
+      );
       expect(curve.pointAtChapter('ch-2')?.tension, 0.7);
       expect(curve.pointAtChapter('ch-99'), isNull);
     });
 
     test('serializes round-trip', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(
-          chapterId: 'ch-1',
-          tension: 0.4,
-          label: '铺垫',
-        ),
-        const NarrativeTensionPoint(
-          chapterId: 'ch-3',
-          tension: 0.9,
-          label: '高潮',
-        ),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [
+          const NarrativeTensionPoint(
+            chapterId: 'ch-1',
+            tension: 0.4,
+            label: '铺垫',
+          ),
+          const NarrativeTensionPoint(
+            chapterId: 'ch-3',
+            tension: 0.9,
+            label: '高潮',
+          ),
+        ],
+      );
       final restored = NarrativeTensionCurve.fromJson(curve.toJson());
       expect(restored.points.length, 2);
       expect(restored.points.first.chapterId, 'ch-1');
@@ -369,9 +363,9 @@ void main() {
     });
 
     test('points are immutable', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.5),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.5)],
+      );
       expect(
         () => curve.points.add(
           const NarrativeTensionPoint(chapterId: 'x', tension: 0.0),
@@ -427,7 +421,10 @@ void main() {
       );
       final rising = arc.plotPointsInPhase(NarrativeArcPhase.risingAction);
       expect(rising.length, 2);
-      expect(rising.every((p) => p.phase == NarrativeArcPhase.risingAction), isTrue);
+      expect(
+        rising.every((p) => p.phase == NarrativeArcPhase.risingAction),
+        isTrue,
+      );
 
       final setup = arc.plotPointsInPhase(NarrativeArcPhase.setup);
       expect(setup.length, 1);
@@ -441,16 +438,8 @@ void main() {
       final arc = NarrativeArc(
         projectId: 'p1',
         characterArcs: [
-          CharacterArc(
-            characterId: 'liuxi',
-            startState: '孤立',
-            endState: '信任',
-          ),
-          CharacterArc(
-            characterId: 'yueren',
-            startState: '忠诚',
-            endState: '独立',
-          ),
+          CharacterArc(characterId: 'liuxi', startState: '孤立', endState: '信任'),
+          CharacterArc(characterId: 'yueren', startState: '忠诚', endState: '独立'),
         ],
       );
       expect(arc.arcForCharacter('liuxi')?.startState, '孤立');
@@ -495,10 +484,12 @@ void main() {
             plotPointIds: ['pp-1', 'pp-2'],
           ),
         ],
-        tensionCurve: NarrativeTensionCurve(points: [
-          const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.2),
-          const NarrativeTensionPoint(chapterId: 'ch-3', tension: 0.95),
-        ]),
+        tensionCurve: NarrativeTensionCurve(
+          points: [
+            const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.2),
+            const NarrativeTensionPoint(chapterId: 'ch-3', tension: 0.95),
+          ],
+        ),
         metadata: {'source': 'outline-v2'},
       );
 
@@ -567,11 +558,7 @@ void main() {
           ),
         ],
         characterArcs: [
-          CharacterArc(
-            characterId: 'a',
-            startState: 'x',
-            endState: 'y',
-          ),
+          CharacterArc(characterId: 'a', startState: 'x', endState: 'y'),
         ],
         metadata: {'key': 'value'},
       );
@@ -601,11 +588,13 @@ void main() {
 
   group('Non-functional invariants', () {
     test('tension curve never reports values outside 0.0-1.0', () {
-      final curve = NarrativeTensionCurve(points: [
-        const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.0),
-        const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.5),
-        const NarrativeTensionPoint(chapterId: 'ch-3', tension: 1.0),
-      ]);
+      final curve = NarrativeTensionCurve(
+        points: [
+          const NarrativeTensionPoint(chapterId: 'ch-1', tension: 0.0),
+          const NarrativeTensionPoint(chapterId: 'ch-2', tension: 0.5),
+          const NarrativeTensionPoint(chapterId: 'ch-3', tension: 1.0),
+        ],
+      );
       for (final p in curve.points) {
         expect(p.tension, greaterThanOrEqualTo(0.0));
         expect(p.tension, lessThanOrEqualTo(1.0));
@@ -697,7 +686,12 @@ void main() {
       final validIds = arc.plotPoints.map((p) => p.id).toSet();
       for (final ca in arc.characterArcs) {
         for (final pid in ca.plotPointIds) {
-          expect(validIds, contains(pid), reason: 'CharacterArc for ${ca.characterId} references unknown plot point $pid');
+          expect(
+            validIds,
+            contains(pid),
+            reason:
+                'CharacterArc for ${ca.characterId} references unknown plot point $pid',
+          );
         }
       }
     });

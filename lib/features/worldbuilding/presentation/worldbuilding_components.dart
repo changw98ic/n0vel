@@ -40,7 +40,11 @@ class WorldbuildingListButton extends StatelessWidget {
 }
 
 class WorldbuildingInfoBlock extends StatelessWidget {
-  const WorldbuildingInfoBlock({required this.title, required this.message, super.key});
+  const WorldbuildingInfoBlock({
+    required this.title,
+    required this.message,
+    super.key,
+  });
 
   final String title;
   final String message;
@@ -170,7 +174,11 @@ class WorldbuildingCallToActionState extends StatelessWidget {
 }
 
 class WorldbuildingCenteredPanelState extends StatelessWidget {
-  const WorldbuildingCenteredPanelState({required this.title, required this.message, super.key});
+  const WorldbuildingCenteredPanelState({
+    required this.title,
+    required this.message,
+    super.key,
+  });
 
   final String title;
   final String message;
@@ -232,7 +240,10 @@ class WorldbuildingDeleteOverlay extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
-              WorldbuildingInfoBlock(title: '当前层级', message: '$nodeTitle\n规则摘要\n引用场景'),
+              WorldbuildingInfoBlock(
+                title: '当前层级',
+                message: '$nodeTitle\n规则摘要\n引用场景',
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

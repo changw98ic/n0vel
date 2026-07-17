@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../../app/state/app_project_scoped_store.dart';
+import '../../../app/state/project_storage.dart';
 import '../domain/author_feedback_models.dart';
 import 'author_feedback_storage.dart';
 
@@ -28,6 +29,9 @@ class AuthorFeedbackStore extends AppProjectScopedStore {
   // and updates it through the shared SQLite transaction.
   final Map<String, Map<String, Object?>> _generationMetadataByProjectId = {};
   Future<void> _readyFuture = Future<void>.value();
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   List<AuthorFeedbackItem> get items =>
       List.unmodifiable(_itemsByProjectId[activeProjectId] ?? const []);

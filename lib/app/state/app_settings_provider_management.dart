@@ -28,8 +28,9 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
   ) async {
     storeHasLocalMutations = true;
     if (profile.id == 'primary') {
-      final normalizedModel = storeAiRequestService
-          .normalizeRequestedModel(profile.model);
+      final normalizedModel = storeAiRequestService.normalizeRequestedModel(
+        profile.model,
+      );
       final nextProfiles = storeProviderService.syncPrimaryProfile(
         storeSnapshot.providerProfiles,
         providerName: profile.providerName,
@@ -56,8 +57,7 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
     if (!updated.any((p) => p.id == profile.id)) {
       updated.add(profile);
     }
-    storeSnapshot =
-        storeSnapshot.copyWith(providerProfiles: updated);
+    storeSnapshot = storeSnapshot.copyWith(providerProfiles: updated);
     storeSyncRequestPoolLimits();
     notifyListeners();
     return storePersist();
@@ -148,8 +148,7 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       route,
       storeSnapshot.requestProviderRoutes,
     );
-    storeSnapshot =
-        storeSnapshot.copyWith(requestProviderRoutes: updated);
+    storeSnapshot = storeSnapshot.copyWith(requestProviderRoutes: updated);
     notifyListeners();
     return storePersist();
   }
@@ -158,14 +157,11 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
   applySingleChapterGenerationProviderPreset() async {
     storeHasLocalMutations = true;
     final defaultApiKey =
-        storeAiRequestService.isZhipuBaseUrl(
-          storeSnapshot.baseUrl,
-        )
-            ? storeSnapshot.apiKey
-            : '';
+        storeAiRequestService.isZhipuBaseUrl(storeSnapshot.baseUrl)
+        ? storeSnapshot.apiKey
+        : '';
     final profilesById = {
-      for (final profile in storeSnapshot.providerProfiles)
-        profile.id: profile,
+      for (final profile in storeSnapshot.providerProfiles) profile.id: profile,
     };
     for (final preset in singleChapterProviderPresetProfiles) {
       final existing = profilesById[preset.id];
@@ -216,8 +212,7 @@ mixin AppSettingsProviderManagement on AppStoreListenable {
       return const AppSettingsSaveResult();
     }
     storeHasLocalMutations = true;
-    storeSnapshot =
-        storeSnapshot.copyWith(requestProviderRoutes: updated);
+    storeSnapshot = storeSnapshot.copyWith(requestProviderRoutes: updated);
     notifyListeners();
     return storePersist();
   }
