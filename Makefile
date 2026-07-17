@@ -1,4 +1,4 @@
-.PHONY: test analyze rag-vector-eval docs-check mvp-docs-check verify-macos package-macos-preview
+.PHONY: test analyze rag-vector-eval docs-check mvp-docs-check verify-macos verify-macos-ci package-macos-preview
 
 test:
 	flutter test
@@ -17,6 +17,9 @@ mvp-docs-check:
 
 verify-macos:
 	bash scripts/verify_macos.sh
+
+verify-macos-ci:
+	bash scripts/verify_macos.sh --skip-flutter-analyze --skip-flutter-tests
 
 package-macos-preview:
 	bash scripts/package_macos_preview.sh
