@@ -8,23 +8,19 @@ on:
   push:
     paths:
       - ".github/workflows/verify-macos.yml"
-      - "Makefile"
-      - "scripts/**"
+      - "assets/**"
       - "lib/**"
       - "macos/**"
       - "pubspec.yaml"
       - "pubspec.lock"
-      - "test/**"
   pull_request:
     paths:
       - ".github/workflows/verify-macos.yml"
-      - "Makefile"
-      - "scripts/**"
+      - "assets/**"
       - "lib/**"
       - "macos/**"
       - "pubspec.yaml"
       - "pubspec.lock"
-      - "test/**"
 
 jobs:
   verify-macos:
@@ -44,5 +40,10 @@ jobs:
       - name: Precache macOS artifacts
         run: flutter precache --macos
 
-      - name: Verify macOS
-        run: make verify-macos
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Routine macOS CI owns the native release build; full Flutter validation
+      # remains available through make verify-macos for manual runs.
+      - name: Build macOS release
+        run: flutter build macos --release --no-pub

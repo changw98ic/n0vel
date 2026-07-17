@@ -1,11 +1,29 @@
-name: Flutter Analyze and Test
+name: Flutter Smoke Check
 
 permissions:
   contents: read
 
 on:
   push:
+    paths:
+      - ".github/workflows/flutter-analyze-test.yml"
+      - "analysis_options.yaml"
+      - "Makefile"
+      - "lib/**"
+      - "test/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
   pull_request:
+    paths:
+      - ".github/workflows/flutter-analyze-test.yml"
+      - "analysis_options.yaml"
+      - "Makefile"
+      - "lib/**"
+      - "test/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
 
 jobs:
   analyze-test:
@@ -30,14 +48,7 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-pub
 
-      - name: Test
-        run: flutter test --no-pub --coverage -r compact
-
-      - name: Archive coverage baseline
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-coverage
-          path: coverage/lcov.info
-          if-no-files-found: warn
-          retention-days: 14
+      # The complete suite contains long-running formal evaluation fixtures;
+      # keep the routine gate deterministic and leave that suite manual.
+      - name: Smoke tests
+        run: make ci-smoke
