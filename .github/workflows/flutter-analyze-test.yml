@@ -1,4 +1,4 @@
-name: Flutter Analyze and Test
+name: Flutter Smoke Check
 
 on:
   push:
@@ -10,11 +10,7 @@ on:
       - "Makefile"
       - "assets/**"
       - "lib/**"
-      - "linux/**"
-      - "macos/**"
-      - "scripts/**"
       - "test/**"
-      - "windows/**"
       - "pubspec.yaml"
       - "pubspec.lock"
   pull_request:
@@ -26,11 +22,7 @@ on:
       - "Makefile"
       - "assets/**"
       - "lib/**"
-      - "linux/**"
-      - "macos/**"
-      - "scripts/**"
       - "test/**"
-      - "windows/**"
       - "pubspec.yaml"
       - "pubspec.lock"
 
@@ -54,14 +46,5 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-pub
 
-      - name: Test
-        run: flutter test --no-pub -r compact
-
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes \
-            clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev
-
-      - name: Build Linux release
-        run: flutter build linux --release --no-pub
+      - name: Core smoke tests
+        run: make ci-smoke

@@ -34,9 +34,6 @@ jobs:
           flutter-version: "3.41.9"
           cache: true
 
-      - name: Precache Windows artifacts
-        run: flutter precache --windows
-
       - name: Install dependencies
         run: flutter pub get
 

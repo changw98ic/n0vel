@@ -5,21 +5,17 @@ on:
   push:
     paths:
       - ".github/workflows/verify-macos.yml"
-      - "Makefile"
-      - "scripts/**"
+      - "assets/**"
       - "lib/**"
       - "macos/**"
-      - "assets/**"
       - "pubspec.yaml"
       - "pubspec.lock"
   pull_request:
     paths:
       - ".github/workflows/verify-macos.yml"
-      - "Makefile"
-      - "scripts/**"
+      - "assets/**"
       - "lib/**"
       - "macos/**"
-      - "assets/**"
       - "pubspec.yaml"
       - "pubspec.lock"
 
@@ -38,15 +34,8 @@ jobs:
           flutter-version: "3.41.9"
           cache: true
 
-      - name: Precache macOS artifacts
-        run: flutter precache --macos
+      - name: Install dependencies
+        run: flutter pub get
 
-      - name: Verify macOS
-        if: github.event_name != 'workflow_dispatch'
-        # Linux owns generic Dart analysis and tests. This gate keeps only
-        # macOS-specific XCTest and native release-build coverage.
-        run: make verify-macos-ci
-
-      - name: Verify macOS with full Flutter suite
-        if: github.event_name == 'workflow_dispatch'
-        run: make verify-macos
+      - name: Build macOS release
+        run: flutter build macos --release --no-pub

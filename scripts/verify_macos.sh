@@ -2,38 +2,6 @@
 
 set -euo pipefail
 
-skip_flutter_analyze=false
-skip_flutter_tests=false
-
-usage() {
-  printf '%s\n' \
-    'Usage: scripts/verify_macos.sh [--skip-flutter-analyze] [--skip-flutter-tests]' \
-    '' \
-    '  --skip-flutter-analyze  Skip analysis when another CI job owns it.' \
-    '  --skip-flutter-tests  Skip the full Flutter suite when another CI job owns it.'
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --skip-flutter-analyze)
-      skip_flutter_analyze=true
-      ;;
-    --skip-flutter-tests)
-      skip_flutter_tests=true
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      printf 'Unknown option: %s\n' "$1" >&2
-      usage >&2
-      exit 64
-      ;;
-  esac
-  shift
-done
-
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
@@ -104,19 +72,11 @@ fi
 echo "Dependencies resolved."
 rm -f "$pub_log"
 
-if [[ "$skip_flutter_analyze" == true ]]; then
-  echo "== flutter analyze skipped; owned by Flutter Analyze and Test workflow =="
-else
-  echo "== flutter analyze =="
-  "$flutter_cmd" analyze --no-pub
-fi
+echo "== flutter analyze =="
+"$flutter_cmd" analyze --no-pub
 
-if [[ "$skip_flutter_tests" == true ]]; then
-  echo "== flutter test skipped; owned by Flutter Analyze and Test workflow =="
-else
-  echo "== flutter test =="
-  "$flutter_cmd" test --no-pub -r compact
-fi
+echo "== flutter test =="
+"$flutter_cmd" test --no-pub -r compact
 
 echo "== verify xcodebuild log filter =="
 python3 scripts/test_filter_xcodebuild_test_output.py
