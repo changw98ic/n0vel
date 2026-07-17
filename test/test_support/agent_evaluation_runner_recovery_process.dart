@@ -11,6 +11,10 @@ import 'package:novel_writer/features/story_generation/data/evaluation/agent_eva
 import 'package:novel_writer/features/story_generation/domain/evaluation/outcome_evaluation.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+const _crashClockMs = 1000000;
+const _successorClockMs = _crashClockMs + 10000;
+const _recoveryLeaseDurationMs = 5000;
+
 void main() {
   test('runner recovery process lane', _runProcessLane);
 }
@@ -53,6 +57,9 @@ Future<void> _runProcessLane() async {
       manifestStore: AgentEvaluationManifestStore(db: authority),
       ledger: AgentEvaluationLedger(db: authority),
       fixtureSandbox: sandbox,
+      // Keep crash-boundary timing deterministic even when synchronous
+      // SQLite snapshots block timer heartbeats on a constrained CI host.
+      nowMs: () => mode == 'crash' ? _crashClockMs : _successorClockMs,
     );
     await runner.run(
       manifest: manifest,
@@ -137,9 +144,9 @@ Future<void> _runProcessLane() async {
       },
       cancellationToken: AgentEvaluationCancellationToken(),
       onProgress: (_) {},
-      leaseDurationMs: mode == 'crash' ? 100 : 5000,
+      leaseDurationMs: _recoveryLeaseDurationMs,
     );
-    stdout.write('sealed');
+    stdout.writeln('RECOVERY_PROCESS_SEALED');
   } finally {
     sandbox?.dispose();
     authority.dispose();

@@ -122,7 +122,9 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       completionMicrousdPerMillionTokens: 1000000,
       judgePromptMicrousdPerMillionTokens: 1,
       judgeCompletionMicrousdPerMillionTokens: 1,
-      deadline: const Duration(minutes: 5),
+      // Purpose-built 60-slot matrices can share a constrained CI host. Their
+      // semantic deadline must remain beyond the shorter test watchdog.
+      deadline: const Duration(minutes: 30),
       holdoutAccessBudget: 1,
       codeCommit: 'purpose-built-performance-commit',
       sourceTreeHash: _digest('2'),

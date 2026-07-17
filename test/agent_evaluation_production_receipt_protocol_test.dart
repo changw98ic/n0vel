@@ -265,6 +265,7 @@ void main() {
             onProgress: (_) {},
             requireGateEvidence: true,
             requireProductionEvidence: true,
+            leaseDurationMs: const Duration(minutes: 5).inMilliseconds,
           );
       expect(runReport.cancelled, isFalse);
       expect(runReport.deadlineExceeded, isFalse);
@@ -567,6 +568,7 @@ void main() {
             onProgress: (_) {},
             requireGateEvidence: true,
             requireProductionEvidence: true,
+            leaseDurationMs: const Duration(minutes: 5).inMilliseconds,
           );
       expect(sentinelRunReport.cancelled, isFalse);
       expect(sentinelRunReport.deadlineExceeded, isFalse);

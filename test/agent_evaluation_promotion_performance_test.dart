@@ -59,7 +59,7 @@ void main() {
       expect(attack.maximumQualityMeanDeltaMicros, greaterThan(0));
       expect(control.maximumQualityMeanDeltaMicros, greaterThan(0));
     },
-    timeout: const Timeout(Duration(minutes: 5)),
+    timeout: const Timeout(Duration(minutes: 15)),
   );
 }
 

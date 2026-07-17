@@ -35,9 +35,21 @@ void main() {
           crashStage: crashStage,
           root: caseRoot,
         );
-        expect(crashed.exitCode, isNot(0), reason: crashed.stderr);
+        final crashBoundary = File('${caseRoot.path}/crash-boundary.txt');
         expect(
-          File('${caseRoot.path}/crash-boundary.txt').readAsStringSync(),
+          crashBoundary.existsSync(),
+          isTrue,
+          reason:
+              'child did not reach the intended checkpoint; '
+              'exit=${crashed.exitCode}\n${crashed.stderr}\n${crashed.stdout}',
+        );
+        expect(
+          crashed.exitCode,
+          isNot(0),
+          reason: '${crashed.stderr}\n${crashed.stdout}',
+        );
+        expect(
+          crashBoundary.readAsStringSync(),
           crashStage,
           reason: 'only the intended post-checkpoint crash is recoverable',
         );
@@ -64,8 +76,6 @@ void main() {
         } finally {
           preSealAuthority.dispose();
         }
-        await Future<void>.delayed(const Duration(milliseconds: 220));
-
         final recovered = await _runProcess(
           mode: 'recover',
           crashStage: crashStage,
@@ -76,7 +86,7 @@ void main() {
           0,
           reason: '${recovered.stderr}\n${recovered.stdout}',
         );
-        expect(recovered.stdout, contains('All tests passed'));
+        expect(recovered.stdout, contains('RECOVERY_PROCESS_SEALED'));
 
         final providerCalls = File(
           '${caseRoot.path}/provider-calls.log',
@@ -169,9 +179,21 @@ void main() {
         crashStage: 'prepared',
         root: caseRoot,
       );
-      expect(crashed.exitCode, isNot(0), reason: crashed.stderr);
+      final crashBoundary = File('${caseRoot.path}/crash-boundary.txt');
       expect(
-        File('${caseRoot.path}/crash-boundary.txt').readAsStringSync(),
+        crashBoundary.existsSync(),
+        isTrue,
+        reason:
+            'child did not reach the intended checkpoint; '
+            'exit=${crashed.exitCode}\n${crashed.stderr}\n${crashed.stdout}',
+      );
+      expect(
+        crashed.exitCode,
+        isNot(0),
+        reason: '${crashed.stderr}\n${crashed.stdout}',
+      );
+      expect(
+        crashBoundary.readAsStringSync(),
         'prepared',
         reason: 'only the intended post-checkpoint crash is recoverable',
       );
@@ -189,8 +211,6 @@ void main() {
       File(
         snapshotPath,
       ).writeAsBytesSync(<int>[1, 2, 3, 4], mode: FileMode.append, flush: true);
-      await Future<void>.delayed(const Duration(milliseconds: 220));
-
       final recovered = await _runProcess(
         mode: 'recover',
         crashStage: 'prepared',
@@ -282,6 +302,8 @@ Future<({int exitCode, String stdout, String stderr})> _runProcess({
       'test',
       '--no-pub',
       '--concurrency=1',
+      '-r',
+      'compact',
       'test/test_support/agent_evaluation_runner_recovery_process.dart',
     ],
     workingDirectory: Directory.current.path,
