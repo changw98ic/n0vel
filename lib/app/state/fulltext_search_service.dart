@@ -89,20 +89,14 @@ class FulltextSearchService {
   }
 
   /// 批量索引（用于全量同步）。
-  Future<void> indexScenes(List<FulltextIndexEntry> entries) async {
-    for (final entry in entries) {
-      await indexScene(entry);
-    }
-  }
+  Future<void> indexScenes(List<FulltextIndexEntry> entries) =>
+      _storage.indexScenes(entries);
 
   /// 全量同步某个项目：清空旧索引后重新写入。
   Future<void> syncProject({
     required String projectId,
     required List<FulltextIndexEntry> entries,
-  }) async {
-    await _storage.clearProject(projectId);
-    await _storage.indexScenes(entries);
-  }
+  }) => _storage.replaceProject(projectId, entries);
 
   /// 删除某个场景的索引。
   Future<void> removeScene(String projectId, String sceneId) async {

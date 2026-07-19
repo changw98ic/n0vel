@@ -515,6 +515,104 @@ void main() {
       expect(result.detail, 'You are sending requests too quickly.');
     });
 
+    test('prefers nested provider errors over top-level messages', () async {
+      final server = await _startServer((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response
+          ..statusCode = HttpStatus.internalServerError
+          ..headers.contentType = ContentType.json
+          ..write(
+            jsonEncode({
+              'error': {'message': 'nested provider failure'},
+              'message': 'top-level fallback message',
+            }),
+          );
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await createDefaultAppLlmClient().chat(
+        AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          messages: const [AppLlmChatMessage(role: 'user', content: '服务端错误')],
+        ),
+      );
+
+      expect(result.failureKind, AppLlmFailureKind.server);
+      expect(result.detail, 'nested provider failure');
+    });
+
+    test('redacts credentials from JSON non-2xx error details', () async {
+      const bearerToken = 'token.with-dashes_123';
+      const projectKey = 'sk-proj-live_SECRET-123456';
+      final server = await _startServer((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response
+          ..statusCode = HttpStatus.internalServerError
+          ..headers.contentType = ContentType.json
+          ..write(
+            jsonEncode({
+              'error': {
+                'message':
+                    'upstream request failed: Bearer $bearerToken key=$projectKey',
+              },
+            }),
+          );
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await createDefaultAppLlmClient().chat(
+        AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          messages: const [AppLlmChatMessage(role: 'user', content: '服务端错误')],
+        ),
+      );
+
+      expect(result.failureKind, AppLlmFailureKind.server);
+      expect(result.detail, contains('upstream request failed'));
+      expect(result.detail, isNot(contains(bearerToken)));
+      expect(result.detail, isNot(contains(projectKey)));
+      expect(result.detail, isNot(contains('sk-proj')));
+    });
+
+    test('redacts credentials from plaintext non-2xx error details', () async {
+      const bearerToken = 'token.with-dashes_123';
+      const projectKey = 'sk-proj-live_SECRET-123456';
+      final server = await _startServer((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response
+          ..statusCode = HttpStatus.internalServerError
+          ..write(
+            'plain upstream failure: Bearer $bearerToken api-key=$projectKey',
+          );
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await createDefaultAppLlmClient().chat(
+        AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          messages: const [AppLlmChatMessage(role: 'user', content: '服务端错误')],
+        ),
+      );
+
+      expect(result.failureKind, AppLlmFailureKind.server);
+      expect(result.detail, contains('plain upstream failure'));
+      expect(result.detail, isNot(contains(bearerToken)));
+      expect(result.detail, isNot(contains(projectKey)));
+      expect(result.detail, isNot(contains('sk-proj')));
+    });
+
     test('maps plain-text 500 responses to server failures', () async {
       final server = await _startServer((request) async {
         await utf8.decoder.bind(request).join();

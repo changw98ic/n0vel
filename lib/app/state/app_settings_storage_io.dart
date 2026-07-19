@@ -67,6 +67,11 @@ class FileAppSettingsStorage implements AppSettingsStorage {
           issue: AppSettingsPersistenceIssue.fileWriteFailed,
           detail: error.message,
         );
+      } on ProcessException catch (error) {
+        return AppSettingsSaveResult(
+          issue: AppSettingsPersistenceIssue.fileWriteFailed,
+          detail: error.message,
+        );
       }
     });
   }
@@ -111,7 +116,18 @@ class FileAppSettingsStorage implements AppSettingsStorage {
   Future<void> _writeData(Map<String, Object?> data) async {
     await _file.parent.create(recursive: true);
     final encrypted = await _cipher.encryptMap(data);
-    await _file.writeAsString(jsonEncode(encrypted));
+    final temporary = File('${_file.path}.tmp');
+    try {
+      await temporary.writeAsString(jsonEncode(encrypted), flush: true);
+      if (!Platform.isWindows) {
+        await Process.run('chmod', ['600', temporary.path]);
+      }
+      await temporary.rename(_file.path);
+    } finally {
+      if (await temporary.exists()) {
+        await temporary.delete();
+      }
+    }
   }
 }
 

@@ -154,6 +154,10 @@ class FulltextSearchStorage {
   /// 索引一条场景内容。按 (project_id, scene_id) 唯一，存在则更新。
   Future<void> indexScene(FulltextIndexEntry entry) async {
     await ensureTables();
+    _upsertScene(entry);
+  }
+
+  void _upsertScene(FulltextIndexEntry entry) {
     final id = '${entry.projectId}_scene_${entry.sceneId}';
 
     final existing = db.select(
@@ -198,21 +202,62 @@ class FulltextSearchStorage {
     }
   }
 
+  void _indexEntries(List<FulltextIndexEntry> entries) {
+    for (final entry in entries) {
+      _upsertScene(entry);
+    }
+  }
+
+  void _clearProject(String projectId) {
+    db.execute('DELETE FROM fulltext_chapter_contents WHERE project_id = ?', [
+      projectId,
+    ]);
+  }
+
+  void _runInTransaction(void Function() action) {
+    final ownsTransaction = db.autocommit;
+    if (ownsTransaction) {
+      db.execute('BEGIN TRANSACTION');
+    }
+
+    try {
+      action();
+      if (ownsTransaction) {
+        db.execute('COMMIT');
+      }
+    } catch (_) {
+      if (ownsTransaction && !db.autocommit) {
+        db.execute('ROLLBACK');
+      }
+      rethrow;
+    }
+  }
+
   /// 批量索引多条场景内容（事务内执行，性能更优）。
   Future<void> indexScenes(List<FulltextIndexEntry> entries) async {
     if (entries.isEmpty) return;
     await ensureTables();
-    for (final entry in entries) {
-      await indexScene(entry);
-    }
+
+    _runInTransaction(() => _indexEntries(entries));
+  }
+
+  /// 原子替换某个项目的全部索引。
+  Future<void> replaceProject(
+    String projectId,
+    List<FulltextIndexEntry> entries,
+  ) async {
+    await ensureTables();
+
+    _runInTransaction(() {
+      _clearProject(projectId);
+      _indexEntries(entries);
+    });
   }
 
   /// 删除某个项目的全部索引。
   Future<void> clearProject(String projectId) async {
     await ensureTables();
-    db.execute('DELETE FROM fulltext_chapter_contents WHERE project_id = ?', [
-      projectId,
-    ]);
+    _clearProject(projectId);
   }
 
   /// 删除某个场景的索引。

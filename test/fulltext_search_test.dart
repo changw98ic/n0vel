@@ -353,6 +353,90 @@ void main() {
       expect(result.rows, isEmpty);
       expect(result.totalCount, 0);
     });
+
+    test('批量索引失败时回滚已写入的场景', () async {
+      await storage.ensureTables();
+      db.execute('''
+        CREATE TRIGGER fail_fulltext_scene_insert
+        BEFORE INSERT ON fulltext_chapter_contents
+        WHEN new.scene_id = 'scene-fail'
+        BEGIN
+          SELECT RAISE(ABORT, 'forced fulltext batch failure');
+        END
+      ''');
+
+      await expectLater(
+        storage.indexScenes([
+          const FulltextIndexEntry(
+            projectId: 'proj-batch',
+            chapterIndex: 1,
+            chapterTitle: '第一章',
+            sceneId: 'scene-ok',
+            sceneTitle: '正常场景',
+            characterNames: '',
+            content: 'survivor token',
+          ),
+          const FulltextIndexEntry(
+            projectId: 'proj-batch',
+            chapterIndex: 2,
+            chapterTitle: '第二章',
+            sceneId: 'scene-fail',
+            sceneTitle: '失败场景',
+            characterNames: '',
+            content: 'failing token',
+          ),
+        ]),
+        throwsA(isA<SqliteException>()),
+      );
+
+      expect(
+        db.select(
+          'SELECT scene_id FROM fulltext_chapter_contents WHERE project_id = ?',
+          ['proj-batch'],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('批量索引加入调用方持有的事务', () async {
+      await storage.ensureTables();
+      db.execute('BEGIN IMMEDIATE');
+      try {
+        await storage.indexScenes([
+          const FulltextIndexEntry(
+            projectId: 'proj-outer',
+            chapterIndex: 1,
+            chapterTitle: '第一章',
+            sceneId: 'scene-1',
+            sceneTitle: '外层事务场景',
+            characterNames: '',
+            content: 'outer transaction token',
+          ),
+        ]);
+
+        expect(
+          db.select(
+            'SELECT COUNT(*) AS count FROM fulltext_chapter_contents '
+            'WHERE project_id = ?',
+            ['proj-outer'],
+          ).single['count'],
+          1,
+        );
+
+        db.execute('ROLLBACK');
+      } finally {
+        if (!db.autocommit) db.execute('ROLLBACK');
+      }
+
+      expect(
+        db.select(
+          'SELECT COUNT(*) AS count FROM fulltext_chapter_contents '
+          'WHERE project_id = ?',
+          ['proj-outer'],
+        ).single['count'],
+        0,
+      );
+    });
   });
 
   group('FulltextSearchService', () {
@@ -404,6 +488,112 @@ void main() {
 
       final result = await service.search(projectId: 'proj-1', query: '冒险');
       expect(result.rows, hasLength(5));
+    });
+
+    test('批量索引失败时不保留部分结果并上报错误', () async {
+      await service.search(projectId: 'bootstrap', query: '');
+      db.execute('''
+        CREATE TRIGGER fail_service_batch_insert
+        BEFORE INSERT ON fulltext_chapter_contents
+        WHEN new.scene_id = 'scene-fail'
+        BEGIN
+          SELECT RAISE(ABORT, 'forced service batch failure');
+        END
+      ''');
+
+      Object? failure;
+      try {
+        await service.indexScenes([
+          const FulltextIndexEntry(
+            projectId: 'proj-service-batch',
+            chapterIndex: 1,
+            chapterTitle: '第一章',
+            sceneId: 'scene-ok',
+            sceneTitle: '正常场景',
+            characterNames: '',
+            content: 'service batch survivor token',
+          ),
+          const FulltextIndexEntry(
+            projectId: 'proj-service-batch',
+            chapterIndex: 2,
+            chapterTitle: '第二章',
+            sceneId: 'scene-fail',
+            sceneTitle: '失败场景',
+            characterNames: '',
+            content: 'service batch failing token',
+          ),
+        ]);
+      } on Object catch (error) {
+        failure = error;
+      }
+
+      expect(failure, isA<SqliteException>());
+      expect(
+        db.select(
+          'SELECT scene_id FROM fulltext_chapter_contents WHERE project_id = ?',
+          ['proj-service-batch'],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('syncProject 重建失败时保留原有项目索引', () async {
+      await service.indexScene(
+        const FulltextIndexEntry(
+          projectId: 'proj-rebuild',
+          chapterIndex: 1,
+          chapterTitle: '旧章节',
+          sceneId: 'scene-old',
+          sceneTitle: '旧场景',
+          characterNames: '',
+          content: 'stable legacy token',
+        ),
+      );
+      db.execute('''
+        CREATE TRIGGER fail_project_rebuild_insert
+        BEFORE INSERT ON fulltext_chapter_contents
+        WHEN new.scene_id = 'scene-fail'
+        BEGIN
+          SELECT RAISE(ABORT, 'forced project rebuild failure');
+        END
+      ''');
+
+      Object? failure;
+      try {
+        await service.syncProject(
+          projectId: 'proj-rebuild',
+          entries: [
+            const FulltextIndexEntry(
+              projectId: 'proj-rebuild',
+              chapterIndex: 1,
+              chapterTitle: '新章节',
+              sceneId: 'scene-ok',
+              sceneTitle: '新场景',
+              characterNames: '',
+              content: 'new replacement token',
+            ),
+            const FulltextIndexEntry(
+              projectId: 'proj-rebuild',
+              chapterIndex: 2,
+              chapterTitle: '失败章节',
+              sceneId: 'scene-fail',
+              sceneTitle: '失败场景',
+              characterNames: '',
+              content: 'failing replacement token',
+            ),
+          ],
+        );
+      } on Object catch (error) {
+        failure = error;
+      }
+
+      expect(failure, isA<SqliteException>());
+      final result = await service.search(
+        projectId: 'proj-rebuild',
+        query: 'stable legacy token',
+      );
+      expect(result.rows, hasLength(1));
+      expect(result.rows.single.sceneId, 'scene-old');
     });
 
     test('搜索排序：按章节升序', () async {

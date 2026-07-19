@@ -348,6 +348,54 @@ void main() {
     expect(result.detail, isNotNull);
   });
 
+  test(
+    'file storage preserves existing settings when staging write fails',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel_writer_settings_storage_atomic_write_failure_test',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+
+      final file = File('${directory.path}/settings.json');
+      final storage = FileAppSettingsStorage(file: file);
+      const previousSettings = {
+        'providerName': 'Existing provider',
+        'baseUrl': 'https://old.example.com/v1',
+        'model': 'old-model',
+        'apiKey': 'sk-old-key',
+        'timeoutMs': 30000,
+        'maxConcurrentRequests': 1,
+        'themePreference': 'dark',
+      };
+      const replacementSettings = {
+        'providerName': 'Replacement provider',
+        'baseUrl': 'https://new.example.com/v1',
+        'model': 'new-model',
+        'apiKey': 'sk-new-key',
+        'timeoutMs': 60000,
+        'maxConcurrentRequests': 2,
+        'themePreference': 'light',
+      };
+
+      expect(
+        (await storage.save(previousSettings)).issue,
+        AppSettingsPersistenceIssue.none,
+      );
+      final rawBefore = await file.readAsString();
+      await Directory('${file.path}.tmp').create();
+
+      final result = await storage.save(replacementSettings);
+
+      expect(result.issue, AppSettingsPersistenceIssue.fileWriteFailed);
+      expect(await file.readAsString(), rawBefore);
+      expect((await storage.load())?['apiKey'], 'sk-old-key');
+    },
+  );
+
   test('file storage reports corrupted ciphertext as fileReadFailed', () async {
     final directory = await Directory.systemTemp.createTemp(
       'novel_writer_settings_storage_cipher_corrupt_test',

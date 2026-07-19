@@ -60,6 +60,49 @@ void main() {
   );
 
   test(
+    'settings store surfaces null read failure as persistence issue on restore',
+    () async {
+      final store = AppSettingsStore(
+        storage: _NullReadFailureStorage(),
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.hasPersistenceIssue, isTrue);
+      expect(
+        store.activePersistenceIssue,
+        AppSettingsPersistenceIssue.fileReadFailed,
+      );
+      expect(store.canRetrySecureStoreAccess, isTrue);
+      expect(store.feedback.title, '设置文件读取失败');
+      expect(store.feedback.message, contains('无法读取本地配置文件'));
+      expect(store.feedback.message, contains('settings.json is unreadable'));
+      expect(store.diagnosticReport, contains('settings_file_read_failed'));
+      expect(store.snapshot.providerName, 'OpenAI 兼容服务');
+    },
+  );
+
+  test(
+    'settings store keeps first run without persisted settings silent',
+    () async {
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.hasPersistenceIssue, isFalse);
+      expect(store.feedback.title, isNull);
+      expect(store.diagnosticReport, isNull);
+      expect(store.snapshot.providerName, 'OpenAI 兼容服务');
+    },
+  );
+
+  test(
     'settings store keeps read-failure warning when restore completes after local mutation',
     () async {
       final storage = _DelayedReadWithFailureAndWriteFailureStorage();
@@ -1020,6 +1063,23 @@ class _ControllableSettingsStorage implements AppSettingsStorage {
   void completeSave() {
     _saveCompleter?.complete(const AppSettingsSaveResult());
     _controlNextSave = false;
+  }
+}
+
+class _NullReadFailureStorage implements AppSettingsStorage {
+  @override
+  AppSettingsPersistenceIssue get lastLoadIssue =>
+      AppSettingsPersistenceIssue.fileReadFailed;
+
+  @override
+  String? get lastLoadDetail => 'settings.json is unreadable';
+
+  @override
+  Future<Map<String, Object?>?> load() async => null;
+
+  @override
+  Future<AppSettingsSaveResult> save(Map<String, Object?> data) async {
+    return const AppSettingsSaveResult();
   }
 }
 

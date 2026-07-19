@@ -655,6 +655,43 @@ void main() {
       expect(requestJson['max_completion_tokens'], 8192);
       expect(requestJson.containsKey('max_tokens'), isFalse);
     });
+
+    test('LlmGateway redacts credentials from provider error details', () async {
+      const bearerToken = 'token.with-dashes_123';
+      const projectKey = 'sk-proj-live_SECRET-123456';
+      final server = await _startServer((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response
+          ..statusCode = HttpStatus.internalServerError
+          ..headers.contentType = ContentType.json
+          ..write(
+            jsonEncode({
+              'error': {
+                'message':
+                    'legacy provider failure: Bearer $bearerToken key=$projectKey',
+              },
+            }),
+          );
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await LlmGateway().chat(
+        AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(2000),
+          messages: const [AppLlmChatMessage(role: 'user', content: '服务端错误')],
+        ),
+      );
+
+      expect(result.failureKind, AppLlmFailureKind.server);
+      expect(result.detail, contains('legacy provider failure'));
+      expect(result.detail, isNot(contains(bearerToken)));
+      expect(result.detail, isNot(contains(projectKey)));
+      expect(result.detail, isNot(contains('sk-proj')));
+    });
   });
 }
 

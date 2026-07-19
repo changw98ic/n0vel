@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import '../logging/app_event_log_privacy.dart';
 import 'app_http_client.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
@@ -118,7 +119,7 @@ class LlmGateway implements AppLlmClient {
     } on FormatException catch (error) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.invalidResponse,
-        detail: error.message,
+        detail: AppEventLogPrivacy.sanitizeErrorDetail(error.message),
       );
     } on TimeoutException {
       return const AppLlmChatResult.failure(
@@ -128,7 +129,7 @@ class LlmGateway implements AppLlmClient {
     } catch (error) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
-        detail: error.toString(),
+        detail: AppEventLogPrivacy.sanitizeErrorDetail(error.toString()),
       );
     }
   }
@@ -256,6 +257,7 @@ class LlmGateway implements AppLlmClient {
   String? _normalizeDetail(String body) {
     final trimmed = body.trim();
     if (trimmed.isEmpty) return null;
+    String? detail;
     try {
       final decoded = jsonDecode(trimmed);
       if (decoded is Map) {
@@ -263,22 +265,28 @@ class LlmGateway implements AppLlmClient {
         if (error is Map) {
           final message = error['message']?.toString();
           if (message != null && message.trim().isNotEmpty) {
-            return message.trim();
+            detail = message.trim();
           }
         }
-        final message = decoded['message']?.toString();
-        if (message != null && message.trim().isNotEmpty) return message.trim();
+        if (detail == null) {
+          final message = decoded['message']?.toString();
+          if (message != null && message.trim().isNotEmpty) {
+            detail = message.trim();
+          }
+        }
       }
     } on FormatException {
-      return trimmed;
+      // Fall through to raw body.
     }
-    return trimmed;
+    return AppEventLogPrivacy.sanitizeErrorDetail(detail ?? trimmed);
   }
 
   _MappedFailure _mapDioException(DioException error) {
     final response = error.response;
     final statusCode = response?.statusCode;
-    final detail = error.message ?? error.toString();
+    final detail = AppEventLogPrivacy.sanitizeErrorDetail(
+      error.message ?? error.toString(),
+    );
 
     if (statusCode == HttpStatus.unauthorized ||
         statusCode == HttpStatus.forbidden) {

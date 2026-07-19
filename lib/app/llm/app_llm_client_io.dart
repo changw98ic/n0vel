@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import '../logging/app_event_log_privacy.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
 import 'app_llm_provider_adapters.dart';
@@ -180,7 +181,7 @@ class _IoAppLlmClient implements AppLlmClient {
     } on FormatException catch (error) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.invalidResponse,
-        detail: error.message,
+        detail: AppEventLogPrivacy.sanitizeErrorDetail(error.message),
       );
     } on TimeoutException {
       return const AppLlmChatResult.failure(
@@ -190,7 +191,7 @@ class _IoAppLlmClient implements AppLlmClient {
     } catch (error) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
-        detail: error.toString(),
+        detail: AppEventLogPrivacy.sanitizeErrorDetail(error.toString()),
       );
     } finally {
       dio.close(force: true);
@@ -244,6 +245,7 @@ class _IoAppLlmClient implements AppLlmClient {
     if (trimmed.isEmpty) {
       return null;
     }
+    String? detail;
     try {
       final decoded = jsonDecode(trimmed);
       if (decoded is Map) {
@@ -251,18 +253,20 @@ class _IoAppLlmClient implements AppLlmClient {
         if (error is Map) {
           final message = error['message']?.toString();
           if (message != null && message.trim().isNotEmpty) {
-            return message.trim();
+            detail = message.trim();
           }
         }
-        final message = decoded['message']?.toString();
-        if (message != null && message.trim().isNotEmpty) {
-          return message.trim();
+        if (detail == null) {
+          final message = decoded['message']?.toString();
+          if (message != null && message.trim().isNotEmpty) {
+            detail = message.trim();
+          }
         }
       }
     } on FormatException {
       // Fall through to raw body.
     }
-    return trimmed;
+    return AppEventLogPrivacy.sanitizeErrorDetail(detail ?? trimmed);
   }
 
   @override
@@ -372,7 +376,7 @@ class _IoAppLlmClient implements AppLlmClient {
     } catch (error) {
       throw AppLlmStreamException(
         failureKind: AppLlmFailureKind.server,
-        detail: error.toString(),
+        detail: AppEventLogPrivacy.sanitizeErrorDetail(error.toString()),
       );
     } finally {
       dio.close(force: true);
@@ -497,85 +501,7 @@ class _IoAppLlmClient implements AppLlmClient {
 
   String _normalizeDioErrorDetail(DioException error) {
     final raw = error.message ?? error.toString();
-    return _redactApiKeys(raw);
-  }
-
-  String _redactApiKeys(String text) {
-    return _redactSkTokens(_redactBearerTokens(text));
-  }
-
-  String _redactBearerTokens(String text) {
-    final lower = text.toLowerCase();
-    final buffer = StringBuffer();
-    var index = 0;
-    while (index < text.length) {
-      final bearerIndex = lower.indexOf('bearer', index);
-      if (bearerIndex == -1) {
-        buffer.write(text.substring(index));
-        break;
-      }
-      buffer.write(text.substring(index, bearerIndex));
-      var tokenStart = bearerIndex + 'bearer'.length;
-      if (tokenStart >= text.length ||
-          !_isWhitespace(text.codeUnitAt(tokenStart))) {
-        buffer.write(text[bearerIndex]);
-        index = bearerIndex + 1;
-        continue;
-      }
-      while (tokenStart < text.length &&
-          _isWhitespace(text.codeUnitAt(tokenStart))) {
-        tokenStart += 1;
-      }
-      var tokenEnd = tokenStart;
-      while (tokenEnd < text.length &&
-          !_isWhitespace(text.codeUnitAt(tokenEnd))) {
-        tokenEnd += 1;
-      }
-      buffer
-        ..write(text.substring(bearerIndex, tokenStart))
-        ..write('[REDACTED]');
-      index = tokenEnd;
-    }
-    return buffer.toString();
-  }
-
-  String _redactSkTokens(String text) {
-    final buffer = StringBuffer();
-    var index = 0;
-    while (index < text.length) {
-      final tokenIndex = text.indexOf('sk-', index);
-      if (tokenIndex == -1) {
-        buffer.write(text.substring(index));
-        break;
-      }
-      buffer.write(text.substring(index, tokenIndex));
-      var tokenEnd = tokenIndex + 3;
-      while (tokenEnd < text.length &&
-          _isAlphaNumeric(text.codeUnitAt(tokenEnd))) {
-        tokenEnd += 1;
-      }
-      final token = text.substring(tokenIndex, tokenEnd);
-      if (token.length > 7) {
-        buffer.write('${token.substring(0, 7)}...[REDACTED]');
-      } else {
-        buffer.write(token);
-      }
-      index = tokenEnd;
-    }
-    return buffer.toString();
-  }
-
-  bool _isWhitespace(int codeUnit) {
-    return codeUnit == 0x20 ||
-        codeUnit == 0x09 ||
-        codeUnit == 0x0A ||
-        codeUnit == 0x0D;
-  }
-
-  bool _isAlphaNumeric(int codeUnit) {
-    return (codeUnit >= 0x30 && codeUnit <= 0x39) ||
-        (codeUnit >= 0x41 && codeUnit <= 0x5A) ||
-        (codeUnit >= 0x61 && codeUnit <= 0x7A);
+    return AppEventLogPrivacy.sanitizeErrorDetail(raw) ?? '';
   }
 }
 

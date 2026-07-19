@@ -263,13 +263,13 @@ class AppSettingsStore extends AppStoreListenable
 
   Future<void> _restore() async {
     final restored = await _storage.load();
-    if (restored == null) {
+    final hasLoadIssue =
+        _storage.lastLoadIssue != AppSettingsPersistenceIssue.none;
+    if (restored == null && !hasLoadIssue) {
       return;
     }
 
-    final hasLoadIssue =
-        _storage.lastLoadIssue != AppSettingsPersistenceIssue.none;
-    if (!_hasLocalMutations) {
+    if (!_hasLocalMutations && restored != null) {
       _snapshot = AppSettingsSnapshot.fromJson(restored);
       _syncRequestPoolLimits();
     }
