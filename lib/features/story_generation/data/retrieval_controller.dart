@@ -34,9 +34,10 @@ const int _capsuleSummaryCharBudget = 120;
 class RetrievalController {
   const RetrievalController({
     MaterialReferenceRetriever? materialReferenceRetriever,
-    bool enableWritingReference = true,
+    bool? enableWritingReference,
   }) : _materialReferenceRetriever = materialReferenceRetriever,
-       _enableWritingReference = enableWritingReference;
+       _enableWritingReference =
+           enableWritingReference ?? materialReferenceRetriever != null;
 
   final MaterialReferenceRetriever? _materialReferenceRetriever;
   final bool _enableWritingReference;
@@ -112,8 +113,9 @@ class RetrievalController {
   }
 
   String _retrieveWritingReference({required LightRetrievalIntent intent}) {
-    final retriever =
-        _materialReferenceRetriever ?? MaterialReferenceRetriever();
+    if (!_enableWritingReference) return '';
+    final retriever = _materialReferenceRetriever;
+    if (retriever == null) return '';
     return retriever.searchToSceneSummary(intent);
   }
 

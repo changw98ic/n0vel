@@ -5,6 +5,8 @@ import 'package:cryptography/dart.dart';
 
 import '../../features/story_generation/domain/contracts/memory_policy.dart';
 import '../../features/story_generation/domain/memory_models.dart';
+import '../../features/story_generation/data/source_admission_resolver.dart';
+import '../../features/story_generation/domain/source_ledger_models.dart';
 import 'hybrid_retriever.dart';
 
 /// Imports the offline novel-reference atoms into an isolated hybrid index.
@@ -16,6 +18,7 @@ class NovelCorpusImporter {
   NovelCorpusImporter({
     required this.retriever,
     required this.corpusRootPath,
+    required this.sourceAdmissionResolver,
     this.batchSize = 500,
   }) {
     if (batchSize < 1) {
@@ -28,6 +31,7 @@ class NovelCorpusImporter {
 
   final HybridRetriever retriever;
   final String corpusRootPath;
+  final SourceAdmissionResolver sourceAdmissionResolver;
   final int batchSize;
 
   Future<NovelCorpusImportReport> importWorks({
@@ -43,18 +47,7 @@ class NovelCorpusImporter {
         'must be zero (unlimited) or positive',
       );
     }
-    final normalizedWorks = <String>[];
-    final seenWorks = <String>{};
-    for (final rawWork in works) {
-      final work = rawWork.trim().toLowerCase();
-      if (work.isEmpty || !RegExp(r'^[a-z0-9_-]+$').hasMatch(work)) {
-        throw ArgumentError.value(rawWork, 'works', 'contains an invalid slug');
-      }
-      if (seenWorks.add(work)) normalizedWorks.add(work);
-    }
-    if (normalizedWorks.isEmpty) {
-      throw ArgumentError.value(works, 'works', 'must not be empty');
-    }
+    final normalizedWorks = _normalizeWorks(works);
 
     final watch = Stopwatch()..start();
     final reports = <NovelCorpusWorkImportReport>[];
@@ -79,6 +72,16 @@ class NovelCorpusImporter {
     );
   }
 
+  /// Verifies source-ledger admission without opening or hashing corpus text.
+  ///
+  /// Callers that perform preparatory work (for example, embedding-resume
+  /// manifest hashing) must invoke this before touching `atoms.jsonl`.
+  void assertWorksAdmitted({List<String> works = defaultWorks}) {
+    for (final work in _normalizeWorks(works)) {
+      _requireWorkAdmission(work);
+    }
+  }
+
   Future<NovelCorpusWorkImportReport> _importWork(
     String work, {
     required int limitPerWork,
@@ -93,7 +96,10 @@ class NovelCorpusImporter {
         'must be non-negative',
       );
     }
-    final source = File('$corpusRootPath/$work/atoms.jsonl');
+    final workRootPath = '$corpusRootPath/$work';
+    _requireWorkAdmission(work);
+
+    final source = File('$workRootPath/atoms.jsonl');
     if (!source.existsSync()) {
       throw FileSystemException('Missing novel corpus atoms', source.path);
     }
@@ -221,6 +227,61 @@ class NovelCorpusImporter {
 
   static String projectIdForWork(String work) => 'writing-reference-$work';
 
+  List<String> _normalizeWorks(Iterable<String> works) {
+    final normalizedWorks = <String>[];
+    final seenWorks = <String>{};
+    for (final rawWork in works) {
+      final work = rawWork.trim().toLowerCase();
+      if (work.isEmpty || !RegExp(r'^[a-z0-9_-]+$').hasMatch(work)) {
+        throw ArgumentError.value(rawWork, 'works', 'contains an invalid slug');
+      }
+      if (seenWorks.add(work)) normalizedWorks.add(work);
+    }
+    if (normalizedWorks.isEmpty) {
+      throw ArgumentError.value(works, 'works', 'must not be empty');
+    }
+    return normalizedWorks;
+  }
+
+  ApprovedStyleReferenceBundle _requireWorkAdmission(String work) {
+    final admission = _resolveWorkAdmission('$corpusRootPath/$work');
+    if (!admission.allowed ||
+        admission.referenceUsage != ReferenceUsage.localAnalysisOnly) {
+      throw SourceAdmissionException(
+        work: work,
+        reasonCode: admission.denialReasonCode,
+      );
+    }
+    return admission;
+  }
+
+  ApprovedStyleReferenceBundle _resolveWorkAdmission(String workRootPath) {
+    final primary = sourceAdmissionResolver.resolveRoot(
+      rootPath: workRootPath,
+      requestedUsage: ReferenceUsage.localAnalysisOnly,
+    );
+    if (primary.allowed ||
+        primary.denialReasonCode != SourceAdmissionReasonCode.unknownSource) {
+      return primary;
+    }
+    final sourceManifest = File('$workRootPath/source_manifest.json');
+    if (sourceManifest.existsSync()) {
+      return SourceAdmissionResolver.fromManifestFile(
+        sourceManifest,
+      ).resolveRoot(
+        rootPath: workRootPath,
+        requestedUsage: ReferenceUsage.localAnalysisOnly,
+      );
+    }
+    final processingManifest = File('$workRootPath/manifest.json');
+    if (processingManifest.existsSync()) {
+      return ApprovedStyleReferenceBundle.denied(
+        SourceAdmissionReasonCode.processingManifestOnly,
+      );
+    }
+    return primary;
+  }
+
   static String _normalizeContent(String content) =>
       content.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
@@ -273,6 +334,21 @@ class NovelCorpusImporter {
     final stable = tags.toList()..sort();
     return List.unmodifiable(stable);
   }
+}
+
+class SourceAdmissionException implements Exception {
+  const SourceAdmissionException({
+    required this.work,
+    required this.reasonCode,
+  });
+
+  final String work;
+  final SourceAdmissionReasonCode reasonCode;
+
+  @override
+  String toString() =>
+      'SourceAdmissionException(work: $work, '
+      'reasonCode: ${reasonCode.name})';
 }
 
 class _CorpusAtomAggregate {

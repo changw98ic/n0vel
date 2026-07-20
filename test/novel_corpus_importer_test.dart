@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import 'package:novel_writer/app/rag/novel_corpus_importer.dart';
+import 'package:novel_writer/features/story_generation/data/source_admission_resolver.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/rag_retrieval_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
+import 'package:novel_writer/features/story_generation/domain/source_ledger_models.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -57,6 +59,7 @@ void main() {
       final report = await NovelCorpusImporter(
         retriever: retriever,
         corpusRootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.empty(),
         batchSize: 1,
       ).importWorks(works: const ['jianlai'], limitPerWork: 0);
 
@@ -123,6 +126,7 @@ void main() {
       final report = await NovelCorpusImporter(
         retriever: retriever,
         corpusRootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.empty(),
         batchSize: 2,
       ).importWorks(works: const ['jianlai', 'guimi'], limitPerWork: 1);
 
@@ -180,6 +184,7 @@ void main() {
     final report = await NovelCorpusImporter(
       retriever: retriever,
       corpusRootPath: tempDir.path,
+      sourceAdmissionResolver: SourceAdmissionResolver.empty(),
     ).importWorks(works: const ['tigui'], limitPerWork: 0);
 
     expect(report.indexedRecords, 2);
@@ -202,6 +207,7 @@ void main() {
     final importer = NovelCorpusImporter(
       retriever: retriever,
       corpusRootPath: tempDir.path,
+      sourceAdmissionResolver: SourceAdmissionResolver.empty(),
       batchSize: 2,
     );
     var checkpoint = 0;
@@ -240,14 +246,111 @@ void main() {
       NovelCorpusImporter(
         retriever: retriever,
         corpusRootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.empty(),
       ).importWorks(works: const ['guimi'], limitPerWork: 0),
       throwsStateError,
     );
   });
+
+  test(
+    'rejects a corpus without source_manifest before writing index',
+    () async {
+      _writeAtoms(tempDir, 'unknown', [
+        _atom(
+          id: 'unknown_a1',
+          sceneId: 'unknown_s1',
+          text: '合成测试素材。',
+          hash: 'h1',
+        ),
+      ], writeManifest: false);
+
+      await expectLater(
+        NovelCorpusImporter(
+          retriever: retriever,
+          corpusRootPath: tempDir.path,
+          sourceAdmissionResolver: SourceAdmissionResolver.empty(),
+        ).importWorks(works: const ['unknown'], limitPerWork: 0),
+        throwsA(
+          isA<SourceAdmissionException>().having(
+            (error) => error.reasonCode,
+            'reasonCode',
+            SourceAdmissionReasonCode.unknownSource,
+          ),
+        ),
+      );
+      expect(_count(db, 'rag_documents'), 0);
+      expect(_count(db, 'vector_embeddings'), 0);
+    },
+  );
+
+  test('preflight denies unknown work without exposing its root path', () {
+    final importer = NovelCorpusImporter(
+      retriever: retriever,
+      corpusRootPath: tempDir.path,
+      sourceAdmissionResolver: SourceAdmissionResolver.empty(),
+    );
+
+    expect(
+      () => importer.assertWorksAdmitted(works: const ['unknown']),
+      throwsA(
+        isA<SourceAdmissionException>()
+            .having(
+              (error) => error.reasonCode,
+              'reasonCode',
+              SourceAdmissionReasonCode.unknownSource,
+            )
+            .having(
+              (error) => error.toString(),
+              'public message',
+              isNot(contains(tempDir.path)),
+            ),
+      ),
+    );
+    expect(_count(db, 'rag_documents'), 0);
+    expect(_count(db, 'vector_embeddings'), 0);
+  });
+
+  test('rejects a processing manifest as source authorization', () async {
+    _writeAtoms(tempDir, 'processing_only', [
+      _atom(
+        id: 'processing_a1',
+        sceneId: 'processing_s1',
+        text: '合成测试素材。',
+        hash: 'h1',
+      ),
+    ], writeManifest: false);
+    File(
+      '${tempDir.path}/processing_only/manifest.json',
+    ).writeAsStringSync(jsonEncode({'kind': 'processing-only'}));
+
+    await expectLater(
+      NovelCorpusImporter(
+        retriever: retriever,
+        corpusRootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.empty(),
+      ).importWorks(works: const ['processing_only'], limitPerWork: 0),
+      throwsA(
+        isA<SourceAdmissionException>().having(
+          (error) => error.reasonCode,
+          'reasonCode',
+          SourceAdmissionReasonCode.processingManifestOnly,
+        ),
+      ),
+    );
+    expect(_count(db, 'rag_documents'), 0);
+    expect(_count(db, 'vector_embeddings'), 0);
+  });
 }
 
-int _count(Database db, String table) =>
-    db.select('SELECT count(*) AS count FROM $table').single['count'] as int;
+int _count(Database db, String table) {
+  try {
+    return db.select('SELECT count(*) AS count FROM $table').single['count']
+        as int;
+  } on SqliteException catch (error) {
+    if (error.message.contains('no such table')) return 0;
+    rethrow;
+  }
+}
 
 Future<StoryRetrievalPack> _retrieve(
   HybridRetriever retriever,
@@ -294,11 +397,38 @@ Map<String, Object?> _atom({
 void _writeAtoms(
   Directory root,
   String work,
-  List<Map<String, Object?>> records,
-) {
+  List<Map<String, Object?>> records, {
+  bool writeManifest = true,
+}) {
   final directory = Directory('${root.path}/$work')
     ..createSync(recursive: true);
+  if (writeManifest) _writeSourceManifest(directory, work);
   File(
     '${directory.path}/atoms.jsonl',
   ).writeAsStringSync(records.map(jsonEncode).join('\n'));
+}
+
+void _writeSourceManifest(Directory workRoot, String work) {
+  File('${workRoot.path}/source_manifest.json').writeAsStringSync(
+    jsonEncode({
+      'schemaVersion': 'source-ledger-v1',
+      'generatedAtMs': 1,
+      'entries': [
+        {
+          'sourceId': 'synthetic-corpus-$work',
+          'title': 'synthetic-corpus-$work',
+          'licenseStatus': SourceLicenseStatus.userOwned.name,
+          'allowedUses': [AllowedSourceUse.localRiskScan.name],
+          'provenanceUri': 'test/fixtures/synthetic-corpus-$work.jsonl',
+          'provenanceHash':
+              'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+          'jurisdiction': 'test',
+          'determinationDateMs': 1,
+          'attributionRequired': false,
+          'reviewedBy': 'test',
+          'reviewedAtMs': 1,
+        },
+      ],
+    }),
+  );
 }

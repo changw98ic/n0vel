@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:novel_writer/features/story_generation/data/source_admission_resolver.dart';
+import 'package:novel_writer/features/story_generation/domain/source_ledger_models.dart';
+
 import '../domain/pipeline_models.dart' as domain;
 import 'scene_pipeline_models.dart' as scene;
 
@@ -12,16 +15,29 @@ const String kWritingReferenceToolName = 'search_writing_reference';
 /// from the source records are never copied into results.
 class MaterialReferenceRetriever {
   MaterialReferenceRetriever({
-    String rootPath = 'artifacts/writing_reference/jianlai',
+    String rootPath = '',
+    ApprovedStyleReferenceBundle? approvedBundle,
+    SourceAdmissionResolver? sourceAdmissionResolver,
+    ReferenceUsage requestedUsage = ReferenceUsage.licensedExcerpts,
     int defaultLimit = 6,
     int maxLimit = 12,
     int excerptCharLimit = 220,
   }) : _rootPath = rootPath,
+       _approvedBundle =
+           approvedBundle ??
+           sourceAdmissionResolver?.resolveRoot(
+             rootPath: rootPath,
+             requestedUsage: requestedUsage,
+           ) ??
+           ApprovedStyleReferenceBundle.denied(
+             SourceAdmissionReasonCode.unknownSource,
+           ),
        _maxLimit = _boundedMaxLimit(maxLimit),
        _defaultLimit = _boundedDefaultLimit(defaultLimit, maxLimit),
        _excerptCharLimit = excerptCharLimit.clamp(24, 1000);
 
   final String _rootPath;
+  final ApprovedStyleReferenceBundle _approvedBundle;
   final int _defaultLimit;
   final int _maxLimit;
   final int _excerptCharLimit;
@@ -37,6 +53,12 @@ class MaterialReferenceRetriever {
   }
 
   MaterialReferenceResult searchSync(MaterialReferenceQuery query) {
+    if (!_canReadReferenceFiles) {
+      return MaterialReferenceResult.denied(
+        source: _sourceWithoutFilesystem(query.source).name,
+        reasonCode: _approvedBundle.denialReasonCode,
+      );
+    }
     final source = _resolveSource(query.source);
     final records = _loadRecords(source);
     final fallbackTextByScene = source == MaterialReferenceSource.refinedScenes
@@ -73,6 +95,8 @@ class MaterialReferenceRetriever {
     return MaterialReferenceResult(
       source: source.name,
       hits: List<MaterialReferenceHit>.unmodifiable(hits),
+      sourceAdmissionDenied: false,
+      sourceAdmissionReasonCode: _approvedBundle.denialReasonCode.name,
     );
   }
 
@@ -90,7 +114,9 @@ class MaterialReferenceRetriever {
       metadata: {
         'source': result.source,
         'hitCount': result.hits.length,
-        'chunkIds': [for (final hit in result.hits) hit.chunkId],
+        'sourceAdmissionDenied': result.sourceAdmissionDenied,
+        if (result.sourceAdmissionReasonCode != null)
+          'sourceAdmissionReasonCode': result.sourceAdmissionReasonCode,
       },
     );
   }
@@ -107,17 +133,19 @@ class MaterialReferenceRetriever {
   }
 
   MaterialReferenceSource _resolveSource(String? raw) {
+    final explicit = _sourceWithoutFilesystem(raw);
+    if ((raw ?? '').trim().isNotEmpty) return explicit;
+    final refined = File('$_rootPath/refined_scenes.jsonl');
+    if (refined.existsSync()) return MaterialReferenceSource.refinedScenes;
+    return MaterialReferenceSource.ragContextualAtoms;
+  }
+
+  MaterialReferenceSource _sourceWithoutFilesystem(String? raw) {
     final normalized = (raw ?? '').trim();
-    if (normalized == MaterialReferenceSource.ragContextualAtoms.name ||
-        normalized == 'rag_contextual_atoms') {
-      return MaterialReferenceSource.ragContextualAtoms;
-    }
     if (normalized == MaterialReferenceSource.refinedScenes.name ||
         normalized == 'refined_scenes') {
       return MaterialReferenceSource.refinedScenes;
     }
-    final refined = File('$_rootPath/refined_scenes.jsonl');
-    if (refined.existsSync()) return MaterialReferenceSource.refinedScenes;
     return MaterialReferenceSource.ragContextualAtoms;
   }
 
@@ -161,7 +189,10 @@ class MaterialReferenceRetriever {
   }) {
     final chunkId = _chunkId(record);
     if (chunkId.isEmpty) return null;
-    final text = _compact(_firstText(record, fallbackTextByScene));
+    final promptSafeText = _redactPromptBoundSourceLabels(
+      _firstText(record, fallbackTextByScene),
+    );
+    final text = _compact(promptSafeText);
     if (text.isEmpty) return null;
     return MaterialReferenceHit(
       chunkId: chunkId,
@@ -245,6 +276,25 @@ class MaterialReferenceRetriever {
     return requested.clamp(1, _maxLimit);
   }
 
+  bool get _canReadReferenceFiles =>
+      _approvedBundle.allowed &&
+      _rootPath.trim().isNotEmpty &&
+      _approvedBundle.runtimeRootPath != null &&
+      _sameRoot(_rootPath, _approvedBundle.runtimeRootPath!) &&
+      (_approvedBundle.referenceUsage == ReferenceUsage.licensedExcerpts ||
+          _approvedBundle.referenceUsage ==
+              ReferenceUsage.userOwnedFullContext);
+
+  static bool _sameRoot(String left, String right) {
+    final normalizedLeft = Directory(
+      left.trim(),
+    ).absolute.uri.normalizePath().toFilePath();
+    final normalizedRight = Directory(
+      right.trim(),
+    ).absolute.uri.normalizePath().toFilePath();
+    return normalizedLeft == normalizedRight;
+  }
+
   List<String> _terms(String value) {
     final normalized = value.trim().toLowerCase();
     if (normalized.isEmpty) return const <String>[];
@@ -290,10 +340,82 @@ class MaterialReferenceRetriever {
 
   String _compact(String value) {
     final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.length <= _excerptCharLimit) return normalized;
-    return '${normalized.substring(0, _excerptCharLimit - 3)}...';
+    final sourceLimit = _approvedBundle.sources.isEmpty
+        ? null
+        : _approvedBundle.sources
+              .map((source) => source.excerptLimitChars)
+              .whereType<int>()
+              .fold<int?>(
+                null,
+                (min, value) => min == null || value < min ? value : min,
+              );
+    final limit = sourceLimit == null
+        ? _excerptCharLimit
+        : sourceLimit.clamp(0, _excerptCharLimit);
+    if (limit <= 0) return '';
+    final runes = normalized.runes;
+    if (runes.length <= limit) return normalized;
+    if (limit <= 3) return String.fromCharCodes(runes.take(limit));
+    return '${String.fromCharCodes(runes.take(limit - 3))}...';
+  }
+
+  String _redactPromptBoundSourceLabels(String value) {
+    var sanitized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (sanitized.isEmpty) return '';
+
+    final labels = <String>{};
+    void addLabel(String? raw, {bool includeBasename = false}) {
+      final label = raw?.replaceAll(RegExp(r'\s+'), ' ').trim() ?? '';
+      if (label.length < 2) return;
+      labels.add(label);
+      if (!includeBasename) return;
+      final normalizedPath = label.replaceAll('\\', '/');
+      final basename = normalizedPath.split('/').last.trim();
+      if (basename.length >= 2) {
+        labels.add(basename);
+        final extensionIndex = basename.lastIndexOf('.');
+        if (extensionIndex > 1) {
+          labels.add(basename.substring(0, extensionIndex));
+        }
+      }
+    }
+
+    addLabel(_rootPath, includeBasename: true);
+    addLabel(_approvedBundle.runtimeRootPath, includeBasename: true);
+    for (final source in _approvedBundle.sources) {
+      addLabel(source.title);
+      addLabel(source.creator);
+      addLabel(source.sourceId);
+      addLabel(source.provenanceUri, includeBasename: true);
+    }
+
+    final orderedLabels = labels.toList(growable: false)
+      ..sort((left, right) => right.length.compareTo(left.length));
+    for (final label in orderedLabels) {
+      sanitized = sanitized.replaceAll(
+        RegExp(RegExp.escape(label), caseSensitive: false),
+        _promptSourceRedaction,
+      );
+    }
+    sanitized = sanitized
+        .replaceAll(_promptSourceMetadataKey, '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final meaningful = sanitized
+        .replaceAll(_promptSourceRedaction, '')
+        .replaceAll(RegExp(r'[\s,，;；:：=|/\\._\-\[\]()]+'), '');
+    return meaningful.isEmpty ? '' : sanitized;
   }
 }
+
+const String _promptSourceRedaction = '[来源已脱敏]';
+
+final RegExp _promptSourceMetadataKey = RegExp(
+  r'(?:source[_ -]?id|title|creator|author|root(?:[_ -]?path)?|'
+  r'provenance(?:[_ -]?(?:uri|path|label))?|作品名|书名|作者|来源标识|'
+  r'根目录|出处)\s*[:：=]\s*',
+  caseSensitive: false,
+);
 
 enum MaterialReferenceSource {
   refinedScenes('refined_scenes.jsonl'),
@@ -358,19 +480,49 @@ class MaterialReferenceQuery {
 }
 
 class MaterialReferenceResult {
-  const MaterialReferenceResult({required this.source, required this.hits});
+  const MaterialReferenceResult({
+    required this.source,
+    required this.hits,
+    this.sourceAdmissionDenied = false,
+    this.sourceAdmissionReasonCode,
+  });
+
+  factory MaterialReferenceResult.denied({
+    required String source,
+    required SourceAdmissionReasonCode reasonCode,
+  }) => MaterialReferenceResult(
+    source: source,
+    hits: const <MaterialReferenceHit>[],
+    sourceAdmissionDenied: true,
+    sourceAdmissionReasonCode: reasonCode.name,
+  );
 
   final String source;
   final List<MaterialReferenceHit> hits;
+  final bool sourceAdmissionDenied;
+  final String? sourceAdmissionReasonCode;
 
-  String toPromptSummary({int? maxHits}) {
-    final capped = maxHits == null ? hits : hits.take(maxHits);
-    return capped.map((hit) => hit.toPromptLine()).join('\n');
+  String toPromptSummary({int? maxHits, int maxChars = 900}) {
+    if (sourceAdmissionDenied) return '';
+    if (maxChars <= 0) return '';
+    final capped = (maxHits == null ? hits : hits.take(maxHits)).toList(
+      growable: false,
+    );
+    final summary = <String>[
+      for (var index = 0; index < capped.length; index += 1)
+        capped[index].toPromptLine(promptIndex: index + 1),
+    ].join('\n');
+    final runes = summary.runes;
+    if (runes.length <= maxChars) return summary;
+    return String.fromCharCodes(runes.take(maxChars));
   }
 
   Map<String, Object?> toJson() {
     return {
       'source': source,
+      'sourceAdmissionDenied': sourceAdmissionDenied,
+      if (sourceAdmissionReasonCode != null)
+        'sourceAdmissionReasonCode': sourceAdmissionReasonCode,
       'results': [for (final hit in hits) hit.toJson()],
     };
   }
@@ -410,15 +562,9 @@ class MaterialReferenceHit {
     };
   }
 
-  String toPromptLine() {
-    final labels = [
-      if (primaryTag.isNotEmpty) primaryTag,
-      ...retrievalRoles,
-      ...tags.take(3),
-    ].join('/');
-    final use = useWhen.isEmpty ? '' : ' use_when=$useWhen';
+  String toPromptLine({required int promptIndex}) {
     final body = excerpt.isEmpty ? '' : ' excerpt=$excerpt';
-    return '[$chunkId] $labels$use$body'.trim();
+    return '[ref_$promptIndex]$body'.trim();
   }
 }
 
