@@ -85,19 +85,26 @@ class ServiceRegistry {
   /// the registry.
   @mustCallSuper
   void disposeAll() {
+    Object? firstError;
+    StackTrace? firstStackTrace;
     for (final type in _creationOrder.reversed) {
       if (_borrowedInstances.contains(type)) {
         continue;
       }
       final instance = _instances[type];
-      if (instance is AppStoreListenable) {
-        instance.dispose();
-      } else if (instance is sqlite3.Database) {
-        instance.dispose();
-      } else if (instance is AppEventBus) {
-        instance.dispose();
-      } else if (instance is AppEventLog) {
-        instance.dispose();
+      try {
+        if (instance is AppStoreListenable) {
+          instance.dispose();
+        } else if (instance is sqlite3.Database) {
+          instance.dispose();
+        } else if (instance is AppEventBus) {
+          instance.dispose();
+        } else if (instance is AppEventLog) {
+          instance.dispose();
+        }
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
       }
     }
     _instances.clear();
@@ -105,6 +112,9 @@ class ServiceRegistry {
     _creationOrder.clear();
     _resolving.clear();
     _borrowedInstances.clear();
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
   }
 
   /// Wait for asynchronous persistence queues owned by resolved stores.
@@ -182,10 +192,22 @@ class ServiceRegistry {
   /// rethrown to the caller so a clean-shutdown marker is not written for a
   /// session whose latest edit was not durable.
   Future<void> shutdown() async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
     try {
       await flushAll();
-    } finally {
+    } catch (error, stackTrace) {
+      firstError = error;
+      firstStackTrace = stackTrace;
+    }
+    try {
       disposeAll();
+    } catch (error, stackTrace) {
+      firstError ??= error;
+      firstStackTrace ??= stackTrace;
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
     }
   }
 }

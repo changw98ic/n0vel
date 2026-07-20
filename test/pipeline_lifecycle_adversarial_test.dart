@@ -9,8 +9,11 @@ import 'package:novel_writer/features/story_generation/data/generation_ledger_mo
 import 'package:novel_writer/features/story_generation/data/generation_stage_checkpoint_codec.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/scene_roleplay_session_models.dart';
+import 'package:novel_writer/features/story_generation/data/step_io.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/event_log.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/stage_runner.dart';
 import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
@@ -151,6 +154,23 @@ void main() {
       expect(director.calls, 0);
     });
 
+    test('typed run pre-cancel does not read checkpoint store', () async {
+      final settings = AppSettingsStore(storage: InMemoryAppSettingsStorage());
+      addTearDown(settings.dispose);
+      final runner = _runner(settings, _StableDirector())
+        ..checkpointRunId = 'run-typed-cancel'
+        ..checkpointStore = _FailOnLoadCheckpointStore()
+        ..isRunCancelled = () => true;
+      final brief = _brief();
+      final context = _typedContext(runner, brief);
+
+      final result = await runner.run(context.sceneBrief, context);
+
+      expect(result.success, isFalse);
+      expect(result.failureCode, FailureCode.blocked);
+      expect(result.failedStageId, 'run_start');
+    });
+
     test(
       'file-backed completed provider checkpoint survives reopen without replay',
       () async {
@@ -256,6 +276,135 @@ void main() {
         );
       },
     );
+
+    test('typed run prepares and reuses its compatible resume chain', () async {
+      final settings = AppSettingsStore(storage: InMemoryAppSettingsStorage());
+      addTearDown(settings.dispose);
+      final checkpoints = _MemoryCheckpointStore();
+      final director = _StableDirector();
+      final first = _runner(settings, director)
+        ..checkpointRunId = 'run-typed-resume'
+        ..checkpointStore = checkpoints;
+
+      await first.runScene(_brief());
+      expect(director.calls, 1);
+
+      final resumed = _runner(settings, director)
+        ..checkpointRunId = 'run-typed-resume'
+        ..checkpointStore = checkpoints;
+      final brief = _brief();
+      final context = _typedContext(resumed, brief);
+
+      final result = await resumed.run(context.sceneBrief, context);
+
+      expect(result.success, isTrue);
+      expect(
+        director.calls,
+        1,
+        reason: 'typed run() must restore the compatible director checkpoint',
+      );
+      expect(
+        resumed.eventLog.query(stageId: 'director', eventType: 'stage_resumed'),
+        hasLength(1),
+      );
+    });
+
+    test(
+      'stale in-memory resume chain cannot cross checkpoint namespace',
+      () async {
+        final settings = AppSettingsStore(
+          storage: InMemoryAppSettingsStorage(),
+        );
+        addTearDown(settings.dispose);
+        final checkpoints = _MemoryCheckpointStore();
+        final director = _StableDirector();
+        final runner = _runner(settings, director)
+          ..checkpointRunId = 'run-stale-source'
+          ..checkpointStore = checkpoints;
+
+        await runner.runScene(_brief());
+        expect(director.calls, 1);
+
+        await runner.runScene(_brief());
+        expect(
+          director.calls,
+          1,
+          reason: 'second runScene call establishes the in-memory resume chain',
+        );
+        final resumedBeforeNamespaceChange = runner.eventLog
+            .query(stageId: 'context_enrichment', eventType: 'stage_resumed')
+            .length;
+
+        runner.checkpointRunId = 'run-stale-target';
+        var brief = _brief();
+        var context = _typedContext(runner, brief);
+
+        var result = await runner.run(context.sceneBrief, context);
+
+        expect(result.success, isTrue);
+        expect(director.calls, 2);
+        expect(
+          runner.eventLog
+              .query(stageId: 'context_enrichment', eventType: 'stage_resumed')
+              .length,
+          resumedBeforeNamespaceChange,
+        );
+
+        runner
+          ..checkpointRunId = 'run-stale-source'
+          ..checkpointProseRevision = 1;
+        brief = _brief();
+        context = _typedContext(runner, brief);
+
+        result = await runner.run(context.sceneBrief, context);
+
+        expect(result.success, isTrue);
+        expect(director.calls, 3);
+        expect(
+          runner.eventLog
+              .query(stageId: 'context_enrichment', eventType: 'stage_resumed')
+              .length,
+          resumedBeforeNamespaceChange,
+        );
+      },
+    );
+
+    test('wrong typed restored artifact is ignored and recomputed', () async {
+      final settings = AppSettingsStore(storage: InMemoryAppSettingsStorage());
+      addTearDown(settings.dispose);
+      final checkpoints = _MemoryCheckpointStore();
+      final director = _StableDirector();
+      final first = _runner(settings, director)
+        ..checkpointRunId = 'run-wrong-artifact'
+        ..checkpointStore = checkpoints;
+
+      await first.runScene(_brief());
+      expect(director.calls, 1);
+
+      const defaultRestorer = GenerationStageArtifactRestorer();
+      final resumed = _runner(settings, director)
+        ..checkpointRunId = 'run-wrong-artifact'
+        ..checkpointStore = checkpoints
+        ..checkpointArtifactRestorer = (checkpoint, input) async {
+          if (checkpoint.ordinal == 1) {
+            return const ContextEnrichmentOutput(
+              effectiveMaterials: ProjectMaterialSnapshot(),
+            );
+          }
+          return defaultRestorer(checkpoint, input);
+        };
+      final brief = _brief();
+      final context = _typedContext(resumed, brief);
+
+      final result = await resumed.run(context.sceneBrief, context);
+
+      expect(result.success, isTrue);
+      expect(
+        director.calls,
+        2,
+        reason: 'a mismatched TypedArtifact must not satisfy director output',
+      );
+    });
   });
 }
 
@@ -287,6 +436,25 @@ SceneBrief _brief() => SceneBrief(
   },
 );
 
+PipelineContext _typedContext(
+  PipelineStageRunnerImpl runner,
+  SceneBrief brief,
+) {
+  final sceneRef = SceneBriefRef(
+    projectId: brief.projectId ?? brief.chapterId,
+    sceneId: brief.sceneId,
+    sceneIndex: brief.sceneIndex,
+    totalScenesInChapter: brief.totalScenesInChapter,
+  );
+  return PipelineContext(
+    eventLog: runner.eventLog,
+    retrievalPolicy: runner.defaultRetrievalPolicy,
+    writebackGate: runner.writebackGate,
+    sceneBrief: sceneRef,
+    metadata: {'sceneBrief': brief},
+  );
+}
+
 class _MemoryCheckpointStore implements PipelineCheckpointStore {
   _MemoryCheckpointStore([Iterable<PipelineStageCheckpoint> initial = const []])
     : values = [...initial];
@@ -307,6 +475,18 @@ class _MemoryCheckpointStore implements PipelineCheckpointStore {
           value.stageAttempt == checkpoint.stageAttempt,
     );
     values.add(checkpoint);
+  }
+}
+
+class _FailOnLoadCheckpointStore implements PipelineCheckpointStore {
+  @override
+  Future<List<PipelineStageCheckpoint>> load({required String runId}) async {
+    throw StateError('checkpoint store must not be read after pre-cancel');
+  }
+
+  @override
+  Future<void> save(PipelineStageCheckpoint checkpoint) async {
+    throw StateError('checkpoint store must not be written after pre-cancel');
   }
 }
 

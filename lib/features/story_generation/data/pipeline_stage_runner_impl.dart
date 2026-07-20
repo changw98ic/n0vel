@@ -385,10 +385,13 @@ class PipelineStageRunnerImpl
     if (sceneBrief is SceneBrief) {
       final materials = context.metadata['materials'];
       try {
+        final preparedBrief = _briefWithStyleReference(sceneBrief);
+        _throwIfCancelled('run_start');
+        _resumeChain = await _prepareResumeChain(preparedBrief);
         final output = await StoryPromptTemplates.runWithLanguage(
           _settingsStore.promptLanguage,
           () => _runSceneFinalization(
-            _briefWithStyleReference(sceneBrief),
+            preparedBrief,
             materials: materials is ProjectMaterialSnapshot ? materials : null,
             context: _runnerContextFor(brief, context),
           ),
@@ -1757,6 +1760,8 @@ class PipelineStageRunnerImpl
     // have produced a new input after that selection.
     final checkpoint = _resumeChain[ordinal];
     if (checkpoint == null ||
+        checkpoint.runId != runId ||
+        checkpoint.proseRevision != checkpointProseRevision ||
         checkpoint.stageId != stageId ||
         checkpoint.inputDigest != inputDigest ||
         !await _checkpointCodec.validate(

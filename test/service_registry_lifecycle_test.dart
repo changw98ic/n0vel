@@ -21,6 +21,59 @@ class _FlushTrackingStore extends AppStoreListenable {
   }
 }
 
+class _EarlierLifecycleStore extends AppStoreListenable {
+  _EarlierLifecycleStore(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> flushPersistence() async {
+    events.add('flush:earlier');
+  }
+
+  @override
+  void dispose() {
+    events.add('dispose:earlier');
+    super.dispose();
+  }
+}
+
+class _FailingLifecycleStore extends AppStoreListenable {
+  _FailingLifecycleStore(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> flushPersistence() async {
+    events.add('flush:failing');
+    throw StateError('flush-failure');
+  }
+
+  @override
+  void dispose() {
+    events.add('dispose:failing');
+    super.dispose();
+    throw StateError('dispose-failure');
+  }
+}
+
+class _BorrowedLifecycleStore extends AppStoreListenable {
+  _BorrowedLifecycleStore(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> flushPersistence() async {
+    events.add('flush:borrowed');
+  }
+
+  @override
+  void dispose() {
+    events.add('dispose:borrowed');
+    super.dispose();
+  }
+}
+
 void main() {
   test('borrowed database remains usable after registry disposal', () {
     final database = sqlite3.sqlite3.openInMemory();
@@ -81,5 +134,55 @@ void main() {
     await registry.shutdown();
 
     expect(events, ['flush', 'dispose']);
+  });
+
+  test(
+    'shutdown disposes all owned services after flush failure and rethrows it',
+    () async {
+      final events = <String>[];
+      final registry = ServiceRegistry()
+        ..registerSingleton<_EarlierLifecycleStore>(
+          _EarlierLifecycleStore(events),
+        )
+        ..registerSingleton<_FailingLifecycleStore>(
+          _FailingLifecycleStore(events),
+        );
+
+      await expectLater(
+        registry.shutdown(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'flush-failure',
+          ),
+        ),
+      );
+
+      expect(events, [
+        'flush:failing',
+        'flush:earlier',
+        'dispose:failing',
+        'dispose:earlier',
+      ]);
+    },
+  );
+
+  test('flushAll visits owned stores in reverse creation order', () async {
+    final events = <String>[];
+    final registry = ServiceRegistry()
+      ..registerSingleton<_EarlierLifecycleStore>(
+        _EarlierLifecycleStore(events),
+      )
+      ..registerSingleton<_BorrowedLifecycleStore>(
+        _BorrowedLifecycleStore(events),
+        owned: false,
+      )
+      ..registerSingleton<_FlushTrackingStore>(_FlushTrackingStore(events));
+
+    await registry.flushAll();
+
+    expect(events, ['flush', 'flush:earlier']);
+    registry.disposeAll();
   });
 }
