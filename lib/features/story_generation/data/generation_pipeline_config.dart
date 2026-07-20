@@ -1,4 +1,5 @@
 import '../../../app/state/app_workspace_store.dart';
+import '../domain/literary_quality_models.dart';
 import 'style_reference_config.dart';
 
 class GenerationPipelineConfig {
@@ -17,6 +18,7 @@ class GenerationPipelineConfig {
     this.maxConcurrentScenes = 2,
     this.maxSceneRetries = 2,
     this.hardGatesEnabled = true,
+    this.literaryQualityGateMode = LiteraryQualityGateMode.legacy95,
   });
 
   final int maxProseRetries;
@@ -30,6 +32,7 @@ class GenerationPipelineConfig {
   final int maxConcurrentScenes;
   final int maxSceneRetries;
   final bool hardGatesEnabled;
+  final LiteraryQualityGateMode literaryQualityGateMode;
 
   factory GenerationPipelineConfig.fromWorkspace(
     AppWorkspaceStore workspaceStore,
