@@ -6,7 +6,9 @@ import 'package:novel_writer/features/story_generation/data/knowledge_tool_regis
 import 'package:novel_writer/features/story_generation/data/material_reference_retriever.dart';
 import 'package:novel_writer/features/story_generation/data/retrieval_controller.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart';
+import 'package:novel_writer/features/story_generation/data/source_admission_resolver.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
+import 'package:novel_writer/features/story_generation/domain/source_ledger_models.dart';
 
 void main() {
   group('MaterialReferenceRetriever', () {
@@ -70,7 +72,13 @@ void main() {
           'quality_flags': ['semantic_atom'],
         },
       ]);
-      retriever = MaterialReferenceRetriever(rootPath: tempDir.path);
+      _writeSourceManifest(tempDir, excerptLimitChars: 220);
+      retriever = MaterialReferenceRetriever(
+        rootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.fromManifestFile(
+          File('${tempDir.path}/source_manifest.json'),
+        ),
+      );
     });
 
     tearDown(() {
@@ -128,6 +136,9 @@ void main() {
       ]);
       final looseRetriever = MaterialReferenceRetriever(
         rootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.fromManifestFile(
+          File('${tempDir.path}/source_manifest.json'),
+        ),
         defaultLimit: 30,
         maxLimit: 99,
         excerptCharLimit: 32,
@@ -164,6 +175,108 @@ void main() {
       expect(result.hits, isEmpty);
     });
 
+    test(
+      'fails closed without source admission and does not prompt render',
+      () {
+        final deniedRetriever = MaterialReferenceRetriever(
+          rootPath: tempDir.path,
+        );
+
+        final result = deniedRetriever.searchSync(
+          const MaterialReferenceQuery(query: '对白 潜台词', limit: 5),
+        );
+
+        expect(result.sourceAdmissionDenied, isTrue);
+        expect(
+          result.sourceAdmissionReasonCode,
+          SourceAdmissionReasonCode.unknownSource.name,
+        );
+        expect(result.hits, isEmpty);
+        expect(result.toPromptSummary(), isEmpty);
+        // The root contains refined_scenes.jsonl, but a denied lookup chooses
+        // its neutral source value without probing that file first.
+        expect(result.source, MaterialReferenceSource.ragContextualAtoms.name);
+        expect(jsonEncode(result.toJson()), isNot(contains('synthetic-title')));
+      },
+    );
+
+    test('does not reuse an admitted bundle for a different root', () {
+      final otherRoot = Directory('${tempDir.path}/other')..createSync();
+      _writeJsonl('${otherRoot.path}/refined_scenes.jsonl', [
+        {'chunk_id': 'must_not_load', 'excerpt': '不应读取的文本'},
+      ]);
+      final resolver = SourceAdmissionResolver.fromManifestFile(
+        File('${tempDir.path}/source_manifest.json'),
+      );
+      final bundle = resolver.resolveRoot(
+        rootPath: tempDir.path,
+        requestedUsage: ReferenceUsage.licensedExcerpts,
+      );
+
+      final result = MaterialReferenceRetriever(
+        rootPath: otherRoot.path,
+        approvedBundle: bundle,
+      ).searchSync(const MaterialReferenceQuery(query: '文本'));
+
+      expect(result.sourceAdmissionDenied, isTrue);
+      expect(result.hits, isEmpty);
+      expect(result.toPromptSummary(), isEmpty);
+    });
+
+    test('honors source ledger excerpt limit below retriever limit', () {
+      _writeSourceManifest(tempDir, excerptLimitChars: 18);
+      final cappedRetriever = MaterialReferenceRetriever(
+        rootPath: tempDir.path,
+        sourceAdmissionResolver: SourceAdmissionResolver.fromManifestFile(
+          File('${tempDir.path}/source_manifest.json'),
+        ),
+        excerptCharLimit: 80,
+      );
+
+      final result = cappedRetriever.searchSync(
+        const MaterialReferenceQuery(query: '对白 潜台词', limit: 5),
+      );
+
+      expect(result.sourceAdmissionDenied, isFalse);
+      expect(result.hits.first.excerpt.length, lessThanOrEqualTo(18));
+      expect(result.hits.first.excerpt, endsWith('...'));
+    });
+
+    test('redacts all source and provenance labels from prompt excerpts', () {
+      const provenance = 'test/fixtures/synthetic-material-reference.jsonl';
+      final rootAlias = tempDir.path.replaceAll('\\', '/').split('/').last;
+      _writeJsonl('${tempDir.path}/refined_scenes.jsonl', [
+        {
+          'chunk_id': 'source_label_probe',
+          'excerpt':
+              '作品名=synthetic-title；作者=synthetic-creator；'
+              'sourceId=synthetic-material-reference；'
+              'root=${tempDir.path}；root=$rootAlias；'
+              'provenance=$provenance；'
+              '人物在门前停步，随后把质问改成一句寻常寒暄。',
+        },
+      ]);
+
+      final result = retriever.searchSync(
+        const MaterialReferenceQuery(query: '人物 门前', limit: 1),
+      );
+      final prompt = result.toPromptSummary();
+
+      expect(prompt, contains('人物在门前停步'));
+      expect(prompt, contains('[来源已脱敏]'));
+      for (final forbidden in <String>[
+        'synthetic-title',
+        'synthetic-creator',
+        'synthetic-material-reference',
+        tempDir.path,
+        rootAlias,
+        provenance,
+        'synthetic-material-reference.jsonl',
+      ]) {
+        expect(prompt, isNot(contains(forbidden)));
+      }
+    });
+
     test('registers as in-app knowledge tool', () async {
       final registry = KnowledgeToolRegistry(
         tools: createMaterialReferenceTools(retriever: retriever),
@@ -176,7 +289,9 @@ void main() {
       });
 
       expect(capsule.sourceTool, kWritingReferenceToolName);
-      expect(capsule.summary, contains('jianlai_ch0001_sc002'));
+      expect(capsule.summary, contains('[ref_1]'));
+      expect(capsule.summary, contains('小镇旧俗'));
+      expect(capsule.summary, isNot(contains('jianlai')));
       expect(capsule.summary, isNot(contains('advice')));
     });
 
@@ -191,7 +306,9 @@ void main() {
       });
 
       expect(capsule.sourceTool, kWritingReferenceToolName);
-      expect(capsule.summary, contains('jianlai_ch0001_sc001'));
+      expect(capsule.summary, contains('[ref_1]'));
+      expect(capsule.summary, contains('没说出口'));
+      expect(capsule.summary, isNot(contains('jianlai')));
       expect(capsule.summary, isNot(contains('avoid_using_for')));
     });
 
@@ -223,7 +340,9 @@ void main() {
         );
         expect(capsules, hasLength(1));
         expect(capsules.first.intent.toolName, kWritingReferenceToolName);
-        expect(capsules.first.summary, contains('jianlai_ch0001_sc001'));
+        expect(capsules.first.summary, contains('[ref_1]'));
+        expect(capsules.first.summary, contains('没说出口'));
+        expect(capsules.first.summary, isNot(contains('jianlai')));
         expect(capsules.first.summary, isNot(contains('lesson')));
       },
     );
@@ -232,6 +351,33 @@ void main() {
 
 void _writeJsonl(String path, List<Map<String, Object?>> records) {
   File(path).writeAsStringSync(records.map(jsonEncode).join('\n'));
+}
+
+void _writeSourceManifest(Directory root, {required int excerptLimitChars}) {
+  File('${root.path}/source_manifest.json').writeAsStringSync(
+    jsonEncode({
+      'schemaVersion': 'source-ledger-v1',
+      'generatedAtMs': 1,
+      'entries': [
+        {
+          'sourceId': 'synthetic-material-reference',
+          'title': 'synthetic-title',
+          'creator': 'synthetic-creator',
+          'licenseStatus': SourceLicenseStatus.licensed.name,
+          'allowedUses': [AllowedSourceUse.shortExcerpt.name],
+          'provenanceUri': 'test/fixtures/synthetic-material-reference.jsonl',
+          'provenanceHash':
+              'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+          'jurisdiction': 'test',
+          'determinationDateMs': 1,
+          'excerptLimitChars': excerptLimitChars,
+          'attributionRequired': false,
+          'reviewedBy': 'test',
+          'reviewedAtMs': 1,
+        },
+      ],
+    }),
+  );
 }
 
 SceneTaskCard _taskCard() {

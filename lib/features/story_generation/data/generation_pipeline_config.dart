@@ -12,8 +12,8 @@ class GenerationPipelineConfig {
     // a substantive revision without lowering the 95/90 admission gate.
     this.maxQualityRepairRetries = 2,
     this.maxSceneReplanRetries = 1,
-    this.enableWritingReference = true,
-    this.styleReferenceConfig = const StyleReferenceConfig.defaultEnabled(),
+    this.enableWritingReference = false,
+    this.styleReferenceConfig = const StyleReferenceConfig.disabled(),
     this.maxConcurrentScenes = 2,
     this.maxSceneRetries = 2,
     this.hardGatesEnabled = true,
@@ -36,7 +36,7 @@ class GenerationPipelineConfig {
   ) {
     final config = _styleReferenceConfigFromWorkspace(workspaceStore);
     return GenerationPipelineConfig(
-      enableWritingReference: config.enabled,
+      enableWritingReference: config.allowWritingReferenceRetrieval,
       styleReferenceConfig: config,
     );
   }
@@ -47,7 +47,7 @@ StyleReferenceConfig _styleReferenceConfigFromWorkspace(
 ) {
   final profile = workspaceStore.selectedStyleProfile;
   if (profile == null) {
-    return const StyleReferenceConfig(enabled: false);
+    return const StyleReferenceConfig.disabled();
   }
   return StyleReferenceConfig.fromProfile(
     intensity: workspaceStore.styleIntensity,

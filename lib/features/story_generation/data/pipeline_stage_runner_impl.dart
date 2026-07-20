@@ -236,12 +236,12 @@ class PipelineStageRunnerImpl
       roleplaySessionStore: roleplaySessionStore,
       characterMemoryStore: characterMemoryStore,
       retrievalController: RetrievalController(
-        materialReferenceRetriever: MaterialReferenceRetriever(
-          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        materialReferenceRetriever: _materialReferenceRetrieverFrom(
+          pipelineConfig.styleReferenceConfig,
         ),
-        enableWritingReference:
-            pipelineConfig.enableWritingReference &&
-            pipelineConfig.styleReferenceConfig.enabled,
+        enableWritingReference: _writingReferenceRetrievalEnabled(
+          pipelineConfig,
+        ),
       ),
     );
     _stageNarrationStep = StageNarrationStep(
@@ -252,12 +252,12 @@ class PipelineStageRunnerImpl
             eventLog: sharedEventLog,
           ),
       retrievalController: RetrievalController(
-        materialReferenceRetriever: MaterialReferenceRetriever(
-          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        materialReferenceRetriever: _materialReferenceRetrieverFrom(
+          pipelineConfig.styleReferenceConfig,
         ),
-        enableWritingReference:
-            pipelineConfig.enableWritingReference &&
-            pipelineConfig.styleReferenceConfig.enabled,
+        enableWritingReference: _writingReferenceRetrievalEnabled(
+          pipelineConfig,
+        ),
       ),
     );
     _beatResolutionStep = BeatResolutionStep(
@@ -300,6 +300,44 @@ class PipelineStageRunnerImpl
   bool get enableWritingReference => _pipelineConfig.enableWritingReference;
   StyleReferenceConfig get styleReferenceConfig =>
       _pipelineConfig.styleReferenceConfig;
+
+  static bool _writingReferenceRetrievalEnabled(
+    GenerationPipelineConfig config,
+  ) {
+    return config.enableWritingReference &&
+        config.styleReferenceConfig.enabled &&
+        config.styleReferenceConfig.allowWritingReferenceRetrieval &&
+        config.styleReferenceConfig.rootPath.trim().isNotEmpty;
+  }
+
+  static MaterialReferenceRetriever? _materialReferenceRetrieverFrom(
+    StyleReferenceConfig config,
+  ) {
+    if (!config.allowWritingReferenceRetrieval ||
+        config.rootPath.trim().isEmpty) {
+      return null;
+    }
+    final approvedBundle = config.approvedBundle;
+    if (approvedBundle == null) return null;
+    final excerptLimit = config.approvedBundle?.sources
+        .map((source) => source.excerptLimitChars)
+        .whereType<int>()
+        .fold<int?>(
+          null,
+          (min, limit) => min == null || limit < min ? limit : min,
+        );
+    if (excerptLimit != null) {
+      return MaterialReferenceRetriever(
+        rootPath: config.rootPath,
+        approvedBundle: approvedBundle,
+        excerptCharLimit: excerptLimit,
+      );
+    }
+    return MaterialReferenceRetriever(
+      rootPath: config.rootPath,
+      approvedBundle: approvedBundle,
+    );
+  }
 
   late final PipelineEventLog _eventLog;
   late final MemoryWritebackGate _writebackGate;
@@ -529,7 +567,7 @@ class PipelineStageRunnerImpl
   }
 
   SceneBrief _briefWithStyleReference(SceneBrief brief) {
-    if (!enableWritingReference || !styleReferenceConfig.enabled) {
+    if (!styleReferenceConfig.enabled) {
       return brief;
     }
     final styleSummary = styleReferenceConfig.promptSummary;
@@ -544,9 +582,12 @@ class PipelineStageRunnerImpl
       ].join('\n'),
       metadata: {
         ...brief.metadata,
-        'styleReferenceProfileId': styleReferenceConfig.profileId,
-        'styleReferenceProfileName': styleReferenceConfig.profileName,
-        'styleReferenceRootPath': styleReferenceConfig.rootPath,
+        if (styleReferenceConfig.approvedBundle != null)
+          'styleReferenceBundleHash':
+              styleReferenceConfig.approvedBundle!.identityHash,
+        if (styleReferenceConfig.approvedBundle != null)
+          'styleReferenceUsage':
+              styleReferenceConfig.approvedBundle!.referenceUsage.name,
       },
     );
   }

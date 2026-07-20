@@ -12,6 +12,7 @@ import 'package:novel_writer/app/rag/ollama_embedding_client.dart';
 import 'package:novel_writer/app/rag/sqlite_vss_store.dart';
 import 'package:novel_writer/app/rag/vector_embedding_profile.dart';
 import 'package:novel_writer/app/rag/vector_store_schema.dart';
+import 'package:novel_writer/features/story_generation/data/source_admission_resolver.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/rag_retrieval_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
@@ -158,6 +159,16 @@ Future<String> _run(List<String> arguments) async {
       );
     }
 
+    final importer = NovelCorpusImporter(
+      retriever: retriever,
+      corpusRootPath: config.corpusRootPath,
+      sourceAdmissionResolver: SourceAdmissionResolver.fromDefaultManifest(),
+      batchSize: config.batchSize,
+    );
+    // Resume-manifest preparation hashes atoms.jsonl. Admission must therefore
+    // succeed before that preparation, not only inside importWorks().
+    importer.assertWorksAdmitted(works: config.works);
+
     final importState = embeddingProfile == null
         ? null
         : await _prepareImportState(
@@ -165,11 +176,6 @@ Future<String> _run(List<String> arguments) async {
             config: config,
             profile: embeddingProfile,
           );
-    final importer = NovelCorpusImporter(
-      retriever: retriever,
-      corpusRootPath: config.corpusRootPath,
-      batchSize: config.batchSize,
-    );
     final report = await importer.importWorks(
       works: config.works,
       limitPerWork: config.limitPerWork,
