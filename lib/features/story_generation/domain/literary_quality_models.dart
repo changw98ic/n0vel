@@ -1396,8 +1396,10 @@ final class ProjectVoiceProfile {
     'descriptionDensity': descriptionDensity.toJson(),
     'emotionalTemperature': emotionalTemperature.wire,
     'voiceConstraints': [for (final item in voiceConstraints) item.toJson()],
+    'projectOwnedNotes': projectOwnedNotes,
     'tabooPatterns': tabooPatterns,
     'allowedDeviations': [for (final item in allowedDeviations) item.toJson()],
+    'provenanceRefs': provenanceRefs,
     'promptReleaseHash': promptReleaseHash,
   };
 
@@ -1461,10 +1463,12 @@ final class ProjectVoiceProfile {
       'voiceConstraints': [
         for (final item in normalizedVoiceConstraints) item.toJson(),
       ],
+      'projectOwnedNotes': projectOwnedNotes,
       'tabooPatterns': normalizedTabooPatterns,
       'allowedDeviations': [
         for (final item in normalizedAllowedDeviations) item.toJson(),
       ],
+      'provenanceRefs': _immutableSortedStrings(provenanceRefs),
       'promptReleaseHash': promptReleaseHash,
     };
     return ProjectVoiceProfile(
