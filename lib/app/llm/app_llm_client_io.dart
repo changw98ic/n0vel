@@ -169,6 +169,7 @@ class _IoAppLlmClient implements AppLlmClient {
         completionTokens: decoded?.completionTokens,
         totalTokens: decoded?.totalTokens,
         providerModel: decoded?.providerModel,
+        providerResponseId: decoded?.providerResponseId,
       );
     } on DioException catch (error) {
       final failure = _mapDioException(error);

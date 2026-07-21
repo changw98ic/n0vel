@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/app_llm_client_types.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_invocation.dart';
 import '../domain/contracts/settings_contract.dart';
 import 'evaluation/agent_evaluation_trace_context.dart';

@@ -354,7 +354,11 @@ void main() {
       // 连续返回不合规的输出
       fakeClient.results = [
         const AppLlmChatResult.success(text: 'short1'),
-        const AppLlmChatResult.success(text: 'short2'),
+        const AppLlmChatResult.success(
+          text: 'short2',
+          providerModel: 'provider-model-release',
+          providerResponseId: 'provider-response-123',
+        ),
       ];
 
       final client = AppLlmSchemaValidatingClient(
@@ -367,6 +371,8 @@ void main() {
 
       // 返回最后一次的结果
       expect(result.text, 'short2');
+      expect(result.providerModel, 'provider-model-release');
+      expect(result.providerResponseId, 'provider-response-123');
       expect(fakeClient.callCount, 2);
     });
 

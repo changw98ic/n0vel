@@ -322,6 +322,8 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
       completionTokens: original.completionTokens,
       totalTokens: original.totalTokens,
       tokenUsage: original.tokenUsage,
+      providerModel: original.providerModel,
+      providerResponseId: original.providerResponseId,
     );
   }
 }

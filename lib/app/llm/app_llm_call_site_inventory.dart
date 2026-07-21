@@ -127,7 +127,7 @@ final class AppLlmCallSiteInventory {
   );
 
   static const String expectedContentHash =
-      'sha256:de727075d313518fa3771cd718f9f5a6b2312eed43f9a7ba8ca573b411732147';
+      'sha256:66c8659c65669aee240ea4fe2baa40a24341633753f7b6cb1c549b144ad57f72';
 
   final List<AppLlmCallSiteInventoryEntry> entries;
 
@@ -275,6 +275,9 @@ AppLlmCallSiteInventoryEntry _storyPrompt(
   String? semanticVersion,
   String? releaseContentHash,
   List<String>? generationBundleHashes,
+  String sourcePath =
+      'lib/features/story_generation/data/story_prompt_registry.dart',
+  String reason = 'Production story-generation prompt release.',
 }) {
   final identity = _storyReleaseIdentities['$stageId\u0000$callSiteId'];
   if (identity == null) {
@@ -282,9 +285,9 @@ AppLlmCallSiteInventoryEntry _storyPrompt(
   }
   return AppLlmCallSiteInventoryEntry(
     id: 'prompt.story.$stageId.$callSiteId.zh${idSuffix ?? ''}',
-    sourcePath: 'lib/features/story_generation/data/story_prompt_registry.dart',
+    sourcePath: sourcePath,
     disposition: AppLlmCallSiteDisposition.registeredPrompt,
-    reason: 'Production story-generation prompt release.',
+    reason: reason,
     stageId: stageId,
     callSiteId: callSiteId,
     variantId: 'zh',
@@ -631,6 +634,15 @@ _entries = <AppLlmCallSiteInventoryEntry>[
     'scene_review_format_repair_judge',
   ),
   _storyPrompt('quality-gate', 'quality-scorer', 'scene_quality'),
+  _storyPrompt(
+    'literary-quality',
+    'scene-evaluator',
+    'scene_literary_quality_evaluation',
+    generationBundleHashes: const <String>[_storyLiteraryEvaluationBundleHash],
+    sourcePath:
+        'lib/features/story_generation/data/scene_literary_quality_evaluator.dart',
+    reason: 'Independent closed-schema literary-quality evaluator release.',
+  ),
   _storyPrompt('roleplay', 'role-agent-controller', 'role_agent_controller'),
   _storyPrompt('roleplay', 'role-turn', 'role_turn'),
   _storyPrompt('beat-resolution', 'beat-resolver', 'scene_beat_resolve'),
@@ -699,6 +711,8 @@ const String _storyChampionBundleHash =
     'sha256:12d9e1659ca588a134fe18ebfafb312032409d567719686fd89c44ef7c573b03';
 const String _storyCausalityChallengerBundleHash =
     'sha256:96b2ca057fc23432497a929585079c30cc1c1f20423404e84b1c414a3ef2b9df';
+const String _storyLiteraryEvaluationBundleHash =
+    'sha256:d7ad5efa0012d394bf4d55ff010489189b9e3bbf316bafae366b8a71ff391aed';
 
 const Map<String, ({String semanticVersion, String contentHash})>
 _storyReleaseIdentities = <String, ({String semanticVersion, String contentHash})>{
@@ -736,6 +750,11 @@ _storyReleaseIdentities = <String, ({String semanticVersion, String contentHash}
     semanticVersion: '2.1.1-extended-quality-rubric-strict-format',
     contentHash:
         'sha256:28c9e334bbdb1b703cecea525027eebc38a32262355da2e7c2bb408b85092e4f',
+  ),
+  'literary-quality\u0000scene-evaluator': (
+    semanticVersion: '1.2.0',
+    contentHash:
+        'sha256:a2e69dc47a58fe1bf3b49ee65266c690ce4cbfbbbb87092e3326dcb52fcb16d1',
   ),
   'roleplay\u0000role-agent-controller': (
     semanticVersion: '2.0.0-renderer-replay',

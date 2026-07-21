@@ -1,0 +1,54 @@
+{
+  "artifactVersion": "literary-quality-development-corpus-v1",
+  "corpusId": "literary-quality-dev-zh-synthetic-v1",
+  "rubricVersion": "scene-literary-quality-rubric-v1",
+  "parserRelease": "scene-literary-quality-parser-v1",
+  "thresholdPolicyVersion": "threshold-policy-v1-calibration",
+  "sourceAdmissionPolicy": "synthetic-project-owned-no-named-imitation-v1",
+  "uniqueFixtureCount": 300,
+  "primaryFamilyMinimums": {
+    "causalMainlineHard": 25,
+    "povKnowledge": 25,
+    "worldObjectTime": 25,
+    "motivationRelationship": 25,
+    "craftWeakness": 50,
+    "styleChoice": 50,
+    "effectiveDeviation": 30,
+    "prettyHollow": 30,
+    "highScoreDisguisedBad": 20
+  },
+  "negativeControlMinimums": {
+    "unreliableNarrator": 10,
+    "nonlinearTime": 10,
+    "multiplePov": 10,
+    "freeIndirectDiscourse": 10,
+    "declaredRuleException": 10
+  },
+  "minimumVoiceCount": 5,
+  "minimumFixturesPerVoice": 20,
+  "requiredAnchorScores": [
+    60,
+    75,
+    85,
+    90,
+    95
+  ],
+  "fixtureShards": [
+    "fixtures/causal_mainline_hard.jsonl",
+    "fixtures/craft_weakness.jsonl",
+    "fixtures/effective_deviation.jsonl",
+    "fixtures/high_score_disguised_bad.jsonl",
+    "fixtures/motivation_relationship.jsonl",
+    "fixtures/pov_knowledge.jsonl",
+    "fixtures/pretty_hollow.jsonl",
+    "fixtures/style_choice.jsonl",
+    "fixtures/world_object_time.jsonl"
+  ],
+  "provenanceFile": "provenance.jsonl",
+  "fixtureSetHash": "sha256:b8562e49a4723c3303bafa9309f1ecdec11e3f5044953b8013d586240ec553ca",
+  "provenanceSetHash": "sha256:bfb1dbb527899deab492878d4ef7382ab9def64b020f47b58d4562566f83b4cd",
+  "corpusHash": "sha256:fa8b3bcf2ce391f3387c0a8d95e304a51db10d508704a5fef959daf9655b9bb7",
+  "certificationFence": false,
+  "formalHumanAdjudicatedHardCount": 0,
+  "formalHumanAdjudicatedNonHardCount": 0
+}
