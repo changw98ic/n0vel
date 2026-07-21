@@ -2,13 +2,13 @@
 
 | 元数据 | 值 |
 |---|---|
-| 状态 | Accepted specification；implementation not started |
+| 状态 | Accepted specification；WP0–WP2 complete，WP3-A active |
 | 版本 | 1.0 |
-| 日期 | 2026-07-20 |
+| 日期 | 2026-07-21 |
 | 适用仓库 | `changw98ic/n0vel` |
-| GitHub 记录 | [changw98ic/n0vel#100](https://github.com/changw98ic/n0vel/issues/100) |
+| GitHub 记录 | [总规格 #100](https://github.com/changw98ic/n0vel/issues/100)；[三章三臂实验 #108](https://github.com/changw98ic/n0vel/issues/108) |
 | 实施范围 | 场景/章节生成、项目文风、质量评测、定向修复、长篇账本、读者效果校准 |
-| 本轮边界 | 规格与真实模型基线，不修改生产逻辑或现有阈值 |
+| 当前边界 | WP3-A 只建立真实三章因果实验；证据通过前不修改默认生产逻辑或现有阈值 |
 
 ## 0. 执行摘要
 
@@ -1583,6 +1583,14 @@ proseHash
 
 退出条件：300 个 development fixtures 达到 beta 门槛；实验叙事负控不被误杀；无证据 blocker 被 parser 拒绝。正式 certification 的 600 个 hard/non-hard 决策可跨后续运行累计，不能由 300 fixture 假装满足。
 
+### WP3-A：三章三臂架构因果实验
+
+目标：在同一真实新作品、同一冻结前三章大纲和统一 no-content-redraw 政策下，对比当前架构、持续单 Narrator 和受限角色 Agent + World Resolver + 持续单 Narrator，先证明架构方向，再决定是否进入默认链路。
+
+权威实验合同：[WP3-A 三章三臂真实生成实验合同](literary-quality-wp3a-three-arm-experiment-contract.md)。本工作包由 [#108](https://github.com/changw98ic/n0vel/issues/108) 跟踪，不替代下方 `WP3：shadowV2 接入`。
+
+退出条件：A/B/C 各三次完整真实三章生成、十五张带文本证据的匿名强制排序票、至少每个 trial 一张人类票、完整 manifest/attempt/budget/no-redraw/blinding 证据；未达到方向性胜出门槛时保持当前默认架构。
+
 ### WP3：shadowV2 接入
 
 目标：在 ordinal 11 并行记录，不改变 production pass/fail。
@@ -1652,7 +1660,7 @@ proseHash
 
 退出条件：所有发布准入条件通过；各 candidate status 的 proof 行为有集成测试；workspace 可单独启用；切回 legacy 无数据迁移。
 
-依赖顺序：`WP0 → WP1 → WP2 → WP3 → WP4/WP5 → WP6 → WP7`。WP4 与 WP5 在 WP3 后可并行。每个 WP 默认单独 PR；WP3 未合入并证明零副作用前不得启动 WP7。
+依赖顺序：`WP0 → WP1 → WP2 → WP3-A → WP3 → WP4/WP5 → WP6 → WP7`。WP4 与 WP5 在 WP3 后可并行。每个 WP 默认单独 PR；WP3-A 没有完成真实三章因果验证前，不得默认化新的 authorship 架构；WP3 未合入并证明零副作用前不得启动 WP7。
 
 ---
 
