@@ -226,6 +226,7 @@ class AppLlmChatResult {
     this.totalTokens,
     this.tokenUsage,
     this.providerModel,
+    this.providerResponseId,
   }) : failureKind = null,
        statusCode = null,
        detail = null;
@@ -240,7 +241,8 @@ class AppLlmChatResult {
        completionTokens = null,
        totalTokens = null,
        tokenUsage = null,
-       providerModel = null;
+       providerModel = null,
+       providerResponseId = null;
 
   /// A provider failure whose conservative usage was sealed by a formal
   /// metering boundary. Ordinary transport failures must keep using
@@ -258,7 +260,8 @@ class AppLlmChatResult {
        completionTokens = meteredCompletionTokens,
        totalTokens = meteredPromptTokens + meteredCompletionTokens,
        tokenUsage = null,
-       providerModel = null;
+       providerModel = null,
+       providerResponseId = null;
 
   final String? text;
   final int? latencyMs;
@@ -273,6 +276,9 @@ class AppLlmChatResult {
   /// Exact model identity echoed by the provider response, when available.
   /// This is deliberately distinct from the requested model.
   final String? providerModel;
+
+  /// Non-secret provider response identifier, when the provider returns one.
+  final String? providerResponseId;
 
   bool get succeeded => failureKind == null && text != null;
 }

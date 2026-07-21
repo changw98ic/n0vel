@@ -48,6 +48,7 @@ void main() {
     final expectedStoryKeys = <String>{
       for (final callSite in StoryPromptRegistry.requiredCallSites)
         callSite.key,
+      StoryPromptRegistry.literaryEvaluationCallSite.key,
     };
     final actualStoryKeys = inventory.entries
         .where((entry) => entry.id.startsWith('prompt.story.'))
@@ -79,6 +80,67 @@ void main() {
       expect(entry.disposition, AppLlmCallSiteDisposition.registeredPrompt);
       expect(registration.release.hasValidContentHash, isTrue);
     }
+  });
+
+  test('literary evaluator is authorized only in its dedicated bundle', () {
+    final literary = StoryPromptRegistry.literaryEvaluation();
+    final invocation = literary.invocation(
+      stageId: 'literary-quality',
+      callSiteId: 'scene-evaluator',
+    );
+    final variables = <String, Object?>{
+      'evaluationInputJson': '{"prose":"示例正文"}',
+    };
+    final messages = invocation.render(variables).messages;
+    final evidence = invocation.evidence(
+      messages,
+      resolvedVariables: variables,
+    );
+
+    expect(
+      AppLlmCallSiteAuthority.registeredPrompt(
+        promptReleaseRef: invocation.promptReleaseRef,
+        promptInvocationEvidence: evidence,
+        stageId: invocation.callSite.stageId,
+        callSiteId: invocation.callSite.callSiteId,
+        variantId: invocation.callSite.variantId,
+        generationBundleHash: invocation.generationBundleHash,
+      ),
+      isA<AppLlmRegisteredPromptAuthority>(),
+    );
+    expect(
+      () => AppLlmCallSiteAuthority.registeredPrompt(
+        promptReleaseRef: invocation.promptReleaseRef,
+        promptInvocationEvidence: evidence,
+        stageId: invocation.callSite.stageId,
+        callSiteId: invocation.callSite.callSiteId,
+        variantId: invocation.callSite.variantId,
+        generationBundleHash:
+            StoryPromptRegistry.current().generationBundle.bundleHash,
+      ),
+      throwsStateError,
+    );
+
+    final production = StoryPromptRegistry.current().invocation(
+      stageId: 'quality-gate',
+      callSiteId: 'quality-scorer',
+    );
+    final productionVariables = _variablesFor(production.release);
+    final productionMessages = production.render(productionVariables).messages;
+    expect(
+      () => AppLlmCallSiteAuthority.registeredPrompt(
+        promptReleaseRef: production.promptReleaseRef,
+        promptInvocationEvidence: production.evidence(
+          productionMessages,
+          resolvedVariables: productionVariables,
+        ),
+        stageId: production.callSite.stageId,
+        callSiteId: production.callSite.callSiteId,
+        variantId: production.callSite.variantId,
+        generationBundleHash: invocation.generationBundleHash,
+      ),
+      throwsStateError,
+    );
   });
 
   test('every direct provider or request call in lib has a frozen marker', () {

@@ -76,6 +76,13 @@ final class StoryPromptRegistry {
   factory StoryPromptRegistry.current() =>
       StoryPromptRegistry.fromRegistrations(currentRegistrations);
 
+  factory StoryPromptRegistry.literaryEvaluation() =>
+      StoryPromptRegistry._fromRegistrations(
+        [_buildLiteraryEvaluationRegistration()],
+        expectedCallSites: const [literaryEvaluationCallSite],
+        bundleId: 'story-literary-evaluation-v1',
+      );
+
   factory StoryPromptRegistry.causalityChallenger() {
     final champion = StoryPromptRegistry.current();
     final original = champion.registrations.singleWhere(
@@ -116,6 +123,16 @@ final class StoryPromptRegistry {
   factory StoryPromptRegistry.fromRegistrations(
     Iterable<StoryPromptRegistration> registrations, {
     String bundleId = 'story-generation-production-v1',
+  }) => StoryPromptRegistry._fromRegistrations(
+    registrations,
+    expectedCallSites: requiredCallSites,
+    bundleId: bundleId,
+  );
+
+  factory StoryPromptRegistry._fromRegistrations(
+    Iterable<StoryPromptRegistration> registrations, {
+    required Iterable<StoryPromptCallSite> expectedCallSites,
+    required String bundleId,
   }) {
     final values = List<StoryPromptRegistration>.of(registrations);
     final byKey = <String, StoryPromptRegistration>{};
@@ -136,7 +153,7 @@ final class StoryPromptRegistry {
       byKey[key] = registration;
     }
 
-    final required = {for (final callSite in requiredCallSites) callSite.key};
+    final required = {for (final callSite in expectedCallSites) callSite.key};
     final actual = byKey.keys.toSet();
     final missing = required.difference(actual).toList()..sort();
     final unexpected = actual.difference(required).toList()..sort();
@@ -275,6 +292,9 @@ final class StoryPromptRegistry {
     StoryPromptCallSite('review', 'format-repair-adjudication', 'zh'),
   ];
 
+  static const StoryPromptCallSite literaryEvaluationCallSite =
+      StoryPromptCallSite('literary-quality', 'scene-evaluator', 'zh');
+
   static List<StoryPromptRegistration> get currentRegistrations =>
       List<StoryPromptRegistration>.unmodifiable(
         StoryPromptTemplates.runWithLanguage(
@@ -283,6 +303,342 @@ final class StoryPromptRegistry {
         ),
       );
 }
+
+StoryPromptRegistration
+_buildLiteraryEvaluationRegistration() => StoryPromptRegistration(
+  callSite: StoryPromptRegistry.literaryEvaluationCallSite,
+  release: PromptRelease(
+    templateId: 'scene_literary_quality_evaluation',
+    semanticVersion: '1.2.0',
+    language: 'zh',
+    systemTemplate: _literaryEvaluationSystemTemplate,
+    userTemplate: _literaryEvaluationUserTemplate,
+    variablesSchemaSnapshot: const <String, Object?>{
+      'type': 'object',
+      'additionalProperties': false,
+      'required': <String>['evaluationInputJson'],
+      'properties': <String, Object?>{
+        'evaluationInputJson': <String, Object?>{'type': 'string'},
+      },
+    },
+    outputSchemaSnapshot: _literaryEvaluationOutputSchema,
+    rendererRelease: AppLlmPromptRendererRegistry.strictRendererRelease,
+    parserRelease: 'scene-literary-quality-output-parser-v1',
+    repairPolicySnapshot: const <String, Object?>{
+      'policy': 'bounded-retry-v1',
+      'maxOutputRetries': 2,
+      'localRepair': false,
+      'outputMode': 'closed-json',
+    },
+    owner: 'story-generation-quality',
+    changeNote:
+        'Add concrete 60/75/85/90/95 anchors, near-final contradiction checks, and exact deviation authorization semantics after repeated real-provider scoring.',
+    createdAt: DateTime.utc(2026, 7, 21),
+  ),
+);
+
+const Map<String, Object?> _literaryEvaluationOutputSchema = <String, Object?>{
+  'type': 'object',
+  'additionalProperties': false,
+  'required': <String>[
+    'schemaVersion',
+    'semanticHardReview',
+    'craft',
+    'styleFit',
+    'readerEffect',
+    'findings',
+    'evaluatorSelfConfidence',
+  ],
+  'properties': <String, Object?>{
+    'schemaVersion': <String, Object?>{'type': 'integer', 'const': 1},
+    'semanticHardReview': <String, Object?>{
+      'type': 'object',
+      'additionalProperties': false,
+      'required': <String>['passed', 'hardFindingIds'],
+      'properties': <String, Object?>{
+        'passed': <String, Object?>{'type': 'boolean'},
+        'hardFindingIds': <String, Object?>{
+          'type': 'array',
+          'uniqueItems': true,
+          'items': <String, Object?>{'type': 'string', 'minLength': 1},
+        },
+      },
+    },
+    'craft': <String, Object?>{
+      'type': 'object',
+      'additionalProperties': false,
+      'required': <String>['dimensions'],
+      'properties': <String, Object?>{
+        'dimensions': <String, Object?>{
+          'type': 'object',
+          'additionalProperties': false,
+          'required': <String>[
+            'prosePrecision',
+            'paragraphFunction',
+            'scenePressure',
+            'characterVoice',
+            'informationControl',
+            'coherence',
+            'completenessAndTurn',
+          ],
+          'properties': <String, Object?>{
+            'prosePrecision': _literaryScoreSchema,
+            'paragraphFunction': _literaryScoreSchema,
+            'scenePressure': _literaryScoreSchema,
+            'characterVoice': _literaryScoreSchema,
+            'informationControl': _literaryScoreSchema,
+            'coherence': _literaryScoreSchema,
+            'completenessAndTurn': _literaryScoreSchema,
+          },
+        },
+      },
+    },
+    'styleFit': <String, Object?>{
+      'type': 'object',
+      'additionalProperties': false,
+      'required': <String>[
+        'decision',
+        'axisExplanations',
+        'deviationIds',
+        'evidenceRefs',
+        'deviationAuthorizationRefs',
+      ],
+      'properties': <String, Object?>{
+        'decision': <String, Object?>{
+          'type': 'string',
+          'enum': <String>[
+            'aligned',
+            'plannedDeviation',
+            'approvedDeviation',
+            'mismatch',
+          ],
+        },
+        'axisExplanations': <String, Object?>{
+          'type': 'object',
+          'additionalProperties': <String, Object?>{
+            'type': 'string',
+            'minLength': 1,
+          },
+        },
+        'deviationIds': _literaryUniqueStringArraySchema,
+        'evidenceRefs': _literaryUniqueStringArraySchema,
+        'deviationAuthorizationRefs': _literaryAuthorizationArraySchema,
+      },
+    },
+    'readerEffect': <String, Object?>{
+      'type': 'object',
+      'additionalProperties': false,
+      'required': <String>['effectEstimates', 'warnings'],
+      'properties': <String, Object?>{
+        'effectEstimates': <String, Object?>{
+          'type': 'object',
+          'additionalProperties': false,
+          'required': <String>[
+            'tension',
+            'clarity',
+            'curiosity',
+            'emotionalImpact',
+            'momentum',
+          ],
+          'properties': <String, Object?>{
+            'tension': _literaryReaderEstimateSchema,
+            'clarity': _literaryReaderEstimateSchema,
+            'curiosity': _literaryReaderEstimateSchema,
+            'emotionalImpact': _literaryReaderEstimateSchema,
+            'momentum': _literaryReaderEstimateSchema,
+          },
+        },
+        'warnings': _literaryUniqueStringArraySchema,
+      },
+    },
+    'findings': <String, Object?>{
+      'type': 'array',
+      'items': _literaryFindingSchema,
+    },
+    'evaluatorSelfConfidence': <String, Object?>{
+      'type': 'number',
+      'minimum': 0,
+      'maximum': 1,
+    },
+  },
+};
+
+const Map<String, Object?> _literaryScoreSchema = <String, Object?>{
+  'type': 'number',
+  'minimum': 0,
+  'maximum': 100,
+};
+
+const Map<String, Object?> _literaryUniqueStringArraySchema = <String, Object?>{
+  'type': 'array',
+  'uniqueItems': true,
+  'items': <String, Object?>{'type': 'string', 'minLength': 1},
+};
+
+const Map<String, Object?> _literaryReaderEstimateSchema = <String, Object?>{
+  'type': 'object',
+  'additionalProperties': false,
+  'required': <String>['value', 'evidenceRefs'],
+  'properties': <String, Object?>{
+    'value': _literaryScoreSchema,
+    'evidenceRefs': _literaryUniqueStringArraySchema,
+  },
+};
+
+const Map<String, Object?> _literaryAuthorizationArraySchema =
+    <String, Object?>{
+      'type': 'array',
+      'items': <String, Object?>{
+        'type': 'object',
+        'additionalProperties': false,
+        'required': <String>['authorizedBy', 'referenceId'],
+        'properties': <String, Object?>{
+          'authorizedBy': <String, Object?>{
+            'type': 'string',
+            'enum': <String>[
+              'sceneContract',
+              'independentReview',
+              'authorOverride',
+            ],
+          },
+          'referenceId': <String, Object?>{'type': 'string', 'minLength': 1},
+        },
+      },
+    };
+
+const Map<String, Object?> _literaryFindingSchema = <String, Object?>{
+  'type': 'object',
+  'additionalProperties': false,
+  'required': <String>[
+    'findingId',
+    'findingClass',
+    'severity',
+    'axis',
+    'code',
+    'claim',
+    'evidence',
+    'contractRefs',
+    'suggestedAction',
+    'effectiveFunction',
+    'expectedReturnCondition',
+    'deviationAuthorizationRefs',
+  ],
+  'properties': <String, Object?>{
+    'findingId': <String, Object?>{'type': 'string', 'minLength': 1},
+    'findingClass': <String, Object?>{
+      'type': 'string',
+      'enum': <String>[
+        'hardError',
+        'craftWeakness',
+        'styleChoice',
+        'effectiveDeviation',
+      ],
+    },
+    'severity': <String, Object?>{
+      'type': 'string',
+      'enum': <String>['blocker', 'major', 'minor', 'note'],
+    },
+    'axis': <String, Object?>{
+      'type': 'string',
+      'enum': <String>[
+        'causality',
+        'timeline',
+        'spatialContinuity',
+        'worldRule',
+        'pov',
+        'characterKnowledge',
+        'characterMotivation',
+        'relationship',
+        'objectState',
+        'corePromise',
+        'foreshadowing',
+        'prose',
+        'paragraphFunction',
+        'scenePressure',
+        'informationControl',
+        'characterVoice',
+        'rhythm',
+        'projectVoice',
+        'readerEffect',
+        'provenance',
+      ],
+    },
+    'code': <String, Object?>{'type': 'string', 'minLength': 1},
+    'claim': <String, Object?>{'type': 'string', 'minLength': 1},
+    'evidence': <String, Object?>{
+      'type': 'array',
+      'items': <String, Object?>{
+        'type': 'object',
+        'additionalProperties': false,
+        'required': <String>['startOffset', 'endOffset', 'localExcerpt'],
+        'properties': <String, Object?>{
+          'startOffset': <String, Object?>{'type': 'integer', 'minimum': 0},
+          'endOffset': <String, Object?>{'type': 'integer', 'minimum': 1},
+          'localExcerpt': <String, Object?>{
+            'type': 'string',
+            'minLength': 1,
+            'maxLength': 240,
+          },
+        },
+      },
+    },
+    'contractRefs': _literaryUniqueStringArraySchema,
+    'suggestedAction': <String, Object?>{
+      'type': 'string',
+      'enum': <String>[
+        'blockAndReplan',
+        'targetedRepair',
+        'alignVoice',
+        'accept',
+        'acceptWithNote',
+        'rescore',
+        'manualReview',
+      ],
+    },
+    'effectiveFunction': <String, Object?>{
+      'type': <String>['string', 'null'],
+    },
+    'expectedReturnCondition': <String, Object?>{
+      'type': <String>['string', 'null'],
+    },
+    'deviationAuthorizationRefs': _literaryAuthorizationArraySchema,
+  },
+};
+
+const String _literaryEvaluationSystemTemplate = '''
+你是独立的场景文学质量评估器。只依据输入的 canonical JSON 中的正文、场景契约、声音与工艺上下文和 allowlist 作判断，不续写、改写或补造事实。
+
+只输出一个可由 JSON.parse 直接解析的 JSON 对象；禁止 Markdown、代码围栏、解释文字和 schema 之外的字段。根对象必须且只能包含 schemaVersion、semanticHardReview、craft、styleFit、readerEffect、findings、evaluatorSelfConfidence，schemaVersion 固定为 1。所有声明为 nullable 的字段也必须出现，不适用时填 null。
+
+craft 只能包含 dimensions；dimensions 必须且只能包含 prosePrecision、paragraphFunction、scenePressure、characterVoice、informationControl、coherence、completenessAndTurn，均按 0..100 评分，不输出总分或最低分。
+
+findings 中每项必须完整包含 findingId、findingClass、severity、axis、code、claim、evidence、contractRefs、suggestedAction、effectiveFunction、expectedReturnCondition、deviationAuthorizationRefs。findingId 全局唯一。findingClass 只能是 hardError、craftWeakness、styleChoice、effectiveDeviation；severity 只能是 blocker、major、minor、note；hardError 的 severity 只能为 blocker 或 major。suggestedAction 只能是 blockAndReplan、targetedRepair、alignVoice、accept、acceptWithNote、rescore、manualReview。
+
+finding.evidence 必须是 JSON 数组，数组元素必须且只能是 {"startOffset": integer, "endOffset": integer, "localExcerpt": string}；即使只有一条证据也必须以 [ 开头、] 结尾并包含一个证据对象，不得直接写单个对象。startOffset 与 endOffset 是输入正文的 UTF-16 code-unit 半开区间，必须满足 0 <= startOffset < endOffset；用该区间在本地回切正文必须逐字等于 localExcerpt，且 localExcerpt 不超过 240 个字符。优先逐项复制输入 evidenceSegments 中已经给出的精确区间；不得使用概述、字符数猜测或伪造引文替代证据。contractRefs 只能引用输入 allowlist。deviationAuthorizationRefs 中每项必须且只能包含 authorizedBy 与 referenceId，并且只能逐项复制输入中可信的授权引用。
+
+semanticHardReview 必须且只能包含 passed 与 hardFindingIds；hardFindingIds 必须恰好列出全部 hardError findingId，且只有列表为空时 passed 才为 true。
+
+styleFit 必须且只能包含 decision、axisExplanations、deviationIds、evidenceRefs、deviationAuthorizationRefs。axisExplanations 必须是 JSON 对象，例如 {"rhythm":"压力段按场景契约缩短句长"}，不得写成数组。decision 只能是 aligned、plannedDeviation、approvedDeviation、mismatch。evidenceRefs 只能引用 findings 中的 findingId。deviationIds 必须逐项复制输入 deviationAuthorizationAllowlist 中的 referenceId，不能填写 findingId。aligned 时其余四项必须为空；mismatch 不得声明 deviationIds 或授权；sceneContract 授权只能对应 plannedDeviation，independentReview 或 authorOverride 授权只能对应 approvedDeviation。plannedDeviation 或 approvedDeviation 的 deviationIds、deviationAuthorizationRefs、evidenceRefs 均不得为空；evidenceRefs 必须指向 effectiveDeviation finding；styleFit 与这些 finding 中的 typed authorization reference 必须逐项完全一致。
+
+readerEffect 必须且只能包含 effectEstimates 与 warnings。effectEstimates 必须且只能包含 tension、clarity、curiosity、emotionalImpact、momentum；每项必须且只能包含 value 与 evidenceRefs，value 为 0..100，evidenceRefs 只能引用 findings 中的 findingId。
+
+评分必须保守校准。完成场景契约、没有硬错误、阅读顺畅，只能证明稿件合格，不能自动证明 90 分以上。先逐段做反证审查，再给七维分数；不得为了少写 finding 而抬分，也不得为了显得严格而机械扣分。使用以下具体锚点，并按与该维度有关的缺陷数量与严重度落档：
+- 60：存在多个 major 工艺问题，或基本可读性、场景因果、角色表达明显失效，需要重构。
+- 75：可读但有一个 major 或多个相互强化的 minor 问题，需要成段定向修复。
+- 85：主线与场景功能成立，但仍有至少一个清晰、可执行的局部弱点；是扎实可用稿，不是强终稿。
+- 90：强稿；没有 major，只有一至两个 minor 局部问题，修复范围明确且不需重写场景。
+- 95：近终稿；七维均有持续的文本证据，没有明显、可执行的 craftWeakness，不能仅凭结构完整、语言流畅或契约完成给到此档。
+93..94 也属于近终稿带：craftOverall 若达到 93，所有 craft 维度都必须至少 93，且不得存在 craftWeakness。只要发现可信的 minor craftWeakness，受影响维度不得高于 92，并应让加权总体保持在 93 以下。除非正文已经没有可执行改进点，否则不得给任何维度 95 以上。会让人类评审把任一 craft 维度下调到 90 以下的问题，必须输出 evidence-backed craftWeakness，而不能改写成 styleChoice 或 effectiveDeviation。
+
+特别检查结尾的关系定性、抽象总结、解释性顿悟、口号式收束和通用网文套句。若输入 voiceContext 或 projectOwnedNotes 要求“让动作承担情绪”，而正文在动作已经完成后又替读者概括关系或意义，应优先判为 informationControl、characterVoice、paragraphFunction 或 prose 上的 craftWeakness；只有该表达本身确实实现了已声明的项目声音，且删去会损害场景功能时，才可判为 styleChoice。不得以具名作者、具名作品或“写得像某人”为评分锚点；只依据输入的抽象 voiceContext、craftContext 和 projectOwnedNotes 评价。
+
+evaluatorSelfConfidence 为 0..1，仅表示评估器自我诊断，不得把它写入任何结论或代替输入提供的校准置信度。craftOverall 低于 85 或任一关键维度低于 80 时，必须有可定位、可执行且 severity 不低于 minor 的 craftWeakness finding 支撑；不要为了凑数制造 finding。
+''';
+
+const String _literaryEvaluationUserTemplate = '''
+请评估以下 canonical evaluation input JSON，并严格按 system 指定的闭合 JSON 契约返回结果：
+{{evaluationInputJson}}
+''';
 
 List<StoryPromptRegistration> _buildCurrentRegistrations() {
   final createdAt = DateTime.utc(2026, 7, 12);

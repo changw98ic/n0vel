@@ -23,10 +23,10 @@ void main() {
           ..statusCode = HttpStatus.ok
           ..headers.contentType = ContentType('text', 'event-stream')
           ..write(
-            'data: {"choices":[{"delta":{"content":"  reply  "},"index":0}]}\n\n',
+            'data: {"id":"chatcmpl-io-stream-1","choices":[{"delta":{"content":"  reply  "},"index":0}]}\n\n',
           )
           ..write(
-            'data: {"choices":[{"delta":{},"finish_reason":"stop","index":0}]}\n\n',
+            'data: {"id":"chatcmpl-io-stream-1","choices":[{"delta":{},"finish_reason":"stop","index":0}]}\n\n',
           )
           ..write('data: [DONE]\n\n');
         await request.response.close();
@@ -49,6 +49,7 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'reply');
+      expect(result.providerResponseId, 'chatcmpl-io-stream-1');
       expect(result.latencyMs, isNotNull);
       expect(requestUri.path, '/v1/chat/completions');
       expect(authorization, 'Bearer sk-real-key');
@@ -148,6 +149,7 @@ void main() {
           ..headers.contentType = ContentType.json
           ..write(
             jsonEncode({
+              'id': 'chatcmpl-io-json-1',
               'choices': [
                 {
                   'message': {'content': 'hello tokens'},
@@ -178,6 +180,7 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'hello tokens');
+      expect(result.providerResponseId, 'chatcmpl-io-json-1');
       expect(result.promptTokens, 42);
       expect(result.completionTokens, 18);
       expect(result.totalTokens, 60);

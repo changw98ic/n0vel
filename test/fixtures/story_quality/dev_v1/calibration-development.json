@@ -1,0 +1,44 @@
+{
+  "artifactVersion": "literary-calibration-development-v1",
+  "corpusHash": "sha256:fa8b3bcf2ce391f3387c0a8d95e304a51db10d508704a5fef959daf9655b9bb7",
+  "uniqueItemCount": 300,
+  "primaryClassCounts": {
+    "causalMainlineHard": 30,
+    "povKnowledge": 30,
+    "worldObjectTime": 30,
+    "motivationRelationship": 30,
+    "craftWeakness": 50,
+    "styleChoice": 50,
+    "effectiveDeviation": 30,
+    "prettyHollow": 30,
+    "highScoreDisguisedBad": 20
+  },
+  "voiceTagCounts": {
+    "closeUrbanSuspense": 60,
+    "restrainedEpicFantasy": 60,
+    "colloquialAdventure": 60,
+    "technicalSpeculative": 60,
+    "lyricalRuralMystery": 60
+  },
+  "negativeControlCounts": {
+    "unreliableNarrator": 10,
+    "nonlinearTime": 10,
+    "multiplePov": 10,
+    "freeIndirectDiscourse": 10,
+    "declaredRuleException": 10
+  },
+  "anchorCounts": {
+    "60": 60,
+    "75": 90,
+    "85": 25,
+    "90": 25,
+    "95": 100
+  },
+  "metricStatus": "pendingRealEvaluatorRun",
+  "metrics": {},
+  "humanAdjudicatedHardDecisions": 0,
+  "humanAdjudicatedNonHardDecisions": 0,
+  "formalCertificationEligible": false,
+  "limitation": "Synthetic development coverage only. It does not satisfy the separate 300 hard and 300 non-hard human-adjudicated certification decisions, and it contains no fabricated evaluator metrics.",
+  "artifactHash": "sha256:93c0bc25538a1bdd4e1dc977cc59b0918ce7a92d6a62665a86e6f539007fe305"
+}

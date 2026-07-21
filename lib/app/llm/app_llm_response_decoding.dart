@@ -4,6 +4,7 @@ class AppLlmDecodedResponse {
   const AppLlmDecodedResponse({
     required this.text,
     this.providerModel,
+    this.providerResponseId,
     this.promptTokens,
     this.completionTokens,
     this.totalTokens,
@@ -11,6 +12,7 @@ class AppLlmDecodedResponse {
 
   final String text;
   final String? providerModel;
+  final String? providerResponseId;
   final int? promptTokens;
   final int? completionTokens;
   final int? totalTokens;
@@ -73,6 +75,7 @@ AppLlmDecodedResponse? decodeOpenAiChatResponseBody(String body) {
   return AppLlmDecodedResponse(
     text: text,
     providerModel: _nonEmptyString(decoded['model']),
+    providerResponseId: _nonEmptyString(decoded['id']),
     promptTokens: _usageToken(usage, 'prompt_tokens'),
     completionTokens: _usageToken(usage, 'completion_tokens'),
     totalTokens: _usageToken(usage, 'total_tokens'),
@@ -88,6 +91,7 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
   int? completionTokens;
   int? totalTokens;
   String? providerModel;
+  String? providerResponseId;
 
   for (final rawLine in const LineSplitter().convert(body)) {
     final line = rawLine.trim();
@@ -106,6 +110,7 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
       }
 
       providerModel = _nonEmptyString(decoded['model']) ?? providerModel;
+      providerResponseId = _nonEmptyString(decoded['id']) ?? providerResponseId;
 
       final choices = decoded['choices'];
       if (choices is List && choices.isNotEmpty) {
@@ -140,6 +145,7 @@ AppLlmDecodedResponse? decodeOpenAiChatStreamBody(
   return AppLlmDecodedResponse(
     text: filtered.isNotEmpty ? filtered : normalized,
     providerModel: providerModel,
+    providerResponseId: providerResponseId,
     promptTokens: promptTokens,
     completionTokens: completionTokens,
     totalTokens: totalTokens,
@@ -179,6 +185,7 @@ AppLlmDecodedResponse? decodeAnthropicMessageResponseBody(String body) {
   return AppLlmDecodedResponse(
     text: normalized,
     providerModel: _nonEmptyString(decoded['model']),
+    providerResponseId: _nonEmptyString(decoded['id']),
     promptTokens: promptTokens,
     completionTokens: completionTokens,
     totalTokens: _anthropicTotalTokens(
@@ -193,6 +200,7 @@ AppLlmDecodedResponse? decodeAnthropicMessageResponseBody(String body) {
 AppLlmDecodedResponse? decodeAnthropicMessageStreamBody(String body) {
   final text = StringBuffer();
   String? providerModel;
+  String? providerResponseId;
   int? promptTokens;
   int? completionTokens;
 
@@ -215,6 +223,8 @@ AppLlmDecodedResponse? decodeAnthropicMessageStreamBody(String body) {
         final message = decoded['message'];
         if (message is Map) {
           providerModel = _nonEmptyString(message['model']) ?? providerModel;
+          providerResponseId =
+              _nonEmptyString(message['id']) ?? providerResponseId;
           final usage = message['usage'];
           promptTokens = _usageToken(usage, 'input_tokens') ?? promptTokens;
           completionTokens =
@@ -242,6 +252,7 @@ AppLlmDecodedResponse? decodeAnthropicMessageStreamBody(String body) {
   return AppLlmDecodedResponse(
     text: normalized,
     providerModel: providerModel,
+    providerResponseId: providerResponseId,
     promptTokens: promptTokens,
     completionTokens: completionTokens,
     totalTokens: _anthropicTotalTokens(

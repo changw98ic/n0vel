@@ -167,6 +167,202 @@ void main() {
     }
   });
 
+  test(
+    'literary evaluation is an isolated single-release bundle without production drift',
+    () {
+      final production = StoryPromptRegistry.current();
+      final challenger = StoryPromptRegistry.causalityChallenger();
+      final literary = StoryPromptRegistry.literaryEvaluation();
+      final registration = literary.registrations.single;
+
+      expect(
+        production.generationBundle.bundleHash,
+        'sha256:12d9e1659ca588a134fe18ebfafb312032409d567719686fd89c44ef7c573b03',
+      );
+      expect(
+        challenger.generationBundle.bundleHash,
+        'sha256:96b2ca057fc23432497a929585079c30cc1c1f20423404e84b1c414a3ef2b9df',
+      );
+      expect(
+        production.registrations.map((item) => item.callSite.key).toSet(),
+        <String>{
+          for (final callSite in StoryPromptRegistry.requiredCallSites)
+            callSite.key,
+        },
+      );
+      expect(
+        StoryPromptRegistry.requiredCallSites.map((item) => item.key),
+        isNot(contains(StoryPromptRegistry.literaryEvaluationCallSite.key)),
+      );
+      expect(literary.registrations, hasLength(1));
+      expect(literary.generationBundle.releases, hasLength(1));
+      expect(
+        registration.callSite.key,
+        StoryPromptRegistry.literaryEvaluationCallSite.key,
+      );
+      expect(
+        literary.generationBundle.releases.single.callSiteKey,
+        StoryPromptRegistry.literaryEvaluationCallSite.key,
+      );
+      expect(
+        () => production.resolve(
+          stageId: 'literary-quality',
+          callSiteId: 'scene-evaluator',
+          variantId: 'zh',
+        ),
+        throwsStateError,
+      );
+      expect(
+        () => literary.resolve(
+          stageId: 'quality-gate',
+          callSiteId: 'quality-scorer',
+          variantId: 'zh',
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
+  test('literary evaluation release is strict and mirrors parser JSON shape', () {
+    final registry = StoryPromptRegistry.literaryEvaluation();
+    final invocation = registry.invocation(
+      stageId: 'literary-quality',
+      callSiteId: 'scene-evaluator',
+    );
+    final release = invocation.release;
+    expect(
+      release.contentHash,
+      'sha256:a2e69dc47a58fe1bf3b49ee65266c690ce4cbfbbbb87092e3326dcb52fcb16d1',
+    );
+    expect(
+      registry.generationBundle.bundleHash,
+      'sha256:d7ad5efa0012d394bf4d55ff010489189b9e3bbf316bafae366b8a71ff391aed',
+    );
+    final variablesSchema =
+        release.variablesSchemaSnapshot as Map<String, Object?>;
+    final variableProperties =
+        variablesSchema['properties']! as Map<String, Object?>;
+    final outputSchema = release.outputSchemaSnapshot as Map<String, Object?>;
+    final outputProperties =
+        outputSchema['properties']! as Map<String, Object?>;
+    final craft = outputProperties['craft']! as Map<String, Object?>;
+    final craftProperties = craft['properties']! as Map<String, Object?>;
+    final dimensions = craftProperties['dimensions']! as Map<String, Object?>;
+    final styleFit = outputProperties['styleFit']! as Map<String, Object?>;
+    final styleFitProperties = styleFit['properties']! as Map<String, Object?>;
+    final readerEffect =
+        outputProperties['readerEffect']! as Map<String, Object?>;
+    final readerEffectProperties =
+        readerEffect['properties']! as Map<String, Object?>;
+    final effectEstimates =
+        readerEffectProperties['effectEstimates']! as Map<String, Object?>;
+    final findings = outputProperties['findings']! as Map<String, Object?>;
+    final findingSchema = findings['items']! as Map<String, Object?>;
+    final findingProperties =
+        findingSchema['properties']! as Map<String, Object?>;
+    final evidence = findingProperties['evidence']! as Map<String, Object?>;
+    final evidenceItem = evidence['items']! as Map<String, Object?>;
+    final evidenceProperties =
+        evidenceItem['properties']! as Map<String, Object?>;
+
+    expect(
+      release.rendererRelease,
+      AppLlmPromptRendererRegistry.strictRendererRelease,
+    );
+    expect(variablesSchema['additionalProperties'], isFalse);
+    expect(variablesSchema['required'], <String>['evaluationInputJson']);
+    expect(variableProperties.keys, <String>['evaluationInputJson']);
+    expect(outputProperties.keys.toSet(), <String>{
+      'schemaVersion',
+      'semanticHardReview',
+      'craft',
+      'styleFit',
+      'readerEffect',
+      'findings',
+      'evaluatorSelfConfidence',
+    });
+    expect(outputSchema['additionalProperties'], isFalse);
+    expect(
+      (dimensions['properties']! as Map<String, Object?>).keys.toSet(),
+      <String>{
+        'prosePrecision',
+        'paragraphFunction',
+        'scenePressure',
+        'characterVoice',
+        'informationControl',
+        'coherence',
+        'completenessAndTurn',
+      },
+    );
+    expect(styleFitProperties.keys.toSet(), <String>{
+      'decision',
+      'axisExplanations',
+      'deviationIds',
+      'evidenceRefs',
+      'deviationAuthorizationRefs',
+    });
+    expect(
+      (effectEstimates['properties']! as Map<String, Object?>).keys.toSet(),
+      <String>{
+        'tension',
+        'clarity',
+        'curiosity',
+        'emotionalImpact',
+        'momentum',
+      },
+    );
+    expect(findingProperties.keys.toSet(), <String>{
+      'findingId',
+      'findingClass',
+      'severity',
+      'axis',
+      'code',
+      'claim',
+      'evidence',
+      'contractRefs',
+      'suggestedAction',
+      'effectiveFunction',
+      'expectedReturnCondition',
+      'deviationAuthorizationRefs',
+    });
+    expect(evidenceProperties.keys.toSet(), <String>{
+      'startOffset',
+      'endOffset',
+      'localExcerpt',
+    });
+    expect(evidenceProperties, isNot(contains('occurrenceIndex')));
+    expect(release.semanticVersion, '1.2.0');
+    expect(release.systemTemplate, contains('UTF-16 code-unit'));
+    expect(release.systemTemplate, contains('finding.evidence 必须是 JSON 数组'));
+    expect(release.systemTemplate, contains('完成场景契约、没有硬错误、阅读顺畅，只能证明稿件合格'));
+    expect(
+      release.systemTemplate,
+      contains('sceneContract 授权只能对应 plannedDeviation'),
+    );
+    expect(release.systemTemplate, contains('axisExplanations 必须是 JSON 对象'));
+    expect(release.systemTemplate, contains('- 60：存在多个 major 工艺问题'));
+    expect(release.systemTemplate, contains('- 95：近终稿'));
+    expect(release.systemTemplate, contains('93..94 也属于近终稿带'));
+    expect(release.systemTemplate, contains('结尾的关系定性、抽象总结'));
+
+    final variables = <String, Object?>{
+      'evaluationInputJson': '{"prose":"示例正文"}',
+    };
+    final rendered = invocation.render(variables);
+    expect(
+      () =>
+          invocation.evidence(rendered.messages, resolvedVariables: variables),
+      returnsNormally,
+    );
+    expect(
+      () => invocation.render(<String, Object?>{
+        ...variables,
+        'unexpected': 'rejected',
+      }),
+      throwsFormatException,
+    );
+  });
+
   test('structured story releases freeze dual-mode parser behavior', () {
     final registry = StoryPromptRegistry.current();
     final expectations =
