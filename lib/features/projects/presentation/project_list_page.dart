@@ -43,12 +43,12 @@ class ProjectListPage extends ConsumerStatefulWidget {
 class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _gridScrollController = ScrollController();
-  final int _sortIndex = 0;
+  int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
   bool _deletingProject = false;
 
-  static const _headerTabs = ['书架', '最近编辑', '归档'];
+  static const _headerTabs = ['书架', '最近编辑', '进行中'];
 
   static const _sortOptions = <AppListSortOption<ProjectRecord>>[
     AppListSortOption(label: '打开时间', compare: _compareByRecent),
@@ -106,13 +106,19 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
             if (i == 1) {
               _filterIndex = 1; // 最近打开
             } else if (i == 2) {
-              _filterIndex = 2; // 进行中（归档）
+              _filterIndex = 2; // 进行中
             } else {
               _filterIndex = 0; // 全部作品
             }
           });
         },
         actions: [
+          AppListSortDropdown<ProjectRecord>(
+            options: _sortOptions,
+            selectedIndex: _sortIndex,
+            onChanged: (i) => setState(() => _sortIndex = i),
+          ),
+          const SizedBox(width: 8),
           FilledButton(
             key: ProjectListPage.newProjectButtonKey,
             onPressed: _createProject,
@@ -223,7 +229,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
               const crossAxisSpacing = 16.0;
               const mainAxisSpacing = 16.0;
               const horizontalPadding = 56.0;
-              const columns = 4;
+              final columns = (constraints.maxWidth / 280).floor().clamp(2, 6);
               final availableWidth =
                   constraints.maxWidth - horizontalPadding * 2;
               final cardWidth =
@@ -249,7 +255,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                   itemCount: projects.length,
                   itemBuilder: (context, index) => ProjectShelfCard(
                     project: projects[index],
-                    onTap: () => _openWorkbench(context, projects[index]),
+                    onTap: () => _openEditor(context, projects[index]),
                     onSecondaryTap: (offset) =>
                         _showCardContextMenu(context, projects[index], offset),
                   ),
@@ -331,14 +337,11 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       ),
       items: <PopupMenuEntry<dynamic>>[
         PopupMenuItem(
-          onTap: () => _openWorkbench(context, project),
+          onTap: () => _openEditor(context, project),
           child: const Text('打开作品'),
         ),
         PopupMenuItem(
-          onTap: () {
-            ref.read(appWorkspaceStoreProvider).openProject(project.id);
-            AppNavigator.push(context, AppRoutes.workSettingsHub);
-          },
+          onTap: () => _openWorkSettings(context, project),
           child: const Text('作品设定'),
         ),
         const PopupMenuDivider(),
@@ -435,6 +438,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
@@ -488,7 +492,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
     }
   }
 
-  void _openWorkbench(BuildContext context, ProjectRecord project) {
+  void _openEditor(BuildContext context, ProjectRecord project) {
+    ref.read(appWorkspaceStoreProvider).openProject(project.id);
+    AppNavigator.push(context, AppRoutes.workbench);
+  }
+
+  void _openWorkSettings(BuildContext context, ProjectRecord project) {
     ref.read(appWorkspaceStoreProvider).openProject(project.id);
     AppNavigator.push(context, AppRoutes.workSettingsHub);
   }
@@ -503,10 +512,35 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       confirmText: '创建',
     );
     if (name == null || name.isEmpty || !mounted) return;
+    final store = ref.read(appWorkspaceStoreProvider);
+    if (store.projects.any((p) => p.title == name.trim())) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        barrierLabel: '关闭',
+        builder: (dialogContext) => DesktopModalDialog(
+          title: '作品名称重复',
+          description: '已存在同名作品「${name.trim()}」，是否仍要创建？',
+          body: const SizedBox.shrink(),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('继续创建'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
+    final project = store.createProject(projectName: name);
     setState(() {
-      ref.read(appWorkspaceStoreProvider).createProject(projectName: name);
       _searchController.clear();
     });
+    if (!mounted) return;
+    _openWorkSettings(context, project);
   }
 
   List<ProjectRecord> _visibleProjects(List<ProjectRecord> projects) {

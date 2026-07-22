@@ -376,11 +376,15 @@ class _StylePanelPageState extends ConsumerState<StylePanelPage> {
       header: DesktopHeaderBar(
         tabs: const ['作品资料', '设定资料', '编辑'],
         activeTabIndex: 1,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 0) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!context.mounted || !canNavigate) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }

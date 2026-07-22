@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../../../app/di/app_providers.dart';
 import '../../../app/navigation/app_navigator.dart';
 import '../../../app/state/app_workspace_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
+import '../../../app/widgets/app_dialog.dart';
 import '../../../app/widgets/app_empty_state.dart';
 import '../../../app/widgets/app_scrollbar.dart';
 import '../../../app/widgets/app_list_filter.dart';
@@ -18,7 +20,6 @@ enum CharacterLibraryUiState {
   empty,
   searchNoResults,
   missingRequiredFields,
-  deleteReferencedConfirm,
 }
 
 class CharacterLibraryPage extends ConsumerStatefulWidget {
@@ -51,8 +52,10 @@ class CharacterLibraryPage extends ConsumerStatefulWidget {
 }
 
 class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
-  int _selectedIndex = 0;
+  String? _selectedCharacterId;
   int _sortIndex = 0;
+  bool _showDeleteOverlay = false;
+  Timer? _syncContextTimer;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _sidebarScrollController = ScrollController();
   final ScrollController _detailScrollController = ScrollController();
@@ -70,6 +73,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
 
   @override
   void dispose() {
+    _syncContextTimer?.cancel();
     _searchController.dispose();
     _sidebarScrollController.dispose();
     _detailScrollController.dispose();
@@ -84,19 +88,22 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     final projectScenes = workspace.projectSceneFacade;
     final characters = resources.characters;
     final visibleCharacters = _visibleCharacters(characters);
-    final selectedIndex = _resolveSelectedIndex(characters, visibleCharacters);
-    final current = visibleCharacters.isEmpty
-        ? null
-        : characters[selectedIndex];
+    final current = _resolveSelectedCharacter(characters, visibleCharacters);
     return DesktopShellFrame(
       header: DesktopHeaderBar(
         tabs: const ['设定资料', '编辑资料', '正文'],
         activeTabIndex: 0,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 1) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
+            if (!context.mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
+            if (!context.mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }
@@ -104,8 +111,8 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         actions: [
           DesignActionButton(
             key: CharacterLibraryPage.newCharacterButtonKey,
-            icon: Icons.check,
-            label: '保存设定',
+            icon: Icons.person_add,
+            label: '新建角色',
             onPressed: () => _createCharacter(resources),
           ),
         ],
@@ -138,7 +145,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                           theme,
                           characters,
                           visibleCharacters,
-                          selectedIndex,
+                          current,
                         ),
                       ),
                     ),
@@ -163,6 +170,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                           resources,
                           projectScenes,
                           current,
+                          visibleCharacters,
                         ),
                       ),
                     ),
@@ -173,17 +181,33 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           );
           return Stack(
             children: [
-              if (widget.uiState ==
-                  CharacterLibraryUiState.deleteReferencedConfirm)
-                Opacity(opacity: 0.55, child: body)
+              if (_showDeleteOverlay)
+                IgnorePointer(child: Opacity(opacity: 0.55, child: body))
               else
                 body,
-              if (widget.uiState ==
-                  CharacterLibraryUiState.deleteReferencedConfirm)
+              if (_showDeleteOverlay && current != null)
                 Positioned.fill(
                   child: CharacterDeleteOverlay(
-                    characterName: current?.name ?? '当前角色',
+                    characterName: current.name,
                     sceneLabel: _linkedSceneTag(projectScenes, current),
+                    onCancel: () => setState(() {
+                      _showDeleteOverlay = false;
+                    }),
+                    onForceDelete: () {
+                      final character = current;
+                      setState(() {
+                        resources.deleteCharacter(character.id);
+                        _showDeleteOverlay = false;
+                        final visible = _visibleCharacters(
+                          resources.characters,
+                        );
+                        _selectedCharacterId = visible.isEmpty
+                            ? null
+                            : visible.first.id;
+                      });
+                      if (!mounted) return;
+                      ref.read(appSceneContextStoreProvider).syncContext();
+                    },
                   ),
                 ),
             ],
@@ -198,7 +222,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     ThemeData theme,
     List<CharacterRecord> characters,
     List<CharacterRecord> visibleCharacters,
-    int selectedIndex,
+    CharacterRecord? current,
   ) {
     if (widget.uiState == CharacterLibraryUiState.empty) {
       return Column(
@@ -273,9 +297,9 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
                             ? CharacterLibraryPage.yueRenKey
                             : null,
                         label: character.name,
-                        selected: characters[selectedIndex] == character,
+                        selected: current?.id == character.id,
                         onPressed: () => setState(() {
-                          _selectedIndex = characters.indexOf(character);
+                          _selectedCharacterId = character.id;
                         }),
                       ),
                       const SizedBox(height: AppDesignTokens.space8),
@@ -294,6 +318,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     WorkspaceResourceLibraryFacade store,
     WorkspaceProjectSceneFacade projectScenes,
     CharacterRecord? current,
+    List<CharacterRecord> visibleCharacters,
   ) {
     if (widget.uiState == CharacterLibraryUiState.empty) {
       return CharacterCallToActionState(
@@ -303,7 +328,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         onPressed: () => _createCharacter(store),
       );
     }
-    if (_showSearchNoResults(const <CharacterRecord>[])) {
+    if (_searchController.text.trim().isNotEmpty && visibleCharacters.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,24 +452,43 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     );
   }
 
-  int _resolveSelectedIndex(
+  CharacterRecord? _resolveSelectedCharacter(
     List<CharacterRecord> characters,
     List<CharacterRecord> visibleCharacters,
   ) {
-    if (characters.isEmpty || visibleCharacters.isEmpty) {
-      return 0;
+    if (visibleCharacters.isEmpty) {
+      return null;
     }
-    if (_selectedIndex < characters.length &&
-        visibleCharacters.contains(characters[_selectedIndex])) {
-      return _selectedIndex;
+    if (_selectedCharacterId != null) {
+      final match = visibleCharacters.cast<CharacterRecord?>().firstWhere(
+        (c) => c?.id == _selectedCharacterId,
+        orElse: () => null,
+      );
+      if (match != null) {
+        return match;
+      }
     }
-    return characters.indexOf(visibleCharacters.first);
+    return characters.isEmpty ? null : visibleCharacters.first;
   }
 
-  void _createCharacter(WorkspaceResourceLibraryFacade store) {
+  Future<void> _createCharacter(WorkspaceResourceLibraryFacade store) async {
+    final name = await showAppTextInputDialog(
+      context: context,
+      title: '新建角色',
+      description: '为角色起个名字，创建后可以继续补充身份、需求和场景引用。',
+      hintText: '输入角色名',
+      confirmText: '创建',
+    );
+    if (name == null || name.trim().isEmpty) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() {
-      store.createCharacter();
-      _selectedIndex = 0;
+      final newCharacter = store.createCharacter();
+      store.updateCharacter(characterId: newCharacter.id, name: name.trim());
+      _selectedCharacterId = newCharacter.id;
       _searchController.clear();
     });
   }
@@ -454,8 +498,15 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     WorkspaceResourceLibraryFacade store,
     CharacterRecord character,
   ) async {
+    if (character.linkedSceneIds.isNotEmpty) {
+      setState(() {
+        _showDeleteOverlay = true;
+      });
+      return;
+    }
     final shouldDelete = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       barrierLabel: '关闭',
       builder: (dialogContext) {
         return DesktopModalDialog(
@@ -463,7 +514,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
           description: '删除后，角色资料和场景引用关系都会被移除。',
           body: Text(
             character.name,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(dialogContext).textTheme.bodyMedium,
           ),
           actions: [
             OutlinedButton(
@@ -482,11 +533,7 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
       setState(() {
         store.deleteCharacter(character.id);
         final visible = _visibleCharacters(store.characters);
-        _selectedIndex = visible.isEmpty
-            ? 0
-            : store.characters
-                  .indexOf(visible.first)
-                  .clamp(0, store.characters.length - 1);
+        _selectedCharacterId = visible.isEmpty ? null : visible.first.id;
       });
       if (context.mounted) {
         ref.read(appSceneContextStoreProvider).syncContext();
@@ -507,23 +554,16 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
     CharacterRecord? current,
   ) {
     if (current == null || current.linkedSceneIds.isEmpty) {
-      return '第 3 章 / 场景 05';
+      return '未找到关联场景';
     }
     SceneRecord? matchedScene;
     for (final sceneId in current.linkedSceneIds) {
       final candidate = store.scenes.where((scene) => scene.id == sceneId);
-      if (candidate.isEmpty) {
-        continue;
-      }
-      final scene = candidate.first;
-      if (scene.locationParts.chapterNumber == 3) {
-        matchedScene = scene;
-        break;
-      }
-      matchedScene ??= scene;
+      if (candidate.isEmpty) continue;
+      matchedScene ??= candidate.first;
     }
     if (matchedScene == null) {
-      return '第 3 章 / 场景 05';
+      return '未找到关联场景';
     }
     return matchedScene.displayLocation;
   }
@@ -548,7 +588,12 @@ class _CharacterLibraryPageState extends ConsumerState<CharacterLibraryPage> {
         need: need,
         summary: summary,
       );
-      ref.read(appSceneContextStoreProvider).syncContext();
+      _syncContextTimer?.cancel();
+      _syncContextTimer = Timer(const Duration(milliseconds: 400), () {
+        if (mounted) {
+          ref.read(appSceneContextStoreProvider).syncContext();
+        }
+      });
     }
 
     return Column(

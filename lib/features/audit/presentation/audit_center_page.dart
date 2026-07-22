@@ -82,7 +82,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
                 child: Container(
                   decoration: appPanelDecoration(context),
                   padding: const EdgeInsets.all(16),
-                  child: _buildEvidence(theme, currentIssue),
+                  child: _buildEvidence(theme, issues, currentIssue),
                 ),
               ),
               const SizedBox(width: 16),
@@ -91,7 +91,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
                 child: Container(
                   decoration: appPanelDecoration(context),
                   padding: const EdgeInsets.all(16),
-                  child: _buildActions(theme, store, currentIssue),
+                  child: _buildActions(theme, store, issues, currentIssue),
                 ),
               ),
             ],
@@ -124,7 +124,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
       body: body,
       statusBar: DesktopStatusStrip(
         leftText: '改稿 · 核对线索已更新',
-        rightText: currentIssue?.target ?? '第 3 章',
+        rightText: currentIssue?.target ?? '',
       ),
     );
   }
@@ -209,14 +209,18 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
     );
   }
 
-  Widget _buildEvidence(ThemeData theme, AuditIssueRecord? currentIssue) {
+  Widget _buildEvidence(
+    ThemeData theme,
+    List<AuditIssueRecord> issues,
+    AuditIssueRecord? currentIssue,
+  ) {
     if (widget.uiState == AuditCenterUiState.empty) {
       return const AuditCallToActionState(
         title: '暂无一致性问题',
         message: '当前作品没有发现角色、规则、道具或时间线冲突。',
       );
     }
-    if (_showFilterNoResults(const <AuditIssueRecord>[])) {
+    if (_showFilterNoResults(issues)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -325,6 +329,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
   Widget _buildActions(
     ThemeData theme,
     WorkspaceAuditFacade store,
+    List<AuditIssueRecord> issues,
     AuditIssueRecord? currentIssue,
   ) {
     if (widget.uiState == AuditCenterUiState.empty) {
@@ -340,7 +345,7 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
         ],
       );
     }
-    if (_showFilterNoResults(const <AuditIssueRecord>[])) {
+    if (_showFilterNoResults(issues)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -369,9 +374,9 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          const SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(
@@ -397,9 +402,9 @@ class _AuditCenterPageState extends ConsumerState<AuditCenterPage> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          const SizedBox(
             width: double.infinity,
-            child: OutlinedButton(onPressed: () {}, child: const Text('重新检查')),
+            child: OutlinedButton(onPressed: null, child: Text('重新检查')),
           ),
           const SizedBox(height: 8),
           const AuditInfoBlock(title: '当前限制', message: '当前无法直接跳转到原证据位置。'),

@@ -1561,6 +1561,8 @@ AppLlmCallTraceEntry _traceFromJson(Map<String, Object?> value) {
   }
   final trace = AppLlmCallTraceEntry(
     timestampMs: value['timestampMs'] as int,
+    startedAtMs: value['startedAtMs'] as int?,
+    completedAtMs: value['completedAtMs'] as int?,
     traceName: value['traceName'] as String,
     model: value['model'] as String,
     host: value['host'] as String,

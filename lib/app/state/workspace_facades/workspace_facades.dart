@@ -16,7 +16,7 @@ abstract interface class WorkspaceProjectSceneFacade {
   ProjectRecord? projectById(String projectId);
   SceneRecord? sceneById(String projectId, String sceneId);
 
-  void createProject({String? projectName});
+  ProjectRecord createProject({String? projectName});
   void deleteProject(ProjectRecord project);
   Future<DeleteProjectResult> deleteProjectAndWait(ProjectRecord project);
   void selectProject(String projectId);
@@ -38,7 +38,7 @@ abstract interface class WorkspaceResourceLibraryFacade {
   List<CharacterRecord> get characters;
   List<WorldNodeRecord> get worldNodes;
 
-  void createCharacter();
+  CharacterRecord createCharacter();
   void updateCharacter({
     required String characterId,
     String? name,
@@ -164,7 +164,7 @@ final class _AppWorkspaceProjectSceneFacade
       _store.sceneById(projectId, sceneId);
 
   @override
-  void createProject({String? projectName}) =>
+  ProjectRecord createProject({String? projectName}) =>
       _store.createProject(projectName: projectName);
 
   @override
@@ -226,7 +226,7 @@ final class _AppWorkspaceResourceLibraryFacade
   List<WorldNodeRecord> get worldNodes => _store.worldNodes;
 
   @override
-  void createCharacter() => _store.createCharacter();
+  CharacterRecord createCharacter() => _store.createCharacter();
 
   @override
   void updateCharacter({

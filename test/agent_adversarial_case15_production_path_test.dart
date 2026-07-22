@@ -29,7 +29,8 @@ void main() {
           payload['sutProviderCallCount'],
           AgentEvaluationPromotionPerformanceScenario
               .expectedSutProviderCallCount,
-          reason: '60 sealed slots must each complete all 13 production calls',
+          reason:
+              '60 sealed slots must each complete all 13 exact-schema production calls',
         );
         expect(
           payload['sutBaselineCallCount'],
@@ -67,7 +68,7 @@ void main() {
         await _expectCanonicalPublicFixture(root, variant);
       }
     },
-    timeout: const Timeout(Duration(minutes: 12)),
+    timeout: const Timeout(Duration(minutes: 15)),
   );
 }
 

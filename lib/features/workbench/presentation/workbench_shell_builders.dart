@@ -265,10 +265,16 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
       header: DesktopHeaderBar(
         tabs: const ['作品资料', '大纲', '正文'],
         activeTabIndex: 2,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 2) return;
+          final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+          if (!context.mounted || !canNavigate) return;
           Navigator.of(context).popUntil((route) => route.isFirst);
-          AppNavigator.push(context, AppRoutes.workSettingsHub);
+          if (i == 1) {
+            AppNavigator.push(context, AppRoutes.scenes);
+          } else {
+            AppNavigator.push(context, AppRoutes.workSettingsHub);
+          }
         },
         actions: [_ModePillButton(onPressed: state._openReadingMode)],
       ),
@@ -310,6 +316,7 @@ Widget _buildShellBody(_WorkbenchShellPageState state, BuildContext context) {
               initialValue: '',
               onConfirm: state.ref.read(appWorkspaceStoreProvider).createScene,
             ),
+            isDirty: state._isEditorDirty,
           );
 
           final chapterListPanel =
@@ -533,7 +540,7 @@ Widget? _buildToolWindow(
               state._restoreReturnAnchor(anchor);
             },
             onOpenOutline: () {
-              AppNavigator.push(context, AppRoutes.worldbuilding);
+              AppNavigator.push(context, AppRoutes.characters);
             },
           ),
         ),

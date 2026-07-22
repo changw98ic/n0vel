@@ -14,6 +14,18 @@ class SqliteAppSimulationStorage implements AppSimulationStorage {
   final String _dbPath;
 
   static String _resolvePath() {
+    if (Platform.isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'];
+      if (localAppData != null && localAppData.isNotEmpty) {
+        return '$localAppData\\NovelWriter\\simulation.db';
+      }
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null && userProfile.isNotEmpty) {
+        return '$userProfile\\AppData\\Local\\NovelWriter\\simulation.db';
+      }
+      return '.novel_writer_simulation.db';
+    }
+
     final home = Platform.environment['HOME'];
     if (home == null || home.isEmpty) {
       return '.novel_writer_simulation.db';

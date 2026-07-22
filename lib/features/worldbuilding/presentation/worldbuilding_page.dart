@@ -50,8 +50,9 @@ class WorldbuildingPage extends ConsumerStatefulWidget {
 }
 
 class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
-  int _selectedIndex = 0;
+  String? _selectedNodeId;
   int _sortIndex = 0;
+  bool _showDeleteOverlay = false;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _treeScrollController = ScrollController();
   final ScrollController _detailScrollController = ScrollController();
@@ -89,8 +90,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     final projectScenes = workspace.projectSceneFacade;
     final nodes = resources.worldNodes;
     final visibleNodes = _visibleNodes(nodes);
-    final selectedIndex = _resolveSelectedIndex(nodes, visibleNodes);
-    final current = visibleNodes.isEmpty ? null : nodes[selectedIndex];
+    final current = _resolveSelectedNode(visibleNodes);
     final body = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDesignTokens.space24,
@@ -112,7 +112,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: frostedSidebarDecoration(context),
                   padding: const EdgeInsets.all(18),
-                  child: _buildTree(theme, nodes, visibleNodes, selectedIndex),
+                  child: _buildTree(theme, nodes, visibleNodes, current),
                 ),
               ),
             ),
@@ -130,7 +130,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: glassCardDecoration(context),
                   padding: const EdgeInsets.all(20),
-                  child: _buildDetail(theme, resources, current),
+                  child: _buildDetail(theme, resources, visibleNodes, current),
                 ),
               ),
             ),
@@ -149,7 +149,13 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                 child: Container(
                   decoration: glassCardDecoration(context),
                   padding: const EdgeInsets.all(20),
-                  child: _buildRules(theme, resources, projectScenes, current),
+                  child: _buildRules(
+                    theme,
+                    resources,
+                    projectScenes,
+                    visibleNodes,
+                    current,
+                  ),
                 ),
               ),
             ),
@@ -161,11 +167,17 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       header: DesktopHeaderBar(
         tabs: const ['作品资料', '设定资料', '编辑'],
         activeTabIndex: 1,
-        onTabChanged: (i) {
+        onTabChanged: (i) async {
           if (i == 0) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
+            if (!context.mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workSettingsHub);
           } else if (i == 2) {
+            final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+            if (!canNavigate) return;
+            if (!context.mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
             AppNavigator.push(context, AppRoutes.workbench);
           }
@@ -187,14 +199,27 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       ),
       body: Stack(
         children: [
-          if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
-            Opacity(opacity: 0.55, child: body)
+          if (_showDeleteOverlay)
+            IgnorePointer(child: Opacity(opacity: 0.55, child: body))
           else
             body,
-          if (widget.uiState == WorldbuildingUiState.deleteParentConfirm)
+          if (_showDeleteOverlay && current != null)
             Positioned.fill(
               child: WorldbuildingDeleteOverlay(
-                nodeTitle: current?.title ?? '当前节点',
+                nodeTitle: current.title,
+                onCancel: () => setState(() => _showDeleteOverlay = false),
+                onConfirm: () {
+                  final node = current;
+                  setState(() {
+                    resources.deleteWorldNode(node.id);
+                    final visible = _visibleNodes(resources.worldNodes);
+                    _selectedNodeId = visible.isEmpty ? null : visible.first.id;
+                    _showDeleteOverlay = false;
+                  });
+                  if (context.mounted) {
+                    ref.read(appSceneContextStoreProvider).syncContext();
+                  }
+                },
               ),
             ),
         ],
@@ -207,7 +232,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     ThemeData theme,
     List<WorldNodeRecord> nodes,
     List<WorldNodeRecord> visibleNodes,
-    int selectedIndex,
+    WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
       return Column(
@@ -282,9 +307,9 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
                             ? WorldbuildingPage.stormNodeKey
                             : null,
                         label: node.title,
-                        selected: nodes[selectedIndex] == node,
+                        selected: current?.id == node.id,
                         onPressed: () => setState(() {
-                          _selectedIndex = nodes.indexOf(node);
+                          _selectedNodeId = node.id;
                         }),
                       ),
                       const SizedBox(height: 8),
@@ -301,6 +326,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
   Widget _buildDetail(
     ThemeData theme,
     WorkspaceResourceLibraryFacade store,
+    List<WorldNodeRecord> visibleNodes,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
@@ -311,7 +337,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         onPressed: () => _createNode(store),
       );
     }
-    if (_showFilterNoResults(const <WorldNodeRecord>[])) {
+    if (_showFilterNoResults(visibleNodes)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -404,24 +430,26 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     );
   }
 
-  int _resolveSelectedIndex(
-    List<WorldNodeRecord> nodes,
-    List<WorldNodeRecord> visibleNodes,
-  ) {
-    if (nodes.isEmpty || visibleNodes.isEmpty) {
-      return 0;
+  WorldNodeRecord? _resolveSelectedNode(List<WorldNodeRecord> visibleNodes) {
+    if (visibleNodes.isEmpty) {
+      return null;
     }
-    if (_selectedIndex < nodes.length &&
-        visibleNodes.contains(nodes[_selectedIndex])) {
-      return _selectedIndex;
+    if (_selectedNodeId != null) {
+      final match = visibleNodes.cast<WorldNodeRecord?>().firstWhere(
+        (n) => n?.id == _selectedNodeId,
+        orElse: () => null,
+      );
+      if (match != null) {
+        return match;
+      }
     }
-    return nodes.indexOf(visibleNodes.first);
+    return visibleNodes.first;
   }
 
   void _createNode(WorkspaceResourceLibraryFacade store) {
     setState(() {
       store.createWorldNode();
-      _selectedIndex = 0;
+      _selectedNodeId = store.worldNodes.first.id;
       _searchController.clear();
     });
   }
@@ -444,6 +472,12 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     WorkspaceResourceLibraryFacade store,
     WorldNodeRecord node,
   ) async {
+    if (node.linkedSceneIds.isNotEmpty) {
+      setState(() {
+        _showDeleteOverlay = true;
+      });
+      return;
+    }
     final shouldDelete = await showDialog<bool>(
       context: context,
       barrierLabel: '关闭',
@@ -469,11 +503,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
       setState(() {
         store.deleteWorldNode(node.id);
         final visible = _visibleNodes(store.worldNodes);
-        _selectedIndex = visible.isEmpty
-            ? 0
-            : store.worldNodes
-                  .indexOf(visible.first)
-                  .clamp(0, store.worldNodes.length - 1);
+        _selectedNodeId = visible.isEmpty ? null : visible.first.id;
       });
       if (context.mounted) {
         ref.read(appSceneContextStoreProvider).syncContext();
@@ -485,6 +515,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
     ThemeData theme,
     WorkspaceResourceLibraryFacade store,
     WorkspaceProjectSceneFacade projectScenes,
+    List<WorldNodeRecord> visibleNodes,
     WorldNodeRecord? current,
   ) {
     if (widget.uiState == WorldbuildingUiState.empty) {
@@ -500,7 +531,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
         ],
       );
     }
-    if (_showFilterNoResults(const <WorldNodeRecord>[])) {
+    if (_showFilterNoResults(visibleNodes)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -541,7 +572,7 @@ class _WorldbuildingPageState extends ConsumerState<WorldbuildingPage> {
             Text('规则与引用', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              '把地点、组织 and 规则绑定回具体场景，写作时就能直接看到限制条件。',
+              '把地点、组织和规则绑定回具体场景，写作时就能直接看到限制条件。',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),

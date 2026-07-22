@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/state/app_settings_store.dart';
 import '../../../app/widgets/desktop_shell.dart';
@@ -12,6 +13,8 @@ class SettingsFieldInputBox extends StatelessWidget {
     this.placeholder,
     this.suffix,
     this.onToggleObscure,
+    this.keyboardType,
+    this.inputFormatters,
     super.key,
   });
 
@@ -22,6 +25,8 @@ class SettingsFieldInputBox extends StatelessWidget {
   final String? placeholder;
   final String? suffix;
   final VoidCallback? onToggleObscure;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +39,8 @@ class SettingsFieldInputBox extends StatelessWidget {
           key: fieldKey,
           controller: controller,
           obscureText: obscureText,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: placeholder,
             suffixText: suffix,

@@ -13,11 +13,13 @@ Novel Writer can connect to any model service that exposes an OpenAI-compatible 
 
 ## How to fill Settings
 
-1. Open **Settings** in the app.
-2. Set **Model service** to a friendly name, for example `OpenRouter` or `Local LM Studio`.
-3. Paste the provider's **Base URL**. Many OpenAI-compatible services require the `/v1` suffix.
-4. Enter the exact **Model** ID from the provider.
-5. Enter your own **API key**. For local providers that do not require a key, follow that provider's instructions.
+1. Open “设置” in the app.
+2. Set “模型服务” to a friendly name, for example `OpenRouter` or `Local LM Studio`.
+3. Paste the provider's “接口地址”. Many OpenAI-compatible services require the `/v1` suffix.
+4. Enter the exact “模型” ID from the provider.
+5. Enter your own “密钥”. For local providers that do not require a key, follow that provider's instructions.
 6. Run the connection test before saving.
+
+The Settings page also supports “多模型服务配置” and “路由规则”. For a first run, configure only the default model; add routing when different tasks need different providers.
 
 No provider above is required or endorsed as the only option. Pick the service that matches your budget, privacy needs, and model availability.

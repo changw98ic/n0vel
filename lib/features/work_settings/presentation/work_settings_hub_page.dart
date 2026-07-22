@@ -61,8 +61,10 @@ class _WorkSettingsHubPageState extends ConsumerState<WorkSettingsHubPage> {
           header: DesktopHeaderBar(
             tabs: const ['书架', '作品资料', '编辑'],
             activeTabIndex: 1,
-            onTabChanged: (i) {
+            onTabChanged: (i) async {
               if (i == 0) {
+                final canNavigate = await AppNavTabs.confirmIfBlocked(context);
+                if (!context.mounted || !canNavigate) return;
                 Navigator.of(context).popUntil((route) => route.isFirst);
               } else if (i == 2) {
                 AppNavigator.push(context, AppRoutes.workbench);

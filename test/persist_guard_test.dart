@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/events/app_domain_events.dart';
@@ -15,31 +17,53 @@ void main() {
       expect(callCount, 1);
     });
 
-    test('retries once on failure then succeeds', () async {
+    test('retries once on FileSystemException then succeeds', () async {
       var callCount = 0;
       await safePersist(() async {
         callCount++;
-        if (callCount == 1) throw Exception('transient');
+        if (callCount == 1) throw const FileSystemException('transient');
       });
 
       expect(callCount, 2);
     });
 
-    test('notifies via event bus after second failure', () async {
+    test('notifies via event bus after second I/O failure', () async {
       final bus = AppEventBus();
       NotificationRequestedEvent? notification;
       final sub = bus.on<NotificationRequestedEvent>().listen((e) {
         notification = e;
       });
 
-      await safePersist(
-        () async => throw Exception('persistent'),
-        eventBus: bus,
-      );
+      var callCount = 0;
+      await safePersist(() async {
+        callCount++;
+        throw const FileSystemException('persistent');
+      }, eventBus: bus);
 
+      expect(callCount, 2);
       expect(notification, isNotNull);
       expect(notification!.title, '数据保存失败');
       expect(notification!.severity, AppNoticeSeverity.error);
+
+      await sub.cancel();
+      bus.dispose();
+    });
+
+    test('does not retry non-I/O failures and notifies', () async {
+      final bus = AppEventBus();
+      NotificationRequestedEvent? notification;
+      final sub = bus.on<NotificationRequestedEvent>().listen((event) {
+        notification = event;
+      });
+
+      var callCount = 0;
+      await safePersist(() async {
+        callCount++;
+        throw StateError('programming failure');
+      }, eventBus: bus);
+
+      expect(callCount, 1);
+      expect(notification, isNotNull);
 
       await sub.cancel();
       bus.dispose();
@@ -65,7 +89,7 @@ void main() {
     });
 
     test(
-      'does not notify when first attempt fails but retry succeeds',
+      'does not notify when first I/O attempt fails but retry succeeds',
       () async {
         final bus = AppEventBus();
         var notified = false;
@@ -76,7 +100,9 @@ void main() {
         var callCount = 0;
         await safePersist(() async {
           callCount++;
-          if (callCount == 1) throw Exception('transient');
+          if (callCount == 1) {
+            throw const FileSystemException('transient');
+          }
         }, eventBus: bus);
 
         expect(callCount, 2);

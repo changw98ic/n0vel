@@ -7,8 +7,11 @@ on:
   push:
     paths:
       - ".github/workflows/flutter-analyze-test.yml"
+      - ".github/workflows/verify-macos.yml"
+      - ".github/workflows/verify-windows.yml"
       - "analysis_options.yaml"
       - "Makefile"
+      - "assets/**"
       - "lib/**"
       - "test/**"
       - "tool/**"
@@ -17,8 +20,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/flutter-analyze-test.yml"
+      - ".github/workflows/verify-macos.yml"
+      - ".github/workflows/verify-windows.yml"
       - "analysis_options.yaml"
       - "Makefile"
+      - "assets/**"
       - "lib/**"
       - "test/**"
       - "tool/**"
@@ -50,5 +56,5 @@ jobs:
 
       # The complete suite contains long-running formal evaluation fixtures;
       # keep the routine gate deterministic and leave that suite manual.
-      - name: Smoke tests
+      - name: Core smoke tests
         run: make ci-smoke

@@ -25,6 +25,18 @@ class FileAppSettingsStorage implements AppSettingsStorage {
   String? get lastLoadDetail => _lastLoadDetail;
 
   static File _resolveFile() {
+    if (Platform.isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'];
+      if (localAppData != null && localAppData.isNotEmpty) {
+        return File('$localAppData\\NovelWriter\\settings.json');
+      }
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null && userProfile.isNotEmpty) {
+        return File('$userProfile\\AppData\\Local\\NovelWriter\\settings.json');
+      }
+      return File('.novel_writer_settings.json');
+    }
+
     final home = Platform.environment['HOME'];
     if (home == null || home.isEmpty) {
       return File('.novel_writer_settings.json');

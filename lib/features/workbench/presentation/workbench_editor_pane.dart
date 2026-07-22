@@ -19,6 +19,7 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.isToolPanelOpen,
     required this.onToggleToolPanel,
     required this.onCreateFirstChapter,
+    this.isDirty = false,
     super.key,
   });
 
@@ -32,6 +33,7 @@ class WorkbenchEditorPane extends StatelessWidget {
   final bool isToolPanelOpen;
   final VoidCallback onToggleToolPanel;
   final VoidCallback onCreateFirstChapter;
+  final bool isDirty;
 
   @override
   Widget build(BuildContext context) {
@@ -129,11 +131,15 @@ class WorkbenchEditorPane extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                _draftPersistenceLabel(persistenceStatus),
+                                _draftPersistenceLabel(
+                                  persistenceStatus,
+                                  isDirty: isDirty,
+                                ),
                                 key: WorkbenchShellPage.editorSurfaceMetaKey,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: _draftPersistenceColor(
                                     persistenceStatus,
+                                    isDirty: isDirty,
                                   ),
                                 ),
                               ),
@@ -153,7 +159,13 @@ class WorkbenchEditorPane extends StatelessWidget {
   }
 }
 
-String _draftPersistenceLabel(DraftPersistenceStatus status) {
+String _draftPersistenceLabel(
+  DraftPersistenceStatus status, {
+  required bool isDirty,
+}) {
+  if (status == DraftPersistenceStatus.saved && isDirty) {
+    return '有未保存的修改';
+  }
   switch (status) {
     case DraftPersistenceStatus.saved:
       return '已保存';
@@ -164,7 +176,13 @@ String _draftPersistenceLabel(DraftPersistenceStatus status) {
   }
 }
 
-Color _draftPersistenceColor(DraftPersistenceStatus status) {
+Color _draftPersistenceColor(
+  DraftPersistenceStatus status, {
+  required bool isDirty,
+}) {
+  if (status == DraftPersistenceStatus.saved && isDirty) {
+    return const Color(0xFFB6813B);
+  }
   switch (status) {
     case DraftPersistenceStatus.saved:
       return const Color(0xFF77736A);
@@ -218,6 +236,30 @@ class _EditorToolbar extends StatelessWidget {
             ],
           ),
           const Spacer(),
+          const EditorToolbarIconButton(
+            icon: Icons.undo,
+            tooltip: '撤销',
+            onTap: null,
+          ),
+          const SizedBox(width: 14),
+          const EditorToolbarIconButton(
+            icon: Icons.format_bold,
+            tooltip: '加粗',
+            onTap: null,
+          ),
+          const SizedBox(width: 14),
+          const EditorToolbarIconButton(
+            icon: Icons.message_outlined,
+            tooltip: '批注',
+            onTap: null,
+          ),
+          const SizedBox(width: 14),
+          const EditorToolbarIconButton(
+            icon: Icons.highlight,
+            tooltip: '高亮',
+            onTap: null,
+          ),
+          const SizedBox(width: 14),
           EditorToolbarIconButton(
             icon: isToolPanelOpen
                 ? Icons.view_sidebar_outlined

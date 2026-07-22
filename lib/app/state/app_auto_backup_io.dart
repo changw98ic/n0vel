@@ -127,6 +127,33 @@ class FileAutoBackupService implements AutoBackupService {
     }
     _validateSnapshot(stage.path);
 
+    // Refuse to replace a busy live database and checkpoint committed WAL
+    // pages before moving the old inode aside. A corrupt target is the one
+    // exception: it cannot be opened normally, but the journalled swap below
+    // still preserves it as the rollback source.
+    if (await target.exists()) {
+      Database? live;
+      try {
+        live = sqlite3.open(target.path);
+        live.execute('PRAGMA busy_timeout = 1');
+        live.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+        live.execute('BEGIN EXCLUSIVE');
+        live.execute('COMMIT');
+      } on SqliteException catch (error) {
+        if (!_isCorruptDatabaseError(error)) {
+          if (live?.autocommit == false) live!.execute('ROLLBACK');
+          await _deleteIfExists(stage);
+          rethrow;
+        }
+      } on Object {
+        if (live?.autocommit == false) live!.execute('ROLLBACK');
+        await _deleteIfExists(stage);
+        rethrow;
+      } finally {
+        live?.dispose();
+      }
+    }
+
     var oldMoved = false;
     var newInstalled = false;
     var verified = false;
@@ -381,6 +408,11 @@ class FileAutoBackupService implements AutoBackupService {
     } finally {
       db.dispose();
     }
+  }
+
+  static bool _isCorruptDatabaseError(SqliteException error) {
+    return error.resultCode == SqlError.SQLITE_CORRUPT ||
+        error.resultCode == SqlError.SQLITE_NOTADB;
   }
 }
 

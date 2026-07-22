@@ -7,6 +7,18 @@ import 'db_schema_manager.dart';
 import 'telemetry_db_schema.dart';
 
 String resolvePlatformDbPath(String name) {
+  if (Platform.isWindows) {
+    final localAppData = Platform.environment['LOCALAPPDATA'];
+    if (localAppData != null && localAppData.isNotEmpty) {
+      return '$localAppData\\NovelWriter\\$name.db';
+    }
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile != null && userProfile.isNotEmpty) {
+      return '$userProfile\\AppData\\Local\\NovelWriter\\$name.db';
+    }
+    return '.novel_writer_$name.db';
+  }
+
   final home = Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
     return '.novel_writer_$name.db';
@@ -24,9 +36,21 @@ String resolveAuthoringDbPath() {
 }
 
 String resolveTelemetryDbPath({String? homeOverride}) {
+  if (homeOverride == null && Platform.isWindows) {
+    final localAppData = Platform.environment['LOCALAPPDATA'];
+    if (localAppData != null && localAppData.isNotEmpty) {
+      return '$localAppData\\NovelWriter\\telemetry.db';
+    }
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile != null && userProfile.isNotEmpty) {
+      return '$userProfile\\AppData\\Local\\NovelWriter\\telemetry.db';
+    }
+    return '.novel_writer_telemetry.db';
+  }
+
   final home = homeOverride ?? Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
-    return '.telemetry.db';
+    return '.novel_writer_telemetry.db';
   }
 
   if (Platform.isMacOS) {
@@ -37,6 +61,18 @@ String resolveTelemetryDbPath({String? homeOverride}) {
 }
 
 Directory resolveTelemetryLogsDirectory({String? homeOverride}) {
+  if (homeOverride == null && Platform.isWindows) {
+    final localAppData = Platform.environment['LOCALAPPDATA'];
+    if (localAppData != null && localAppData.isNotEmpty) {
+      return Directory('$localAppData\\NovelWriter\\logs');
+    }
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile != null && userProfile.isNotEmpty) {
+      return Directory('$userProfile\\AppData\\Local\\NovelWriter\\logs');
+    }
+    return Directory('./logs');
+  }
+
   final home = homeOverride ?? Platform.environment['HOME'];
   if (home == null || home.isEmpty) {
     return Directory('./logs');

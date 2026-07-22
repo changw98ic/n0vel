@@ -14,7 +14,9 @@ void main() {
     final db = sqlite3.openInMemory();
     addTearDown(db.dispose);
     final ledger = GenerationLedgerSqliteStore(db: db)..ensureTables();
+    final coordinator = GenerationCommitCoordinator(db: db)..ensureTables();
     final finalizer = GenerationLedgerCandidateFinalizer(ledger: ledger);
+    const sceneScopeId = 'project-1::scene-04';
     const materials = ProjectMaterialSnapshot();
     const prose =
         '“警告，U盘交给你。”沈渡把U盘交给柳溪。'
@@ -48,7 +50,7 @@ void main() {
       projectId: 'project-1',
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: 'project-1::scene-04',
+      sceneScopeId: sceneScopeId,
       baseDraft: '',
       brief: brief,
       materials: materials,
@@ -124,11 +126,10 @@ void main() {
       'chapter-03/scene-04',
     );
 
-    final coordinator = GenerationCommitCoordinator(db: db)..ensureTables();
     db.execute(
       'INSERT INTO draft_documents '
       '(project_id, text_body, updated_at_ms) VALUES (?, ?, ?)',
-      <Object?>['project-1::scene-04', '', 200],
+      <Object?>[sceneScopeId, '', 200],
     );
     final committed = coordinator.accept(
       GenerationCommitRequest(
@@ -136,10 +137,10 @@ void main() {
         runId: candidate.runId,
         candidateRevision: candidate.candidateRevision,
         projectId: 'project-1',
-        sceneScopeId: 'project-1::scene-04',
+        sceneScopeId: sceneScopeId,
         candidateHash: candidate.candidateHash,
         expectedBaseDraftHash: candidate.baseDraftHash,
-        expectedMaterialDigest: capture.materialDigest,
+        expectedMaterialDigest: candidate.materialDigest,
         expectedInputDigest: candidate.inputDigest,
         expectedFinalProseHash: candidate.finalProseHash,
         expectedDeterministicGateEvidenceHash:

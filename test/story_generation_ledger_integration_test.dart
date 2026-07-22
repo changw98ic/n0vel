@@ -92,7 +92,7 @@ void main() {
       generationCommitCoordinator: coordinator,
       orchestratorFactory: (_) => _PassingRunner(
         settingsStore: settings,
-        prose: proseFactory?.call() ?? '可采纳正文',
+        prose: proseFactory?.call() ?? _passingProse,
       ),
     );
   }
@@ -112,7 +112,7 @@ void main() {
         reason: store.snapshot.errorDetail,
       );
       expect(store.snapshot.hasDurableCandidateProof, isTrue);
-      expect(store.snapshot.candidateProse, '可采纳正文');
+      expect(store.snapshot.candidateProse, _passingProse);
       expect(
         store.snapshot.candidateGenerationBundleHash,
         startsWith('sha256:'),
@@ -376,7 +376,7 @@ void main() {
       await restored.acceptCurrentCandidate();
       expect(
         db.select('SELECT text_body FROM draft_documents').single['text_body'],
-        '可采纳正文',
+        _passingProse,
       );
       expect(db.select('SELECT * FROM version_entries'), hasLength(1));
       expect(
@@ -474,7 +474,8 @@ void main() {
   test('author edit re-finalizes N+1 and accepts only its namespace', () async {
     var invocation = 0;
     final store = buildStore(
-      proseFactory: () => invocation++ == 0 ? '候选零号正文' : '作者改稿正文',
+      proseFactory: () =>
+          invocation++ == 0 ? _initialRevisionProse : _editedRevisionProse,
     );
     addTearDown(store.dispose);
     await store.ready;
@@ -482,15 +483,15 @@ void main() {
     await store.runCurrentScene();
     final runId = store.snapshot.runId;
     expect(store.snapshot.candidateRevision, 0);
-    expect(store.snapshot.candidateProse, '候选零号正文');
+    expect(store.snapshot.candidateProse, _initialRevisionProse);
 
-    await store.beginEditedCandidateRevision('作者改稿正文');
+    await store.beginEditedCandidateRevision(_editedRevisionProse);
     await store.runCurrentScene();
 
     expect(store.snapshot.errorDetail, isEmpty);
     expect(store.snapshot.status, StoryGenerationRunStatus.completed);
     expect(store.snapshot.candidateRevision, 1);
-    expect(store.snapshot.candidateProse, '作者改稿正文');
+    expect(store.snapshot.candidateProse, _editedRevisionProse);
     final proofs = db.select(
       '''
         SELECT candidate_revision, final_prose_hash
@@ -503,7 +504,7 @@ void main() {
     expect(proofs.map((row) => row['candidate_revision']), [0, 1]);
     expect(
       proofs.last['final_prose_hash'],
-      GenerationCommitDigest.text('作者改稿正文'),
+      GenerationCommitDigest.text(_editedRevisionProse),
     );
     expect(
       db
@@ -549,7 +550,7 @@ void main() {
       revisionOneWrites
           .map((row) => row['payload_json'] as String)
           .where((payload) => payload.contains('sceneSummaryContribution')),
-      everyElement(contains('作者改稿正文')),
+      everyElement(contains(_editedRevisionProse)),
     );
     expect(
       db
@@ -577,6 +578,10 @@ void main() {
     );
   });
 }
+
+const _passingProse = '「证据就在这里，追兵已经到了。」他把文件压在桌上，门外的脚步声正在逼近。';
+const _initialRevisionProse = '「证据先别交出去，追兵已经到了。」他扣住文件，门外的脚步声正在逼近。';
+const _editedRevisionProse = '「证据现在交出去，追兵已经到了。」他推开文件，门外的警报骤然响起。';
 
 GenerationCommitRequest _requestFor(
   StoryGenerationRunSnapshot snapshot,
@@ -612,16 +617,18 @@ class _PassingRunner extends PipelineStageRunnerImpl {
     void Function()? onSpeculationReady,
   }) async {
     final brief = prepared.brief;
-    final measuredPreQuality = ProductionPreQualityGate.standard.verifyPipelinePolish(
-      brief: brief,
-      materials: materials ?? const ProjectMaterialSnapshot(),
-      prePolishProse: prose,
-      finalProse: prose,
-      // This runner is a provider/pipeline test double. Its tiny fixture prose
-      // intentionally does not meet scene-length gates, so construct the same
-      // signed verifier artifacts while simulating the upstream passed gate.
-      hardGatesEnabled: false,
-    );
+    final measuredPreQuality = ProductionPreQualityGate.standard
+        .verifyPipelinePolish(
+          brief: brief,
+          materials: materials ?? const ProjectMaterialSnapshot(),
+          prePolishProse: prose,
+          finalProse: prose,
+          // This runner is a provider/pipeline test double. Its tiny fixture
+          // prose intentionally does not meet scene-length gates, so construct
+          // the same signed verifier artifacts while simulating the upstream
+          // passed gate.
+          hardGatesEnabled: false,
+        );
     final preQualityJson = <String, Object?>{
       ...measuredPreQuality.toJson(),
       'hardGatesEnabled': true,

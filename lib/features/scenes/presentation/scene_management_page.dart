@@ -204,11 +204,6 @@ class _SceneManagementPageState extends ConsumerState<SceneManagementPage> {
                         value: currentScene.summary,
                         multiline: true,
                       ),
-                      const SizedBox(height: 12),
-                      const SceneDetailField(
-                        label: '最近修改',
-                        value: '12 分钟前 · 已同步到工作台',
-                      ),
                     ],
                   ),
                 ),

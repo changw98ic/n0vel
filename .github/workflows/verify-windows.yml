@@ -1,0 +1,41 @@
+name: Verify Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/verify-windows.yml"
+      - "assets/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "windows/**"
+  pull_request:
+    paths:
+      - ".github/workflows/verify-windows.yml"
+      - "assets/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "windows/**"
+
+jobs:
+  verify-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.41.9"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release --no-pub

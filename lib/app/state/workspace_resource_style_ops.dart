@@ -5,29 +5,28 @@ mixin _ResourceStyleOps on _WorkspaceFields {
   // Character Management
   // ---------------------------------------------------------------------------
 
-  void createCharacter() {
+  CharacterRecord createCharacter() {
     final projectId = _currentProjectId;
-    if (projectId.isEmpty) {
-      return;
-    }
     final existing = _charactersForProject(projectId);
     final nextIndex = _nextNumberedIndex(
       existing.map((character) => character.name),
       prefix: '新角色',
     );
+    final character = CharacterRecord(
+      id: generateScopedRecordId('character'),
+      name: '新角色 $nextIndex',
+      role: '待定义角色',
+      note: '等待补充人物背景与驱动',
+      need: '等待明确目标与风险',
+      summary: '新角色已创建，可继续补充设定、关系和场景引用。',
+      referenceSummary: '创建后可补充角色引用摘要与关联场景。',
+    );
     _charactersByProjectId[projectId] = [
-      CharacterRecord(
-        id: generateScopedRecordId('character'),
-        name: '新角色 $nextIndex',
-        role: '待定义角色',
-        note: '等待补充人物背景与驱动',
-        need: '等待明确目标与风险',
-        summary: '新角色已创建，可继续补充设定、关系和场景引用。',
-        referenceSummary: '创建后可补充角色引用摘要与关联场景。',
-      ),
+      character,
       ...existing,
     ];
     _commitMutation();
+    return character;
   }
 
   void updateCharacter({

@@ -107,7 +107,10 @@ void main() {
   );
 
   test('event log path helpers fall back when HOME is empty', () {
-    expect(resolveTelemetryDbPath(homeOverride: ''), '.telemetry.db');
+    expect(
+      resolveTelemetryDbPath(homeOverride: ''),
+      '.novel_writer_telemetry.db',
+    );
     expect(resolveTelemetryLogsDirectory(homeOverride: '').path, './logs');
   });
 

@@ -72,6 +72,10 @@ class _ReadingModePageState extends ConsumerState<ReadingModePage> {
             if (event is! KeyDownEvent) {
               return KeyEventResult.ignored;
             }
+            if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.of(context).pop();
+              return KeyEventResult.handled;
+            }
             if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
               _goPreviousPage();
               return KeyEventResult.handled;

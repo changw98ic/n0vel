@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client_contract.dart';
 import 'package:novel_writer/app/llm/app_llm_client_types.dart';
+import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_execution_budget.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_production_executor.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_production_evidence.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_real_release_harness.dart';
@@ -240,7 +241,7 @@ void main() {
           evaluatorMaxCalls: 120,
           evaluatorMaxTokens: 20000000,
         );
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: configuration,
           sutClient: sut,
           judgeClient: judge,
@@ -367,7 +368,7 @@ void main() {
         );
         addTearDown(() => directory.deleteSync(recursive: true));
         final judge = PurposeBuiltIndependentJudgeClient();
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(
             executionId: 'purpose-built-release-retry',
             maxAttemptsPerTrial: 2,
@@ -442,7 +443,7 @@ void main() {
         );
         addTearDown(() => directory.deleteSync(recursive: true));
         final judge = _FailOnceJudgeClient();
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(
             executionId: 'purpose-built-judge-retry',
             maxAttemptsPerTrial: 2,
@@ -521,7 +522,7 @@ void main() {
         final judge = PurposeBuiltIndependentJudgeClient();
         final reports = Directory('${directory.path}/reports');
         final work = Directory('${directory.path}/work');
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(
             executionId: 'purpose-built-attempt-call-cap',
             maxAttemptsPerTrial: 2,
@@ -621,7 +622,7 @@ void main() {
         final judge = PurposeBuiltIndependentJudgeClient();
         final reports = Directory('${directory.path}/reports');
         final work = Directory('${directory.path}/work');
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(
             executionId: 'purpose-built-attempt-token-cap',
             maxAttemptsPerTrial: 2,
@@ -682,7 +683,7 @@ void main() {
           'formal-release-db-reject-',
         );
         addTearDown(() => directory.deleteSync(recursive: true));
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(),
           sutClient: _ChallengerMarkedClient(),
           judgeClient: _MarkerAwareJudgeClient(),
@@ -718,7 +719,7 @@ void main() {
         addTearDown(() => directory.deleteSync(recursive: true));
         final firstRoute = _sutRoute('glm-purpose-built-sut-a');
         final secondRoute = _sutRoute('glm-purpose-built-sut-b');
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+        final harness = _purposeBuiltHarness(
           configuration: _configuration(
             sutRoutes: <AgentEvaluationProductionRouteRelease>[
               firstRoute,
@@ -760,12 +761,15 @@ void main() {
           'formal-release-purpose-built-claim-',
         );
         addTearDown(() => directory.deleteSync(recursive: true));
-        final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
-          configuration: _configuration(),
+        final logicalOriginMs = DateTime.now().millisecondsSinceEpoch;
+        final configuration = _configuration();
+        final harness = _purposeBuiltHarness(
+          configuration: configuration,
           sutClient: PurposeBuiltProductionProtocolClient(),
           judgeClient: PurposeBuiltIndependentJudgeClient(),
           outputDirectory: Directory('${directory.path}/reports'),
           workDirectory: Directory('${directory.path}/work'),
+          logicalOriginMs: logicalOriginMs,
         );
         addTearDown(harness.dispose);
 
@@ -773,6 +777,11 @@ void main() {
 
         expect(result.realProviderEvidence, isFalse);
         expect(result.releaseEligible, isFalse);
+        _expectHealthyLogicalBudgetJournals(
+          directory: Directory('${directory.path}/work'),
+          configuration: configuration,
+          logicalOriginMs: logicalOriginMs,
+        );
       },
       timeout: const Timeout(Duration(minutes: 10)),
     );
@@ -787,7 +796,7 @@ void main() {
         final reports = Directory('${directory.path}/reports');
         String? firstBody;
         for (var ordinal = 1; ordinal <= 2; ordinal += 1) {
-          final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
+          final harness = _purposeBuiltHarness(
             configuration: _configuration(
               executionId: 'purpose-built-failure-$ordinal',
             ),
@@ -837,6 +846,63 @@ void main() {
     () {},
     skip: legacyRealProviderDecision.denialReason,
   );
+}
+
+AgentEvaluationRealReleaseHarness _purposeBuiltHarness({
+  required AgentEvaluationRealReleaseConfiguration configuration,
+  required AppLlmClient sutClient,
+  required AppLlmClient judgeClient,
+  required Directory outputDirectory,
+  required Directory workDirectory,
+  int? logicalOriginMs,
+}) {
+  final originMs = logicalOriginMs ?? DateTime.now().millisecondsSinceEpoch;
+  return AgentEvaluationRealReleaseHarness.purposeBuilt(
+    configuration: configuration,
+    sutClient: sutClient,
+    judgeClient: judgeClient,
+    outputDirectory: outputDirectory,
+    workDirectory: workDirectory,
+    runnerNowMs: _deterministicClock(originMs),
+    budgetNowMs: _deterministicClock(originMs),
+  );
+}
+
+int Function() _deterministicClock(int originMs) {
+  var ticks = 0;
+  return () => originMs + (ticks++ * 10);
+}
+
+void _expectHealthyLogicalBudgetJournals({
+  required Directory directory,
+  required AgentEvaluationRealReleaseConfiguration configuration,
+  required int logicalOriginMs,
+}) {
+  final expectedDeadline =
+      logicalOriginMs + configuration.deadline.inMilliseconds;
+  for (final entry in <({String fileName, String budgetId})>[
+    (
+      fileName: 'execution-budget.json',
+      budgetId: 'real-release-${configuration.executionId}',
+    ),
+    (
+      fileName: 'judge-budget.json',
+      budgetId: 'real-release-judge-${configuration.executionId}',
+    ),
+  ]) {
+    final journal = File('${directory.path}/${entry.fileName}');
+    expect(
+      readAgentEvaluationBudgetJournalDeadlineAtMs(
+        journal,
+        expectedBudgetId: entry.budgetId,
+      ),
+      expectedDeadline,
+    );
+    final payload = Map<String, Object?>.from(
+      jsonDecode(journal.readAsStringSync()) as Map,
+    );
+    expect(payload['breached'], isFalse);
+  }
 }
 
 AgentEvaluationRealReleaseConfiguration _configuration({
@@ -897,7 +963,10 @@ AgentEvaluationRealReleaseConfiguration _configuration({
         judgePromptPriceMicrousdPerMillionTokens,
     judgeCompletionMicrousdPerMillionTokens:
         judgeCompletionPriceMicrousdPerMillionTokens,
-    deadline: const Duration(minutes: 5),
+    // The semantic tests below retain 10-minute test timeouts. Keep the
+    // purpose-built release deadline outside that watchdog so host contention
+    // cannot preempt the receipt/outbox assertions under test.
+    deadline: const Duration(minutes: 30),
     holdoutAccessBudget: 1,
     codeCommit: 'purpose-built-test-commit',
     sourceTreeHash: _digest('2'),

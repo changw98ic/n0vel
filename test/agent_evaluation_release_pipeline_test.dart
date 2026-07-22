@@ -196,41 +196,23 @@ void main() {
         isEmpty,
       );
 
-      final releaseStore = AgentEvaluationReleaseStore(db: db);
-      final publicReport = AgentEvaluationReportBuilder(db: db).build(
-        executionId: 'release-pipeline-execution',
-        policy: AgentEvaluationReportPolicy(
-          aggregatorReleaseHash: _raw(aggregator),
-          minimumDistributionSamples: 20,
-        ),
-      );
       expect(
-        AgentEvaluationPublicReport.verifyJsonText(publicReport.toJsonText()),
-        isTrue,
-      );
-      final scorecard = releaseStore.writeScorecard(
-        executionId: 'release-pipeline-execution',
-        scope: 'execution',
-        scopeKey: 'release-pipeline-execution',
-        aggregateJson: publicReport.toJsonText(),
-        aggregatorReleaseHash: _raw(aggregator),
-        expectedInputSetHash: releaseStore.computeInputSetHash(
-          'release-pipeline-execution',
-        ),
-        createdAtMs: clock++,
-      );
-      expect(
-        () => releaseStore.evaluateAndRecordGateVerdict(
-          verdictKind: 'regression',
-          experimentId: manifest.experimentId,
+        () => AgentEvaluationReportBuilder(db: db).build(
           executionId: 'release-pipeline-execution',
-          scorecardHash: scorecard.scorecardHash,
-          championBundleHash: _raw(champion.generationBundle.bundleHash),
-          challengerBundleHash: _raw(challenger.generationBundle.bundleHash),
-          createdAtMs: clock++,
+          policy: AgentEvaluationReportPolicy(
+            aggregatorReleaseHash: _raw(aggregator),
+            minimumDistributionSamples: 20,
+          ),
         ),
-        throwsA(isA<AgentEvaluationPromotionConflict>()),
+        throwsA(
+          isA<AgentEvaluationReportException>().having(
+            (error) => error.message,
+            'message',
+            contains('deterministic quality receipt'),
+          ),
+        ),
       );
+      expect(db.select('SELECT * FROM eval_scorecards'), isEmpty);
       expect(db.select('SELECT * FROM eval_release_gate_derivations'), isEmpty);
     },
   );

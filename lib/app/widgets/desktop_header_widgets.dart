@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../di/app_providers.dart';
 import '../navigation/app_navigator.dart';
+import 'app_dialog.dart';
 import 'desktop_theme.dart';
 import '../theme/app_design_tokens.dart';
 
@@ -19,7 +20,30 @@ abstract final class AppNavTabs {
         store.projectById(store.currentProjectId) != null;
   }
 
-  static void navigateTo(WidgetRef ref, BuildContext context, int index) {
+  /// Checks whether the current route blocks popping (e.g. [PopScope]
+  /// with unsaved changes). If so, shows a confirmation dialog and
+  /// returns `false` when the user chooses to stay.
+  static Future<bool> confirmIfBlocked(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) {
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isFirst) {
+        return showAppConfirmDialog(
+          context: context,
+          title: '未保存的修改',
+          description: '当前正文有未保存的修改，确定要离开吗？',
+          body: const SizedBox.shrink(),
+          cancelText: '继续编辑',
+          confirmText: '离开',
+        );
+      }
+    }
+    return true;
+  }
+
+  static void navigateTo(WidgetRef ref, BuildContext context, int index) async {
+    final canNavigate = await confirmIfBlocked(context);
+    if (!context.mounted || !canNavigate) return;
     switch (index) {
       case 0:
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -30,7 +54,7 @@ abstract final class AppNavTabs {
       case 2:
         if (!hasProject(ref)) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
-        AppNavigator.push(context, AppRoutes.workSettingsHub);
+        AppNavigator.push(context, AppRoutes.worldbuilding);
       case 3:
         if (!hasProject(ref)) return;
         Navigator.of(context).popUntil((route) => route.isFirst);

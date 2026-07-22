@@ -26,7 +26,10 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
   static const slotCount = 60;
   static const armCount = 2;
   static const slotsPerArm = slotCount ~/ armCount;
+  // Director + stage narration + beat resolution + editorial, followed by
+  // four preliminary reviewers, the same four final reviewers, and quality.
   static const expectedSutCallsPerSlot = 13;
+  // Four calls precede challenger prose; the remaining nine are prose-bound.
   static const challengerBaselineCallsPerSlot = 4;
   static const challengerPricedCallsPerSlot = 9;
   static const expectedBaselineCalls =
@@ -34,6 +37,11 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       (slotsPerArm * challengerBaselineCallsPerSlot);
   static const expectedPricedChallengerCalls =
       slotsPerArm * challengerPricedCallsPerSlot;
+  // Compatibility aliases retained for callers introduced by the formal
+  // quality-hardening release.
+  static const expectedBaselineCallCount = expectedBaselineCalls;
+  static const expectedPricedChallengerCallCount =
+      expectedPricedChallengerCalls;
   static const expectedSutProviderCallCount =
       slotCount * expectedSutCallsPerSlot;
   static const attackChallengerTokensPerCall = 249;
@@ -130,7 +138,9 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       completionMicrousdPerMillionTokens: 1000000,
       judgePromptMicrousdPerMillionTokens: 1,
       judgeCompletionMicrousdPerMillionTokens: 1,
-      deadline: const Duration(minutes: 5),
+      // Purpose-built 60-slot matrices can share a constrained CI host. Their
+      // semantic deadline must remain beyond the shorter test watchdog.
+      deadline: const Duration(minutes: 30),
       holdoutAccessBudget: 1,
       codeCommit: 'purpose-built-performance-commit',
       sourceTreeHash: _digest('2'),

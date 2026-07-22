@@ -216,9 +216,11 @@ class _ChapterListPanel extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final scene = scenes[index];
                     final isActive = scene.id == currentSceneId;
-                    return GestureDetector(
-                      onTap: () => onSelectScene(scene),
-                      child: Container(
+                    return MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => onSelectScene(scene),
+                        child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
                           vertical: 10,
@@ -261,10 +263,11 @@ class _ChapterListPanel extends StatelessWidget {
                           ],
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
+            ),
             ],
           ),
         ),
@@ -273,34 +276,48 @@ class _ChapterListPanel extends StatelessWidget {
   }
 }
 
-class _ModePillButton extends StatelessWidget {
+class _ModePillButton extends StatefulWidget {
   const _ModePillButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
+  State<_ModePillButton> createState() => _ModePillButtonState();
+}
+
+class _ModePillButtonState extends State<_ModePillButton> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF243226),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(
-              '正文模式',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: Container(
+          decoration: BoxDecoration(
+            color: _hovered
+                ? const Color(0xFF354636)
+                : const Color(0xFF243226),
+            borderRadius: BorderRadius.circular(9999),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                '阅读模式',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -312,13 +329,13 @@ class EditorToolbarIconButton extends StatefulWidget {
     super.key,
     required this.icon,
     required this.tooltip,
-    required this.onTap,
+    this.onTap,
     this.isActive = false,
   });
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isActive;
 
   @override
@@ -331,16 +348,20 @@ class _EditorToolbarIconButtonState extends State<EditorToolbarIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isActive || _hovered
+    final enabled = widget.onTap != null;
+    final color = enabled && (widget.isActive || _hovered)
         ? const Color(0xFF243226)
-        : const Color(0xFF5F665E);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Icon(widget.icon, size: 18, color: color),
+        : const Color(0xFFB0B5AF);
+    return Tooltip(
+      message: enabled ? widget.tooltip : '${widget.tooltip}（开发中）',
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Icon(widget.icon, size: 18, color: color),
+        ),
       ),
     );
   }

@@ -184,9 +184,9 @@ class _ProjectImportExportPageState
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: OutlinedButton(
                 onPressed: exportDisabled ? null : () => _handleExport(context),
-                child: const Text('导出当前工程'),
+                child: const Text('导出当前工程 (开发中)'),
               ),
             ),
             const SizedBox(height: 16),
@@ -238,7 +238,7 @@ class _ProjectImportExportPageState
                 onPressed: exportDisabled
                     ? null
                     : () => _handleFormatExport(context),
-                child: const Text('导出稿件'),
+                child: const Text('导出稿件 (开发中)'),
               ),
             ),
           ],
@@ -270,15 +270,15 @@ class _ProjectImportExportPageState
             const ImportExportFieldRow(label: '导入方式', value: '导入为新项目'),
             const SizedBox(height: 12),
             SizedBox(
-              width: 108,
-              child: FilledButton(
+              width: 148,
+              child: OutlinedButton(
                 onPressed:
                     effectiveUiState ==
                         ProjectImportExportUiState.majorVersionBlocked
                     ? null
                     : () => _handleImport(context),
                 key: ProjectImportExportPage.executeImportButtonKey,
-                child: const Text('执行导入'),
+                child: const Text('执行导入(开发中)'),
               ),
             ),
             const SizedBox(height: 16),

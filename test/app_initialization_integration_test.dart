@@ -1,15 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/app.dart';
 import 'package:novel_writer/app/di/app_providers.dart';
+import 'package:novel_writer/app/di/service_registry.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/state/app_ai_history_store.dart';
 import 'package:novel_writer/app/state/app_auto_backup.dart';
 import 'package:novel_writer/app/state/app_draft_store.dart';
 import 'package:novel_writer/app/state/app_scene_context_store.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
+import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
 import 'package:novel_writer/app/state/app_store_listenable.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
@@ -65,10 +69,92 @@ class _ThrowingRestoreBackupService implements AutoBackupService {
   }
 }
 
+class _ThrowingListBackupsService implements AutoBackupService {
+  @override
+  Future<BackupEntry> createBackup() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteBackup(String id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<BackupEntry>> listBackups() async {
+    throw StateError('list backups failed');
+  }
+
+  @override
+  Future<int> pruneBackups({int keepCount = 10}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> restoreBackup(String id) {
+    throw UnimplementedError();
+  }
+}
+
 class _FailingPersistenceStore extends AppStoreListenable {
   @override
   Future<void> flushPersistence() async {
     throw StateError('flush failed');
+  }
+}
+
+class _TrackingServiceRegistry extends ServiceRegistry {
+  _TrackingServiceRegistry({required void Function() onFirstResolve})
+    : _onFirstResolve = onFirstResolve;
+
+  final void Function() _onFirstResolve;
+  int resolveCalls = 0;
+
+  @override
+  T resolve<T>() {
+    resolveCalls++;
+    if (resolveCalls == 1) {
+      _onFirstResolve();
+    }
+    return super.resolve<T>();
+  }
+}
+
+class _ControlledRestoreBackupService implements AutoBackupService {
+  _ControlledRestoreBackupService({
+    required this.restoreGate,
+    required this.onRestore,
+  });
+
+  final Completer<void> restoreGate;
+  final void Function() onRestore;
+  bool restoreStarted = false;
+
+  @override
+  Future<BackupEntry> createBackup() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteBackup(String id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<BackupEntry>> listBackups() async {
+    return const [BackupEntry(id: 'latest', sizeBytes: 3, createdAtMs: 1)];
+  }
+
+  @override
+  Future<int> pruneBackups({int keepCount = 10}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> restoreBackup(String id) async {
+    restoreStarted = true;
+    await restoreGate.future;
+    onRestore();
   }
 }
 
@@ -90,7 +176,9 @@ void main() {
     testWidgets('all eight stores resolve via Riverpod providers', (
       tester,
     ) async {
-      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pumpWidget(
+        NovelWriterApp(crashDetector: _FakeCrashDetector()),
+      );
       await tester.pump();
 
       // Use a descendant context — ProviderScope.containerOf requires a
@@ -121,6 +209,7 @@ void main() {
 
       await tester.pumpWidget(
         NovelWriterApp(
+          crashDetector: _FakeCrashDetector(),
           home: Builder(
             builder: (context) {
               final container = ProviderScope.containerOf(context);
@@ -159,6 +248,7 @@ void main() {
       // completed with valid arguments.
       await tester.pumpWidget(
         NovelWriterApp(
+          crashDetector: _FakeCrashDetector(),
           home: Builder(
             builder: (context) {
               // Access every provider to force resolution.
@@ -180,7 +270,9 @@ void main() {
     });
 
     testWidgets('default home is ProjectListPage', (tester) async {
-      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pumpWidget(
+        NovelWriterApp(crashDetector: _FakeCrashDetector()),
+      );
       await tester.pump();
 
       expect(find.byType(ProjectListPage), findsOneWidget);
@@ -188,8 +280,9 @@ void main() {
 
     testWidgets('custom home replaces default', (tester) async {
       await tester.pumpWidget(
-        const NovelWriterApp(
-          home: Text('custom home', textDirection: TextDirection.ltr),
+        NovelWriterApp(
+          crashDetector: _FakeCrashDetector(),
+          home: const Text('custom home', textDirection: TextDirection.ltr),
         ),
       );
       await tester.pump();
@@ -203,6 +296,7 @@ void main() {
 
       await tester.pumpWidget(
         NovelWriterApp(
+          crashDetector: _FakeCrashDetector(),
           home: Builder(
             builder: (context) {
               final container = ProviderScope.containerOf(context);
@@ -223,7 +317,9 @@ void main() {
     testWidgets('disposes all registry-owned stores without errors', (
       tester,
     ) async {
-      await tester.pumpWidget(const NovelWriterApp());
+      await tester.pumpWidget(
+        NovelWriterApp(crashDetector: _FakeCrashDetector()),
+      );
       await tester.pump();
 
       // Replacing the widget triggers dispose on the StatefulWidget state.
@@ -339,6 +435,73 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(backupService.restoreAttempts, 1);
       expect(find.text('恢复未完成'), findsOneWidget);
+      expect(find.text('ready'), findsNothing);
+      expect(find.text('继续使用当前数据'), findsNothing);
+    });
+
+    testWidgets('backup listing failure may continue before services close', (
+      tester,
+    ) async {
+      NovelWriterApp.debugCreateAutoBackupService = () =>
+          _ThrowingListBackupsService();
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: _FakeCrashDetector(dirtyShutdown: true),
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('恢复失败'), findsOneWidget);
+      expect(find.text('ready'), findsNothing);
+
+      await tester.tap(find.text('继续使用当前数据'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ready'), findsOneWidget);
+    });
+
+    testWidgets('restore never remounts services before terminal outcome', (
+      tester,
+    ) async {
+      var persistedValue = '崩溃前的未恢复值';
+      final restoreGate = Completer<void>();
+      final backupService = _ControlledRestoreBackupService(
+        restoreGate: restoreGate,
+        onRestore: () => persistedValue = '备份中的值',
+      );
+      String? valueAtFirstResolve;
+      final registry = _TrackingServiceRegistry(
+        onFirstResolve: () => valueAtFirstResolve = persistedValue,
+      );
+      registry.registerSingleton<AppSettingsStore>(
+        AppSettingsStore(storage: InMemoryAppSettingsStorage()),
+      );
+      NovelWriterApp.debugRegistryOverride = registry;
+      NovelWriterApp.debugCreateAutoBackupService = () => backupService;
+      NovelWriterApp.debugShowRecoveryDialog =
+          (context, {required backups}) async => true;
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: _FakeCrashDetector(dirtyShutdown: true),
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pump();
+
+      expect(backupService.restoreStarted, isTrue);
+      expect(registry.resolveCalls, 0);
+      expect(find.text('ready'), findsNothing);
+
+      restoreGate.complete();
+      await tester.pumpAndSettle();
+
+      expect(persistedValue, '备份中的值');
+      expect(valueAtFirstResolve, isNull);
+      expect(registry.resolveCalls, 0);
+      expect(find.text('恢复完成'), findsOneWidget);
       expect(find.text('ready'), findsNothing);
     });
   });
