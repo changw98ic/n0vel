@@ -3,28 +3,35 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/canon_keeper.dart';
+import 'package:novel_writer/features/story_generation/data/generation_evidence_fingerprints.dart';
 import 'package:novel_writer/features/story_generation/data/scene_pipeline_models.dart'
     as pipeline;
 import 'package:novel_writer/features/story_generation/data/scene_review_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/scene_state_resolver.dart';
+import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_formatter_trace.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_models.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/memory_policy.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
 
 import 'test_support/fake_app_llm_client.dart';
+import 'test_support/formal_evaluation_provenance_fixture.dart';
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
 // ---------------------------------------------------------------------------
 
-SceneBrief _brief({Map<String, Object?> metadata = const {}}) => SceneBrief(
+SceneBrief _brief({
+  Map<String, Object?> metadata = const {},
+  bool formalExecution = false,
+}) => SceneBrief(
   chapterId: 'chapter-01',
   chapterTitle: '第一章 雨夜码头',
   sceneId: 'scene-01',
   sceneTitle: '仓库门外',
   sceneSummary: '柳溪在风雨中拦住岳刃。',
   metadata: metadata,
+  formalExecution: formalExecution,
 );
 
 const _director = SceneDirectorOutput(text: '目标：逼问\n冲突：顶压\n推进：失守');
@@ -46,6 +53,40 @@ const _roleOutputs = [
     text: '立场：抗拒\n动作：转身',
   ),
 ];
+
+SceneReviewPassResult _copyReviewPass(SceneReviewPassResult source) =>
+    SceneReviewPassResult(
+      status: source.status,
+      reason: source.reason,
+      rawText: source.rawText,
+      categories: <SceneReviewCategory>[...source.categories],
+    );
+
+SceneReviewResult _rehydrateReview(SceneReviewResult source) =>
+    SceneReviewResult(
+      judge: _copyReviewPass(source.judge),
+      consistency: _copyReviewPass(source.consistency),
+      adjudication: source.adjudication == null
+          ? null
+          : _copyReviewPass(source.adjudication!),
+      readerFlow: source.readerFlow == null
+          ? null
+          : _copyReviewPass(source.readerFlow!),
+      lexicon: source.lexicon == null ? null : _copyReviewPass(source.lexicon!),
+      roleplayFidelity: source.roleplayFidelity == null
+          ? null
+          : _copyReviewPass(source.roleplayFidelity!),
+      decision: source.decision,
+      refinementGuidance: source.refinementGuidance == null
+          ? null
+          : RefinementGuidance(
+              plotIssues: source.refinementGuidance!.plotIssues,
+              consistencyFixes: source.refinementGuidance!.consistencyFixes,
+              styleTargets: source.refinementGuidance!.styleTargets,
+              preserve: source.refinementGuidance!.preserve,
+              focusInstruction: source.refinementGuidance!.focusInstruction,
+            ),
+    );
 
 AppSettingsStore _setupStore(FakeAppLlmClient fakeClient) {
   final store = AppSettingsStore(
@@ -76,11 +117,17 @@ void main() {
             if (system.contains('scene judge review')) {
               expect(system, contains('不属于本次 LLM 评审的否决理由'));
               taskTypes.add('judge');
-              expect(user, contains('任务：scene_judge_review'));
+              expect(
+                user,
+                contains('任务：scene_judge_review:preliminaryReview'),
+              );
               expect(user, contains('评审类别：prose, scene_plan'));
             } else if (system.contains('scene consistency review')) {
               taskTypes.add('consistency');
-              expect(user, contains('任务：scene_consistency_review'));
+              expect(
+                user,
+                contains('任务：scene_consistency_review:preliminaryReview'),
+              );
               expect(
                 user,
                 contains(
@@ -931,6 +978,307 @@ Analysis: 正文完全是模型元分析，不是小说正文。
       );
 
       expect(result.decision, SceneReviewDecision.replanScene);
+    });
+  });
+
+  group('SceneReviewCoordinator parsed-result provenance', () {
+    const passResponse = '决定：PASS\n原因：证据与正文一致。';
+
+    Future<FormalEvaluationFixtureRun<SceneReviewResult>> realReview({
+      StoryGenerationEvaluationPhase? phase,
+      bool includeOptionalPasses = false,
+      bool requireAdjudication = false,
+    }) {
+      final responses = <String>[
+        requireAdjudication ? '决定：REPLAN_SCENE\n原因：需要裁决是否重规划。' : passResponse,
+        passResponse,
+        if (includeOptionalPasses) passResponse,
+        if (includeOptionalPasses) passResponse,
+        if (requireAdjudication) passResponse,
+      ];
+      return runFormalEvaluationProvenanceFixture(
+        responses: responses,
+        body: (settingsStore) {
+          final coordinator = SceneReviewCoordinator(
+            settingsStore: settingsStore,
+            hardGatesEnabled: false,
+          );
+          Future<SceneReviewResult> runReview() => coordinator.review(
+            brief: _brief(formalExecution: true),
+            director: _director,
+            roleOutputs: _roleOutputs,
+            prose: _prose,
+            enableReaderFlowReview: includeOptionalPasses,
+            enableLexiconReview: includeOptionalPasses,
+          );
+
+          return phase == null
+              ? runReview()
+              : StoryGenerationEvaluationScope.run(
+                  phase: phase,
+                  artifactText: _prose.text,
+                  body: runReview,
+                );
+        },
+      );
+    }
+
+    test(
+      'byte-identical preliminary and final councils keep unique phase-bound intents',
+      () async {
+        final run = await runFormalEvaluationProvenanceFixture(
+          responses: const <String>[
+            passResponse,
+            passResponse,
+            passResponse,
+            passResponse,
+          ],
+          body: (settingsStore) async {
+            final coordinator = SceneReviewCoordinator(
+              settingsStore: settingsStore,
+              hardGatesEnabled: false,
+            );
+            Future<SceneReviewResult> reviewInPhase(
+              StoryGenerationEvaluationPhase phase,
+            ) => StoryGenerationEvaluationScope.run(
+              phase: phase,
+              artifactText: _prose.text,
+              body: () => coordinator.review(
+                brief: _brief(formalExecution: true),
+                director: _director,
+                roleOutputs: _roleOutputs,
+                prose: _prose,
+              ),
+            );
+
+            return <SceneReviewResult>[
+              await reviewInPhase(
+                StoryGenerationEvaluationPhase.preliminaryReview,
+              ),
+              await reviewInPhase(StoryGenerationEvaluationPhase.finalCouncil),
+            ];
+          },
+        );
+
+        expect(run.providerCallCount, 4);
+        expect(
+          run.attempts.map((attempt) => attempt.evaluationPhase),
+          <StoryGenerationEvaluationPhase>[
+            StoryGenerationEvaluationPhase.preliminaryReview,
+            StoryGenerationEvaluationPhase.preliminaryReview,
+            StoryGenerationEvaluationPhase.finalCouncil,
+            StoryGenerationEvaluationPhase.finalCouncil,
+          ],
+        );
+        expect(
+          run.attempts.map((attempt) => attempt.logicalAttemptId).toSet(),
+          hasLength(4),
+        );
+        expect(
+          run.attempts.map((attempt) => attempt.resolvedVariablesDigest).toSet(),
+          hasLength(4),
+        );
+
+        final artifactDigest = ArtifactDigest.fromUtf8String(_prose.text);
+        final preliminary = consumeVerifiedSceneReviewProvenance(
+          result: run.value[0],
+          phase: StoryGenerationEvaluationPhase.preliminaryReview,
+          artifactDigest: artifactDigest,
+        );
+        final finalCouncil = consumeVerifiedSceneReviewProvenance(
+          result: run.value[1],
+          phase: StoryGenerationEvaluationPhase.finalCouncil,
+          artifactDigest: artifactDigest,
+        );
+        expect(preliminary, isNotNull);
+        expect(finalCouncil, isNotNull);
+        expect(
+          preliminary!.orderedOutcomes.every(
+            (outcome) =>
+                outcome.evaluationPhase ==
+                StoryGenerationEvaluationPhase.preliminaryReview,
+          ),
+          isTrue,
+        );
+        expect(
+          finalCouncil!.orderedOutcomes.every(
+            (outcome) =>
+                outcome.evaluationPhase ==
+                StoryGenerationEvaluationPhase.finalCouncil,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'real durable council preserves fixed provider order and burns replay',
+      () async {
+        final run = await realReview(
+          phase: StoryGenerationEvaluationPhase.finalCouncil,
+          includeOptionalPasses: true,
+          requireAdjudication: true,
+        );
+        expect(run.providerCallCount, 5);
+        expect(run.attempts.map((attempt) => attempt.callSiteId), <String>[
+          'judge',
+          'consistency',
+          'reader-flow',
+          'lexicon',
+          'adjudication',
+        ]);
+        final artifactDigest = ArtifactDigest.fromUtf8String(_prose.text);
+
+        final rehydrated = _rehydrateReview(run.value);
+        expect(
+          canonicalSceneReviewEvaluationOutput(rehydrated),
+          canonicalSceneReviewEvaluationOutput(run.value),
+        );
+        expect(
+          consumeVerifiedSceneReviewProvenance(
+            result: rehydrated,
+            phase: StoryGenerationEvaluationPhase.finalCouncil,
+            artifactDigest: artifactDigest,
+          ),
+          isNull,
+        );
+
+        final provenance = consumeVerifiedSceneReviewProvenance(
+          result: run.value,
+          phase: StoryGenerationEvaluationPhase.finalCouncil,
+          artifactDigest: artifactDigest,
+        );
+        expect(provenance, isNotNull);
+        expect(
+          provenance!.orderedOutcomes.map((outcome) => outcome.callSiteId),
+          <String>[
+            'judge',
+            'consistency',
+            'reader-flow',
+            'lexicon',
+            'adjudication',
+          ],
+        );
+        expect(provenance.orderedPasses, hasLength(5));
+        expect(
+          provenance.orderedPasses.every(
+            (pass) => pass.parsedOutputDigest.startsWith('sha256:'),
+          ),
+          isTrue,
+        );
+        expect(
+          provenance.parsedOutputDigest,
+          storyGenerationParsedOutputDigest(
+            canonicalSceneReviewEvaluationOutput(run.value),
+          ),
+        );
+        expect(
+          consumeVerifiedSceneReviewProvenance(
+            result: run.value,
+            phase: StoryGenerationEvaluationPhase.finalCouncil,
+            artifactDigest: artifactDigest,
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test('preliminary council cannot be presented as final council', () async {
+      final run = await realReview();
+      final artifactDigest = ArtifactDigest.fromUtf8String(_prose.text);
+
+      expect(
+        consumeVerifiedSceneReviewProvenance(
+          result: run.value,
+          phase: StoryGenerationEvaluationPhase.finalCouncil,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+      expect(
+        consumeVerifiedSceneReviewProvenance(
+          result: run.value,
+          phase: StoryGenerationEvaluationPhase.preliminaryReview,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+    });
+
+    test('adaptive fake provider result cannot mint aggregate proof', () async {
+      final fakeClient = FakeAppLlmClient(
+        responder: (_) => const AppLlmChatResult.success(text: passResponse),
+      );
+      final result =
+          await SceneReviewCoordinator(
+            settingsStore: _setupStore(fakeClient),
+            hardGatesEnabled: false,
+          ).review(
+            brief: _brief(),
+            director: _director,
+            roleOutputs: _roleOutputs,
+            prose: _prose,
+          );
+
+      expect(
+        consumeVerifiedSceneReviewProvenance(
+          result: result,
+          phase: StoryGenerationEvaluationPhase.preliminaryReview,
+          artifactDigest: ArtifactDigest.fromUtf8String(_prose.text),
+        ),
+        isNull,
+      );
+    });
+
+    test('canonical aggregate binds deterministic roleplay fidelity', () {
+      const roleplayPass = SceneReviewPassResult(
+        status: SceneReviewStatus.pass,
+        reason: '公开行动与裁决事实一致。',
+        rawText: 'deterministic roleplay fidelity pass',
+        categories: [SceneReviewCategory.roleplayFidelity],
+      );
+      const withoutRoleplay = SceneReviewResult(
+        judge: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '通过。',
+          rawText: passResponse,
+        ),
+        consistency: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '通过。',
+          rawText: passResponse,
+        ),
+        decision: SceneReviewDecision.pass,
+      );
+      const withRoleplay = SceneReviewResult(
+        judge: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '通过。',
+          rawText: passResponse,
+        ),
+        consistency: SceneReviewPassResult(
+          status: SceneReviewStatus.pass,
+          reason: '通过。',
+          rawText: passResponse,
+        ),
+        roleplayFidelity: roleplayPass,
+        decision: SceneReviewDecision.pass,
+      );
+
+      expect(
+        canonicalSceneReviewEvaluationOutput(withRoleplay)['roleplayFidelity'],
+        isNotNull,
+      );
+      expect(
+        storyGenerationParsedOutputDigest(
+          canonicalSceneReviewEvaluationOutput(withRoleplay),
+        ),
+        isNot(
+          storyGenerationParsedOutputDigest(
+            canonicalSceneReviewEvaluationOutput(withoutRoleplay),
+          ),
+        ),
+      );
     });
   });
 

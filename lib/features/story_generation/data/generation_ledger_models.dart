@@ -182,6 +182,14 @@ class CandidateProofRecord {
     required this.materialDigest,
     required this.inputDigest,
     required this.createdAtMs,
+    required this.proofIdentityVersion,
+    this.preparedBriefDigest,
+    this.effectiveBriefDigest,
+    required this.generationEvidenceMode,
+    this.generationEvidenceReceiptHash,
+    this.attemptEvidenceEnvelopeDigest,
+    this.generationFingerprintSetDigest,
+    this.generationEvidenceReceiptJson,
   });
 
   final String runId;
@@ -199,6 +207,18 @@ class CandidateProofRecord {
   final String materialDigest;
   final String inputDigest;
   final int createdAtMs;
+  final String proofIdentityVersion;
+  final String? preparedBriefDigest;
+  final String? effectiveBriefDigest;
+  final String generationEvidenceMode;
+  final String? generationEvidenceReceiptHash;
+  final String? attemptEvidenceEnvelopeDigest;
+  final String? generationFingerprintSetDigest;
+
+  /// Credential-free canonical receipt owned by the immutable proof.  This is
+  /// intentionally not recoverable only from the expiring presentation
+  /// payload: a restart must be able to revalidate a sealed candidate.
+  final String? generationEvidenceReceiptJson;
 }
 
 class CandidatePayloadRecord {
@@ -212,6 +232,7 @@ class CandidatePayloadRecord {
     this.retrievalTraceJson = '{}',
     this.reviewPayloadJson = '{}',
     this.qualityPayloadJson = '{}',
+    this.generationEvidenceReceiptJson = '{}',
   });
 
   final String runId;
@@ -221,6 +242,7 @@ class CandidatePayloadRecord {
   final String retrievalTraceJson;
   final String reviewPayloadJson;
   final String qualityPayloadJson;
+  final String generationEvidenceReceiptJson;
   final int createdAtMs;
   final int expiresAtMs;
 }

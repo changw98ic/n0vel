@@ -76,6 +76,118 @@ void main() {
     );
   });
 
+  test('single dispatch awaits the physical provider terminal result', () async {
+    var nowMs = 0;
+    final budget = _budget(nowMs: () => nowMs, deadlineAtMs: 5);
+    final inner = _DeferredClient();
+    final client = _metered(inner, budget: budget);
+    client.beginAttempt(trialSlotId: 'slot-single-terminal', attemptNo: 1);
+    var settled = false;
+
+    final call = client.chat(
+      _request(
+        maxTokens: 4096,
+        physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+        dispatchEvidenceNonce:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ),
+    );
+    unawaited(
+      call.then<void>(
+        (_) => settled = true,
+        onError: (Object _, StackTrace _) => settled = true,
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(settled, isFalse);
+    expect(inner.calls, 1);
+    nowMs = 5;
+    inner.complete(
+      const AppLlmChatResult.success(
+        text: 'late provider result',
+        promptTokens: 10,
+        completionTokens: 5,
+        totalTokens: 15,
+      ),
+    );
+    await expectLater(call, throwsA(isA<AgentEvaluationBudgetException>()));
+  });
+
+  test(
+    'single capability rejection precedes budget and provider admission',
+    () async {
+      final inner = _UnmarkedClient();
+      final budget = _budget(maxCalls: 1);
+      final client = _metered(inner, budget: budget);
+      client.beginAttempt(trialSlotId: 'slot-unsupported', attemptNo: 1);
+
+      await expectLater(
+        client.chat(
+          _request(
+            maxTokens: 4096,
+            physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+            dispatchEvidenceNonce:
+                'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          ),
+        ),
+        throwsA(
+          isA<AppLlmPhysicalDispatchPreflightException>().having(
+            (error) => error.code,
+            'code',
+            'unsupported-runtime-capability',
+          ),
+        ),
+      );
+
+      expect(inner.calls, 0);
+      expect(budget.snapshot().calls, 0);
+      client.abortAttempt();
+    },
+  );
+
+  test('metered failure preserves single-dispatch provenance', () async {
+    const resolution = AppLlmDispatchResolution(
+      endpointId: 'primary',
+      baseUrl: 'https://provider.invalid/v1',
+      model: 'model',
+      provider: AppLlmProvider.openaiCompatible,
+      isLocal: false,
+      physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+    );
+    final budget = _budget(maxCalls: 1);
+    final inner = _RecordingClient(
+      result: const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.server,
+        dispatchResolution: resolution,
+        dispatchFailureDisposition:
+            AppLlmDispatchFailureDisposition.confirmedNoCompletion,
+      ),
+    );
+    final client = _metered(
+      inner,
+      budget: budget,
+      returnFailedResultAfterAccounting: true,
+    );
+    client.beginAttempt(trialSlotId: 'slot-provenance', attemptNo: 1);
+
+    final result = await client.chat(
+      _request(
+        maxTokens: 4096,
+        physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+        dispatchEvidenceNonce:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ),
+    );
+
+    expect(result.dispatchResolution, same(resolution));
+    expect(
+      result.dispatchFailureDisposition,
+      AppLlmDispatchFailureDisposition.confirmedNoCompletion,
+    );
+    expect(client.finishAttempt().calls, hasLength(1));
+  });
+
   group('execution-wide budget', () {
     test('multiple clients share aggregate call and token limits', () async {
       final budget = _budget(maxCalls: 1);
@@ -779,6 +891,9 @@ AppLlmChatRequest _request({
   String apiKey = 'secret',
   AppLlmTimeoutConfig? timeout,
   int maxTokens = AppLlmChatRequest.unlimitedMaxTokens,
+  AppLlmPhysicalDispatchPolicy physicalDispatchPolicy =
+      AppLlmPhysicalDispatchPolicy.adaptive,
+  String? dispatchEvidenceNonce,
 }) => AppLlmChatRequest(
   baseUrl: 'https://provider.invalid/v1',
   apiKey: apiKey,
@@ -789,12 +904,18 @@ AppLlmChatRequest _request({
   messages: const <AppLlmChatMessage>[
     AppLlmChatMessage(role: 'user', content: 'test'),
   ],
+  physicalDispatchPolicy: physicalDispatchPolicy,
+  dispatchEvidenceNonce: dispatchEvidenceNonce,
 );
 
-final class _Client implements AppLlmClient {
+final class _Client
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   const _Client({required this.withUsage});
 
   final bool withUsage;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async =>
@@ -846,7 +967,8 @@ AgentEvaluationExecutionBudgetGuard _budget({
   );
 }
 
-final class _RecordingClient implements AppLlmClient {
+final class _RecordingClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   _RecordingClient({
     this.promptTokens = 10,
     this.completionTokens = 5,
@@ -854,6 +976,7 @@ final class _RecordingClient implements AppLlmClient {
     this.returnFailure = false,
     this.delay = Duration.zero,
     this.onCalled,
+    this.result,
   });
 
   final int promptTokens;
@@ -862,8 +985,12 @@ final class _RecordingClient implements AppLlmClient {
   final bool returnFailure;
   final Duration delay;
   final void Function()? onCalled;
+  final AppLlmChatResult? result;
   int calls = 0;
   AppLlmTimeoutConfig? lastTimeout;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
@@ -875,6 +1002,9 @@ final class _RecordingClient implements AppLlmClient {
     }
     if (error case final failure?) {
       throw failure;
+    }
+    if (result case final fixed?) {
+      return fixed;
     }
     if (returnFailure) {
       return const AppLlmChatResult.failure(
@@ -893,8 +1023,45 @@ final class _RecordingClient implements AppLlmClient {
   Stream<String> chatStream(AppLlmChatRequest request) => const Stream.empty();
 }
 
-final class _FailAfterFirstClient implements AppLlmClient {
+final class _DeferredClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  final Completer<AppLlmChatResult> _result = Completer<AppLlmChatResult>();
+  int calls = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  void complete(AppLlmChatResult result) => _result.complete(result);
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) {
+    calls += 1;
+    return _result.future;
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) => const Stream.empty();
+}
+
+final class _UnmarkedClient implements AppLlmClient {
+  int calls = 0;
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    calls += 1;
+    return const AppLlmChatResult.success(text: 'must not be called');
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) => const Stream.empty();
+}
+
+final class _FailAfterFirstClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   var calls = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {

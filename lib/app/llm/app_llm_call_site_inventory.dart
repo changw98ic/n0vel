@@ -127,7 +127,7 @@ final class AppLlmCallSiteInventory {
   );
 
   static const String expectedContentHash =
-      'sha256:66c8659c65669aee240ea4fe2baa40a24341633753f7b6cb1c549b144ad57f72';
+      'sha256:8eb9babf0ca56cb650a328c19b255b87f6668ae563c552ed35095c8113f59d86';
 
   final List<AppLlmCallSiteInventoryEntry> entries;
 
@@ -434,6 +434,13 @@ _boundaryEntries = <AppLlmCallSiteInventoryEntry>[
         'Primary provider implementation sends the authorized streaming HTTP request.',
   ),
   AppLlmCallSiteInventoryEntry(
+    id: 'boundary.provider.io-formal-admission',
+    sourcePath: 'lib/app/llm/app_llm_client_io.dart',
+    disposition: AppLlmCallSiteDisposition.infrastructureBoundary,
+    reason:
+        'Private formal admission delegates its exact permitted request to the concrete IO transport.',
+  ),
+  AppLlmCallSiteInventoryEntry(
     id: 'boundary.provider.legacy-gateway-http',
     sourcePath: 'lib/app/llm/llm_gateway.dart',
     disposition: AppLlmCallSiteDisposition.infrastructureBoundary,
@@ -464,19 +471,6 @@ _boundaryEntries = <AppLlmCallSiteInventoryEntry>[
     sourcePath: 'lib/app/state/simulation_real_agent_runner.dart',
     disposition: AppLlmCallSiteDisposition.infrastructureBoundary,
     reason: 'User-facing real-agent simulation prompt dispatch.',
-  ),
-  AppLlmCallSiteInventoryEntry(
-    id: 'boundary.story.chapter-summary',
-    sourcePath: 'lib/features/story_generation/data/chapter_summarizer.dart',
-    disposition: AppLlmCallSiteDisposition.infrastructureBoundary,
-    reason: 'Versioned chapter-summary product request.',
-  ),
-  AppLlmCallSiteInventoryEntry(
-    id: 'boundary.story.character-consistency',
-    sourcePath:
-        'lib/features/story_generation/data/character_consistency_verifier.dart',
-    disposition: AppLlmCallSiteDisposition.infrastructureBoundary,
-    reason: 'Versioned character-consistency product request.',
   ),
   AppLlmCallSiteInventoryEntry(
     id: 'boundary.evaluation.max-token',
@@ -708,9 +702,9 @@ _entries = <AppLlmCallSiteInventoryEntry>[
 ];
 
 const String _storyChampionBundleHash =
-    'sha256:12d9e1659ca588a134fe18ebfafb312032409d567719686fd89c44ef7c573b03';
+    'sha256:9b21c650a5e4227fec3f30673d4c7381f06b33c30c593cdac1eb0a2fbeb2674f';
 const String _storyCausalityChallengerBundleHash =
-    'sha256:96b2ca057fc23432497a929585079c30cc1c1f20423404e84b1c414a3ef2b9df';
+    'sha256:4e48de41b71e2a1a228a1b6786d85ed59507fa57bd16579320f120cbb1c1ce60';
 const String _storyLiteraryEvaluationBundleHash =
     'sha256:d7ad5efa0012d394bf4d55ff010489189b9e3bbf316bafae366b8a71ff391aed';
 
@@ -734,12 +728,12 @@ _storyReleaseIdentities = <String, ({String semanticVersion, String contentHash}
   'review\u0000judge': (
     semanticVersion: '2.0.0-renderer-replay',
     contentHash:
-        'sha256:e91fcd978da614a85dc3eacc70dce723aef8f8c3fc5a78d2fb8b67894d15ce6f',
+        'sha256:bfbc469837898ba4160e2c552d4a1fddad558d9120dee7fae907b20cc705c232',
   ),
   'review\u0000consistency': (
     semanticVersion: '2.0.0-renderer-replay',
     contentHash:
-        'sha256:5c6af7846f7a6561f4a75861d4a754670935938da5486298895c30135046f3de',
+        'sha256:b3a358e614e7c808be816324854661e6a0d1604d5e94072986323fbde1ac1cd6',
   ),
   'review\u0000format-repair-judge': (
     semanticVersion: '2.0.0-renderer-replay',
@@ -749,7 +743,7 @@ _storyReleaseIdentities = <String, ({String semanticVersion, String contentHash}
   'quality-gate\u0000quality-scorer': (
     semanticVersion: '2.1.1-extended-quality-rubric-strict-format',
     contentHash:
-        'sha256:28c9e334bbdb1b703cecea525027eebc38a32262355da2e7c2bb408b85092e4f',
+        'sha256:99b3e8e57e7dcb10bdc65520d05edab08b6b8a2fe2849848ec2dfa452f5c6398',
   ),
   'literary-quality\u0000scene-evaluator': (
     semanticVersion: '1.2.0',
@@ -804,17 +798,17 @@ _storyReleaseIdentities = <String, ({String semanticVersion, String contentHash}
   'review\u0000reader-flow': (
     semanticVersion: '2.0.0-renderer-replay',
     contentHash:
-        'sha256:9df84eefe8bf4d5ff346a18bb9e4743d7ec85794f5d54c6e9ddc72cf4fbb4e7c',
+        'sha256:b1f2f8882d7e56bcf9b012f19c80d207f292588a71192e60d65ea1609aaa9093',
   ),
   'review\u0000lexicon': (
     semanticVersion: '2.0.0-renderer-replay',
     contentHash:
-        'sha256:7fc0d9ded13a19a82372ba28c0fa56c1d9bba598983bd5d1883809fab568e38a',
+        'sha256:d8fdb61671ffa0da4059b807528f18678ba0d9f94b82ae0618f3a02431e3168d',
   ),
   'review\u0000adjudication': (
     semanticVersion: '2.0.0-renderer-replay',
     contentHash:
-        'sha256:c8827abc2f27c494f3414d7e7ab1a97981cda254dd42c1383ce4bf09eaa82b84',
+        'sha256:37097386f50a38b94d85ef779c622a3deb80f79d6566b6db8b712da00f2f2f60',
   ),
   'review\u0000format-repair-consistency': (
     semanticVersion: '2.0.0-renderer-replay',

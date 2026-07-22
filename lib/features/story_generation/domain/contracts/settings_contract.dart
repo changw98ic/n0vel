@@ -28,3 +28,51 @@ abstract interface class StoryGenerationSettingsContract {
     String? generationBundleHash,
   });
 }
+
+/// Optional, non-secret snapshot of the model-routing contract used by story
+/// generation. Experiment evidence uses this to bind the configured primary
+/// route and failover chain without serializing credentials.
+///
+/// Test doubles are intentionally not forced to implement this interface.
+/// A no-redraw experiment, however, fails before provider dispatch when its
+/// settings implementation cannot supply a route identity.
+abstract interface class StoryGenerationModelRouteIdentityProvider {
+  Object? storyGenerationModelRouteIdentity({required String traceName});
+}
+
+/// Optional settings boundary used by no-redraw experiments.
+///
+/// The separate method keeps the normal product contract unchanged while
+/// making the stronger transport guarantee explicit and impossible to enable
+/// accidentally through trace metadata.
+abstract interface class StoryGenerationSinglePhysicalDispatchSettingsContract {
+  /// Freezes the credential-bearing route before durable intent is written.
+  /// Callers can only observe its credential-free identity and must pass the
+  /// same opaque lease to the physical dispatch.
+  StoryGenerationSinglePhysicalDispatchRouteLease?
+  prepareStoryGenerationSinglePhysicalDispatchRoute({
+    required String traceName,
+  });
+
+  Future<AppLlmChatResult> requestAiCompletionSinglePhysicalDispatch({
+    required List<AppLlmChatMessage> messages,
+    int? maxTokens,
+    String? traceName,
+    Map<String, Object?> traceMetadata = const {},
+    PromptReleaseRef? promptReleaseRef,
+    PromptInvocationEvidence? promptInvocationEvidence,
+    PromptVersion? promptVersion,
+    String? stageId,
+    String? callSiteId,
+    String? variantId,
+    String? generationBundleHash,
+    required String dispatchEvidenceNonce,
+    required Map<String, Object?> formalDispatchIntent,
+    required Object committedIntentAuthority,
+    required StoryGenerationSinglePhysicalDispatchRouteLease routeLease,
+  });
+}
+
+abstract interface class StoryGenerationSinglePhysicalDispatchRouteLease {
+  Object get credentialFreeIdentity;
+}

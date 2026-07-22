@@ -6,6 +6,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../../../app/state/authoring_db_schema.dart';
+import '../../../../app/state/app_workspace_storage_io.dart';
 import '../../../../app/state/db_schema_manager.dart';
 import 'agent_evaluation_manifest.dart';
 import 'agent_evaluation_production_side_effects.dart';
@@ -39,6 +40,56 @@ class AgentEvaluationPrivateMaterialException implements Exception {
   @override
   String toString() => 'AgentEvaluationPrivateMaterialException: $message';
 }
+
+const _privateFixtureProjectId = 'private-holdout-project-v2';
+const _privateFixtureSceneId = 'private-holdout-scene-v2';
+const _privateFixtureSceneScopeId =
+    '$_privateFixtureProjectId::$_privateFixtureSceneId';
+
+Map<String, Object?> _privateFixtureWorkspace() => <String, Object?>{
+  'projects': <Object?>[
+    <String, Object?>{
+      'id': _privateFixtureProjectId,
+      'sceneId': _privateFixtureSceneId,
+      'title': '私有盲测夹具',
+      'genre': '悬疑',
+      'summary': '隔离的私有生成评测工作区。',
+      'recentLocation': '第一章 / 私有场景',
+      'lastOpenedAtMs': 1,
+    },
+  ],
+  'charactersByProject': <String, Object?>{
+    _privateFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': 'private-holdout-character-v2',
+        'name': '调查者',
+        'role': '主角',
+        'note': '按冻结场景命令行动',
+        'need': '取得并验证关键证据',
+        'summary': '谨慎而果断',
+        'referenceSummary': '私有盲测通用角色',
+        'linkedSceneIds': <String>[_privateFixtureSceneId],
+      },
+    ],
+  },
+  'scenesByProject': <String, Object?>{
+    _privateFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': _privateFixtureSceneId,
+        'chapterLabel': '第一章',
+        'title': '私有调查场景',
+        'summary': '主角取得证据并据此改变下一步选择。',
+      },
+    ],
+  },
+  'worldNodesByProject': <String, Object?>{},
+  'auditIssuesByProject': <String, Object?>{},
+  'projectStyles': <String, Object?>{},
+  'projectAuditStates': <String, Object?>{},
+  'projectDeletionTombstones': <String, Object?>{},
+  'projectTransferState': '',
+  'currentProjectId': _privateFixtureProjectId,
+};
 
 final class AgentEvaluationPrivateMaterialPreparation {
   const AgentEvaluationPrivateMaterialPreparation({
@@ -137,6 +188,9 @@ final class AgentEvaluationPrivateMaterialBuilder {
           '生成一段可采纳的章节场景：必须包含行动、对话、明确因果推进，'
           '让$evidenceCode改变人物下一步选择，并以新的现实压力收束。';
       final inputFixture = <String, Object?>{
+        'projectId': _privateFixtureProjectId,
+        'sceneId': _privateFixtureSceneId,
+        'sceneScopeId': _privateFixtureSceneScopeId,
         'episodeId': 'opaque-$runNonce-${index + 1}',
         'episodeStep': 1,
         'prompt': prompt,
@@ -341,7 +395,7 @@ final class AgentEvaluationPrivateMaterialBuilder {
       }
 
       final fixture = File('${staging.path}/fixture.sqlite');
-      _buildFixture(
+      await _buildFixture(
         destinationPath: fixture.path,
         authorityDatabasePath: authority.path,
         championBundleHash: championBundleHash,
@@ -1247,7 +1301,7 @@ _BindingAuthority _readBindingAuthority(
   }
 }
 
-void _buildFixture({
+Future<void> _buildFixture({
   required String destinationPath,
   required String authorityDatabasePath,
   required String championBundleHash,
@@ -1258,7 +1312,7 @@ void _buildFixture({
   required String releaseConfigurationHash,
   required String appArtifactHash,
   required String preparationAuthorityHash,
-}) {
+}) async {
   final destination = sqlite3.open(destinationPath);
   final authority = sqlite3.open(
     authorityDatabasePath,
@@ -1396,6 +1450,17 @@ void _buildFixture({
   } finally {
     authority.dispose();
     destination.dispose();
+  }
+  final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: destinationPath);
+  final expectedWorkspace = _privateFixtureWorkspace();
+  await workspaceStorage.save(expectedWorkspace);
+  final persistedWorkspace = await workspaceStorage.load();
+  if (persistedWorkspace == null ||
+      AgentEvaluationHashes.canonicalJson(persistedWorkspace) !=
+          AgentEvaluationHashes.canonicalJson(expectedWorkspace)) {
+    throw const AgentEvaluationPrivateMaterialException(
+      'private fixture workspace failed canonical write verification',
+    );
   }
 }
 

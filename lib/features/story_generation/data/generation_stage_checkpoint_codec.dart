@@ -392,6 +392,8 @@ class GenerationStageArtifactRestorer {
         text: draft,
         beatCount: beatCount,
         attempt: _int(value['draftAttempt'], fallback: attempt),
+        sourceLogicalAttemptId: value['sourceLogicalAttemptId'] as String?,
+        sourceCallSiteId: value['sourceCallSiteId'] as String?,
       ),
       prose: SceneProseDraft(text: text, attempt: attempt),
     );
@@ -403,6 +405,8 @@ class GenerationStageArtifactRestorer {
     if (text is! String || attempt <= 0) return null;
     return PolishOutput(
       prose: SceneProseDraft(text: text, attempt: attempt),
+      sourceLogicalAttemptId: value['sourceLogicalAttemptId'] as String?,
+      sourceCallSiteId: value['sourceCallSiteId'] as String?,
     );
   }
 

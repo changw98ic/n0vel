@@ -8,6 +8,7 @@ import 'package:novel_writer/app/llm/app_llm_prompt_release.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_version.dart';
 import 'package:novel_writer/domain/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/scene_literary_quality_evaluator.dart';
+import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
 import 'package:novel_writer/features/story_generation/data/story_prompt_registry.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/settings_contract.dart';
 import 'package:novel_writer/features/story_generation/domain/literary_quality_models.dart';
@@ -567,8 +568,13 @@ void main() {
         settingsStore: settings,
         promptRegistry: registry,
       );
+      final evidence = StoryGenerationAttemptEvidenceCapture();
 
-      final result = await evaluator.evaluate(input);
+      final result = await StoryGenerationRetryScope.run(
+        policy: const StoryGenerationRetryPolicy.productionAdaptive(),
+        onAttemptEvidence: evidence.record,
+        body: () => evaluator.evaluate(input),
+      );
 
       expect(settings.calls, 2);
       expect(settings.lastMaxTokens, literaryQualityEvaluationMaxTokens);
@@ -580,6 +586,23 @@ void main() {
       expect(settings.lastBundleHash, invocation.generationBundleHash);
       expect(result.proseHash, input.proseHash);
       expect(result.decision.status, SceneCandidateStatus.highCandidate);
+      expect(evidence.attempts, hasLength(2));
+      expect(
+        evidence.attempts.every(
+          (attempt) => attempt.evaluationFingerprint != null,
+        ),
+        isTrue,
+      );
+      expect(
+        evidence.attempts
+            .map((attempt) => attempt.evaluationFingerprint!.digest)
+            .toSet(),
+        hasLength(1),
+      );
+      expect(
+        evidence.toEnvelope().toPrivateJson().toString(),
+        isNot(contains(_prose)),
+      );
     },
   );
 
@@ -721,7 +744,10 @@ Map<String, Object?> _authorizedDeviationOutput({
   return output;
 }
 
-final class _QueueSettingsContract implements StoryGenerationSettingsContract {
+final class _QueueSettingsContract
+    implements
+        StoryGenerationSettingsContract,
+        StoryGenerationModelRouteIdentityProvider {
   _QueueSettingsContract(this._results);
 
   final List<AppLlmChatResult> _results;
@@ -733,6 +759,15 @@ final class _QueueSettingsContract implements StoryGenerationSettingsContract {
 
   @override
   PromptLanguage get promptLanguage => PromptLanguage.zh;
+
+  @override
+  Object? storyGenerationModelRouteIdentity({required String traceName}) =>
+      <String, Object?>{
+        'contract': 'test-model-route-v1',
+        'traceName': traceName,
+        'primary': 'literary-quality-test-provider',
+        'failover': const <Object?>[],
+      };
 
   @override
   Future<AppLlmChatResult> requestAiCompletion({

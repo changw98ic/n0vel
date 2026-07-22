@@ -53,7 +53,7 @@ void main() {
     );
     expect(
       db.select('SELECT * FROM schema_compatibility_contracts'),
-      hasLength(12),
+      hasLength(14),
     );
     final latestContract = db
         .select(
@@ -61,9 +61,9 @@ void main() {
           'ORDER BY schema_version DESC LIMIT 1',
         )
         .single;
-    expect(latestContract['schema_version'], 27);
-    expect(latestContract['min_reader_version'], 27);
-    expect(latestContract['min_writer_version'], 27);
+    expect(latestContract['schema_version'], 29);
+    expect(latestContract['min_reader_version'], 29);
+    expect(latestContract['min_writer_version'], 29);
   });
 
   test('V16 objects roll back atomically when migration fails', () {
@@ -107,13 +107,15 @@ void main() {
     DatabaseSchemaManager(
       migrations: authoringSchemaMigrations,
     ).ensureSchema(db);
-    expect(db.select('PRAGMA user_version').single['user_version'], 27);
-    db.execute('''INSERT INTO story_generation_runs (
+    expect(db.select('PRAGMA user_version').single['user_version'], 29);
+    db.execute(
+      '''INSERT INTO story_generation_runs (
            run_id, request_id, project_id, chapter_id, scene_id,
            scene_scope_id, status, phase, schema_version,
            created_at_ms, updated_at_ms
          ) VALUES ('prepared-run', 'prepared-request', 'project', 'chapter',
-           'scene', 'scope', 'candidateReady', 'finalization', 1, 1, 1)''');
+           'scene', 'project::scene', 'candidateReady', 'finalization', 1, 1, 1)''',
+    );
     db.execute('''INSERT INTO story_generation_working_prose_revisions (
            run_id, prose_revision, prose_hash, prose_text, source_kind,
            created_at_ms
@@ -121,8 +123,10 @@ void main() {
     db.execute('''INSERT INTO story_generation_candidate_namespaces (
            run_id, candidate_revision, source_prose_revision, reserved_at_ms
          ) VALUES ('prepared-run', 0, 0, 1)''');
-    db.execute(
-      '''INSERT INTO story_generation_candidate_proofs (
+    _withHistoricalV1SeedAdmission(
+      db,
+      () => db.execute(
+        '''INSERT INTO story_generation_candidate_proofs (
            run_id, candidate_revision, project_id, chapter_id, scene_id,
            source_prose_revision, candidate_hash, final_prose_hash,
            deterministic_gate_evidence_hash, final_council_evidence_hash,
@@ -131,7 +135,8 @@ void main() {
          ) VALUES ('prepared-run', 0, 'project', 'chapter', 'scene', 0, ?,
            'final-hash', 'gate-hash', 'council-hash', 'quality-hash',
            'write-hash', 'material-hash', 'input-hash', 1)''',
-      <Object?>[List<String>.filled(64, 'b').join()],
+        <Object?>[List<String>.filled(64, 'b').join()],
+      ),
     );
     db.execute(
       'UPDATE story_generation_runs SET current_candidate_revision = 0 '
@@ -203,7 +208,7 @@ void main() {
            scene_scope_id, status, phase, schema_version,
            created_at_ms, updated_at_ms
          ) VALUES ('run-1', 'request-1', 'project-1', 'chapter-1', 'scene-1',
-           'scope-1', 'queued', 'queued', 1, 1, 1)''');
+           'project-1::scene-1', 'queued', 'queued', 1, 1, 1)''');
     db.execute(
       '''INSERT INTO story_generation_run_bundles (run_id, bundle_hash, created_at_ms)
          VALUES ('run-1', ?, 1)''',
@@ -308,6 +313,17 @@ void main() {
       throwsA(isA<SqliteException>()),
     );
   });
+}
+
+void _withHistoricalV1SeedAdmission(Database db, void Function() seed) {
+  db.execute(
+    'DROP TRIGGER IF EXISTS prevent_new_legacy_generation_proof_insert',
+  );
+  try {
+    seed();
+  } finally {
+    createCandidateProofV2WriteGuards(db);
+  }
 }
 
 String _digest(String value) => List<String>.filled(64, value).join();

@@ -73,6 +73,9 @@ class BasicRoleTurnSkill implements RoleTurnSkill {
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       const <String, Object?>{},
     );
+    final requiresExactOutput =
+        formalEvaluation ||
+        StoryGenerationRetryScope.current?.allowsContentRedraw == false;
     final promptIdentity = StoryPromptRegistry.production.invocation(
       stageId: 'roleplay',
       callSiteId: 'role-turn',
@@ -94,7 +97,7 @@ class BasicRoleTurnSkill implements RoleTurnSkill {
           messages,
           resolvedVariables: resolvedVariables,
         ),
-        shouldRetryOutput: formalEvaluation
+        shouldRetryOutput: requiresExactOutput
             ? _shouldRejectExactTurn
             : _shouldRetryMalformedTurn,
         traceName: 'scene_roleplay_turn',
@@ -119,12 +122,16 @@ class BasicRoleTurnSkill implements RoleTurnSkill {
         result.detail ?? 'Role turn skill failed for ${context.characterId}.',
       );
     }
-    final raw = formalEvaluation ? result.text! : result.text!.trim();
-    if (formalEvaluation && _shouldRejectExactTurn(raw)) {
-      throw StateError('formal role turn output was malformed');
+    final raw = requiresExactOutput ? result.text! : result.text!.trim();
+    if (requiresExactOutput && _shouldRejectExactTurn(raw)) {
+      throw StateError(
+        formalEvaluation
+            ? 'formal role turn output was malformed'
+            : 'no-redraw role turn output was malformed',
+      );
     }
     return _parseTurn(
-      raw: formalEvaluation
+      raw: requiresExactOutput
           ? raw
           : (_normalizeTurnRaw(raw, context: context) ?? raw),
       round: round,

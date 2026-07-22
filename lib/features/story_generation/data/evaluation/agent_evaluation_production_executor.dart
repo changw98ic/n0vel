@@ -22,15 +22,16 @@ import 'agent_evaluation_typed_evidence.dart';
 
 abstract final class AgentEvaluationProductionExecutorPolicy {
   static String get releaseHash => AgentEvaluationHashes.domainHash(
-    'eval-production-executor-release-v8',
+    'eval-production-executor-release-v10',
     <String, Object?>{
       'entry':
           'story-generation-run-store-v2-sandbox-hydrated-authoritative-plus-fenced-short-handles-v2',
-      'candidate': 'durable-proof-required-v1',
+      'candidate':
+          'release-v2-only-proof-plus-canonical-generation-receipt-rehydration-v1',
       'commit': 'author-accept-receipt-v1',
       'meter': 'attempt-scoped-exact-usage-v1',
       'trace': 'attempt-scoped-formal-trace-v1',
-      'collector': 'runner-db-authority-receipt-v2',
+      'collector': 'runner-db-authority-receipt-v4-fixture-scene-bound',
       'route': 'canonical-provider-url-model-timeout-v1',
       'decoding': 'single-flight-non-streaming-call-site-policy-v1',
       'runtimeReuse': 'episode-isolation-trial-v1',

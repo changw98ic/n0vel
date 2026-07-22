@@ -2,6 +2,8 @@ import '../../../app/state/app_workspace_store.dart';
 import '../domain/literary_quality_models.dart';
 import 'style_reference_config.dart';
 
+enum SceneContentRedrawPolicy { allowContentRedraw, noContentRedraw }
+
 class GenerationPipelineConfig {
   const GenerationPipelineConfig({
     // Two bounded rewrites let an independently reviewed polished draft
@@ -19,6 +21,9 @@ class GenerationPipelineConfig {
     this.maxSceneRetries = 2,
     this.hardGatesEnabled = true,
     this.literaryQualityGateMode = LiteraryQualityGateMode.legacy95,
+    this.sceneContentRedrawPolicy = SceneContentRedrawPolicy.allowContentRedraw,
+    this.generationArmPolicy = 'current-pipeline-v1',
+    this.evidenceRunId,
   });
 
   final int maxProseRetries;
@@ -33,6 +38,18 @@ class GenerationPipelineConfig {
   final int maxSceneRetries;
   final bool hardGatesEnabled;
   final LiteraryQualityGateMode literaryQualityGateMode;
+  final SceneContentRedrawPolicy sceneContentRedrawPolicy;
+  final String generationArmPolicy;
+
+  /// Stable caller-owned identity for one formal experiment run.
+  ///
+  /// Adaptive production runs do not need this value. A no-redraw run must
+  /// provide it so a restart can detect an already-started or indeterminate
+  /// scene before another provider request is dispatched.
+  final String? evidenceRunId;
+
+  bool get contentRedrawAllowed =>
+      sceneContentRedrawPolicy == SceneContentRedrawPolicy.allowContentRedraw;
 
   factory GenerationPipelineConfig.fromWorkspace(
     AppWorkspaceStore workspaceStore,

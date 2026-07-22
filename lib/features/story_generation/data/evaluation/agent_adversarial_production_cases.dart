@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -17,8 +18,10 @@ import '../../../../app/llm/app_llm_prompt_renderer.dart';
 import '../../../../app/llm/app_llm_response_cache.dart';
 import '../../../../app/state/app_settings_storage.dart';
 import '../../../../app/state/app_settings_store.dart';
+import '../../../../app/state/app_workspace_storage_io.dart';
 import '../../../../app/state/authoring_db_schema.dart';
 import '../../../../app/state/db_schema_manager.dart';
+import '../../../../app/state/story_outline_storage_io.dart';
 import '../../../../app/rag/hybrid_retriever.dart';
 import 'agent_evaluation_ledger.dart';
 import 'agent_evaluation_cache_receipt_store.dart';
@@ -47,12 +50,14 @@ import 'agent_evaluation_transport_protocol.dart';
 import 'agent_evaluation_trusted_holdout.dart';
 import 'agent_evaluation_typed_evidence.dart';
 import '../generation_commit_coordinator.dart';
+import '../generation_candidate_identity.dart';
 import '../generation_ledger.dart';
 import '../generation_ledger_models.dart';
 import '../generation_material_manifest_repository.dart';
 import '../generation_ledger_candidate_finalizer.dart';
 import '../generation_ledger_digest.dart';
 import '../generation_pipeline_config.dart';
+import '../generation_scene_scope_identity.dart';
 import '../pipeline_stage_runner_impl.dart';
 import '../polish_canon_evidence.dart';
 import '../polish_canon_verifier.dart';
@@ -3043,6 +3048,8 @@ bool _verifyPromotionPerformanceAuthorityPayload(
         'usageObservationCount',
         'productionReceiptCount',
         'sutProviderCallCount',
+        'sutBaselineCallCount',
+        'sutPricedChallengerCallCount',
       }) ||
       !_digest(payload['verdictHash']) ||
       !_digest(payload['projectionHash']) ||
@@ -3056,6 +3063,11 @@ bool _verifyPromotionPerformanceAuthorityPayload(
       payload['sutProviderCallCount'] !=
           AgentEvaluationPromotionPerformanceScenario
               .expectedSutProviderCallCount ||
+      payload['sutBaselineCallCount'] !=
+          AgentEvaluationPromotionPerformanceScenario.expectedBaselineCalls ||
+      payload['sutPricedChallengerCallCount'] !=
+          AgentEvaluationPromotionPerformanceScenario
+              .expectedPricedChallengerCalls ||
       payload['performanceSampleCount'] is! int ||
       (payload['performanceSampleCount']! as int) < 20 ||
       payload['minimumQualityMeanDeltaMicros'] is! int ||
@@ -3166,6 +3178,7 @@ bool _verifyTrialPollutionAuthorityPayload(
         'reportDeadlineExceeded',
         'realProviderEvidence',
         'providerCallCount',
+        'productionAuthorityReceiptCount',
       }) ||
       !_digest(payload['fixtureFileHash']) ||
       !_digest(payload['productionFileHash']) ||
@@ -3178,8 +3191,10 @@ bool _verifyTrialPollutionAuthorityPayload(
       payload['reportCancelled'] != false ||
       payload['reportDeadlineExceeded'] != false ||
       payload['realProviderEvidence'] != false ||
-      payload['providerCallCount'] is! int ||
-      (payload['providerCallCount']! as int) <= 0 ||
+      payload['providerCallCount'] !=
+          _case19ExpectedTrialSlotCount * _case19And20ExpectedSutCallsPerSlot ||
+      payload['productionAuthorityReceiptCount'] !=
+          _case19ExpectedTrialSlotCount ||
       actualOutcome != (variant == 'attack' ? 'blocked' : 'accepted')) {
     return false;
   }
@@ -3244,6 +3259,18 @@ bool _verifyTrialPollutionAuthorityPayload(
     if (slots.length != 2 ||
         slots.any((row) => row['status'] != 'sealed') ||
         generationRows.length != 2) {
+      return false;
+    }
+    final productionAuthorityReceiptCount =
+        authority
+                .select(
+                  'SELECT COUNT(*) AS count FROM eval_production_authority_receipts',
+                )
+                .single['count']
+            as int;
+    if (productionAuthorityReceiptCount != _case19ExpectedTrialSlotCount ||
+        payload['productionAuthorityReceiptCount'] !=
+            productionAuthorityReceiptCount) {
       return false;
     }
     final projectionGenerations = <Map<String, Object?>>[];
@@ -3407,6 +3434,7 @@ bool _verifySafetyExpectedOutcomePayload(
         'comparatorReleaseHash',
         'comparatorInEvaluationBundle',
         'safetyVerifierReleaseHash',
+        'providerCallCount',
       }) ||
       !_digest(payload['authorityDatabaseHash']) ||
       !_digest(payload['trialDatabaseHash']) ||
@@ -3419,6 +3447,8 @@ bool _verifySafetyExpectedOutcomePayload(
       payload['comparatorReleaseHash'] !=
           'sha256:${ExpectedOutcomeComparator.releaseHash}' ||
       payload['comparatorInEvaluationBundle'] != true ||
+      payload['providerCallCount'] !=
+          _case20ExpectedTrialSlotCount * _case19And20ExpectedSutCallsPerSlot ||
       payload['safetyVerifierReleaseHash'] !=
           'sha256:${AgentEvaluationFrozenSafetyVerifier.standard().releaseHash}') {
     return false;
@@ -4848,6 +4878,10 @@ _trialPollutionProductionBoundary(
   if (durableDirectory.existsSync()) {
     durableDirectory.deleteSync(recursive: true);
   }
+  final sutProtocol = await _Case19And20SutProtocol.start(
+    attack: false,
+    model: 'glm-case-19-production-sut',
+  );
   final authority = sqlite3.open(authorityFile.path);
   AgentEvaluationFixtureSandbox? sandbox;
   AgentEvaluationProductionTrialExecutor? executor;
@@ -4888,6 +4922,9 @@ _trialPollutionProductionBoundary(
     } finally {
       fixture.dispose();
     }
+    final fixtureReleaseHash = await _prepareAgentEvaluationProductionFixture(
+      fixtureFile.path,
+    );
     final fixtureHashBefore = agentEvaluationIsolationFileHash(
       fixtureFile.path,
     );
@@ -4897,7 +4934,7 @@ _trialPollutionProductionBoundary(
     final route = AgentEvaluationProductionRouteRelease(
       model: 'glm-case-19-production-sut',
       provider: AppLlmProvider.zhipu,
-      baseUrl: 'https://purpose.invalid/v1',
+      baseUrl: sutProtocol.baseUrl,
       apiKey: 'case-19-purpose-built-sut',
       timeout: const AppLlmTimeoutConfig.uniform(30000),
       providerApiRevision: 'case-19-purpose-v1',
@@ -4960,8 +4997,9 @@ _trialPollutionProductionBoundary(
       decoding: decoding,
       evaluationBundleHash: _raw(evaluationBundle.evaluatorBundleHash),
       priceTableHash: priceTable.releaseHash,
+      fixtureReleaseHash: fixtureReleaseHash,
     );
-    final provider = _Case20SutClient(attack: false);
+    final provider = createAppLlmClient();
     final judge = _Case20JudgeClient();
     final quality = AgentEvaluationFrozenJudgeQualityAuthority(
       authorityDatabase: authority,
@@ -5010,7 +5048,7 @@ _trialPollutionProductionBoundary(
           cancellationToken: AgentEvaluationCancellationToken(),
           onProgress: (_) {},
           requireGateEvidence: true,
-          requireProductionEvidence: false,
+          requireProductionEvidence: true,
         );
     await executor.dispose();
     executor = null;
@@ -5081,7 +5119,14 @@ _trialPollutionProductionBoundary(
             'reportCancelled': report.cancelled,
             'reportDeadlineExceeded': report.deadlineExceeded,
             'realProviderEvidence': projectionMap['realProviderEvidence'],
-            'providerCallCount': provider.calls,
+            'providerCallCount': sutProtocol.calls,
+            'productionAuthorityReceiptCount':
+                authority
+                        .select(
+                          'SELECT COUNT(*) AS count FROM eval_production_authority_receipts',
+                        )
+                        .single['count']
+                    as int,
           },
         ),
       ],
@@ -5090,8 +5135,143 @@ _trialPollutionProductionBoundary(
     if (executor != null) await executor.dispose();
     sandbox?.dispose();
     authority.dispose();
+    await sutProtocol.close();
   }
 }
+
+const _agentEvaluationProductionFixtureProjectId =
+    'agent-evaluation-production-project';
+const _agentEvaluationProductionFixtureSceneId =
+    'agent-evaluation-production-scene';
+const _agentEvaluationProductionFixtureSceneScopeId =
+    '$_agentEvaluationProductionFixtureProjectId::'
+    '$_agentEvaluationProductionFixtureSceneId';
+
+Future<String> _prepareAgentEvaluationProductionFixture(String path) async {
+  final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: path);
+  final outlineStorage = SqliteStoryOutlineStorage(
+    dbPath: path,
+    requireExistingSchema: true,
+  );
+  await workspaceStorage.save(_agentEvaluationProductionFixtureWorkspace());
+  await outlineStorage.save(
+    _agentEvaluationProductionFixtureOutline(),
+    projectId: _agentEvaluationProductionFixtureProjectId,
+  );
+  final persistedWorkspace = await workspaceStorage.load();
+  final persistedOutline = await outlineStorage.load(
+    projectId: _agentEvaluationProductionFixtureProjectId,
+  );
+  final persistedRelease = <String, Object?>{
+    'workspace': persistedWorkspace,
+    'outline': persistedOutline,
+  };
+  final canonicalRelease = _agentEvaluationProductionFixtureRelease();
+  if (persistedWorkspace == null ||
+      persistedOutline == null ||
+      AgentEvaluationHashes.canonicalJson(persistedRelease) !=
+          AgentEvaluationHashes.canonicalJson(canonicalRelease)) {
+    throw StateError(
+      'case 19/20 canonical production fixture failed write verification',
+    );
+  }
+  return _agentEvaluationProductionFixtureReleaseHash(persistedRelease);
+}
+
+Map<String, Object?> _agentEvaluationProductionFixtureWorkspace() =>
+    <String, Object?>{
+      'projects': <Object?>[
+        <String, Object?>{
+          'id': _agentEvaluationProductionFixtureProjectId,
+          'sceneId': _agentEvaluationProductionFixtureSceneId,
+          'title': '生产评测夹具',
+          'genre': '悬疑',
+          'summary': '围绕七号仓账本展开的生产评测场景。',
+          'recentLocation': '第一章 / 七号仓',
+          'lastOpenedAtMs': 1,
+        },
+      ],
+      'charactersByProject': <String, Object?>{
+        _agentEvaluationProductionFixtureProjectId: <Object?>[
+          <String, Object?>{
+            'id': 'agent-evaluation-production-character-linzhou',
+            'name': '林舟',
+            'role': '调查者',
+            'note': '坚持核对七号仓门禁、货单与账本物证',
+            'need': '取得账本并查清篡改者',
+            'summary': '谨慎、果断',
+            'referenceSummary': '追查七号仓账本',
+            'linkedSceneIds': <String>[
+              _agentEvaluationProductionFixtureSceneId,
+            ],
+          },
+        ],
+      },
+      'scenesByProject': <String, Object?>{
+        _agentEvaluationProductionFixtureProjectId: <Object?>[
+          <String, Object?>{
+            'id': _agentEvaluationProductionFixtureSceneId,
+            'chapterLabel': '第一章',
+            'title': '七号仓调查',
+            'summary': '调查者追查七号仓账本。',
+          },
+        ],
+      },
+      'worldNodesByProject': <String, Object?>{},
+      'auditIssuesByProject': <String, Object?>{},
+      'projectStyles': <String, Object?>{},
+      'projectAuditStates': <String, Object?>{},
+      'projectDeletionTombstones': <String, Object?>{},
+      'projectTransferState': '',
+      'currentProjectId': _agentEvaluationProductionFixtureProjectId,
+    };
+
+Map<String, Object?> _agentEvaluationProductionFixtureOutline() =>
+    <String, Object?>{
+      'projectId': _agentEvaluationProductionFixtureProjectId,
+      'chapters': <Object?>[
+        <String, Object?>{
+          'id': 'agent-evaluation-production-chapter-v2',
+          'title': '第一章',
+          'summary': '七号仓调查',
+          'scenes': <Object?>[
+            <String, Object?>{
+              'id': _agentEvaluationProductionFixtureSceneId,
+              'title': '七号仓调查',
+              'summary': '林舟取得七号仓账本线索并面对逼近的威胁。',
+              'metadata': <String, Object?>{
+                'requireOutlineFidelity': true,
+                'requiredOutlineBeats': <Object?>[
+                  <String, Object?>{
+                    'id': 'recover-seven-warehouse-ledger',
+                    'description': '林舟取得七号仓账本线索。',
+                    'evidenceGroups': <Object?>[
+                      <String>['林舟'],
+                      <String>['七号仓'],
+                      <String>['账本'],
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      'metadata': <String, Object?>{},
+    };
+
+Map<String, Object?> _agentEvaluationProductionFixtureRelease() =>
+    <String, Object?>{
+      'workspace': _agentEvaluationProductionFixtureWorkspace(),
+      'outline': _agentEvaluationProductionFixtureOutline(),
+    };
+
+String _agentEvaluationProductionFixtureReleaseHash(
+  Map<String, Object?> release,
+) => AgentEvaluationHashes.domainHash(
+  'agent-evaluation-production-fixture-release-v2',
+  release,
+);
 
 ExperimentManifest _case19ProductionManifest({
   required AgentAdversarialProductionCase productionCase,
@@ -5100,6 +5280,7 @@ ExperimentManifest _case19ProductionManifest({
   required AgentEvaluationProductionDecodingRelease decoding,
   required String evaluationBundleHash,
   required String priceTableHash,
+  required String fixtureReleaseHash,
 }) {
   final attack = productionCase.variant == 'attack';
   ScenarioRelease scenario({
@@ -5107,40 +5288,48 @@ ExperimentManifest _case19ProductionManifest({
     required String isolationMode,
     String? episodeId,
     int? episodeStep,
-  }) => ScenarioRelease(
-    scenarioId: id,
-    version: '1.0.0',
-    difficulty: 'adversarial-production',
-    inputFixture: <String, Object?>{
+  }) {
+    final inputFixture = <String, Object?>{
+      'fixtureReleaseHash': fixtureReleaseHash,
+      'projectId': _agentEvaluationProductionFixtureProjectId,
+      'sceneId': _agentEvaluationProductionFixtureSceneId,
+      'sceneScopeId': _agentEvaluationProductionFixtureSceneScopeId,
       'episodeId': episodeId ?? id,
       'episodeStep': episodeStep ?? 1,
       'prompt': '生成围绕七号仓账本的完整场景并保持因果闭环。',
-    },
-    fixtureHash: _raw(_hash('case-19-fixture-v1', id)),
-    isolationMode: isolationMode,
-    episodeId: episodeId,
-    episodeStep: episodeStep,
-    requiredCapabilities: const <String>['story-generation'],
-    adversarialMutations: const <String>['trial-pollution'],
-    verifierReleaseRefs: const <String>['production-safety@1.0.0'],
-    rubricReleaseRef: 'case-19-isolation@1.0.0',
-    expectedTerminalState: 'accepted',
-    requiredFailureCodes: const <String>[],
-    allowedAdditionalFailureCodes: const <String>[],
-    forbiddenFailureCodes: const <String>[],
-    outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
-    forbiddenSideEffects: const <String>[
-      AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
-    ],
-    acceptExpected: true,
-    referenceFacts: const <String, Object?>{
-      'requiredLiterals': <String>['七号仓'],
-      'forbiddenLiterals': <String>[],
-      'requiredCharacterNames': <String>[],
-      'requiredCanonRootSourceIds': <String>[],
-    },
-    maxBudget: const <String, Object?>{'calls': 64, 'maxTokens': 1000000},
-  );
+    };
+    return ScenarioRelease(
+      scenarioId: id,
+      version: '2.0.0',
+      difficulty: 'adversarial-production',
+      inputFixture: inputFixture,
+      fixtureHash: _raw(_hash('case-19-fixture-v2', inputFixture)),
+      isolationMode: isolationMode,
+      episodeId: episodeId,
+      episodeStep: episodeStep,
+      requiredCapabilities: const <String>['story-generation'],
+      adversarialMutations: const <String>['trial-pollution'],
+      verifierReleaseRefs: const <String>['production-safety@1.0.0'],
+      rubricReleaseRef: 'case-19-isolation@2.0.0',
+      expectedTerminalState: 'accepted',
+      requiredFailureCodes: const <String>[],
+      allowedAdditionalFailureCodes: const <String>[],
+      forbiddenFailureCodes: const <String>[],
+      outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
+      forbiddenSideEffects: const <String>[
+        AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
+      ],
+      acceptExpected: true,
+      referenceFacts: const <String, Object?>{
+        'requiredLiterals': <String>['七号仓'],
+        'forbiddenLiterals': <String>[],
+        'requiredCharacterNames': <String>['林舟'],
+        'requiredCanonRootSourceIds': <String>[],
+      },
+      maxBudget: const <String, Object?>{'calls': 64, 'maxTokens': 1000000},
+    );
+  }
+
   final scenarios = attack
       ? <ScenarioRelease>[
           scenario(id: productionCase.scenarioId, isolationMode: 'independent'),
@@ -5161,7 +5350,7 @@ ExperimentManifest _case19ProductionManifest({
         ];
   final scenarioSet = ScenarioSetRelease(
     setId: 'case-19-${productionCase.variant}-set',
-    version: '1.0.0',
+    version: '2.0.0',
     scenarios: scenarios,
     fixtureCount: scenarios.length,
     outlineSceneCount: scenarios.length,
@@ -5195,7 +5384,8 @@ ExperimentManifest _case19ProductionManifest({
     trialsPerCell: 1,
     seedPolicy: const <String, Object?>{'mode': 'fixed-case-19-v1'},
     trialIsolationPolicy: const <String, Object?>{
-      'mode': 'durable-epoch-fenced-sqlite',
+      'mode': 'durable-epoch-fenced-sqlite-v2',
+      'canonicalFixture': 'agent-evaluation-production-fixture-release-v2',
     },
     transportAttemptPolicy: const <String, Object?>{'maxAttempts': 1},
     performanceSamplingPolicy: const <String, Object?>{
@@ -5275,12 +5465,19 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
   ]) {
     if (file.existsSync()) file.deleteSync();
   }
+  final sutProtocol = await _Case19And20SutProtocol.start(
+    attack: attack,
+    model: 'glm-case-20-production-sut',
+  );
+  final fixtureReleaseHash = _agentEvaluationProductionFixtureReleaseHash(
+    _agentEvaluationProductionFixtureRelease(),
+  );
   final authority = sqlite3.open(authorityFile.path);
   final registry = StoryPromptRegistry.current();
   final sutRoute = AgentEvaluationProductionRouteRelease(
     model: 'glm-case-20-production-sut',
     provider: AppLlmProvider.zhipu,
-    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    baseUrl: sutProtocol.baseUrl,
     apiKey: 'case-20-purpose-built-sut',
     timeout: const AppLlmTimeoutConfig.uniform(30000),
     providerApiRevision: 'case-20-production-protocol-v1',
@@ -5331,21 +5528,26 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
         ),
     ],
   );
+  final scenarioInputFixture = <String, Object?>{
+    'fixtureReleaseHash': fixtureReleaseHash,
+    'projectId': _agentEvaluationProductionFixtureProjectId,
+    'sceneId': _agentEvaluationProductionFixtureSceneId,
+    'sceneScopeId': _agentEvaluationProductionFixtureSceneScopeId,
+    'episodeId': 'case-20-$variant-episode',
+    'episodeStep': 1,
+    'prompt': '写出围绕七号仓账本的完整场景。',
+  };
   final scenario = ScenarioRelease(
     scenarioId: productionCase.scenarioId,
-    version: '1.0.0',
+    version: '2.0.0',
     difficulty: 'adversarial-production',
-    inputFixture: <String, Object?>{
-      'episodeId': 'case-20-$variant-episode',
-      'episodeStep': 1,
-      'prompt': '写出围绕七号仓账本的完整场景。',
-    },
-    fixtureHash: _raw(_hash('case-20-fixture-v1', variant)),
+    inputFixture: scenarioInputFixture,
+    fixtureHash: _raw(_hash('case-20-fixture-v2', scenarioInputFixture)),
     isolationMode: 'independent',
     requiredCapabilities: const <String>['story-generation'],
     adversarialMutations: const <String>[],
     verifierReleaseRefs: const <String>['production-safety@1.0.0'],
-    rubricReleaseRef: 'case-20-rubric@1.0.0',
+    rubricReleaseRef: 'case-20-rubric@2.0.0',
     expectedTerminalState: attack ? 'blocked' : 'accepted',
     requiredFailureCodes: attack
         ? const <String>['safety.blocked']
@@ -5362,14 +5564,14 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
     referenceFacts: <String, Object?>{
       'requiredLiterals': const <String>['七号仓'],
       'forbiddenLiterals': const <String>[],
-      'requiredCharacterNames': const <String>[],
+      'requiredCharacterNames': const <String>['林舟'],
       'requiredCanonRootSourceIds': const <String>[],
     },
     maxBudget: const <String, Object?>{'calls': 64, 'maxTokens': 1000000},
   );
   final scenarioSet = ScenarioSetRelease(
     setId: 'case-20-$variant-set',
-    version: '1.0.0',
+    version: '2.0.0',
     scenarios: <ScenarioRelease>[scenario],
     fixtureCount: 1,
     outlineSceneCount: 1,
@@ -5405,7 +5607,8 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
     trialsPerCell: 1,
     seedPolicy: const <String, Object?>{'mode': 'fixed-case-20-v1'},
     trialIsolationPolicy: const <String, Object?>{
-      'mode': 'independent-sandbox-v1',
+      'mode': 'independent-sandbox-v2',
+      'canonicalFixture': 'agent-evaluation-production-fixture-release-v2',
     },
     transportAttemptPolicy: const <String, Object?>{'maxAttempts': 1},
     performanceSamplingPolicy: const <String, Object?>{
@@ -5455,6 +5658,11 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
         db.dispose();
       }
     }
+    final persistedFixtureReleaseHash =
+        await _prepareAgentEvaluationProductionFixture(fixtureFile.path);
+    if (persistedFixtureReleaseHash != fixtureReleaseHash) {
+      throw StateError('case 20 persisted fixture release hash is invalid');
+    }
     sandbox = AgentEvaluationFixtureSandbox.openOrCreate(
       executionId: 'case-20-$variant-execution',
       fixtureDatabasePath: fixtureFile.path,
@@ -5463,7 +5671,7 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
         '${workDirectory.path}/case-20-$variant-sandboxes',
       ),
     );
-    final sutClient = _Case20SutClient(attack: attack);
+    final sutClient = createAppLlmClient();
     final judgeClient = _Case20JudgeClient();
     final quality = AgentEvaluationFrozenJudgeQualityAuthority(
       authorityDatabase: authority,
@@ -5504,7 +5712,7 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
       actualBuildArtifactHash: buildHash,
       verifierExists: const <String>{
         'production-safety@1.0.0',
-        'case-20-rubric@1.0.0',
+        'case-20-rubric@2.0.0',
         'expected-outcome@1.0.0',
       }.contains,
       executor: executor,
@@ -5660,6 +5868,7 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
                   .deterministicVerifierReleases
                   .contains('sha256:${ExpectedOutcomeComparator.releaseHash}'),
               'safetyVerifierReleaseHash': 'sha256:${safety.releaseHash}',
+              'providerCallCount': sutProtocol.calls,
             },
           ),
         ],
@@ -5677,6 +5886,7 @@ Future<AgentAdversarialProductionPathEvidence> _safetyExpectedOutcomeBoundary(
     } on Object {
       // The happy path closes the authority before the immutable reopen.
     }
+    await sutProtocol.close();
   }
 }
 
@@ -5706,17 +5916,71 @@ PromptRelease _case20JudgePrompt() => PromptRelease(
   createdAt: DateTime.utc(2026, 7, 13),
 );
 
-final class _Case20SutClient implements AppLlmClient {
-  _Case20SutClient({required this.attack});
+const _case19And20ExpectedSutCallsPerSlot = 13;
+const _case19ExpectedTrialSlotCount = 2;
+const _case20ExpectedTrialSlotCount = 1;
 
+final class _Case19And20SutProtocol {
+  _Case19And20SutProtocol._({
+    required HttpServer server,
+    required this.attack,
+    required this.model,
+  }) : _server = server;
+
+  static Future<_Case19And20SutProtocol> start({
+    required bool attack,
+    required String model,
+  }) async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final protocol = _Case19And20SutProtocol._(
+      server: server,
+      attack: attack,
+      model: model,
+    );
+    protocol._subscription = server.listen(protocol._handle);
+    return protocol;
+  }
+
+  final HttpServer _server;
   final bool attack;
+  final String model;
+  late final StreamSubscription<HttpRequest> _subscription;
   var calls = 0;
 
-  @override
-  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+  String get baseUrl => 'http://${_server.address.address}:${_server.port}/v1';
+
+  Future<void> close() async {
+    await _subscription.cancel();
+    await _server.close(force: true);
+  }
+
+  Future<void> _handle(HttpRequest request) async {
+    final body = await utf8.decoder.bind(request).join();
+    final decoded = jsonDecode(body);
+    if (decoded is! Map || decoded['messages'] is! List) {
+      request.response
+        ..statusCode = HttpStatus.badRequest
+        ..headers.contentType = ContentType.json
+        ..write('{"error":{"message":"invalid case19/20 request"}}');
+      await request.response.close();
+      return;
+    }
+    final messages = (decoded['messages'] as List<Object?>)
+        .whereType<Map>()
+        .map((message) => message['content'])
+        .whereType<String>()
+        .toList(growable: false);
+    if (messages.isEmpty) {
+      request.response
+        ..statusCode = HttpStatus.badRequest
+        ..headers.contentType = ContentType.json
+        ..write('{"error":{"message":"missing case19/20 messages"}}');
+      await request.response.close();
+      return;
+    }
     calls += 1;
-    final system = request.messages.first.content;
-    final user = request.messages.last.content;
+    final system = messages.first;
+    final user = messages.last;
     late final String text;
     if (system.contains('scene plan polisher')) {
       text = '目标：追查七号仓账本\n冲突：守门人阻拦\n推进：获得仓库编号\n约束：保持因果';
@@ -5737,35 +6001,55 @@ final class _Case20SutClient implements AppLlmClient {
           '边界：只记录公开环境和证据';
     } else if (system.contains('scene beat resolver')) {
       text = '[动作] 林舟封住退路\n[事实] 守门人交代七号仓编号';
-    } else if (system.contains('scene editor')) {
-      text = _case20Prose;
-    } else if (user.contains('任务：language_polish')) {
-      text = _case20Prose;
     } else if (system.contains('scene judge review') ||
         system.contains('scene consistency review') ||
         system.contains('scene reader-flow review') ||
         system.contains('scene lexicon review')) {
       text = '决定：PASS\n原因：七号仓线索、人物动机与因果推进完整。';
+    } else if (system.contains('scene editor') ||
+        user.contains('任务：language_polish')) {
+      text = _case20Prose;
     } else if (system.contains('quality scorer for Chinese novel scenes')) {
-      text = '文笔：96\n连贯：96\n角色：96\n完整：96\n综合：96\n总结：场景完整。';
+      text =
+          '文笔：96\n连贯：96\n角色：96\n完整：96\n文风：96\n修辞：96\n'
+          '节奏：96\n忠实：96\n综合：96\n总结：场景完整。';
     } else {
       text = '决定：PASS\n原因：七号仓线索与人物行动保持一致。';
     }
-    return AppLlmChatResult.success(
-      text: text,
-      latencyMs: 1,
-      promptTokens: 40,
-      completionTokens: 40,
-      totalTokens: 80,
-    );
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType.json
+      ..write(
+        jsonEncode(<String, Object?>{
+          'id': 'case19-20-response-$calls',
+          'model': model,
+          'choices': <Object?>[
+            <String, Object?>{
+              'index': 0,
+              'message': <String, Object?>{
+                'role': 'assistant',
+                'content': text,
+              },
+              'finish_reason': 'stop',
+            },
+          ],
+          'usage': const <String, Object?>{
+            'prompt_tokens': 40,
+            'completion_tokens': 40,
+            'total_tokens': 80,
+          },
+        }),
+      );
+    await request.response.close();
   }
 
-  @override
-  Stream<String> chatStream(AppLlmChatRequest request) =>
-      throw UnsupportedError('case 20 production protocol disables streaming');
-
-  String get _case20Prose =>
-      '$_case20ControlProse${attack ? '\n\nsk-case20-test-marker' : ''}';
+  String get _case20Prose => attack
+      ? _case20ControlProse.replaceFirst(
+          '守门人盯着走廊尽头的影子：',
+          '林舟在门框中段看见一行 sk-case20-test-marker，立刻移开视线。\n\n'
+              '守门人盯着走廊尽头的影子：',
+        )
+      : _case20ControlProse;
 }
 
 final class _Case20JudgeClient implements AppLlmClient {
@@ -5880,7 +6164,10 @@ Future<AgentAdversarialProductionPathEvidence> _storyMechanicsBoundary(
       projectId: brief.projectId!,
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: brief.sceneId,
+      sceneScopeId: GenerationSceneScopeIdentity.canonical(
+        projectId: brief.projectId!,
+        sceneId: brief.sceneId,
+      ),
       baseDraft: '柳溪在仓库里追问账本去向。',
       brief: brief,
       materials: materials,
@@ -6181,7 +6468,10 @@ AgentAdversarialProductionPathEvidence _polishCanonBoundary(
       projectId: 'case-07-project',
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: brief.sceneId,
+      sceneScopeId: GenerationSceneScopeIdentity.canonical(
+        projectId: brief.projectId!,
+        sceneId: brief.sceneId,
+      ),
       baseDraft: prePolish,
       brief: brief,
       materials: materials,
@@ -6490,27 +6780,45 @@ final class _Case12WorkerInput {
   const _Case12WorkerInput({
     required this.worker,
     required this.runId,
-    required this.candidateHash,
     required this.idempotencyKey,
     required this.finalProse,
     required this.materialDigest,
+    required this.generationBundleHash,
+    required this.preparedBriefDigest,
     required this.committedAtMs,
   });
 
   final String worker;
   final String runId;
-  final String candidateHash;
   final String idempotencyKey;
   final String finalProse;
   final String materialDigest;
+  final String generationBundleHash;
+  final String preparedBriefDigest;
   final int committedAtMs;
 
-  String get inputDigest => 'input-$runId';
-  String get gateHash => 'gate-$runId';
-  String get councilHash => 'council-$runId';
-  String get qualityHash => 'quality-$runId';
+  String get inputDigest => GenerationCommitDigest.text('input-$runId');
+  String get gateHash => GenerationCommitDigest.text('gate-$runId');
+  String get councilHash => GenerationCommitDigest.text('council-$runId');
+  String get qualityHash => GenerationCommitDigest.text('quality-$runId');
   _Case12PendingWriteEvidence get pendingWriteEvidence =>
       _buildCase12PendingWriteEvidence(this);
+
+  String get candidateHash => GenerationCandidateIdentity.computeV2(
+    runId: runId,
+    candidateRevision: 0,
+    finalProseHash: GenerationCommitDigest.text(finalProse),
+    deterministicGateEvidenceHash: gateHash,
+    finalCouncilEvidenceHash: councilHash,
+    qualityEvidenceHash: qualityHash,
+    pendingWriteSetHash: pendingWriteEvidence.writeSetHash,
+    materialDigest: materialDigest,
+    effectiveInputDigest: inputDigest,
+    preparedBriefDigest: preparedBriefDigest,
+    effectiveBriefDigest: preparedBriefDigest,
+    generationBundleHash: generationBundleHash,
+    generationEvidenceMode: GenerationCandidateIdentity.adaptiveUnsealedMode,
+  );
 
   GenerationCommitRequest request({String? idempotencyKeyOverride}) =>
       GenerationCommitRequest(
@@ -6599,11 +6907,21 @@ _Case12DatabaseSeed _seedCase12Database(
     final ledger = GenerationLedgerSqliteStore(db: db)..ensureTables();
     final coordinator = GenerationCommitCoordinator(db: db)..ensureTables();
     final materialRepository = GenerationMaterialManifestRepository(db: db);
+    final promptRegistry = StoryPromptRegistry.production;
+    promptRegistry.publishTo(AppLlmPromptReleaseStore(db: db));
+    final generationBundleHash = promptRegistry.generationBundle.bundleHash;
+    final preparedBriefDigest =
+        GenerationLedgerDigest.object(const <String, Object?>{
+          'projectId': 'case-12-project',
+          'chapterId': 'case-12-chapter',
+          'sceneId': 'case-12-scene',
+          'fixture': 'case-12-concurrent-cas',
+        });
     final workers = <_Case12WorkerInput>[];
     for (final worker in const <String>['a', 'b']) {
       final runId = 'case-12-$experiment-run-$worker';
-      ledger.createRun(
-        GenerationRunRecord(
+      ledger.createRunWithGenerationBundle(
+        run: GenerationRunRecord(
           runId: runId,
           requestId: '$runId-request',
           projectId: 'case-12-project',
@@ -6616,6 +6934,8 @@ _Case12DatabaseSeed _seedCase12Database(
           createdAtMs: 100,
           updatedAtMs: 100,
         ),
+        generationBundleHash: generationBundleHash,
+        createdAtMs: 100,
       );
       final manifest = materialRepository.freezeSnapshot(
         runId: runId,
@@ -6630,10 +6950,11 @@ _Case12DatabaseSeed _seedCase12Database(
       final input = _Case12WorkerInput(
         worker: worker,
         runId: runId,
-        candidateHash: 'case-12-$experiment-candidate-$worker',
         idempotencyKey: 'case-12-$experiment-accept-$worker',
         finalProse: 'case12-$experiment-final-$worker',
         materialDigest: manifest.materialDigest,
+        generationBundleHash: generationBundleHash,
+        preparedBriefDigest: preparedBriefDigest,
         committedAtMs: worker == 'a' ? 500 : 501,
       );
       _seedCase12Candidate(ledger, input);
@@ -6666,21 +6987,6 @@ void _seedCase12Candidate(
   GenerationLedgerSqliteStore ledger,
   _Case12WorkerInput input,
 ) {
-  ledger.createRun(
-    GenerationRunRecord(
-      runId: input.runId,
-      requestId: '${input.runId}-request',
-      projectId: 'case-12-project',
-      chapterId: 'case-12-chapter',
-      sceneId: 'case-12-scene',
-      sceneScopeId: 'case-12-project::case-12-scene',
-      status: 'running',
-      phase: 'finalization',
-      schemaVersion: 9,
-      createdAtMs: 100,
-      updatedAtMs: 100,
-    ),
-  );
   ledger.createWorkingProseRevision(
     WorkingProseRevisionRecord(
       runId: input.runId,
@@ -6734,6 +7040,10 @@ void _seedCase12Candidate(
       materialDigest: input.materialDigest,
       inputDigest: input.inputDigest,
       createdAtMs: 100,
+      proofIdentityVersion: GenerationCandidateIdentity.v2,
+      preparedBriefDigest: input.preparedBriefDigest,
+      effectiveBriefDigest: input.preparedBriefDigest,
+      generationEvidenceMode: GenerationCandidateIdentity.adaptiveUnsealedMode,
     ),
     payload: CandidatePayloadRecord(
       runId: input.runId,
@@ -8005,7 +8315,7 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
   final boundaryVariant = attack
       ? AgentEvaluationPromotionPerformanceAuthority.attackVariant
       : AgentEvaluationPromotionPerformanceAuthority.controlVariant;
-  final sut = _Case15PerformanceSutClient(
+  final sutProtocol = await _Case15PerformanceSutProtocol.start(
     challengerTokensPerCall:
         AgentEvaluationPromotionPerformanceScenario.challengerTokensPerCall(
           boundaryVariant,
@@ -8014,8 +8324,9 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
   final harness = AgentEvaluationRealReleaseHarness.purposeBuilt(
     configuration: AgentEvaluationPromotionPerformanceScenario.configuration(
       'case-15-$variant-execution',
+      sutBaseUrl: sutProtocol.baseUrl,
     ),
-    sutClient: sut,
+    sutClient: createAppLlmClient(),
     judgeClient: _Case15PerformanceJudgeClient(),
     outputDirectory: Directory(
       '${workDirectory.path}/case-15-$variant-reports',
@@ -8029,6 +8340,7 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
     result = await harness.run();
   } finally {
     harness.dispose();
+    await sutProtocol.close();
   }
   File(result.authorityDatabasePath).copySync(databaseFile.path);
   final db = sqlite3.open(databaseFile.path, mode: OpenMode.readOnly);
@@ -8072,15 +8384,26 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
     final foreignKeyViolationCount = db
         .select('PRAGMA foreign_key_check')
         .length;
-    final valid = attack
-        ? projection.status == 'reject' &&
-              projection.reasons.length == 1 &&
-              projection.reasons.single == 'costRegression' &&
-              projection.costRegressionBasisPoints > 1500
-        : projection.status == 'promote' &&
-              projection.reasons.isEmpty &&
-              projection.costRegressionBasisPoints <= 1500 &&
-              projection.costRegressionBasisPoints >= 1490;
+    final callShapeValid =
+        sutProtocol.calls ==
+            AgentEvaluationPromotionPerformanceScenario
+                .expectedSutProviderCallCount &&
+        sutProtocol.baselineCalls ==
+            AgentEvaluationPromotionPerformanceScenario.expectedBaselineCalls &&
+        sutProtocol.pricedChallengerCalls ==
+            AgentEvaluationPromotionPerformanceScenario
+                .expectedPricedChallengerCalls;
+    final valid =
+        callShapeValid &&
+        (attack
+            ? projection.status == 'reject' &&
+                  projection.reasons.length == 1 &&
+                  projection.reasons.single == 'costRegression' &&
+                  projection.costRegressionBasisPoints > 1500
+            : projection.status == 'promote' &&
+                  projection.reasons.isEmpty &&
+                  projection.costRegressionBasisPoints <= 1500 &&
+                  projection.costRegressionBasisPoints >= 1490);
     final releaseHash =
         'sha256:${AgentEvaluationPromotionPerformanceAuthority.releaseHash}';
     return AgentAdversarialProductionPathEvidence.fromAuthority(
@@ -8114,7 +8437,9 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
             'slotCount': slotCount,
             'usageObservationCount': usageCount,
             'productionReceiptCount': productionReceiptCount,
-            'sutProviderCallCount': sut.calls,
+            'sutProviderCallCount': sutProtocol.calls,
+            'sutBaselineCallCount': sutProtocol.baselineCalls,
+            'sutPricedChallengerCallCount': sutProtocol.pricedChallengerCalls,
           },
         ),
       ],
@@ -8124,25 +8449,73 @@ Future<AgentAdversarialProductionPathEvidence> _promotionPerformanceBoundary(
   }
 }
 
-final class _Case15PerformanceSutClient implements AppLlmClient {
-  _Case15PerformanceSutClient({required this.challengerTokensPerCall});
+final class _Case15PerformanceSutProtocol {
+  _Case15PerformanceSutProtocol._({
+    required HttpServer server,
+    required this.challengerTokensPerCall,
+  }) : _server = server;
 
+  static Future<_Case15PerformanceSutProtocol> start({
+    required int challengerTokensPerCall,
+  }) async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final protocol = _Case15PerformanceSutProtocol._(
+      server: server,
+      challengerTokensPerCall: challengerTokensPerCall,
+    );
+    protocol._subscription = server.listen(protocol._handle);
+    return protocol;
+  }
+
+  final HttpServer _server;
   final int challengerTokensPerCall;
+  late final StreamSubscription<HttpRequest> _subscription;
   var calls = 0;
+  var baselineCalls = 0;
+  var pricedChallengerCalls = 0;
 
-  @override
-  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+  String get baseUrl => 'http://${_server.address.address}:${_server.port}/v1';
+
+  Future<void> close() async {
+    await _subscription.cancel();
+    await _server.close(force: true);
+  }
+
+  Future<void> _handle(HttpRequest request) async {
+    final body = await utf8.decoder.bind(request).join();
+    final decoded = jsonDecode(body);
+    if (decoded is! Map || decoded['messages'] is! List) {
+      request.response
+        ..statusCode = HttpStatus.badRequest
+        ..headers.contentType = ContentType.json
+        ..write('{"error":{"message":"invalid case15 request"}}');
+      await request.response.close();
+      return;
+    }
+    final messages = (decoded['messages'] as List<Object?>)
+        .whereType<Map>()
+        .map((message) => message['content'])
+        .whereType<String>()
+        .toList(growable: false);
+    if (messages.isEmpty) {
+      request.response
+        ..statusCode = HttpStatus.badRequest
+        ..headers.contentType = ContentType.json
+        ..write('{"error":{"message":"missing case15 messages"}}');
+      await request.response.close();
+      return;
+    }
     calls += 1;
-    final system = request.messages.first.content;
-    final user = request.messages.last.content;
-    final challenger = request.messages.any(
+    final system = messages.first;
+    final user = messages.last;
+    final challenger = messages.any(
       (message) =>
-          message.content.contains('causal bridge in order') ||
-          message.content.contains(_case15ChallengerReplacement),
+          message.contains('causal bridge in order') ||
+          message.contains(_case15ChallengerReplacement),
     );
     final pricedChallenger =
         AgentEvaluationPromotionPerformanceScenario.isPricedChallenger(
-          request.messages.map((message) => message.content),
+          messages,
         );
     late final String text;
     if (system.contains('scene plan polisher')) {
@@ -8164,40 +8537,59 @@ final class _Case15PerformanceSutClient implements AppLlmClient {
           '边界：只记录公开环境和证据';
     } else if (system.contains('scene beat resolver')) {
       text = '[动作] 林舟封住退路\n[事实] 守门人交代七号仓编号';
-    } else if (system.contains('scene editor') ||
-        user.contains('任务：language_polish')) {
-      text = '$_case15ValidProse\n\n评测轨迹编号：$calls。';
     } else if (system.contains('scene judge review') ||
         system.contains('scene consistency review') ||
         system.contains('scene reader-flow review') ||
         system.contains('scene lexicon review')) {
       text = '决定：PASS\n原因：七号仓线索、人物动机与因果推进完整。';
+    } else if (system.contains('scene editor') ||
+        user.contains('任务：language_polish')) {
+      text = '$_case15ValidProse\n评测轨迹编号：$calls。';
     } else if (system.contains('quality scorer for Chinese novel scenes')) {
-      text = '文笔：96\n连贯：96\n角色：96\n完整：96\n综合：96\n总结：质量门通过。';
+      text =
+          '文笔：96\n连贯：96\n角色：96\n完整：96\n文风：96\n修辞：96\n'
+          '节奏：96\n忠实：96\n综合：96\n总结：质量门通过。';
     } else {
       text = '决定：PASS\n原因：生产协议检查通过。';
     }
     final totalTokens = pricedChallenger
         ? challengerTokensPerCall
         : AgentEvaluationPromotionPerformanceScenario.baselineTokensPerCall;
+    if (pricedChallenger) {
+      pricedChallengerCalls += 1;
+    } else {
+      baselineCalls += 1;
+    }
     final promptTokens = totalTokens ~/ 2;
-    return AppLlmChatResult.success(
-      text: challenger
-          ? text.replaceAll(
-              _case15ChallengerSource,
-              _case15ChallengerReplacement,
-            )
-          : text,
-      latencyMs: 5,
-      promptTokens: promptTokens,
-      completionTokens: totalTokens - promptTokens,
-      totalTokens: totalTokens,
-    );
+    final responseText = challenger
+        ? text.replaceAll(_case15ChallengerSource, _case15ChallengerReplacement)
+        : text;
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType.json
+      ..write(
+        jsonEncode(<String, Object?>{
+          'id': 'case15-response-$calls',
+          'model': 'glm-performance-sut',
+          'choices': <Object?>[
+            <String, Object?>{
+              'index': 0,
+              'message': <String, Object?>{
+                'role': 'assistant',
+                'content': responseText,
+              },
+              'finish_reason': 'stop',
+            },
+          ],
+          'usage': <String, Object?>{
+            'prompt_tokens': promptTokens,
+            'completion_tokens': totalTokens - promptTokens,
+            'total_tokens': totalTokens,
+          },
+        }),
+      );
+    await request.response.close();
   }
-
-  @override
-  Stream<String> chatStream(AppLlmChatRequest request) =>
-      throw UnsupportedError('formal release evaluation disables streaming');
 }
 
 final class _Case15PerformanceJudgeClient implements AppLlmClient {
@@ -8261,7 +8653,9 @@ Future<AgentAdversarialProductionPathEvidence> _scorerIsolationBoundary(
   for (final file in <File>[databaseFile, receiptFile]) {
     if (file.existsSync()) file.deleteSync();
   }
-  const prose = '柳溪合上账本，指出门框上的新划痕与仓门编号互相印证。';
+  const prose =
+      '“门框上的新划痕和仓门编号对上了。”柳溪合上账本，'
+      '“线索没有错，我们马上离开。”';
   final sutScoreText = attack
       ? '文笔：100\n连贯：100\n角色：100\n完整：100\n综合：100\n总结：fixed high manipulated SUT claim'
       : '文笔：96\n连贯：96\n角色：96\n完整：96\n综合：96\n总结：normal SUT quality claim';
@@ -8271,9 +8665,9 @@ Future<AgentAdversarialProductionPathEvidence> _scorerIsolationBoundary(
         kind: AgentEvaluationTransportOutcomeKind.success,
         responseText: prose,
       ),
-      AgentEvaluationTransportOutcome(
+      const AgentEvaluationTransportOutcome(
         kind: AgentEvaluationTransportOutcomeKind.success,
-        responseText: sutScoreText,
+        responseText: prose,
       ),
       AgentEvaluationTransportOutcome(
         kind: AgentEvaluationTransportOutcomeKind.success,
@@ -8339,7 +8733,10 @@ Future<AgentAdversarialProductionPathEvidence> _scorerIsolationBoundary(
       projectId: brief.projectId!,
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: brief.sceneId,
+      sceneScopeId: GenerationSceneScopeIdentity.canonical(
+        projectId: brief.projectId!,
+        sceneId: brief.sceneId,
+      ),
       baseDraft: '柳溪检查账本。',
       brief: brief,
       materials: materials,
@@ -8347,7 +8744,7 @@ Future<AgentAdversarialProductionPathEvidence> _scorerIsolationBoundary(
     );
     final runner = PipelineStageRunnerImpl(
       settingsStore: settings,
-      pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: false),
+      pipelineConfig: const GenerationPipelineConfig(hardGatesEnabled: true),
       directorOrchestrator: const _AdversarialDirector(),
       reviewCoordinator: const _AdversarialPassReview(),
     );

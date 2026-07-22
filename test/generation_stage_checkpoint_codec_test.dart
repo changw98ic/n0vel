@@ -103,7 +103,7 @@ void main() {
       INSERT INTO story_generation_runs (
         run_id, request_id, project_id, chapter_id, scene_id, scene_scope_id,
         status, phase, schema_version, created_at_ms, updated_at_ms
-      ) VALUES ('run', 'request', 'project', 'chapter', 'scene', 'scope',
+      ) VALUES ('run', 'request', 'project', 'chapter', 'scene', 'project::scene',
         'running', 'draft', 13, 1, 1)
     ''');
       db.execute('''

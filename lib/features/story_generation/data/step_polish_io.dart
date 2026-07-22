@@ -37,12 +37,16 @@ class PolishInput extends TypedArtifact {
 class PolishOutput extends TypedArtifact {
   const PolishOutput({
     required this.prose,
+    this.sourceLogicalAttemptId,
+    this.sourceCallSiteId,
     this.canonEvidence,
     this.storyMechanicsEvidence,
     this.productionPreQualityEvidence,
   });
 
   final SceneProseDraft prose;
+  final String? sourceLogicalAttemptId;
+  final String? sourceCallSiteId;
   final PolishCanonEvidence? canonEvidence;
   final StoryMechanicsEvidence? storyMechanicsEvidence;
   final ProductionPreQualityEvidence? productionPreQualityEvidence;
@@ -55,6 +59,9 @@ class PolishOutput extends TypedArtifact {
     'type': type.name,
     'proseText': prose.text,
     'attempt': prose.attempt,
+    if (sourceLogicalAttemptId != null)
+      'sourceLogicalAttemptId': sourceLogicalAttemptId,
+    if (sourceCallSiteId != null) 'sourceCallSiteId': sourceCallSiteId,
     if (canonEvidence != null) 'canonEvidence': canonEvidence!.toJson(),
     if (storyMechanicsEvidence != null)
       'storyMechanicsEvidence': storyMechanicsEvidence!.toJson(),

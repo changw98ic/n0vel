@@ -9,6 +9,7 @@ import 'package:novel_writer/app/llm/app_llm_client_types.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_release.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_release_store.dart';
 import 'package:novel_writer/app/state/authoring_db_schema.dart';
+import 'package:novel_writer/app/state/app_workspace_storage_io.dart';
 import 'package:novel_writer/app/state/db_schema_manager.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_app_runtime.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_fixture_sandbox.dart';
@@ -151,6 +152,9 @@ void main() {
         );
         source.dispose();
       }
+      await SqliteAppWorkspaceStorage(
+        dbPath: fixturePath,
+      ).save(_productionFixtureWorkspace());
 
       final champion = StoryPromptRegistry.current();
       final challenger = StoryPromptRegistry.causalityChallenger();
@@ -385,6 +389,9 @@ void main() {
       DatabaseSchemaManager(
         migrations: authoringSchemaMigrations,
       ).ensureSchema(db);
+      await SqliteAppWorkspaceStorage(
+        dbPath: path,
+      ).save(_productionFixtureWorkspace());
 
       final registry = StoryPromptRegistry.current();
       final bundleHash = _raw(registry.generationBundle.bundleHash);
@@ -1274,6 +1281,45 @@ void main() {
   );
 }
 
+const _productionFixtureProjectId = 'production-test-project';
+const _productionFixtureSceneId = 'production-test-scene';
+const _productionFixtureSceneScopeId =
+    '$_productionFixtureProjectId::$_productionFixtureSceneId';
+
+Map<String, Object?> _productionFixtureWorkspace() => <String, Object?>{
+  'projects': <Object?>[
+    <String, Object?>{
+      'id': _productionFixtureProjectId,
+      'sceneId': _productionFixtureSceneId,
+      'title': '生产评测夹具',
+      'genre': '悬疑',
+      'summary': '港口调查夹具。',
+      'recentLocation': '第一章 / 港口',
+      'lastOpenedAtMs': 1,
+    },
+  ],
+  'charactersByProject': <String, Object?>{
+    _productionFixtureProjectId: <Object?>[],
+  },
+  'scenesByProject': <String, Object?>{
+    _productionFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': _productionFixtureSceneId,
+        'chapterLabel': '第一章',
+        'title': '港口调查',
+        'summary': '调查者追查仓库账本。',
+      },
+    ],
+  },
+  'worldNodesByProject': <String, Object?>{},
+  'auditIssuesByProject': <String, Object?>{},
+  'projectStyles': <String, Object?>{},
+  'projectAuditStates': <String, Object?>{},
+  'projectDeletionTombstones': <String, Object?>{},
+  'projectTransferState': '',
+  'currentProjectId': _productionFixtureProjectId,
+};
+
 ExperimentManifest _manifest({
   required String bundleHash,
   required String modelRouteHash,
@@ -1287,7 +1333,12 @@ ExperimentManifest _manifest({
     scenarioId: 'production-scene-1',
     version: '1.0.0',
     difficulty: 'release',
-    inputFixture: const <String, Object?>{'prompt': '保留因果链，生成一个可采纳的港口调查场景。'},
+    inputFixture: const <String, Object?>{
+      'projectId': _productionFixtureProjectId,
+      'sceneId': _productionFixtureSceneId,
+      'sceneScopeId': _productionFixtureSceneScopeId,
+      'prompt': '保留因果链，生成一个可采纳的港口调查场景。',
+    },
     fixtureHash: _digest('1'),
     isolationMode: 'independent',
     requiredCapabilities: const <String>['story-generation'],
@@ -1378,7 +1429,12 @@ ExperimentManifest _case19Manifest({
     scenarioId: id,
     version: '1.0.0',
     difficulty: 'case19-purpose',
-    inputFixture: <String, Object?>{'prompt': '生成可采纳场景并保持因果闭环：$id'},
+    inputFixture: <String, Object?>{
+      'projectId': _productionFixtureProjectId,
+      'sceneId': _productionFixtureSceneId,
+      'sceneScopeId': _productionFixtureSceneScopeId,
+      'prompt': '生成可采纳场景并保持因果闭环：$id',
+    },
     fixtureHash: AgentEvaluationHashes.domainHash(
       'case19-purpose-fixture-v1',
       id,

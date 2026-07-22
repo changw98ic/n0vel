@@ -110,6 +110,15 @@ void main() {
       expect(cloned, isEmpty);
       expect(identical(original, cloned), isFalse);
     });
+
+    test('clones a mutable set as a detached canonical list', () {
+      final original = <String>{'first', 'second'};
+      final cloned = cloneStorageValue(original) as List<Object?>;
+
+      original.add('later');
+
+      expect(cloned, ['first', 'second']);
+    });
   });
 
   group('cloneStorageMap', () {
@@ -231,6 +240,21 @@ void main() {
       expect(cloned, equals(original));
       expect(cloned['absent'], isNull);
       expect(cloned.containsKey('absent'), isTrue);
+    });
+  });
+
+  group('immutableMap', () {
+    test('recursively freezes arbitrary iterable metadata', () {
+      final sourceTags = <String>{'first', 'second'};
+      final frozen = immutableMap(<String, Object?>{
+        'nested': <String, Object?>{'tags': sourceTags},
+      });
+
+      sourceTags.add('later');
+      final tags = (frozen['nested']! as Map)['tags']! as List;
+
+      expect(tags, ['first', 'second']);
+      expect(() => tags.add('forbidden'), throwsUnsupportedError);
     });
   });
 }

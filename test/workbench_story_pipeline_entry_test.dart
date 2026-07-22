@@ -127,11 +127,12 @@ class _PipelineOnlyRunner extends PipelineStageRunnerImpl {
   SceneBrief? lastBrief;
 
   @override
-  Future<SceneRuntimeOutput> runScene(
-    SceneBrief brief, {
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) async {
+    final brief = prepared.brief;
     calls += 1;
     lastBrief = brief;
     return SceneRuntimeOutput(

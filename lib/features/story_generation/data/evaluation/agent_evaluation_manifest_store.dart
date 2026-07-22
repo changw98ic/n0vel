@@ -28,10 +28,10 @@ class AgentEvaluationManifestStore {
   AgentEvaluationManifestStore({required this.db});
 
   static const String releaseDomain =
-      'agent-evaluation-manifest-store-release-v2';
+      'agent-evaluation-manifest-store-release-v3';
   static final String releaseHash =
       'sha256:${AgentEvaluationHashes.domainHash(releaseDomain, const <String, Object?>{
-        'preflight': 'scenario-fixture-verifier-cell-build-bundle-authority-side-effect-before-provider-v2',
+        'preflight': 'scenario-fixture-scene-address-verifier-cell-build-bundle-authority-side-effect-before-provider-v3',
         'persistence': 'immutable-manifest-and-canonical-cell-cross-product',
         'productionSideEffects': <String, Object?>{
           'contractVersion': AgentEvaluationProductionSideEffectKeys.contractVersion,
@@ -132,6 +132,10 @@ class AgentEvaluationManifestStore {
         try {
           AgentEvaluationProductionSideEffectKeys.validateStrict(
             scenario.forbiddenSideEffects,
+          );
+          AgentEvaluationFrozenSceneAddress.require(
+            scenario: scenario,
+            expectedScenarioReleaseHash: scenario.releaseHash,
           );
         } on FormatException catch (error) {
           throw AgentEvaluationPreflightException(error.message.toString());

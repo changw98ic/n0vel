@@ -1399,7 +1399,6 @@ final class ProjectVoiceProfile {
     'projectOwnedNotes': projectOwnedNotes,
     'tabooPatterns': tabooPatterns,
     'allowedDeviations': [for (final item in allowedDeviations) item.toJson()],
-    'provenanceRefs': provenanceRefs,
     'promptReleaseHash': promptReleaseHash,
   };
 
@@ -1468,7 +1467,6 @@ final class ProjectVoiceProfile {
       'allowedDeviations': [
         for (final item in normalizedAllowedDeviations) item.toJson(),
       ],
-      'provenanceRefs': _immutableSortedStrings(provenanceRefs),
       'promptReleaseHash': promptReleaseHash,
     };
     return ProjectVoiceProfile(

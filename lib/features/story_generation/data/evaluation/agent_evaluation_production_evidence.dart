@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import '../../../../app/llm/app_llm_call_trace.dart';
+import '../generation_candidate_identity.dart';
 import '../generation_commit_coordinator.dart';
+import '../generation_evidence_receipt.dart';
 import '../generation_ledger_digest.dart';
 import 'agent_evaluation_manifest.dart';
 import 'agent_evaluation_metered_client.dart';
@@ -48,7 +50,7 @@ abstract interface class AgentEvaluationProductionSafetyVerifier {
 
 abstract final class AgentEvaluationProductionTransactionPolicy {
   static String get releaseHash => AgentEvaluationHashes.domainHash(
-    'eval-production-transaction-verifier-v2',
+    'eval-production-transaction-verifier-v4',
     <String, Object?>{
       'runStatus': 'committed',
       'proofReceipt': 'candidate-and-write-set-match',
@@ -56,8 +58,196 @@ abstract final class AgentEvaluationProductionTransactionPolicy {
       'pendingWrites': 'all-committed',
       'outbox': 'completed-without-error-v1',
       'attemptBinding': 'evaluation-attempt-to-story-run-v1',
+      'candidateIdentity': 'release-v2-only-with-rehydrated-evidence-receipt',
+      'sceneAddress': 'scenario-release-bound-scene-and-scope-v1',
     },
   );
+}
+
+/// Canonical scene address frozen by the scenario release selected by a cell.
+///
+/// `fixtureHash` alone is not an address authority because scenario producers
+/// use different fixture hash domains. The trust chain is instead the selected
+/// cell's scenario release hash, whose canonical payload includes inputFixture.
+final class AgentEvaluationFrozenSceneAddress {
+  const AgentEvaluationFrozenSceneAddress._({
+    required this.scenarioReleaseHash,
+    required this.scenarioFixtureHash,
+    required this.sceneId,
+    required this.sceneScopeId,
+  });
+
+  factory AgentEvaluationFrozenSceneAddress.require({
+    required ScenarioRelease scenario,
+    required String expectedScenarioReleaseHash,
+  }) {
+    if (scenario.releaseHash != expectedScenarioReleaseHash) {
+      throw const FormatException(
+        'scenario release does not match the selected evaluation cell',
+      );
+    }
+    final sceneId = _canonicalSceneAddressPart(
+      scenario.inputFixture['sceneId'],
+      'sceneId',
+    );
+    final sceneScopeId = _canonicalSceneAddressPart(
+      scenario.inputFixture['sceneScopeId'],
+      'sceneScopeId',
+    );
+    final projectValue = scenario.inputFixture['projectId'];
+    if (projectValue != null) {
+      final projectId = _canonicalSceneAddressPart(projectValue, 'projectId');
+      if (sceneScopeId != '$projectId::$sceneId') {
+        throw const FormatException(
+          'scenario scene scope contradicts its project and scene',
+        );
+      }
+    }
+    return AgentEvaluationFrozenSceneAddress._(
+      scenarioReleaseHash: expectedScenarioReleaseHash,
+      scenarioFixtureHash: scenario.fixtureHash,
+      sceneId: sceneId,
+      sceneScopeId: sceneScopeId,
+    );
+  }
+
+  final String scenarioReleaseHash;
+  final String scenarioFixtureHash;
+  final String sceneId;
+  final String sceneScopeId;
+}
+
+String _canonicalSceneAddressPart(Object? value, String field) {
+  if (value is! String ||
+      value.isEmpty ||
+      value != value.trim() ||
+      value.length > 256 ||
+      RegExp(r'[\u0000-\u001f\u007f-\u009f]').hasMatch(value)) {
+    throw FormatException(
+      'production scenario $field must be a canonical non-empty string',
+    );
+  }
+  return value;
+}
+
+/// Rehydrates the immutable V2 proof at each release-capable read boundary.
+/// Legacy V1 rows remain available to ledger/audit readers, but cannot be
+/// promoted back into current release evidence.
+abstract final class AgentEvaluationCandidateProofAuthority {
+  static String verifyV2({
+    required Object? proofIdentityVersion,
+    required String runId,
+    required String sceneId,
+    required String finalProse,
+    required String generationBundleHash,
+    required int candidateRevision,
+    required String finalProseHash,
+    required String deterministicGateEvidenceHash,
+    required String finalCouncilEvidenceHash,
+    required String qualityEvidenceHash,
+    required String pendingWriteSetHash,
+    required String materialDigest,
+    required String effectiveInputDigest,
+    required Object? preparedBriefDigest,
+    required Object? effectiveBriefDigest,
+    required Object? generationEvidenceMode,
+    required Object? generationEvidenceReceiptHash,
+    required Object? attemptEvidenceEnvelopeDigest,
+    required Object? generationFingerprintSetDigest,
+    required Object? generationEvidenceReceiptJson,
+    required Object? payloadGenerationEvidenceReceiptJson,
+  }) {
+    if (proofIdentityVersion != GenerationCandidateIdentity.v2 ||
+        preparedBriefDigest is! String ||
+        effectiveBriefDigest is! String ||
+        generationEvidenceMode is! String) {
+      throw const FormatException(
+        'release evidence requires a complete V2 candidate proof',
+      );
+    }
+    if (generationEvidenceMode ==
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      if (generationEvidenceReceiptHash is! String ||
+          attemptEvidenceEnvelopeDigest is! String ||
+          generationFingerprintSetDigest is! String ||
+          generationEvidenceReceiptJson is! String ||
+          generationEvidenceReceiptJson.isEmpty ||
+          payloadGenerationEvidenceReceiptJson !=
+              generationEvidenceReceiptJson) {
+        throw const FormatException(
+          'sealed V2 proof omitted its mirrored generation receipt',
+        );
+      }
+      final receipt = GenerationEvidenceReceipt.fromCanonicalJson(
+        generationEvidenceReceiptJson,
+      );
+      if (receipt.canonicalJson != generationEvidenceReceiptJson ||
+          receipt.receiptHash != generationEvidenceReceiptHash ||
+          receipt.attemptEvidenceEnvelopeDigest !=
+              attemptEvidenceEnvelopeDigest ||
+          receipt.generationFingerprintSetDigest !=
+              generationFingerprintSetDigest ||
+          receipt.evidenceRunId != runId ||
+          receipt.sceneId != sceneId ||
+          receipt.preparedBriefDigest != preparedBriefDigest ||
+          receipt.generationBundleHashes.length != 1 ||
+          !receipt.generationBundleHashes.contains(generationBundleHash) ||
+          !receipt.matchesArtifactText(finalProse)) {
+        throw const FormatException(
+          'sealed V2 generation receipt contradicts its candidate proof',
+        );
+      }
+    } else if (generationEvidenceMode ==
+        GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (generationEvidenceReceiptHash != null ||
+          attemptEvidenceEnvelopeDigest != null ||
+          generationFingerprintSetDigest != null ||
+          generationEvidenceReceiptJson != null ||
+          payloadGenerationEvidenceReceiptJson is! String) {
+        throw const FormatException(
+          'adaptive V2 proof cannot carry sealed evidence fields',
+        );
+      }
+      final Object? decodedPayloadReceipt;
+      try {
+        decodedPayloadReceipt = jsonDecode(
+          payloadGenerationEvidenceReceiptJson,
+        );
+      } on FormatException {
+        throw const FormatException(
+          'adaptive V2 payload receipt marker is malformed',
+        );
+      }
+      if (decodedPayloadReceipt is! Map ||
+          decodedPayloadReceipt.isNotEmpty ||
+          AgentEvaluationHashes.canonicalJson(decodedPayloadReceipt) !=
+              payloadGenerationEvidenceReceiptJson) {
+        throw const FormatException(
+          'adaptive V2 payload receipt marker must be canonical empty JSON',
+        );
+      }
+    } else {
+      throw const FormatException('V2 candidate evidence mode is unsupported');
+    }
+    return GenerationCandidateIdentity.computeV2(
+      runId: runId,
+      candidateRevision: candidateRevision,
+      finalProseHash: finalProseHash,
+      deterministicGateEvidenceHash: deterministicGateEvidenceHash,
+      finalCouncilEvidenceHash: finalCouncilEvidenceHash,
+      qualityEvidenceHash: qualityEvidenceHash,
+      pendingWriteSetHash: pendingWriteSetHash,
+      materialDigest: materialDigest,
+      effectiveInputDigest: effectiveInputDigest,
+      preparedBriefDigest: preparedBriefDigest,
+      effectiveBriefDigest: effectiveBriefDigest,
+      generationBundleHash: generationBundleHash,
+      generationEvidenceMode: generationEvidenceMode,
+      generationEvidenceReceiptHash: generationEvidenceReceiptHash as String?,
+      attemptEvidenceEnvelopeDigest: attemptEvidenceEnvelopeDigest as String?,
+      generationFingerprintSetDigest: generationFingerprintSetDigest as String?,
+    );
+  }
 }
 
 /// Converts one normal production story run into raw evaluation evidence.
@@ -98,6 +288,17 @@ final class AgentEvaluationProductionEvidenceCollector {
     if (storyRunId != context.runId) {
       throw const AgentEvaluationProductionEvidenceException(
         'production story run must be created in the current evaluation attempt namespace',
+      );
+    }
+    final AgentEvaluationFrozenSceneAddress sceneAddress;
+    try {
+      sceneAddress = AgentEvaluationFrozenSceneAddress.require(
+        scenario: context.scenario,
+        expectedScenarioReleaseHash: context.cell.scenarioReleaseHash,
+      );
+    } on FormatException catch (error) {
+      throw AgentEvaluationProductionEvidenceException(
+        error.message.toString(),
       );
     }
     if (priceTable.releaseHash != context.manifest.priceTableHash) {
@@ -195,7 +396,10 @@ final class AgentEvaluationProductionEvidenceCollector {
 
     final rows = context.database.select(
       '''SELECT run.status AS run_status, run.committed_at_ms,
-           p.*, prose.prose_text AS final_prose,
+           run.scene_id AS run_scene_id,
+           run.scene_scope_id AS run_scene_scope_id,
+           p.scene_id AS proof_scene_id, p.*,
+           prose.prose_text AS final_prose,
            prose.prose_hash AS working_prose_hash,
            receipt.receipt_id, receipt.committed_candidate_hash,
            receipt.committed_draft_hash, receipt.version_content_hash,
@@ -205,6 +409,8 @@ final class AgentEvaluationProductionEvidenceCollector {
            receipt.committed_at_ms AS receipt_committed_at_ms,
            payload.final_prose AS payload_final_prose,
            payload.pending_write_manifest_json,
+           payload.generation_evidence_receipt_json
+             AS payload_generation_evidence_receipt_json,
            binding.bundle_hash AS run_bundle_hash
          FROM story_generation_runs run
          JOIN story_generation_candidate_proofs p
@@ -259,24 +465,49 @@ final class AgentEvaluationProductionEvidenceCollector {
     }
     final manifest = _pendingWriteManifest(row['pending_write_manifest_json']);
     final expectedPendingWriteSetHash = GenerationLedgerDigest.object(manifest);
-    final expectedCandidateHash = GenerationLedgerDigest.object(<
-      String,
-      Object?
-    >{
-      'runId': storyRunId,
-      'candidateRevision': row['candidate_revision'],
-      'finalProseHash': row['final_prose_hash'],
-      'deterministicGateEvidenceHash': row['deterministic_gate_evidence_hash'],
-      'finalCouncilEvidenceHash': row['final_council_evidence_hash'],
-      'qualityEvidenceHash': row['quality_evidence_hash'],
-      'pendingWriteSetHash': expectedPendingWriteSetHash,
-      'materialDigest': row['material_digest'],
-      'inputDigest': row['input_digest'],
-      // The ledger normalizes foreign keys to the raw digest, while the
-      // immutable candidate proof was hashed with the public prefixed
-      // GenerationBundle identity returned by the prompt registry.
-      'generationBundleHash': 'sha256:${_rawDigest(row['run_bundle_hash'])}',
-    });
+    final String expectedCandidateHash;
+    try {
+      final generationBundleHash =
+          'sha256:${_rawDigest(row['run_bundle_hash'])}';
+      expectedCandidateHash = AgentEvaluationCandidateProofAuthority.verifyV2(
+        proofIdentityVersion: row['proof_identity_version'],
+        runId: storyRunId,
+        sceneId: row['run_scene_id'] as String,
+        finalProse: prose,
+        generationBundleHash: generationBundleHash,
+        candidateRevision: row['candidate_revision'] as int,
+        finalProseHash: row['final_prose_hash'] as String,
+        deterministicGateEvidenceHash:
+            row['deterministic_gate_evidence_hash'] as String,
+        finalCouncilEvidenceHash: row['final_council_evidence_hash'] as String,
+        qualityEvidenceHash: row['quality_evidence_hash'] as String,
+        pendingWriteSetHash: expectedPendingWriteSetHash,
+        materialDigest: row['material_digest'] as String,
+        effectiveInputDigest: row['input_digest'] as String,
+        preparedBriefDigest: row['prepared_brief_digest'],
+        effectiveBriefDigest: row['effective_brief_digest'],
+        generationEvidenceMode: row['generation_evidence_mode'],
+        generationEvidenceReceiptHash: row['generation_evidence_receipt_hash'],
+        attemptEvidenceEnvelopeDigest: row['attempt_evidence_envelope_digest'],
+        generationFingerprintSetDigest:
+            row['generation_fingerprint_set_digest'],
+        generationEvidenceReceiptJson: row['generation_evidence_receipt_json'],
+        payloadGenerationEvidenceReceiptJson:
+            row['payload_generation_evidence_receipt_json'],
+      );
+    } on Object {
+      throw const AgentEvaluationProductionEvidenceException(
+        'production proof identity fields are malformed or unsupported',
+      );
+    }
+    if (row['run_scene_id'] != sceneAddress.sceneId ||
+        row['proof_scene_id'] != sceneAddress.sceneId ||
+        row['run_scene_scope_id'] != sceneAddress.sceneScopeId ||
+        row['scene_scope_id'] != sceneAddress.sceneScopeId) {
+      throw const AgentEvaluationProductionEvidenceException(
+        'production proof scene address contradicts the frozen scenario fixture',
+      );
+    }
     if (row['pending_write_set_hash'] != expectedPendingWriteSetHash ||
         row['candidate_hash'] != expectedCandidateHash) {
       throw const AgentEvaluationProductionEvidenceException(
@@ -308,15 +539,14 @@ final class AgentEvaluationProductionEvidenceCollector {
               GenerationCommitDigest.text(entry['payload_json'] as String) ==
                   entry['payload_hash'],
         );
-    final sceneScopeId = row['scene_scope_id'];
     final draftRows = context.database.select(
       'SELECT text_body FROM draft_documents WHERE project_id = ?',
-      <Object?>[sceneScopeId],
+      <Object?>[sceneAddress.sceneScopeId],
     );
     final versionRows = context.database.select(
       '''SELECT content FROM version_entries
          WHERE project_id = ? AND sequence_no = 0''',
-      <Object?>[sceneScopeId],
+      <Object?>[sceneAddress.sceneScopeId],
     );
     final outboxRows = context.database.select(
       '''SELECT operation_key, run_id, payload_json, source_receipt_id,
@@ -375,8 +605,15 @@ final class AgentEvaluationProductionEvidenceCollector {
       'evaluationAttemptRunId': context.runId,
       'trialSlotId': context.lease.trialSlotId,
       'productionStoryRunId': storyRunId,
+      'scenarioReleaseHash': sceneAddress.scenarioReleaseHash,
+      'scenarioFixtureHash': sceneAddress.scenarioFixtureHash,
+      'sceneId': sceneAddress.sceneId,
+      'sceneScopeId': sceneAddress.sceneScopeId,
       'candidateRevision': row['candidate_revision'],
       'candidateHash': row['candidate_hash'],
+      'proofIdentityVersion': row['proof_identity_version'],
+      'generationEvidenceMode': row['generation_evidence_mode'],
+      'generationEvidenceReceiptHash': row['generation_evidence_receipt_hash'],
       'finalProseHash': row['final_prose_hash'],
       'generationBundleHash': row['run_bundle_hash'],
       'receiptId': row['receipt_id'],
@@ -399,7 +636,7 @@ final class AgentEvaluationProductionEvidenceCollector {
       productionProof: Map<String, Object?>.unmodifiable(proofSnapshot),
     );
     final transactionEvidenceHash = AgentEvaluationHashes.domainHash(
-      'eval-production-transaction-evidence-v1',
+      'eval-production-transaction-evidence-v3',
       proofSnapshot,
     );
     final safetyBlocked = !safety.passed;

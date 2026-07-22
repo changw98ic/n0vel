@@ -6,6 +6,7 @@ import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/features/story_generation/data/narrative_arc_models.dart';
+import 'package:novel_writer/features/story_generation/data/generation_candidate_identity.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_candidate_finalizer.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_digest.dart';
@@ -164,7 +165,7 @@ void main() {
         projectId: brief.projectId!,
         chapterId: brief.chapterId,
         sceneId: brief.sceneId,
-        sceneScopeId: 'project-generated-evidence::chapter-01::scene-01',
+        sceneScopeId: 'project-generated-evidence::scene-01',
         baseDraft: '',
         brief: brief,
         materials: _reviewHistoryMaterials,
@@ -275,7 +276,7 @@ void main() {
       projectId: brief.projectId!,
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: 'project-review-history::chapter-01::scene-01',
+      sceneScopeId: 'project-review-history::scene-01',
       baseDraft: '',
       brief: brief,
       materials: _reviewHistoryMaterials,
@@ -671,6 +672,9 @@ void main() {
             )
             as Map<String, Object?>;
     expect(payload['schemaVersion'], 'candidate-review-payload-v2');
+    expect(payload, isNot(contains('reviewEvaluationOutput')));
+    expect(payload, isNot(contains('reviewEvaluationOutputDigest')));
+    expect(qualityPayload['schemaVersion'], 'candidate-quality-payload-v3');
     expect(payload['reviewAttempts'], encodedAttempts);
 
     final expectedCouncilHash = GenerationLedgerDigest.object({
@@ -687,21 +691,34 @@ void main() {
           'Pipeline review hashes bind a JSON text envelope, while the '
           'ledger prose identity hashes normalized text directly.',
     );
+    expect(candidate.materialDigest, capture.materialDigest);
+    expect(candidate.generationBundleHash, capture.generationBundleHash);
+    expect(candidate.preparedBriefDigest, capture.preparedBriefDigest);
+    expect(
+      db
+          .select(
+            'SELECT proof_identity_version FROM story_generation_candidate_proofs',
+          )
+          .single['proof_identity_version'],
+      GenerationCandidateIdentity.v2,
+    );
     expect(
       candidate.candidateHash,
-      GenerationLedgerDigest.object({
-        'runId': candidate.runId,
-        'candidateRevision': candidate.candidateRevision,
-        'finalProseHash': candidate.finalProseHash,
-        'deterministicGateEvidenceHash':
-            candidate.deterministicGateEvidenceHash,
-        'finalCouncilEvidenceHash': expectedCouncilHash,
-        'qualityEvidenceHash': candidate.qualityEvidenceHash,
-        'pendingWriteSetHash': candidate.pendingWriteSetHash,
-        'materialDigest': capture.materialDigest,
-        'inputDigest': capture.inputDigest,
-        'generationBundleHash': capture.generationBundleHash,
-      }),
+      GenerationCandidateIdentity.computeV2(
+        runId: candidate.runId,
+        candidateRevision: candidate.candidateRevision,
+        finalProseHash: candidate.finalProseHash,
+        deterministicGateEvidenceHash: candidate.deterministicGateEvidenceHash,
+        finalCouncilEvidenceHash: expectedCouncilHash,
+        qualityEvidenceHash: candidate.qualityEvidenceHash,
+        pendingWriteSetHash: candidate.pendingWriteSetHash,
+        materialDigest: candidate.materialDigest,
+        effectiveInputDigest: candidate.inputDigest,
+        preparedBriefDigest: candidate.preparedBriefDigest,
+        effectiveBriefDigest: candidate.effectiveBriefDigest,
+        generationBundleHash: candidate.generationBundleHash,
+        generationEvidenceMode: candidate.generationEvidenceMode,
+      ),
     );
     expect(
       expectedCouncilHash,
@@ -840,7 +857,7 @@ void main() {
         projectId: brief.projectId!,
         chapterId: brief.chapterId,
         sceneId: brief.sceneId,
-        sceneScopeId: 'project-pipeline-history::chapter-01::scene-01',
+        sceneScopeId: 'project-pipeline-history::scene-01',
         baseDraft: '',
         brief: brief,
         materials: const ProjectMaterialSnapshot(),

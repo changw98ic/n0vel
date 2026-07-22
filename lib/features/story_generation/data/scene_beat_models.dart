@@ -29,9 +29,13 @@ class SceneEditorialDraft {
     required this.text,
     required this.beatCount,
     required this.attempt,
+    this.sourceLogicalAttemptId,
+    this.sourceCallSiteId,
   });
 
   final String text;
   final int beatCount;
   final int attempt;
+  final String? sourceLogicalAttemptId;
+  final String? sourceCallSiteId;
 }

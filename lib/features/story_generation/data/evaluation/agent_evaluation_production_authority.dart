@@ -37,12 +37,13 @@ final class AgentEvaluationVerifiedProductionReceipt {
 
 abstract final class AgentEvaluationProductionDatabaseAuthority {
   static String get releaseHash => AgentEvaluationHashes.domainHash(
-    'eval-production-database-authority-release-v1',
+    'eval-production-database-authority-release-v3',
     const <String, Object?>{
       'source': 'borrowed-sandbox-sqlite',
-      'candidate': 'recomputed-v1',
+      'candidate': 'recomputed-versioned-v2',
       'commit': 'receipt-write-set-draft-version-outbox-v1',
       'callerFields': 'comparison-only',
+      'sceneAddress': 'scenario-release-bound-scene-and-scope-v1',
     },
   );
 
@@ -50,6 +51,17 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
     required AgentEvaluationTrialContext context,
     required AgentEvaluationTrialExecutionResult result,
   }) {
+    final AgentEvaluationFrozenSceneAddress sceneAddress;
+    try {
+      sceneAddress = AgentEvaluationFrozenSceneAddress.require(
+        scenario: context.scenario,
+        expectedScenarioReleaseHash: context.cell.scenarioReleaseHash,
+      );
+    } on FormatException catch (error) {
+      throw AgentEvaluationProductionEvidenceException(
+        error.message.toString(),
+      );
+    }
     final path = context.sandboxDatabasePath?.trim() ?? '';
     final storyRunId = result.productionStoryRunId;
     final callerCandidateHash = result.productionCandidateHash;
@@ -57,6 +69,7 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
     final callerTransactionHash = result.productionTransactionEvidenceHash;
     final executorReleaseHash = result.productionExecutorReleaseHash;
     if (path.isEmpty ||
+        storyRunId == null ||
         storyRunId != context.runId ||
         callerCandidateHash == null ||
         callerReceiptId == null ||
@@ -69,10 +82,19 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
 
     final rows = context.database.select(
       '''SELECT run.status AS run_status, run.committed_at_ms,
+           run.scene_id AS run_scene_id,
+           run.scene_scope_id AS run_scene_scope_id,
            p.candidate_revision, p.candidate_hash, p.final_prose_hash,
            p.deterministic_gate_evidence_hash,
            p.final_council_evidence_hash, p.quality_evidence_hash,
            p.pending_write_set_hash, p.material_digest, p.input_digest,
+           p.proof_identity_version, p.prepared_brief_digest,
+           p.effective_brief_digest, p.generation_evidence_mode,
+           p.generation_evidence_receipt_hash,
+           p.attempt_evidence_envelope_digest,
+           p.generation_fingerprint_set_digest,
+           p.generation_evidence_receipt_json,
+           p.scene_id AS proof_scene_id,
            prose.prose_text AS final_prose,
            prose.prose_hash AS working_prose_hash,
            receipt.receipt_id, receipt.committed_candidate_hash,
@@ -82,6 +104,8 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
            receipt.committed_at_ms AS receipt_committed_at_ms,
            payload.final_prose AS payload_final_prose,
            payload.pending_write_manifest_json,
+           payload.generation_evidence_receipt_json
+             AS payload_generation_evidence_receipt_json,
            binding.bundle_hash AS run_bundle_hash
          FROM story_generation_runs run
          JOIN story_generation_candidate_proofs p
@@ -107,24 +131,57 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
     }
     final row = rows.single;
     final prose = row['final_prose'];
+    if (prose is! String || prose.trim().isEmpty) {
+      throw const AgentEvaluationProductionEvidenceException(
+        'runner authority found empty production prose',
+      );
+    }
     final manifest = _pendingWriteManifest(row['pending_write_manifest_json']);
     final pendingWriteSetHash = GenerationLedgerDigest.object(manifest);
-    final prefixedBundleHash = 'sha256:${row['run_bundle_hash']}';
-    final candidateHash = GenerationLedgerDigest.object(<String, Object?>{
-      'runId': storyRunId,
-      'candidateRevision': row['candidate_revision'],
-      'finalProseHash': row['final_prose_hash'],
-      'deterministicGateEvidenceHash': row['deterministic_gate_evidence_hash'],
-      'finalCouncilEvidenceHash': row['final_council_evidence_hash'],
-      'qualityEvidenceHash': row['quality_evidence_hash'],
-      'pendingWriteSetHash': pendingWriteSetHash,
-      'materialDigest': row['material_digest'],
-      'inputDigest': row['input_digest'],
-      'generationBundleHash': prefixedBundleHash,
-    });
-    if (prose is! String ||
-        prose.trim().isEmpty ||
-        row['run_status'] != 'committed' ||
+    final prefixedBundleHash =
+        'sha256:${_rawDigest(row['run_bundle_hash'] as String)}';
+    final String candidateHash;
+    try {
+      candidateHash = AgentEvaluationCandidateProofAuthority.verifyV2(
+        proofIdentityVersion: row['proof_identity_version'],
+        runId: storyRunId,
+        sceneId: row['run_scene_id'] as String,
+        finalProse: prose,
+        generationBundleHash: prefixedBundleHash,
+        candidateRevision: row['candidate_revision'] as int,
+        finalProseHash: row['final_prose_hash'] as String,
+        deterministicGateEvidenceHash:
+            row['deterministic_gate_evidence_hash'] as String,
+        finalCouncilEvidenceHash: row['final_council_evidence_hash'] as String,
+        qualityEvidenceHash: row['quality_evidence_hash'] as String,
+        pendingWriteSetHash: pendingWriteSetHash,
+        materialDigest: row['material_digest'] as String,
+        effectiveInputDigest: row['input_digest'] as String,
+        preparedBriefDigest: row['prepared_brief_digest'],
+        effectiveBriefDigest: row['effective_brief_digest'],
+        generationEvidenceMode: row['generation_evidence_mode'],
+        generationEvidenceReceiptHash: row['generation_evidence_receipt_hash'],
+        attemptEvidenceEnvelopeDigest: row['attempt_evidence_envelope_digest'],
+        generationFingerprintSetDigest:
+            row['generation_fingerprint_set_digest'],
+        generationEvidenceReceiptJson: row['generation_evidence_receipt_json'],
+        payloadGenerationEvidenceReceiptJson:
+            row['payload_generation_evidence_receipt_json'],
+      );
+    } on Object {
+      throw const AgentEvaluationProductionEvidenceException(
+        'runner authority found malformed or unsupported proof identity',
+      );
+    }
+    if (row['run_scene_id'] != sceneAddress.sceneId ||
+        row['proof_scene_id'] != sceneAddress.sceneId ||
+        row['run_scene_scope_id'] != sceneAddress.sceneScopeId ||
+        row['scene_scope_id'] != sceneAddress.sceneScopeId) {
+      throw const AgentEvaluationProductionEvidenceException(
+        'runner authority scene address contradicts the frozen scenario fixture',
+      );
+    }
+    if (row['run_status'] != 'committed' ||
         GenerationCommitDigest.text(prose) != row['final_prose_hash'] ||
         row['working_prose_hash'] != row['final_prose_hash'] ||
         row['payload_final_prose'] != prose ||
@@ -163,15 +220,14 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
               GenerationCommitDigest.text(item['payload_json'] as String) ==
                   item['payload_hash'],
         );
-    final sceneScopeId = row['scene_scope_id'];
     final drafts = context.database.select(
       'SELECT text_body FROM draft_documents WHERE project_id = ?',
-      <Object?>[sceneScopeId],
+      <Object?>[sceneAddress.sceneScopeId],
     );
     final versions = context.database.select(
       '''SELECT content FROM version_entries
          WHERE project_id = ? AND sequence_no = 0''',
-      <Object?>[sceneScopeId],
+      <Object?>[sceneAddress.sceneScopeId],
     );
     final outbox = context.database.select(
       '''SELECT operation_key, run_id, payload_json, source_receipt_id, state
@@ -185,7 +241,7 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
         outbox.single['state'] == 'completed' &&
         _outboxPayloadMatches(
           outbox.single['payload_json'],
-          runId: storyRunId!,
+          runId: storyRunId,
           candidateRevision: row['candidate_revision'] as int,
           receiptId: row['receipt_id'] as String,
           writeIds: manifestByWriteId.keys,
@@ -216,8 +272,15 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
       'evaluationAttemptRunId': context.runId,
       'trialSlotId': context.lease.trialSlotId,
       'productionStoryRunId': storyRunId,
+      'scenarioReleaseHash': sceneAddress.scenarioReleaseHash,
+      'scenarioFixtureHash': sceneAddress.scenarioFixtureHash,
+      'sceneId': sceneAddress.sceneId,
+      'sceneScopeId': sceneAddress.sceneScopeId,
       'candidateRevision': row['candidate_revision'],
       'candidateHash': candidateHash,
+      'proofIdentityVersion': row['proof_identity_version'],
+      'generationEvidenceMode': row['generation_evidence_mode'],
+      'generationEvidenceReceiptHash': row['generation_evidence_receipt_hash'],
       'finalProseHash': row['final_prose_hash'],
       'generationBundleHash': row['run_bundle_hash'],
       'receiptId': row['receipt_id'],
@@ -235,7 +298,7 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
       ),
     };
     final transactionEvidenceHash = AgentEvaluationHashes.domainHash(
-      'eval-production-transaction-evidence-v1',
+      'eval-production-transaction-evidence-v3',
       proofSnapshot,
     );
     final proseHash = AgentEvaluationHashes.domainHash(
@@ -249,13 +312,17 @@ abstract final class AgentEvaluationProductionDatabaseAuthority {
       );
     }
     final authorityReceiptHash = AgentEvaluationHashes.domainHash(
-      'eval-production-authority-receipt-v1',
+      'eval-production-authority-receipt-v2',
       <String, Object?>{
         'authorityReleaseHash': releaseHash,
         'executionId': context.lease.executionId,
         'trialSlotId': context.lease.trialSlotId,
         'attemptNo': context.attemptNo,
         'attemptRunId': storyRunId,
+        'scenarioReleaseHash': sceneAddress.scenarioReleaseHash,
+        'scenarioFixtureHash': sceneAddress.scenarioFixtureHash,
+        'sceneId': sceneAddress.sceneId,
+        'sceneScopeId': sceneAddress.sceneScopeId,
         'sandboxDatabasePath': path,
         'candidateHash': candidateHash,
         'commitReceiptId': row['receipt_id'],

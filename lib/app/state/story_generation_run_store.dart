@@ -86,11 +86,20 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _orchestratorFactory =
            orchestratorFactory ??
            ((settingsStore) {
+             final pipelineConfig = GenerationPipelineConfig.fromWorkspace(
+               workspaceStore,
+             );
+             if (!pipelineConfig.contentRedrawAllowed) {
+               return PipelineStageRunnerImpl.sealedProduction(
+                 settingsStore: settingsStore,
+                 pipelineConfig: pipelineConfig,
+                 roleplaySessionStore: roleplaySessionStore,
+                 characterMemoryStore: characterMemoryStore,
+               );
+             }
              return PipelineStageRunnerImpl(
                settingsStore: settingsStore,
-               pipelineConfig: GenerationPipelineConfig.fromWorkspace(
-                 workspaceStore,
-               ),
+               pipelineConfig: pipelineConfig,
                roleplaySessionStore: roleplaySessionStore,
                characterMemoryStore: characterMemoryStore,
              );
@@ -397,6 +406,16 @@ class StoryGenerationRunStore extends AppStoreListenable {
     }
 
     try {
+      final orchestrator = _orchestratorFactory(_settingsStore);
+      // The runner is the only component allowed to prepare a provider-facing
+      // brief.  Reuse the exact immutable object for both ledger admission and
+      // execution so capture, intent, fingerprint and prose cannot describe
+      // subtly different scene inputs.
+      final preparedBrief = orchestrator.prepareSceneBrief(
+        brief,
+        materials: materials,
+      );
+      final preparedMaterials = preparedBrief.materials!;
       GenerationRunCapture? ledgerCapture;
       final ledgerFinalizer = _generationCandidateFinalizer;
       if (ledgerFinalizer != null) {
@@ -411,12 +430,12 @@ class StoryGenerationRunStore extends AppStoreListenable {
           sceneId: brief.sceneId,
           sceneScopeId: runSceneScopeId,
           baseDraft: baseDraft,
-          brief: brief,
-          materials: materials,
+          brief: preparedBrief.brief,
+          materials: preparedMaterials,
           nowMs: DateTime.now().millisecondsSinceEpoch,
+          preparedBriefDigest: preparedBrief.digest,
         );
       }
-      final orchestrator = _orchestratorFactory(_settingsStore);
       orchestrator.generationLedger = _generationLedger;
       orchestrator.deferFinalizationCheckpointToCandidateLedger =
           ledgerFinalizer != null;
@@ -459,7 +478,13 @@ class StoryGenerationRunStore extends AppStoreListenable {
           sceneScopeId: runSceneScopeId,
         );
       }
-      final output = await orchestrator.runScene(brief, materials: materials);
+      final output = await orchestrator.runPreparedScene(
+        preparedBrief,
+        // Preserve this argument for runner test doubles while guaranteeing
+        // that ledger admission and provider execution receive the same
+        // detached object.
+        materials: preparedMaterials,
+      );
       if (!_isCurrentRun(runToken, runSceneScopeId)) {
         return;
       }

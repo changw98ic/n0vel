@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/features/story_generation/data/generation_commit_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_candidate_finalizer.dart';
+import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
+import 'package:novel_writer/features/story_generation/data/production_pre_quality_gate.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -12,6 +15,10 @@ void main() {
     addTearDown(db.dispose);
     final ledger = GenerationLedgerSqliteStore(db: db)..ensureTables();
     final finalizer = GenerationLedgerCandidateFinalizer(ledger: ledger);
+    const materials = ProjectMaterialSnapshot();
+    const prose =
+        '“警告，U盘交给你。”沈渡把U盘交给柳溪。'
+        '“文件完整，存储卡收好了。”柳溪从衣袋里取出存储卡，确认文件完整。';
     final brief = SceneBrief(
       projectId: 'project-1',
       chapterId: 'chapter-03',
@@ -41,14 +48,29 @@ void main() {
       projectId: 'project-1',
       chapterId: brief.chapterId,
       sceneId: brief.sceneId,
-      sceneScopeId: 'project-1::chapter-03::scene-04',
+      sceneScopeId: 'project-1::scene-04',
       baseDraft: '',
       brief: brief,
-      materials: const ProjectMaterialSnapshot(),
+      materials: materials,
       nowMs: 100,
     );
+    final preQuality = ProductionPreQualityGate.standard.verifyPipelinePolish(
+      brief: brief,
+      materials: materials,
+      prePolishProse: prose,
+      finalProse: prose,
+      hardGatesEnabled: true,
+    );
+    expect(
+      preQuality.passed,
+      isTrue,
+      reason:
+          'hard=${preQuality.hardGateViolations.map((item) => item.text).toList()}; '
+          'canon=${preQuality.polishCanonEvidence.failureCodes}; '
+          'mechanics=${preQuality.storyMechanicsEvidence.failureCodes}',
+    );
 
-    finalizer.finalize(
+    final candidate = finalizer.finalize(
       runId: 'run-continuity',
       capture: capture,
       nowMs: 200,
@@ -57,10 +79,7 @@ void main() {
         resolvedCast: const [],
         director: const SceneDirectorOutput(text: '交接证据。'),
         roleOutputs: const [],
-        prose: const SceneProseDraft(
-          text: '沈渡把U盘交给柳溪。柳溪从衣袋里取出存储卡，确认文件完整。',
-          attempt: 1,
-        ),
+        prose: const SceneProseDraft(text: prose, attempt: 1),
         review: const SceneReviewResult(
           judge: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
@@ -84,6 +103,9 @@ void main() {
           completeness: 96,
           summary: '质量通过。',
         ),
+        polishCanonEvidence: preQuality.polishCanonEvidence,
+        storyMechanicsEvidence: preQuality.storyMechanicsEvidence,
+        productionPreQualityEvidence: preQuality.toJson(),
       ),
     );
 
@@ -102,10 +124,33 @@ void main() {
       'chapter-03/scene-04',
     );
 
+    final coordinator = GenerationCommitCoordinator(db: db)..ensureTables();
     db.execute(
-      'UPDATE story_generation_pending_writes '
-      "SET state = 'committed', committed_at_ms = 300",
+      'INSERT INTO draft_documents '
+      '(project_id, text_body, updated_at_ms) VALUES (?, ?, ?)',
+      <Object?>['project-1::scene-04', '', 200],
     );
+    final committed = coordinator.accept(
+      GenerationCommitRequest(
+        acceptIdempotencyKey: 'accept-continuity',
+        runId: candidate.runId,
+        candidateRevision: candidate.candidateRevision,
+        projectId: 'project-1',
+        sceneScopeId: 'project-1::scene-04',
+        candidateHash: candidate.candidateHash,
+        expectedBaseDraftHash: candidate.baseDraftHash,
+        expectedMaterialDigest: capture.materialDigest,
+        expectedInputDigest: candidate.inputDigest,
+        expectedFinalProseHash: candidate.finalProseHash,
+        expectedDeterministicGateEvidenceHash:
+            candidate.deterministicGateEvidenceHash,
+        expectedFinalCouncilEvidenceHash: candidate.finalCouncilEvidenceHash,
+        expectedQualityEvidenceHash: candidate.qualityEvidenceHash,
+        expectedPendingWriteSetHash: candidate.pendingWriteSetHash,
+        committedAtMs: 300,
+      ),
+    );
+    expect(committed, isA<GenerationCommitApplied>());
     final reloaded = ledger.loadCommittedContinuityLedger(
       projectId: 'project-1',
       sourceSceneIds: const <String>['scene-04'],

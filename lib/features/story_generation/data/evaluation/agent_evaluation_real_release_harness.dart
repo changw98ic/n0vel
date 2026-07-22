@@ -8,8 +8,10 @@ import '../../../../app/llm/app_llm_client_io.dart';
 import '../../../../app/llm/app_llm_client_types.dart';
 import '../../../../app/llm/app_llm_prompt_release.dart';
 import '../../../../app/llm/app_llm_prompt_release_store.dart';
+import '../../../../app/state/app_workspace_storage_io.dart';
 import '../../../../app/state/authoring_db_schema.dart';
 import '../../../../app/state/db_schema_manager.dart';
+import '../../../../app/state/story_outline_storage_io.dart';
 import '../story_prompt_registry.dart';
 import 'agent_evaluation_app_runtime.dart';
 import 'agent_evaluation_execution_budget.dart';
@@ -1188,7 +1190,7 @@ final class AgentEvaluationRealReleaseHarness {
         privateInputs?.fixtureDatabasePath ??
         '${_workDirectory!.path}/fixture.sqlite';
     if (privateInputs == null) {
-      _prepareFixture(fixturePath, registries.values);
+      await _prepareFixture(fixturePath, registries.values);
     }
     final productionPath = '${_workDirectory!.path}/production.sqlite';
     if (!File(productionPath).existsSync()) {
@@ -1405,8 +1407,10 @@ final class AgentEvaluationRealReleaseHarness {
     _authority = authority;
   }
 
-  void _prepareFixture(String path, Iterable<StoryPromptRegistry> registries) {
-    if (File(path).existsSync()) return;
+  Future<void> _prepareFixture(
+    String path,
+    Iterable<StoryPromptRegistry> registries,
+  ) async {
     final db = sqlite3.open(path);
     try {
       db.execute('PRAGMA foreign_keys = ON');
@@ -1419,6 +1423,42 @@ final class AgentEvaluationRealReleaseHarness {
       }
     } finally {
       db.dispose();
+    }
+    final workspaceStorage = SqliteAppWorkspaceStorage(dbPath: path);
+    final outlineStorage = SqliteStoryOutlineStorage(
+      dbPath: path,
+      requireExistingSchema: true,
+    );
+    final existingWorkspace = await workspaceStorage.load();
+    final existingOutline = await outlineStorage.load(
+      projectId: _publicFixtureProjectId,
+    );
+    if (existingWorkspace == null && existingOutline == null) {
+      await workspaceStorage.save(_publicFixtureWorkspace());
+      await outlineStorage.save(
+        _publicFixtureOutline(),
+        projectId: _publicFixtureProjectId,
+      );
+    } else if (existingWorkspace == null || existingOutline == null) {
+      throw StateError('canonical public fixture is only partially persisted');
+    }
+    final persistedWorkspace = await workspaceStorage.load();
+    final persistedOutline = await outlineStorage.load(
+      projectId: _publicFixtureProjectId,
+    );
+    final persistedRelease = <String, Object?>{
+      'workspace': persistedWorkspace,
+      'outline': persistedOutline,
+    };
+    if (persistedWorkspace == null ||
+        persistedOutline == null ||
+        AgentEvaluationHashes.canonicalJson(persistedRelease) !=
+            AgentEvaluationHashes.canonicalJson(
+              _canonicalPublicFixtureRelease(),
+            ) ||
+        _publicFixtureReleaseHash(persistedRelease) !=
+            _publicFixtureReleaseHash(_canonicalPublicFixtureRelease())) {
+      throw StateError('canonical public fixture failed write verification');
     }
   }
 
@@ -1442,8 +1482,8 @@ final class AgentEvaluationRealReleaseHarness {
     final frozenScenarioSet =
         scenarioSet ??
         ScenarioSetRelease(
-          setId: 'real-provider-release-episode-v1',
-          version: '1.0.0',
+          setId: 'real-provider-release-episode-v2',
+          version: '2.0.0',
           scenarios: scenarios,
           fixtureCount: 10,
           outlineSceneCount: 10,
@@ -1488,8 +1528,9 @@ final class AgentEvaluationRealReleaseHarness {
         'mode': 'durable-randomized-dispatch-v1',
       },
       trialIsolationPolicy: const <String, Object?>{
-        'mode': 'durable-independent-sandbox-v1',
+        'mode': 'durable-independent-sandbox-v2',
         'scenarioCount': 10,
+        'canonicalPublicFixture': 'real-release-public-fixture-release-v2',
       },
       transportAttemptPolicy: <String, Object?>{
         'maxAttempts': configuration.maxAttemptsPerTrial,
@@ -1849,7 +1890,8 @@ final class _DurableReleaseRuntimeFactory
   }
 }
 
-final class _BudgetGuardedJudgeClient implements AppLlmClient {
+final class _BudgetGuardedJudgeClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   const _BudgetGuardedJudgeClient({
     required AppLlmClient inner,
     required this.route,
@@ -1869,6 +1911,11 @@ final class _BudgetGuardedJudgeClient implements AppLlmClient {
   final int maxCostMicrousdPerCall;
   final int promptMicrousdPerMillionTokens;
   final int completionMicrousdPerMillionTokens;
+
+  // This wrapper imposes an outer Future.timeout and therefore cannot prove
+  // that a timed-out logical request has stopped its physical provider call.
+  @override
+  bool get supportsSinglePhysicalDispatch => false;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
@@ -2145,44 +2192,156 @@ _RealReleaseDbReport _buildDbReport({
   );
 }
 
+const _publicFixtureProjectId = 'real-release-public-project-v2';
+const _publicFixtureSceneId = 'real-release-public-scene-v2';
+const _publicFixtureSceneScopeId =
+    '$_publicFixtureProjectId::$_publicFixtureSceneId';
+
+Map<String, Object?> _publicFixtureWorkspace() => <String, Object?>{
+  'projects': <Object?>[
+    <String, Object?>{
+      'id': _publicFixtureProjectId,
+      'sceneId': _publicFixtureSceneId,
+      'title': '七号仓公开评测夹具',
+      'genre': '悬疑',
+      'summary': '调查者林舟追查被篡改的七号仓门禁记录。',
+      'recentLocation': '第一章 / 七号仓',
+      'lastOpenedAtMs': 1,
+    },
+  ],
+  'charactersByProject': <String, Object?>{
+    _publicFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': 'character-linzhou',
+        'name': '林舟',
+        'role': '调查者',
+        'note': '坚持核对门禁与物证',
+        'need': '找到账本并查清篡改者',
+        'summary': '谨慎、果断',
+        'referenceSummary': '追查七号仓门禁记录',
+        'linkedSceneIds': <String>[_publicFixtureSceneId],
+      },
+    ],
+  },
+  'scenesByProject': <String, Object?>{
+    _publicFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': _publicFixtureSceneId,
+        'chapterLabel': '第一章',
+        'title': '七号仓门后',
+        'summary': '林舟取得七号仓账本线索，并面对门后仍在逼近的威胁。',
+      },
+    ],
+  },
+  'worldNodesByProject': <String, Object?>{},
+  'auditIssuesByProject': <String, Object?>{},
+  'projectStyles': <String, Object?>{},
+  'projectAuditStates': <String, Object?>{},
+  'projectDeletionTombstones': <String, Object?>{},
+  'projectTransferState': '',
+  'currentProjectId': _publicFixtureProjectId,
+};
+
+Map<String, Object?> _publicFixtureOutline() => <String, Object?>{
+  'projectId': _publicFixtureProjectId,
+  'chapters': <Object?>[
+    <String, Object?>{
+      'id': 'real-release-public-chapter-v2',
+      'title': '第一章',
+      'summary': '七号仓调查',
+      'scenes': <Object?>[
+        <String, Object?>{
+          'id': _publicFixtureSceneId,
+          'title': '七号仓门后',
+          'summary': '林舟取得账本线索并面对门后伏击。',
+          'metadata': <String, Object?>{
+            'requireOutlineFidelity': true,
+            'requiredOutlineBeats': <Object?>[
+              <String, Object?>{
+                'id': 'recover-seven-warehouse-ledger',
+                'description': '林舟取得七号仓账本线索。',
+                'evidenceGroups': <Object?>[
+                  <String>['林舟'],
+                  <String>['七号仓'],
+                  <String>['账本'],
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    },
+  ],
+  'metadata': <String, Object?>{},
+};
+
+Map<String, Object?> _canonicalPublicFixtureRelease() => <String, Object?>{
+  'workspace': _publicFixtureWorkspace(),
+  'outline': _publicFixtureOutline(),
+};
+
+String _publicFixtureReleaseHash(Map<String, Object?> release) =>
+    AgentEvaluationHashes.domainHash(
+      'real-release-public-fixture-release-v2',
+      release,
+    );
+
 List<ScenarioRelease> _scenarios({required int calls, required int tokens}) =>
     <ScenarioRelease>[
       for (var step = 1; step <= 10; step += 1)
-        ScenarioRelease(
-          scenarioId: 'real-release-scene-$step',
-          version: '1.0.0',
-          difficulty: 'release',
-          inputFixture: <String, Object?>{
-            'episodeId': 'real-release-episode-1',
-            'episodeStep': step,
-            'prompt':
-                '第 $step 场：调查者林舟在旧港追查被篡改的七号仓门禁记录。'
-                '写出有行动、对白、因果推进与场尾压力的可采纳场景。',
-          },
-          fixtureHash: _hash('fixture', 'scene-$step'),
-          isolationMode: 'independent',
-          requiredCapabilities: const <String>['story-generation'],
-          adversarialMutations: const <String>['causal-transition'],
-          verifierReleaseRefs: const <String>['production-safety@1.0.0'],
-          rubricReleaseRef: 'six-dimension-rubric@1.0.0',
-          expectedTerminalState: 'accepted',
-          requiredFailureCodes: const <String>[],
-          allowedAdditionalFailureCodes: const <String>[],
-          forbiddenFailureCodes: const <String>['provider.invalid_content'],
-          outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
-          forbiddenSideEffects: const <String>[
-            AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
-          ],
-          acceptExpected: true,
-          referenceFacts: const <String, Object?>{
-            'requiredLiterals': <String>['七号仓'],
-            'forbiddenLiterals': <String>[],
-            'requiredCharacterNames': <String>[],
-            'requiredCanonRootSourceIds': <String>[],
-          },
-          maxBudget: <String, Object?>{'calls': calls, 'maxTokens': tokens},
-        ),
+        _publicScenario(step: step, calls: calls, tokens: tokens),
     ];
+
+ScenarioRelease _publicScenario({
+  required int step,
+  required int calls,
+  required int tokens,
+}) {
+  final inputFixture = <String, Object?>{
+    'fixtureReleaseHash': _publicFixtureReleaseHash(
+      _canonicalPublicFixtureRelease(),
+    ),
+    'projectId': _publicFixtureProjectId,
+    'sceneId': _publicFixtureSceneId,
+    'sceneScopeId': _publicFixtureSceneScopeId,
+    'episodeId': 'real-release-episode-2',
+    'episodeStep': step,
+    'prompt':
+        '第 $step 场：调查者林舟在旧港追查被篡改的七号仓门禁记录。'
+        '写出有行动、对白、因果推进与场尾压力的可采纳场景。',
+  };
+  return ScenarioRelease(
+    scenarioId: 'real-release-scene-$step',
+    version: '2.0.0',
+    difficulty: 'release',
+    inputFixture: inputFixture,
+    fixtureHash: AgentEvaluationHashes.domainHash(
+      'real-release-public-scenario-fixture-v2',
+      inputFixture,
+    ),
+    isolationMode: 'independent',
+    requiredCapabilities: const <String>['story-generation'],
+    adversarialMutations: const <String>['causal-transition'],
+    verifierReleaseRefs: const <String>['production-safety@1.0.0'],
+    rubricReleaseRef: 'six-dimension-rubric@1.0.0',
+    expectedTerminalState: 'accepted',
+    requiredFailureCodes: const <String>[],
+    allowedAdditionalFailureCodes: const <String>[],
+    forbiddenFailureCodes: const <String>['provider.invalid_content'],
+    outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
+    forbiddenSideEffects: const <String>[
+      AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
+    ],
+    acceptExpected: true,
+    referenceFacts: const <String, Object?>{
+      'requiredLiterals': <String>['七号仓'],
+      'forbiddenLiterals': <String>[],
+      'requiredCharacterNames': <String>['林舟'],
+      'requiredCanonRootSourceIds': <String>[],
+    },
+    maxBudget: <String, Object?>{'calls': calls, 'maxTokens': tokens},
+  );
+}
 
 PromptRelease _judgePrompt() => PromptRelease(
   templateId: 'real_release_independent_six_dimension_judge',

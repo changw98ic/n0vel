@@ -24,19 +24,30 @@ class AgentEvaluationPromotionPerformanceAuthorityException
 /// magic, routes, prices, or expected boundary semantics.
 abstract final class AgentEvaluationPromotionPerformanceScenario {
   static const slotCount = 60;
-  static const expectedSutCallsPerSlot = 9;
+  static const armCount = 2;
+  static const slotsPerArm = slotCount ~/ armCount;
+  static const expectedSutCallsPerSlot = 13;
+  static const challengerBaselineCallsPerSlot = 4;
+  static const challengerPricedCallsPerSlot = 9;
+  static const expectedBaselineCalls =
+      (slotsPerArm * expectedSutCallsPerSlot) +
+      (slotsPerArm * challengerBaselineCallsPerSlot);
+  static const expectedPricedChallengerCalls =
+      slotsPerArm * challengerPricedCallsPerSlot;
   static const expectedSutProviderCallCount =
       slotCount * expectedSutCallsPerSlot;
-  static const attackChallengerTokensPerCall = 258;
-  static const controlChallengerTokensPerCall = 254;
-  static const baselineTokensPerCall = 200;
+  static const attackChallengerTokensPerCall = 249;
+  static const controlChallengerTokensPerCall = 248;
+  static const baselineTokensPerCall = 204;
   static const challengerMarker = '真正的编号刻在仓门内侧，门框上还留着一道新鲜划痕';
 
   static String get releaseHash => AgentEvaluationHashes.domainHash(
-    'agent-evaluation-promotion-performance-scenario-v1',
+    'agent-evaluation-promotion-performance-scenario-v3',
     <String, Object?>{
       'sutRoute': 'glm-performance-sut/zhipu/purpose-performance-v1',
       'judgeRoute': 'glm-performance-judge/zhipu/purpose-performance-v1',
+      'sutTransport':
+          'configuration-frozen-production-AppLlmClientIo-boundary-v1',
       'baselineTokensPerCall': baselineTokensPerCall,
       'attackChallengerTokensPerCall': attackChallengerTokensPerCall,
       'controlChallengerTokensPerCall': controlChallengerTokensPerCall,
@@ -48,6 +59,12 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       'slots': slotCount,
       'expectedSutCallsPerSlot': expectedSutCallsPerSlot,
       'expectedSutProviderCallCount': expectedSutProviderCallCount,
+      'expectedBaselineCalls': expectedBaselineCalls,
+      'expectedPricedChallengerCalls': expectedPricedChallengerCalls,
+      'perChallengerSlotCallMix': const <String, int>{
+        'baseline': challengerBaselineCallsPerSlot,
+        'priced': challengerPricedCallsPerSlot,
+      },
       'runnerClock': 'monotonic-10ms-per-ledger-event-v1',
     },
   );
@@ -70,12 +87,13 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
   }
 
   static AgentEvaluationRealReleaseConfiguration configuration(
-    String executionId,
-  ) {
+    String executionId, {
+    String? sutBaseUrl,
+  }) {
     final sutRoute = AgentEvaluationProductionRouteRelease(
       model: 'glm-performance-sut',
       provider: AppLlmProvider.zhipu,
-      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      baseUrl: sutBaseUrl ?? 'https://open.bigmodel.cn/api/paas/v4',
       apiKey: 'purpose-performance-sut-key',
       timeout: const AppLlmTimeoutConfig.uniform(30000),
       providerApiRevision: 'purpose-performance-v1',

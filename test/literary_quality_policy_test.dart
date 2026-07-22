@@ -247,6 +247,14 @@ void main() {
     const config = GenerationPipelineConfig();
     expect(config.literaryQualityGateMode, LiteraryQualityGateMode.legacy95);
     expect(config.hardGatesEnabled, isTrue);
+    expect(config.contentRedrawAllowed, isTrue);
+  });
+
+  test('scene redraw policy can explicitly disable content rewrites', () {
+    const config = GenerationPipelineConfig(
+      sceneContentRedrawPolicy: SceneContentRedrawPolicy.noContentRedraw,
+    );
+    expect(config.contentRedrawAllowed, isFalse);
   });
 
   test('invalid evaluation requires rescore before manual review', () {

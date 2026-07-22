@@ -6,6 +6,7 @@ import 'scene_roleplay_session_models.dart';
 import 'scene_runtime_models.dart';
 import 'polish_canon_evidence.dart';
 import 'story_mechanics_evidence.dart';
+import 'generation_evidence_receipt.dart';
 
 enum SceneReviewStatus { pass, rewriteProse, replanScene }
 
@@ -356,6 +357,7 @@ class SceneRuntimeOutput {
     this.qualityScore,
     this.polishCanonEvidence,
     this.storyMechanicsEvidence,
+    this.generationEvidenceReceipt,
     Map<String, Object?>? productionPreQualityEvidence,
   }) : resolvedCast = immutableList(resolvedCast),
        roleOutputs = immutableList(roleOutputs),
@@ -387,5 +389,36 @@ class SceneRuntimeOutput {
   final SceneQualityScore? qualityScore;
   final PolishCanonEvidence? polishCanonEvidence;
   final StoryMechanicsEvidence? storyMechanicsEvidence;
+
+  /// Present only after the no-redraw journal has durably verified the exact
+  /// intent/outcome/artifact chain.  It is never synthesized from an in-memory
+  /// capture or an adaptive production run.
+  final GenerationEvidenceReceipt? generationEvidenceReceipt;
   final Map<String, Object?>? productionPreQualityEvidence;
+
+  SceneRuntimeOutput withGenerationEvidenceReceipt(
+    GenerationEvidenceReceipt receipt,
+  ) => SceneRuntimeOutput(
+    brief: brief,
+    resolvedCast: resolvedCast,
+    director: director,
+    roleOutputs: roleOutputs,
+    roleTurns: roleTurns,
+    resolvedBeats: resolvedBeats,
+    updatedBeliefStates: updatedBeliefStates,
+    updatedPresentationStates: updatedPresentationStates,
+    sceneState: sceneState,
+    roleplaySession: roleplaySession,
+    editorialDraft: editorialDraft,
+    prose: prose,
+    review: review,
+    proseAttempts: proseAttempts,
+    softFailureCount: softFailureCount,
+    reviewAttempts: reviewAttempts,
+    qualityScore: qualityScore,
+    polishCanonEvidence: polishCanonEvidence,
+    storyMechanicsEvidence: storyMechanicsEvidence,
+    generationEvidenceReceipt: receipt,
+    productionPreQualityEvidence: productionPreQualityEvidence,
+  );
 }

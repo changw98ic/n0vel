@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/app/state/authoring_table_definitions.dart';
 import 'package:novel_writer/features/story_generation/data/generation_commit_coordinator.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
@@ -192,35 +193,35 @@ void main() {
     test(
       'same-scene same-millisecond commits use the stable commit ordinal',
       () {
+        expect(
+          coordinator.accept(_request(committedAtMs: 500)),
+          isA<GenerationCommitApplied>(),
+        );
         _seedCandidateVariant(
           ledger,
           db,
           runId: 'run-0',
           requestId: 'request-0',
           sceneId: 'scene-1',
-          sceneScopeId: 'project-1::scene-1-rewrite',
+          sceneScopeId: 'project-1::scene-1',
           finalProse: '同场修订正文',
-          previousDraft: '同场修订旧稿',
+          previousDraft: '最终正文',
           holder: 'newer-same-scene-holder',
           candidateHash: 'candidate-0',
           writeId: 'write-0',
         );
 
         expect(
-          coordinator.accept(_request(committedAtMs: 500)),
-          isA<GenerationCommitApplied>(),
-        );
-        expect(
           coordinator.accept(
             _requestVariant(
               acceptIdempotencyKey: 'accept-0',
               runId: 'run-0',
-              sceneScopeId: 'project-1::scene-1-rewrite',
+              sceneScopeId: 'project-1::scene-1',
               sceneId: 'scene-1',
               candidateHash: 'candidate-0',
               writeId: 'write-0',
               finalProse: '同场修订正文',
-              previousDraft: '同场修订旧稿',
+              previousDraft: '最终正文',
               holder: 'newer-same-scene-holder',
               committedAtMs: 500,
             ),
@@ -266,9 +267,9 @@ void main() {
         runId: 'run-regenerated',
         requestId: 'request-regenerated',
         sceneId: 'scene-1',
-        sceneScopeId: 'project-1::scene-1-regenerated',
+        sceneScopeId: 'project-1::scene-1',
         finalProse: '重新生成正文',
-        previousDraft: '重新生成旧稿',
+        previousDraft: '最终正文',
         holder: 'regenerated-holder',
         candidateHash: 'candidate-regenerated',
         writeId: 'write-regenerated',
@@ -279,12 +280,12 @@ void main() {
           _requestVariant(
             acceptIdempotencyKey: 'accept-regenerated',
             runId: 'run-regenerated',
-            sceneScopeId: 'project-1::scene-1-regenerated',
+            sceneScopeId: 'project-1::scene-1',
             sceneId: 'scene-1',
             candidateHash: 'candidate-regenerated',
             writeId: 'write-regenerated',
             finalProse: '重新生成正文',
-            previousDraft: '重新生成旧稿',
+            previousDraft: '最终正文',
             holder: 'regenerated-holder',
             committedAtMs: 500,
           ),
@@ -589,6 +590,104 @@ void main() {
       },
     );
 
+    test('cannot relabel a sealed candidate run into another scene scope', () {
+      expect(
+        () => db.execute('''
+            UPDATE story_generation_runs
+            SET scene_scope_id = 'project-1::scene-2'
+            WHERE run_id = 'run-1'
+          '''),
+        throwsA(isA<SqliteException>()),
+      );
+      expect(
+        () => coordinator.accept(
+          _requestVariant(
+            acceptIdempotencyKey: 'accept-relabeled-scope',
+            runId: 'run-1',
+            sceneScopeId: 'project-1::scene-2',
+            sceneId: 'scene-1',
+            candidateHash: 'candidate-hash',
+            writeId: 'write-1',
+            finalProse: '最终正文',
+            previousDraft: '旧草稿',
+            holder: 'liuxi',
+            committedAtMs: 500,
+          ),
+        ),
+        throwsA(isA<GenerationRunStateConflict>()),
+      );
+      _expectUncommitted(db);
+      expect(db.select('SELECT * FROM version_entries'), isEmpty);
+      expect(
+        db.select('SELECT project_id, text_body FROM draft_documents'),
+        <Map<String, Object?>>[
+          <String, Object?>{
+            'project_id': 'project-1::scene-1',
+            'text_body': '旧草稿',
+          },
+        ],
+      );
+    });
+
+    test(
+      'commit rejects a legacy cross-scene run before touching either draft',
+      () {
+        // Model a malformed row already present in a V28 database. Production
+        // V29 migration blocks this row, while the commit boundary independently
+        // fails closed if a damaged/offline-edited database reaches it.
+        db.execute(
+          'DROP TRIGGER IF EXISTS prevent_generation_run_identity_update',
+        );
+        db.execute('PRAGMA ignore_check_constraints = ON');
+        db.execute('''
+        UPDATE story_generation_runs
+        SET scene_scope_id = 'project-1::scene-2'
+        WHERE run_id = 'run-1'
+      ''');
+        db.execute('PRAGMA ignore_check_constraints = OFF');
+        createStoryGenerationRunIdentityWriteGuards(db);
+        db.execute('''
+        INSERT INTO draft_documents (project_id, text_body, updated_at_ms)
+        VALUES ('project-1::scene-2', '第二场作者原稿', 100)
+      ''');
+
+        expect(
+          () => coordinator.accept(
+            _requestVariant(
+              acceptIdempotencyKey: 'accept-cross-scene',
+              runId: 'run-1',
+              sceneScopeId: 'project-1::scene-2',
+              sceneId: 'scene-1',
+              candidateHash: 'candidate-hash',
+              writeId: 'write-1',
+              finalProse: '最终正文',
+              previousDraft: '第二场作者原稿',
+              holder: 'liuxi',
+              committedAtMs: 500,
+            ),
+          ),
+          throwsA(isA<GenerationRunStateConflict>()),
+        );
+        _expectUncommitted(db);
+        expect(db.select('SELECT * FROM version_entries'), isEmpty);
+        expect(
+          db.select('''
+          SELECT project_id, text_body FROM draft_documents ORDER BY project_id
+        '''),
+          <Map<String, Object?>>[
+            <String, Object?>{
+              'project_id': 'project-1::scene-1',
+              'text_body': '旧草稿',
+            },
+            <String, Object?>{
+              'project_id': 'project-1::scene-2',
+              'text_body': '第二场作者原稿',
+            },
+          ],
+        );
+      },
+    );
+
     test('returns a typed draft conflict for a stale base digest', () {
       db.execute("UPDATE draft_documents SET text_body = '作者并发编辑'");
 
@@ -837,6 +936,15 @@ void _seedCandidateVariant(
   required String candidateHash,
   required String writeId,
 }) {
+  // The legacy fixture predates immutable generation-bundle binding. The
+  // current reader still LEFT JOINs this additive table, so model its absent
+  // historical row rather than using a current proof writer.
+  db.execute('''
+    CREATE TABLE IF NOT EXISTS story_generation_run_bundles (
+      run_id TEXT PRIMARY KEY,
+      bundle_hash TEXT NOT NULL
+    )
+  ''');
   final payloadJson = GenerationPendingWritePayloadIntegrity.canonicalJson(
     _continuityPayload(
       holder: holder,
@@ -903,33 +1011,45 @@ void _seedCandidateVariant(
       expiresAtMs: 1000,
     ),
   );
-  ledger.finalizeCandidate(
-    proof: CandidateProofRecord(
-      runId: runId,
-      candidateRevision: 0,
-      projectId: 'project-1',
-      chapterId: 'chapter-1',
-      sceneId: sceneId,
-      sourceProseRevision: 0,
-      candidateHash: candidateHash,
-      finalProseHash: GenerationCommitDigest.text(finalProse),
-      deterministicGateEvidenceHash: 'gate-hash',
-      finalCouncilEvidenceHash: 'council-hash',
-      qualityEvidenceHash: 'quality-hash',
-      pendingWriteSetHash: pendingWriteSetHash,
-      materialDigest: 'material-hash',
-      inputDigest: 'input-hash',
-      createdAtMs: 100,
+  // This suite exercises legacy V1 acceptance/reload behavior.  It seeds a
+  // row that would already exist after an old migration; current write APIs
+  // must never be used to mint it.
+  _withHistoricalV1SeedAdmission(
+    db,
+    () => db.execute(
+      '''
+    INSERT INTO story_generation_candidate_proofs (
+      run_id, candidate_revision, project_id, chapter_id, scene_id,
+      source_prose_revision, candidate_hash, final_prose_hash,
+      deterministic_gate_evidence_hash, final_council_evidence_hash,
+      quality_evidence_hash, pending_write_set_hash, material_digest,
+      input_digest, proof_identity_version, generation_evidence_mode,
+      created_at_ms
+    ) VALUES (?, 0, 'project-1', 'chapter-1', ?, 0, ?, ?, 'gate-hash',
+      'council-hash', 'quality-hash', ?, 'material-hash', 'input-hash',
+      'candidate-proof-v1', 'legacy-unsealed-v1', 100)
+    ''',
+      <Object?>[
+        runId,
+        sceneId,
+        candidateHash,
+        GenerationCommitDigest.text(finalProse),
+        pendingWriteSetHash,
+      ],
     ),
-    payload: CandidatePayloadRecord(
-      runId: runId,
-      candidateRevision: 0,
-      finalProse: finalProse,
-      pendingWriteManifestJson:
-          GenerationPendingWritePayloadIntegrity.canonicalJson(manifest),
-      createdAtMs: 100,
-      expiresAtMs: 1000,
-    ),
+  );
+  db.execute(
+    '''
+    INSERT INTO story_generation_candidate_payloads (
+      run_id, candidate_revision, final_prose, pending_write_manifest_json,
+      created_at_ms, expires_at_ms
+    ) VALUES (?, 0, ?, ?, 100, 1000)
+    ''',
+    <Object?>[
+      runId,
+      finalProse,
+      GenerationPendingWritePayloadIntegrity.canonicalJson(manifest),
+    ],
   );
   db.execute(
     '''
@@ -943,9 +1063,25 @@ void _seedCandidateVariant(
     '''
     INSERT INTO draft_documents (project_id, text_body, updated_at_ms)
     VALUES (?, ?, 100)
+    ON CONFLICT(project_id) DO UPDATE SET
+      text_body = excluded.text_body,
+      updated_at_ms = excluded.updated_at_ms
     ''',
     <Object?>[sceneScopeId, previousDraft],
   );
+}
+
+void _withHistoricalV1SeedAdmission(Database db, void Function() seed) {
+  // This creates an already-durable V1 fixture only. The V28 database guard
+  // is immediately restored before any behavior under test starts.
+  db.execute(
+    'DROP TRIGGER IF EXISTS prevent_new_legacy_generation_proof_insert',
+  );
+  try {
+    seed();
+  } finally {
+    createCandidateProofV2WriteGuards(db);
+  }
 }
 
 GenerationCommitRequest _request({

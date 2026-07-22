@@ -191,6 +191,21 @@ const List<SchemaMigration> authoringSchemaMigrations = [
         'Persist the owning principal for agent-private story memory chunks.',
     migrate: _migrateAuthoringV27,
   ),
+  SchemaMigration(
+    version: 28,
+    description:
+        'Bind new durable candidates to effective brief identity and optional '
+        'verified no-redraw attempt evidence without fabricating legacy proof.',
+    migrate: _migrateAuthoringV28,
+  ),
+  SchemaMigration(
+    version: 29,
+    description:
+        'Repair the candidate-proof V2 admission trigger installed by early '
+        'V28 builds and reject ambiguous generation-run scene addresses; '
+        'retain V28 receipt storage unchanged.',
+    migrate: _migrateAuthoringV29,
+  ),
 ];
 
 // ── Version 1 migration ────────────────────────────────────────────────────
@@ -359,6 +374,99 @@ void _migrateAuthoringV27(Database db) {
       27, 27, 27,
       '{"policy":"forward-only-v27","requiresBackup":true}',
       '{"policy":"restore-v26-backup","inPlaceDowngrade":false}',
+      0
+    )
+  ''');
+}
+
+void _migrateAuthoringV28(Database db) {
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'proof_identity_version',
+    definition: "TEXT NOT NULL DEFAULT 'candidate-proof-v1'",
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'prepared_brief_digest',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'effective_brief_digest',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'generation_evidence_mode',
+    definition: "TEXT NOT NULL DEFAULT 'legacy-unsealed-v1'",
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'generation_evidence_receipt_hash',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'attempt_evidence_envelope_digest',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'generation_fingerprint_set_digest',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_proofs',
+    column: 'generation_evidence_receipt_json',
+    definition: 'TEXT',
+  );
+  _addColumnIfMissing(
+    db,
+    table: 'story_generation_candidate_payloads',
+    column: 'generation_evidence_receipt_json',
+    definition: "TEXT NOT NULL DEFAULT '{}'",
+  );
+  createCandidateProofV2WriteGuards(db);
+  db.execute('''
+    INSERT OR IGNORE INTO schema_compatibility_contracts (
+      schema_version, min_reader_version, min_writer_version,
+      upgrade_policy_json, rollback_policy_json, created_at_ms
+    ) VALUES (
+      28, 28, 28,
+      '{"policy":"forward-only-v28","requiresBackup":true}',
+      '{"policy":"restore-v27-backup","inPlaceDowngrade":false}',
+      0
+    )
+  ''');
+}
+
+void _migrateAuthoringV29(Database db) {
+  // Early V28 databases may have the V1-only admission trigger.  Rebuild the
+  // trigger under a new schema version so the correction is observable and
+  // replayable; V28's durable receipt columns and existing proof rows are not
+  // altered.
+  // Existing V28 rows cannot be silently relabelled: scene_scope_id is the
+  // author-draft key.  Audit before installing any V29 object so a failure
+  // rolls the complete migration back to the exact V28 state.
+  auditStoryGenerationRunSceneScopeIdentities(db);
+  createCandidateProofV2WriteGuards(db);
+  createStoryGenerationRunIdentityWriteGuards(db);
+  db.execute('''
+    INSERT OR IGNORE INTO schema_compatibility_contracts (
+      schema_version, min_reader_version, min_writer_version,
+      upgrade_policy_json, rollback_policy_json, created_at_ms
+    ) VALUES (
+      29, 29, 29,
+      '{"policy":"forward-only-v29","requiresBackup":true}',
+      '{"policy":"restore-v28-backup","inPlaceDowngrade":false}',
       0
     )
   ''');

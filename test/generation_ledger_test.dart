@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
+import 'package:novel_writer/app/state/authoring_table_definitions.dart';
+import 'package:novel_writer/features/story_generation/data/generation_candidate_identity.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_digest.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
@@ -63,6 +65,85 @@ void main() {
       expect(GenerationLedgerDigest.text('第一行\r\n第二行'), normalizedTextHash);
       expect(GenerationLedgerDigest.text('第一行\n第二行'), normalizedTextHash);
     });
+
+    test(
+      'rejects cross-scene and delimiter-collision run addresses before writes',
+      () {
+        final attacks = <GenerationRunRecord>[
+          _runRecord(
+            runId: 'run-cross-scene',
+            requestId: 'request-cross-scene',
+            projectId: 'project-1',
+            sceneId: 'scene-a',
+            sceneScopeId: 'project-1::scene-b',
+          ),
+          _runRecord(
+            runId: 'run-delimiter-project',
+            requestId: 'request-delimiter-project',
+            projectId: 'a::b',
+            sceneId: 'c',
+            sceneScopeId: 'a::b::c',
+          ),
+          _runRecord(
+            runId: 'run-delimiter-scene',
+            requestId: 'request-delimiter-scene',
+            projectId: 'a',
+            sceneId: 'b::c',
+            sceneScopeId: 'a::b::c',
+          ),
+          _runRecord(
+            runId: 'run-boundary-colon-project',
+            requestId: 'request-boundary-colon-project',
+            projectId: 'a:',
+            sceneId: 'b',
+            sceneScopeId: 'a:::b',
+          ),
+          _runRecord(
+            runId: 'run-boundary-colon-scene',
+            requestId: 'request-boundary-colon-scene',
+            projectId: 'a',
+            sceneId: ':b',
+            sceneScopeId: 'a:::b',
+          ),
+        ];
+
+        for (final attack in attacks) {
+          expect(
+            () => store.createRun(attack),
+            throwsA(isA<GenerationLedgerInvariantViolation>()),
+          );
+        }
+        expect(db.select('SELECT * FROM story_generation_runs'), isEmpty);
+      },
+    );
+
+    test(
+      'bundle-bound create rejects bad scope before durable preparation',
+      () {
+        expect(
+          () => store.createRunWithGenerationBundle(
+            run: _runRecord(
+              runId: 'run-bundle-cross-scene',
+              requestId: 'request-bundle-cross-scene',
+              projectId: 'project-1',
+              sceneId: 'scene-a',
+              sceneScopeId: 'project-1::scene-b',
+            ),
+            generationBundleHash: 'sha256:${'a' * 64}',
+            createdAtMs: 100,
+          ),
+          throwsA(isA<GenerationLedgerInvariantViolation>()),
+        );
+
+        expect(db.select('SELECT * FROM story_generation_runs'), isEmpty);
+        expect(
+          db.select('''SELECT name FROM sqlite_master
+             WHERE type = 'table'
+               AND name = 'story_generation_run_bundles' '''),
+          isEmpty,
+        );
+      },
+    );
 
     test(
       'retains permanent proof and receipt when its TTL payload is removed',
@@ -161,35 +242,98 @@ void main() {
       },
     );
 
-    test(
-      'rolls proof creation back if finalization payload validation fails',
-      () {
-        _seedRunAndNamespace(store);
+    test('rejects a new V1 proof before any finalization row is written', () {
+      _seedRunAndNamespace(store);
 
+      expect(
+        () => store.finalizeCandidate(
+          proof: _proof(),
+          payload: const CandidatePayloadRecord(
+            runId: 'run-1',
+            candidateRevision: 0,
+            finalProse: '',
+            pendingWriteManifestJson: '[]',
+            createdAtMs: 100,
+            expiresAtMs: 200,
+          ),
+        ),
+        throwsA(isA<GenerationLedgerInvariantViolation>()),
+      );
+      expect(
+        db.select('SELECT * FROM story_generation_candidate_proofs'),
+        isEmpty,
+      );
+      expect(
+        db.select('SELECT * FROM story_generation_candidate_payloads'),
+        isEmpty,
+      );
+    });
+
+    test('keeps payload compatibility for an already-durable V1 proof', () {
+      _seedCandidate(store);
+
+      store.saveCandidatePayload(_payload());
+
+      final rows = db.select('''
+        SELECT final_prose, generation_evidence_receipt_json
+        FROM story_generation_candidate_payloads
+        WHERE run_id = 'run-1' AND candidate_revision = 0
+      ''');
+      expect(rows, hasLength(1));
+      expect(rows.single['final_prose'], '最终正文');
+      expect(rows.single['generation_evidence_receipt_json'], '{}');
+    });
+
+    test('rejects a payload backed by an unknown proof identity version', () {
+      _seedRunAndNamespace(store);
+      _seedUnknownProof(store);
+
+      expect(
+        () => store.saveCandidatePayload(_payload()),
+        throwsA(isA<GenerationLedgerInvariantViolation>()),
+      );
+      expect(
+        db.select('SELECT * FROM story_generation_candidate_payloads'),
+        isEmpty,
+      );
+    });
+
+    test('requires canonical empty evidence for a V2 adaptive payload', () {
+      _seedRunAndNamespace(store);
+      _seedAdaptiveV2Proof(store);
+
+      for (final invalidReceipt in const <String>[
+        '{"unexpected":"receipt"}',
+        ' { } ',
+        '{ }',
+      ]) {
         expect(
-          () => store.finalizeCandidate(
-            proof: _proof(),
-            payload: const CandidatePayloadRecord(
+          () => store.saveCandidatePayload(
+            CandidatePayloadRecord(
               runId: 'run-1',
               candidateRevision: 0,
-              finalProse: '',
+              finalProse: '最终正文',
               pendingWriteManifestJson: '[]',
+              generationEvidenceReceiptJson: invalidReceipt,
               createdAtMs: 100,
               expiresAtMs: 200,
             ),
           ),
-          throwsA(isA<SqliteException>()),
+          throwsA(isA<GenerationLedgerInvariantViolation>()),
+          reason: 'adaptive evidence must be exactly canonical {}',
         );
-        expect(
-          db.select('SELECT * FROM story_generation_candidate_proofs'),
-          isEmpty,
-        );
-        expect(
-          db.select('SELECT * FROM story_generation_candidate_payloads'),
-          isEmpty,
-        );
-      },
-    );
+      }
+      expect(
+        db.select('SELECT * FROM story_generation_candidate_payloads'),
+        isEmpty,
+      );
+
+      store.saveCandidatePayload(_payload());
+      expect(
+        db.select('SELECT * FROM story_generation_candidate_payloads'),
+        hasLength(1),
+      );
+    });
 
     test('keeps pending writes namespace-local and rejects payload drift', () {
       _seedRunAndNamespace(store);
@@ -626,6 +770,26 @@ GenerationStageCheckpointRecord _completedCheckpoint({
   completedAtMs: 11,
 );
 
+GenerationRunRecord _runRecord({
+  required String runId,
+  required String requestId,
+  required String projectId,
+  required String sceneId,
+  required String sceneScopeId,
+}) => GenerationRunRecord(
+  runId: runId,
+  requestId: requestId,
+  projectId: projectId,
+  chapterId: 'chapter-1',
+  sceneId: sceneId,
+  sceneScopeId: sceneScopeId,
+  status: 'running',
+  phase: 'preparing',
+  schemaVersion: 9,
+  createdAtMs: 100,
+  updatedAtMs: 100,
+);
+
 void _seedRunAndNamespace(GenerationLedgerSqliteStore store) {
   store.createRun(
     const GenerationRunRecord(
@@ -664,7 +828,108 @@ void _seedRunAndNamespace(GenerationLedgerSqliteStore store) {
 
 void _seedCandidate(GenerationLedgerSqliteStore store) {
   _seedRunAndNamespace(store);
-  store.createCandidateProof(_proof());
+  _seedLegacyProof(store);
+}
+
+/// Existing V1 rows are only introduced by a historical schema migration.
+/// Tests that exercise their read/retention behavior seed that already-durable
+/// row directly rather than using a current production write API.
+void _seedLegacyProof(GenerationLedgerSqliteStore store) {
+  _withProofInsertGuardDisabledForFixture(
+    store.db,
+    () => _insertProofRow(
+      store,
+      proofIdentityVersion: GenerationCandidateIdentity.v1,
+      generationEvidenceMode: GenerationCandidateIdentity.legacyUnsealedMode,
+    ),
+  );
+}
+
+void _seedUnknownProof(GenerationLedgerSqliteStore store) {
+  // Represents an offline-corrupted or future-version row reaching this
+  // reader. The payload validator must not reinterpret it as historical V1.
+  _withProofInsertGuardDisabledForFixture(
+    store.db,
+    () => _insertProofRow(
+      store,
+      proofIdentityVersion: 'candidate-proof-unknown',
+      generationEvidenceMode: GenerationCandidateIdentity.legacyUnsealedMode,
+    ),
+  );
+}
+
+void _seedAdaptiveV2Proof(GenerationLedgerSqliteStore store) {
+  final preparedBriefDigest = GenerationLedgerDigest.object(
+    const <String, Object?>{'fixture': 'prepared-brief'},
+  );
+  _insertProofRow(
+    store,
+    proofIdentityVersion: GenerationCandidateIdentity.v2,
+    generationEvidenceMode: GenerationCandidateIdentity.adaptiveUnsealedMode,
+    preparedBriefDigest: preparedBriefDigest,
+    effectiveBriefDigest: preparedBriefDigest,
+  );
+}
+
+void _insertProofRow(
+  GenerationLedgerSqliteStore store, {
+  required String proofIdentityVersion,
+  required String generationEvidenceMode,
+  String? preparedBriefDigest,
+  String? effectiveBriefDigest,
+}) {
+  final proof = _proof();
+  store.db.execute(
+    '''
+    INSERT INTO story_generation_candidate_proofs (
+      run_id, candidate_revision, project_id, chapter_id, scene_id,
+      source_prose_revision, candidate_hash, final_prose_hash,
+      deterministic_gate_evidence_hash, final_council_evidence_hash,
+      quality_evidence_hash, pending_write_set_hash, material_digest,
+      input_digest, proof_identity_version, prepared_brief_digest,
+      effective_brief_digest, generation_evidence_mode,
+      created_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''',
+    <Object?>[
+      proof.runId,
+      proof.candidateRevision,
+      proof.projectId,
+      proof.chapterId,
+      proof.sceneId,
+      proof.sourceProseRevision,
+      proof.candidateHash,
+      proof.finalProseHash,
+      proof.deterministicGateEvidenceHash,
+      proof.finalCouncilEvidenceHash,
+      proof.qualityEvidenceHash,
+      proof.pendingWriteSetHash,
+      proof.materialDigest,
+      proof.inputDigest,
+      proofIdentityVersion,
+      preparedBriefDigest,
+      effectiveBriefDigest,
+      generationEvidenceMode,
+      proof.createdAtMs,
+    ],
+  );
+}
+
+void _withProofInsertGuardDisabledForFixture(
+  Database db,
+  void Function() seed,
+) {
+  // A current-schema fixture needs to represent a row committed before V28,
+  // or a row corrupted outside production admission, without adding a
+  // production path that can create either one after V28.
+  db.execute(
+    'DROP TRIGGER IF EXISTS prevent_new_legacy_generation_proof_insert',
+  );
+  try {
+    seed();
+  } finally {
+    createCandidateProofV2WriteGuards(db);
+  }
 }
 
 CandidateProofRecord _proof() => const CandidateProofRecord(
@@ -683,6 +948,8 @@ CandidateProofRecord _proof() => const CandidateProofRecord(
   materialDigest: 'material-hash',
   inputDigest: 'input-hash',
   createdAtMs: 100,
+  proofIdentityVersion: 'candidate-proof-v1',
+  generationEvidenceMode: 'legacy-unsealed-v1',
 );
 
 CandidatePayloadRecord _payload() => const CandidatePayloadRecord(

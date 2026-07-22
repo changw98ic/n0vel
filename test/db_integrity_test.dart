@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/state/app_authoring_storage_io_support.dart';
+import 'package:novel_writer/app/state/authoring_db_schema.dart';
 import 'package:novel_writer/app/state/db_schema_manager.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -48,9 +49,10 @@ void main() {
       db.dispose();
     });
 
-    test('disposes the connection when a V28 database is rejected', () {
+    test('disposes the connection when a future database is rejected', () {
+      final unsupportedVersion = authoringSchemaMigrations.last.version + 1;
       final raw = sqlite3.open(dbPath);
-      raw.execute('PRAGMA user_version = 28');
+      raw.execute('PRAGMA user_version = $unsupportedVersion');
       raw.dispose();
 
       expect(
@@ -59,7 +61,10 @@ void main() {
       );
 
       final reopened = sqlite3.open(dbPath);
-      expect(reopened.select('PRAGMA user_version').single['user_version'], 28);
+      expect(
+        reopened.select('PRAGMA user_version').single['user_version'],
+        unsupportedVersion,
+      );
       reopened.dispose();
       File(dbPath).deleteSync();
       expect(File(dbPath).existsSync(), isFalse);

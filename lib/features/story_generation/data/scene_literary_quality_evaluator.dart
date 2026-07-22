@@ -4,6 +4,8 @@ import 'package:novel_writer/app/llm/app_llm_canonical_hash.dart';
 
 import '../domain/contracts/settings_contract.dart';
 import '../domain/literary_quality_models.dart';
+import 'evaluation/agent_evaluation_trace_context.dart';
+import 'generation_evidence_fingerprints.dart';
 import 'literary_quality_policy.dart';
 import 'story_generation_pass_retry.dart';
 import 'story_prompt_registry.dart';
@@ -938,6 +940,29 @@ final class SceneLiteraryQualityEvaluator {
       ),
     };
     final messages = promptIdentity.render(variables).messages;
+    final evaluationTrace = AgentEvaluationTraceContext.current;
+    final evaluationBundleHash =
+        evaluationTrace?.evaluationBundleHash ??
+        AppLlmCanonicalHash.domainHash(
+          'scene-literary-evaluation-bundle-v1',
+          <String, Object?>{
+            'promptReleaseHash': promptIdentity.release.contentHash,
+            'rubricVersion': input.rubricVersion,
+            'evaluatorCertificationHash':
+                input.calibration.certification.certificationHash,
+            'thresholdPolicyVersion':
+                LiteraryQualityPolicy.thresholdPolicyVersion,
+          },
+        );
+    final rubricHash = AppLlmCanonicalHash.domainHash(
+      'scene-literary-rubric-v1',
+      <String, Object?>{
+        'rubricVersion': input.rubricVersion,
+        'evaluatorCertificationHash':
+            input.calibration.certification.certificationHash,
+        'thresholdPolicyVersion': LiteraryQualityPolicy.thresholdPolicyVersion,
+      },
+    );
     final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: settingsStore,
       messages: messages,
@@ -945,6 +970,20 @@ final class SceneLiteraryQualityEvaluator {
       maxEscalatedTokens: literaryQualityEvaluationMaxTokens,
       maxTransientRetries: _literaryQualityMaxTransientRetries,
       maxOutputRetries: _literaryQualityMaxOutputRetries,
+      evaluationFingerprintSeed: StoryGenerationEvaluationFingerprintSeed(
+        artifactDigest: ArtifactDigest.fromUtf8String(input.prose),
+        evaluationBundleHash: evaluationBundleHash,
+        judgeInput: <String, Object?>{
+          'evaluationInputDigest': AppLlmCanonicalHash.domainHash(
+            'scene-literary-evaluation-input-v1',
+            input.promptInputJson,
+          ),
+        },
+        rubricHash: rubricHash,
+        blindingPolicy: evaluationTrace == null
+            ? 'shadow-evaluator-not-blinded-v1'
+            : 'formal-evaluation-context-v1',
+      ),
       shouldRetryOutput: (text) {
         try {
           parser.parse(

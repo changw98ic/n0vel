@@ -28,11 +28,14 @@ class SceneStateResolver {
   SceneStateResolver({
     required StoryGenerationSettingsContract settingsStore,
     PipelineEventLog? eventLog,
+    Duration formalRequestTimeout = _formalRequestTimeout,
   }) : _settingsStore = settingsStore,
-       _eventLog = eventLog;
+       _eventLog = eventLog,
+       _requestTimeout = formalRequestTimeout;
 
   final StoryGenerationSettingsContract _settingsStore;
   final PipelineEventLog? _eventLog;
+  final Duration _requestTimeout;
 
   static SceneTransitionReport trackTransitions({
     required SceneTaskCard taskCard,
@@ -69,6 +72,7 @@ class SceneStateResolver {
     required List<LightContextCapsule> capsules,
     SceneRoleplaySession? roleplaySession,
   }) async {
+    final noContentRedraw = _noContentRedraw;
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       taskCard.brief.metadata,
       formalExecution: taskCard.brief.formalExecution,
@@ -95,6 +99,11 @@ class SceneStateResolver {
 
     if (taskCard.metadata['localStructuredRoleplayOnly'] == true ||
         taskCard.brief.metadata['localStructuredRoleplayOnly'] == true) {
+      if (noContentRedraw) {
+        throw StoryGenerationEvidencePreflightFailure(
+          'no-redraw beat resolution cannot use local fallback beats',
+        );
+      }
       return fallbackBeats(
         taskCard: taskCard,
         roleTurns: roleTurns,
@@ -159,6 +168,9 @@ class SceneStateResolver {
     final messages = promptIdentity.render(resolvedVariables).messages;
 
     while (true) {
+      final evidence = noContentRedraw
+          ? StoryGenerationAttemptEvidenceCapture()
+          : null;
       final request = requestFormalStoryGenerationPassWithRetry(
         settingsStore: _settingsStore,
         promptInvocation: promptIdentity,
@@ -168,14 +180,19 @@ class SceneStateResolver {
         ),
         maxTransientRetries: 0,
         maxEscalatedTokens: storyGenerationEditorialMaxTokens,
+        onAttemptEvidence: evidence?.record,
         messages: messages,
       );
-      final result = formalEvaluation
-          ? await request.timeout(_formalRequestTimeout)
+      final result = formalEvaluation && !noContentRedraw
+          ? await request.timeout(_requestTimeout)
           : await request;
+      _requireCompleteNoRedrawEvidence(
+        noContentRedraw: noContentRedraw,
+        evidence: evidence,
+      );
 
       if (!result.succeeded) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError(
             result.detail ?? 'formal scene beat resolution failed',
           );
@@ -196,7 +213,7 @@ class SceneStateResolver {
         roleplaySession: roleplaySession,
       );
       if (beats.isEmpty) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError(
             'formal scene beat resolution produced no valid beats',
           );
@@ -206,5 +223,20 @@ class SceneStateResolver {
 
       return List<SceneBeat>.unmodifiable(beats);
     }
+  }
+
+  bool get _noContentRedraw =>
+      StoryGenerationRetryScope.current?.allowsContentRedraw == false;
+}
+
+void _requireCompleteNoRedrawEvidence({
+  required bool noContentRedraw,
+  required StoryGenerationAttemptEvidenceCapture? evidence,
+}) {
+  if (!noContentRedraw) return;
+  if (evidence == null || !evidence.toEnvelope().evidenceComplete) {
+    throw StoryGenerationEvidencePreflightFailure(
+      'no-redraw beat resolution produced incomplete attempt evidence',
+    );
   }
 }

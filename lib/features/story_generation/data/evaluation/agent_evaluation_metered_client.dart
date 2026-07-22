@@ -89,7 +89,11 @@ final class AgentEvaluationMeterSnapshot {
 ///
 /// A formal attempt owns the complete call scope. Callers cannot select a late
 /// cursor and omit earlier calls, and overlapping attempts are rejected.
-final class AgentEvaluationMeteredAppLlmClient implements AppLlmClient {
+final class AgentEvaluationMeteredAppLlmClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AgentEvaluationMeteredAppLlmClient({
     required AppLlmClient inner,
     required this.model,
@@ -160,6 +164,14 @@ final class AgentEvaluationMeteredAppLlmClient implements AppLlmClient {
   bool get hasExecutionBudgetGuard => _executionBudget != null;
   String? get executionBudgetPolicyHash => _executionBudget?.policyHash;
 
+  @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(_inner);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(_inner);
+
   void beginAttempt({required String trialSlotId, required int attemptNo}) {
     if (_active != null) {
       throw StateError('another formal provider attempt is already active');
@@ -197,6 +209,10 @@ final class AgentEvaluationMeteredAppLlmClient implements AppLlmClient {
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _inner,
+      request: request,
+    );
     final scope = _active;
     if (scope == null) {
       throw StateError('provider call is outside a formal evaluation attempt');
@@ -314,7 +330,9 @@ final class AgentEvaluationMeteredAppLlmClient implements AppLlmClient {
             );
       // llm-call-site: boundary.evaluation.sut-meter
       final providerFuture = _inner.chat(boundedRequest);
-      final result = remaining == null
+      final singlePhysicalDispatch =
+          request.physicalDispatchPolicy == AppLlmPhysicalDispatchPolicy.single;
+      final result = remaining == null || singlePhysicalDispatch
           ? await providerFuture
           : await providerFuture.timeout(remaining);
       final promptTokens = result.promptTokens;
@@ -333,6 +351,9 @@ final class AgentEvaluationMeteredAppLlmClient implements AppLlmClient {
             meteredCompletionTokens: reservedCompletionTokens!,
             statusCode: result.statusCode,
             detail: result.detail,
+            dispatchResolution: result.dispatchResolution,
+            dispatchFailureDisposition: result.dispatchFailureDisposition,
+            providerBoundaryReceipt: result.providerBoundaryReceipt,
           );
         }
         throw StateError('release provider returned a classified failure');
@@ -446,7 +467,10 @@ AppLlmChatRequest copyAgentEvaluationRequestWithDeadline(
     provider: request.provider,
     onPartialText: request.onPartialText,
     formalCacheIdentity: request.formalCacheIdentity,
+    formalDispatchIdentity: request.formalDispatchIdentity,
     preferStreaming: request.preferStreaming,
+    physicalDispatchPolicy: request.physicalDispatchPolicy,
+    dispatchEvidenceNonce: request.dispatchEvidenceNonce,
   );
 }
 

@@ -1,11 +1,21 @@
+import '../../../app/llm/app_llm_canonical_hash.dart';
 import '../../../app/llm/app_llm_prompt_release_store.dart';
 import '../domain/scene_models.dart';
+import 'generation_candidate_identity.dart';
+import 'generation_evidence_receipt.dart';
 import 'generation_ledger.dart';
 import 'generation_ledger_digest.dart';
 import 'generation_ledger_models.dart';
 import 'generation_stage_checkpoint_codec.dart';
 import 'generation_material_manifest_repository.dart';
 import 'narrative_continuity_verifier.dart';
+import 'pipeline_stage_runner_impl.dart'
+    show consumePipelineFinalizationAdmission, pipelinePendingWriteSourceDigest;
+import 'scene_generation_identity.dart';
+import 'scene_review_coordinator.dart'
+    show canonicalSceneReviewEvaluationOutput;
+import 'story_generation_pass_retry.dart'
+    show storyGenerationParsedOutputDigest;
 import 'story_prompt_registry.dart';
 import 'polish_canon_verifier.dart';
 import 'story_mechanics_verifier.dart';
@@ -21,12 +31,19 @@ class GenerationRunCapture {
     required this.materialDigest,
     required this.inputDigest,
     required this.generationBundleHash,
+    required this.preparedBriefDigest,
+    this.generationEvidenceMode =
+        GenerationCandidateIdentity.adaptiveUnsealedMode,
+    this.generationArmPolicy,
   });
 
   final String baseDraftHash;
   final String materialDigest;
   final String inputDigest;
   final String generationBundleHash;
+  final String preparedBriefDigest;
+  final String generationEvidenceMode;
+  final String? generationArmPolicy;
 }
 
 /// The proof identity required to invoke [GenerationCommitCoordinator].
@@ -44,6 +61,13 @@ class DurableCandidateReference {
     required this.inputDigest,
     required this.baseDraftHash,
     required this.generationBundleHash,
+    this.preparedBriefDigest = '',
+    this.effectiveBriefDigest = '',
+    this.generationEvidenceMode =
+        GenerationCandidateIdentity.legacyUnsealedMode,
+    this.generationEvidenceReceiptHash,
+    this.attemptEvidenceEnvelopeDigest,
+    this.generationFingerprintSetDigest,
   });
 
   final String runId;
@@ -58,7 +82,208 @@ class DurableCandidateReference {
   final String inputDigest;
   final String baseDraftHash;
   final String generationBundleHash;
+  final String preparedBriefDigest;
+  final String effectiveBriefDigest;
+  final String generationEvidenceMode;
+  final String? generationEvidenceReceiptHash;
+  final String? attemptEvidenceEnvelopeDigest;
+  final String? generationFingerprintSetDigest;
 }
+
+/// Runtime-only second key proving that the high-level candidate finalizer
+/// completed every typed literary and deterministic validation before a
+/// sealed candidate crossed the durable ledger boundary.
+///
+/// The constructor is library-private. A real provider receipt proves where
+/// prose came from; this independent capability proves that the exact proof,
+/// payload, run pointer, and finalization checkpoint were assembled only
+/// after the finalizer validated gates, council history, quality, continuity,
+/// and pending writes.
+@pragma('vm:isolate-unsendable')
+final class GenerationLedgerSealedFinalizationAuthority {
+  GenerationLedgerSealedFinalizationAuthority._({
+    required CandidateProofRecord proof,
+    required CandidatePayloadRecord payload,
+    required WorkingProseRevisionRecord workingProseRevision,
+    required CandidateNamespaceRecord candidateNamespace,
+    required List<PendingWriteRecord> pendingWrites,
+    required int updatedAtMs,
+    required int currentProseRevision,
+    required GenerationStageCheckpointRecord finalizationCheckpoint,
+  }) : _bindingHash = _sealedFinalizationBindingHash(
+         operation: markCandidateReadyOperation,
+         proof: proof,
+         payload: payload,
+         workingProseRevision: workingProseRevision,
+         candidateNamespace: candidateNamespace,
+         pendingWrites: pendingWrites,
+         updatedAtMs: updatedAtMs,
+         currentProseRevision: currentProseRevision,
+         finalizationCheckpoint: finalizationCheckpoint,
+       );
+
+  static const String finalizeCandidateOperation = 'finalize-candidate-v1';
+  static const String markCandidateReadyOperation =
+      'finalize-and-mark-candidate-ready-v1';
+
+  final String _bindingHash;
+  bool _consumed = false;
+
+  bool consumeForLedger({
+    required String operation,
+    required CandidateProofRecord proof,
+    required CandidatePayloadRecord payload,
+    required WorkingProseRevisionRecord? workingProseRevision,
+    required CandidateNamespaceRecord? candidateNamespace,
+    required List<PendingWriteRecord> pendingWrites,
+    required int? updatedAtMs,
+    required int? currentProseRevision,
+    required GenerationStageCheckpointRecord? finalizationCheckpoint,
+  }) {
+    if (_consumed) return false;
+    // Burn every presentation, including a mismatched low-level operation.
+    _consumed = true;
+    return _bindingHash ==
+        _sealedFinalizationBindingHash(
+          operation: operation,
+          proof: proof,
+          payload: payload,
+          workingProseRevision: workingProseRevision,
+          candidateNamespace: candidateNamespace,
+          pendingWrites: pendingWrites,
+          updatedAtMs: updatedAtMs,
+          currentProseRevision: currentProseRevision,
+          finalizationCheckpoint: finalizationCheckpoint,
+        );
+  }
+}
+
+String _sealedFinalizationBindingHash({
+  required String operation,
+  required CandidateProofRecord proof,
+  required CandidatePayloadRecord payload,
+  required WorkingProseRevisionRecord? workingProseRevision,
+  required CandidateNamespaceRecord? candidateNamespace,
+  required List<PendingWriteRecord> pendingWrites,
+  required int? updatedAtMs,
+  required int? currentProseRevision,
+  required GenerationStageCheckpointRecord? finalizationCheckpoint,
+}) => AppLlmCanonicalHash.domainHash(
+  'story-generation-sealed-finalizer-authority-v2',
+  <String, Object?>{
+    'operation': operation,
+    'proof': <String, Object?>{
+      'runId': proof.runId,
+      'candidateRevision': proof.candidateRevision,
+      'projectId': proof.projectId,
+      'chapterId': proof.chapterId,
+      'sceneId': proof.sceneId,
+      'sourceProseRevision': proof.sourceProseRevision,
+      'candidateHash': proof.candidateHash,
+      'finalProseHash': proof.finalProseHash,
+      'deterministicGateEvidenceHash': proof.deterministicGateEvidenceHash,
+      'finalCouncilEvidenceHash': proof.finalCouncilEvidenceHash,
+      'qualityEvidenceHash': proof.qualityEvidenceHash,
+      'pendingWriteSetHash': proof.pendingWriteSetHash,
+      'materialDigest': proof.materialDigest,
+      'inputDigest': proof.inputDigest,
+      'createdAtMs': proof.createdAtMs,
+      'proofIdentityVersion': proof.proofIdentityVersion,
+      'preparedBriefDigest': proof.preparedBriefDigest,
+      'effectiveBriefDigest': proof.effectiveBriefDigest,
+      'generationEvidenceMode': proof.generationEvidenceMode,
+      'generationEvidenceReceiptHash': proof.generationEvidenceReceiptHash,
+      'attemptEvidenceEnvelopeDigest': proof.attemptEvidenceEnvelopeDigest,
+      'generationFingerprintSetDigest': proof.generationFingerprintSetDigest,
+      'generationEvidenceReceiptJson': proof.generationEvidenceReceiptJson,
+    },
+    'payload': <String, Object?>{
+      'runId': payload.runId,
+      'candidateRevision': payload.candidateRevision,
+      'finalProse': payload.finalProse,
+      'pendingWriteManifestJson': payload.pendingWriteManifestJson,
+      'retrievalTraceJson': payload.retrievalTraceJson,
+      'reviewPayloadJson': payload.reviewPayloadJson,
+      'qualityPayloadJson': payload.qualityPayloadJson,
+      'generationEvidenceReceiptJson': payload.generationEvidenceReceiptJson,
+      'createdAtMs': payload.createdAtMs,
+      'expiresAtMs': payload.expiresAtMs,
+    },
+    'workingProseRevision': workingProseRevision == null
+        ? null
+        : <String, Object?>{
+            'runId': workingProseRevision.runId,
+            'proseRevision': workingProseRevision.proseRevision,
+            'proseHash': workingProseRevision.proseHash,
+            'proseText': workingProseRevision.proseText,
+            'sourceKind': workingProseRevision.sourceKind,
+            'createdAtMs': workingProseRevision.createdAtMs,
+          },
+    'candidateNamespace': candidateNamespace == null
+        ? null
+        : <String, Object?>{
+            'runId': candidateNamespace.runId,
+            'candidateRevision': candidateNamespace.candidateRevision,
+            'sourceProseRevision': candidateNamespace.sourceProseRevision,
+            'reservedAtMs': candidateNamespace.reservedAtMs,
+          },
+    'pendingWrites': <Object?>[
+      for (final write in pendingWrites)
+        <String, Object?>{
+          'runId': write.runId,
+          'candidateRevision': write.candidateRevision,
+          'writeId': write.writeId,
+          'projectId': write.projectId,
+          'chapterId': write.chapterId,
+          'sceneId': write.sceneId,
+          'logicalEntityId': write.logicalEntityId,
+          'writeKind': write.writeKind,
+          'payloadHash': write.payloadHash,
+          'payloadJson': write.payloadJson,
+          'derivationClass': write.derivationClass,
+          'state': write.state,
+          'tier': write.tier,
+          'producer': write.producer,
+          'visibility': write.visibility,
+          'ownerId': write.ownerId,
+          'createdAtMs': write.createdAtMs,
+          'expiresAtMs': write.expiresAtMs,
+          'committedAtMs': write.committedAtMs,
+          'discardedAtMs': write.discardedAtMs,
+        },
+    ],
+    'runPointer': <String, Object?>{
+      'updatedAtMs': updatedAtMs,
+      'currentProseRevision': currentProseRevision,
+    },
+    'finalizationCheckpoint': finalizationCheckpoint == null
+        ? null
+        : <String, Object?>{
+            'runId': finalizationCheckpoint.runId,
+            'proseRevision': finalizationCheckpoint.proseRevision,
+            'ordinal': finalizationCheckpoint.ordinal,
+            'stageId': finalizationCheckpoint.stageId,
+            'stageAttempt': finalizationCheckpoint.stageAttempt,
+            'codecVersion': finalizationCheckpoint.codecVersion,
+            'status': finalizationCheckpoint.status,
+            'inputDigest': finalizationCheckpoint.inputDigest,
+            'artifactDigest': finalizationCheckpoint.artifactDigest,
+            'upstreamChainDigest': finalizationCheckpoint.upstreamChainDigest,
+            'provenance': <String, Object?>{
+              'baseDraftDigest':
+                  finalizationCheckpoint.provenance.baseDraftDigest,
+              'materialDigest':
+                  finalizationCheckpoint.provenance.materialDigest,
+              'promptDigest': finalizationCheckpoint.provenance.promptDigest,
+              'modelDigest': finalizationCheckpoint.provenance.modelDigest,
+            },
+            'createdAtMs': finalizationCheckpoint.createdAtMs,
+            'completedAtMs': finalizationCheckpoint.completedAtMs,
+            'artifactType': finalizationCheckpoint.artifactType,
+            'artifactJson': finalizationCheckpoint.artifactJson,
+          },
+  },
+);
 
 /// Turns a completed provider pipeline result into the durable local author
 /// candidate.  It performs no provider calls and deliberately stages rather
@@ -86,6 +311,10 @@ class GenerationLedgerCandidateFinalizer {
     required SceneBrief brief,
     required ProjectMaterialSnapshot materials,
     required int nowMs,
+    String? preparedBriefDigest,
+    String generationEvidenceMode =
+        GenerationCandidateIdentity.adaptiveUnsealedMode,
+    String? generationArmPolicy,
   }) {
     final promptStore = AppLlmPromptReleaseStore(db: _ledger.db);
     _promptRegistry.publishTo(promptStore);
@@ -139,9 +368,38 @@ class GenerationLedgerCandidateFinalizer {
         );
     final materialDigest = materialManifest.materialDigest;
     final inputDigest = GenerationLedgerDigest.object({
-      'brief': _briefObject(brief),
+      'brief': SceneGenerationIdentity.briefObject(brief),
       'materialDigest': materialDigest,
     });
+    final computedPreparedBriefDigest = SceneGenerationIdentity.briefHash(
+      brief,
+    );
+    if (preparedBriefDigest != null &&
+        preparedBriefDigest != computedPreparedBriefDigest) {
+      throw StateError(
+        'prepared brief digest does not match the captured model-visible brief',
+      );
+    }
+    if (generationEvidenceMode !=
+            GenerationCandidateIdentity.adaptiveUnsealedMode &&
+        generationEvidenceMode !=
+            GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw ArgumentError.value(
+        generationEvidenceMode,
+        'generationEvidenceMode',
+        'must be an explicit V2 evidence mode',
+      );
+    }
+    final normalizedArmPolicy = generationArmPolicy?.trim();
+    if (generationEvidenceMode ==
+            GenerationCandidateIdentity.sealedNoRedrawMode &&
+        (normalizedArmPolicy == null || normalizedArmPolicy.isEmpty)) {
+      throw ArgumentError.value(
+        generationArmPolicy,
+        'generationArmPolicy',
+        'sealed no-redraw capture requires the frozen arm policy',
+      );
+    }
     _ledger.initializeBudget(
       RunBudgetRecord(
         runId: runId,
@@ -156,6 +414,9 @@ class GenerationLedgerCandidateFinalizer {
       materialDigest: materialDigest,
       inputDigest: inputDigest,
       generationBundleHash: generationBundleHash,
+      preparedBriefDigest: computedPreparedBriefDigest,
+      generationEvidenceMode: generationEvidenceMode,
+      generationArmPolicy: normalizedArmPolicy,
     );
   }
 
@@ -165,9 +426,10 @@ class GenerationLedgerCandidateFinalizer {
     required GenerationRunCapture capture,
     required int nowMs,
     int? targetCandidateRevision,
+    GenerationEvidenceReceipt? generationEvidenceReceipt,
   }) {
-    final finalProse = output.prose.text.trim();
-    if (finalProse.isEmpty ||
+    final finalProse = output.prose.text;
+    if (finalProse.trim().isEmpty ||
         output.review.decision != SceneReviewDecision.pass ||
         output.qualityScore == null) {
       throw StateError(
@@ -175,7 +437,24 @@ class GenerationLedgerCandidateFinalizer {
       );
     }
     final quality = output.qualityScore!;
+    _requirePassingQualityScore(output.brief, quality);
     final finalProseHash = GenerationLedgerDigest.text(finalProse);
+    final effectiveBriefDigest = SceneGenerationIdentity.briefHash(
+      output.brief,
+    );
+    final effectiveInputDigest = GenerationLedgerDigest.object({
+      'brief': SceneGenerationIdentity.briefObject(output.brief),
+      'materialDigest': capture.materialDigest,
+    });
+    final evidenceBinding = _validateGenerationEvidence(
+      runId: runId,
+      output: output,
+      capture: capture,
+      finalProse: finalProse,
+      effectiveBriefDigest: effectiveBriefDigest,
+      effectiveInputDigest: effectiveInputDigest,
+      receipt: generationEvidenceReceipt,
+    );
     // Provider-free finalization assembles evidence produced upstream; it
     // must never manufacture a no-op polish proof without the frozen material
     // snapshot. Author edits therefore rerun polish and deterministic gates
@@ -250,7 +529,13 @@ class GenerationLedgerCandidateFinalizer {
         'for the exact prose and brief: ${preQualityMismatches.join(', ')}',
       );
     }
-    _requireCompleteReviewHistory(output, finalProse: finalProse);
+    _requireCompleteReviewHistory(
+      output,
+      finalProse: finalProse,
+      sealedEvidenceRequired:
+          capture.generationEvidenceMode ==
+          GenerationCandidateIdentity.sealedNoRedrawMode,
+    );
     final continuityEvidence = const NarrativeContinuityVerifier().verify(
       brief: output.brief,
       prose: finalProse,
@@ -286,6 +571,16 @@ class GenerationLedgerCandidateFinalizer {
     final reviewAttempts = <Object?>[
       for (final attempt in output.reviewAttempts) attempt.toJson(),
     ];
+    final reviewEvaluationOutput = canonicalSceneReviewEvaluationOutput(
+      output.review,
+    );
+    final reviewEvaluationOutputDigest = storyGenerationParsedOutputDigest(
+      reviewEvaluationOutput,
+    );
+    final qualityEvaluationOutput = quality.toJson();
+    final qualityEvaluationOutputDigest = storyGenerationParsedOutputDigest(
+      qualityEvaluationOutput,
+    );
     final councilHash = GenerationLedgerDigest.object({
       'finalProseHash': finalProseHash,
       'decision': output.review.decision.name,
@@ -297,23 +592,70 @@ class GenerationLedgerCandidateFinalizer {
       'score': quality.toJson(),
     });
     final candidateRevision = targetCandidateRevision ?? 0;
-    final proseRevision = _prepareTargetNamespace(
-      runId: runId,
-      candidateRevision: candidateRevision,
-      finalProse: finalProse,
-      finalProseHash: finalProseHash,
-      nowMs: nowMs,
-      isInitial: targetCandidateRevision == null,
-    );
-
-    // An author-edited namespace already contains newly materialized,
-    // deterministic pre-prose clones. They remain part of N+1's evidence set;
-    // omitting them would leave staged rows outside the proof manifest and
-    // make acceptance correctly fail closed.
-    final writes = _existingNamespaceWriteReferences(
-      runId: runId,
-      candidateRevision: candidateRevision,
-    );
+    final sealedFinalization =
+        capture.generationEvidenceMode ==
+        GenerationCandidateIdentity.sealedNoRedrawMode;
+    if (sealedFinalization &&
+        (generationEvidenceReceipt!.finalReviewParsedOutputDigest !=
+                reviewEvaluationOutputDigest ||
+            generationEvidenceReceipt.finalQualityParsedOutputDigest !=
+                qualityEvaluationOutputDigest)) {
+      throw StateError(
+        'sealed candidate receipt does not certify the exact final review and quality outputs',
+      );
+    }
+    if (sealedFinalization && targetCandidateRevision != null) {
+      // A no-redraw receipt authorizes one exact provider artifact. Existing
+      // author-edit namespaces may contain cloned staged state whose issuance
+      // is outside this receipt. Keep that path closed until it has its own
+      // runtime authority instead of silently inheriting those rows.
+      throw StateError(
+        'sealed no-redraw finalization does not accept an existing author-edit namespace',
+      );
+    }
+    late final int proseRevision;
+    WorkingProseRevisionRecord? atomicWorkingProseRevision;
+    CandidateNamespaceRecord? atomicCandidateNamespace;
+    final atomicPendingWrites = <PendingWriteRecord>[];
+    final writes = <Map<String, Object?>>[];
+    if (sealedFinalization) {
+      _requireFreshSealedNamespace(
+        runId: runId,
+        candidateRevision: candidateRevision,
+      );
+      proseRevision = _nextWorkingProseRevision(runId);
+      atomicWorkingProseRevision = WorkingProseRevisionRecord(
+        runId: runId,
+        proseRevision: proseRevision,
+        proseHash: finalProseHash,
+        proseText: finalProse,
+        sourceKind: 'finalization',
+        createdAtMs: nowMs,
+      );
+      atomicCandidateNamespace = CandidateNamespaceRecord(
+        runId: runId,
+        candidateRevision: candidateRevision,
+        sourceProseRevision: proseRevision,
+        reservedAtMs: nowMs,
+      );
+    } else {
+      proseRevision = _prepareTargetNamespace(
+        runId: runId,
+        candidateRevision: candidateRevision,
+        finalProse: finalProse,
+        finalProseHash: finalProseHash,
+        nowMs: nowMs,
+        isInitial: targetCandidateRevision == null,
+      );
+      // Adaptive author-edit namespaces retain their existing, deterministic
+      // pre-prose clone behavior. Sealed finalization never enters this path.
+      writes.addAll(
+        _existingNamespaceWriteReferences(
+          runId: runId,
+          candidateRevision: candidateRevision,
+        ),
+      );
+    }
     final session = output.roleplaySession;
     if (session != null) {
       final payload = <String, Object?>{
@@ -335,24 +677,27 @@ class GenerationLedgerCandidateFinalizer {
         'write-v1|$runId|$candidateRevision|roleplaySession|${output.brief.sceneId}',
       );
       final payloadHash = GenerationLedgerDigest.text(payloadJson);
-      _ledger.upsertPendingWrite(
-        PendingWriteRecord(
-          runId: runId,
-          candidateRevision: candidateRevision,
-          writeId: writeId,
-          projectId: output.brief.projectId!,
-          chapterId: output.brief.chapterId,
-          sceneId: output.brief.sceneId,
-          logicalEntityId: output.brief.sceneId,
-          writeKind: 'roleplaySession',
-          payloadHash: payloadHash,
-          payloadJson: payloadJson,
-          derivationClass: 'preProse',
-          createdAtMs: nowMs,
-          expiresAtMs: nowMs + _candidatePayloadRetentionMs,
-          producer: 'story-pipeline',
-        ),
+      final pendingWrite = PendingWriteRecord(
+        runId: runId,
+        candidateRevision: candidateRevision,
+        writeId: writeId,
+        projectId: output.brief.projectId!,
+        chapterId: output.brief.chapterId,
+        sceneId: output.brief.sceneId,
+        logicalEntityId: output.brief.sceneId,
+        writeKind: 'roleplaySession',
+        payloadHash: payloadHash,
+        payloadJson: payloadJson,
+        derivationClass: 'preProse',
+        createdAtMs: nowMs,
+        expiresAtMs: nowMs + _candidatePayloadRetentionMs,
+        producer: 'story-pipeline',
       );
+      if (sealedFinalization) {
+        atomicPendingWrites.add(pendingWrite);
+      } else {
+        _ledger.upsertPendingWrite(pendingWrite);
+      }
       writes.add({'writeId': writeId, 'payloadHash': payloadHash});
 
       for (final delta in session.acceptedMemoryDeltas) {
@@ -378,24 +723,27 @@ class GenerationLedgerCandidateFinalizer {
           'write-v1|$runId|$candidateRevision|characterDelta|${delta.deltaId}',
         );
         final deltaPayloadHash = GenerationLedgerDigest.text(deltaPayloadJson);
-        _ledger.upsertPendingWrite(
-          PendingWriteRecord(
-            runId: runId,
-            candidateRevision: candidateRevision,
-            writeId: deltaWriteId,
-            projectId: output.brief.projectId!,
-            chapterId: output.brief.chapterId,
-            sceneId: output.brief.sceneId,
-            logicalEntityId: delta.deltaId,
-            writeKind: 'characterDelta',
-            payloadHash: deltaPayloadHash,
-            payloadJson: deltaPayloadJson,
-            derivationClass: 'preProse',
-            createdAtMs: nowMs,
-            expiresAtMs: nowMs + _candidatePayloadRetentionMs,
-            producer: 'story-pipeline',
-          ),
+        final pendingDelta = PendingWriteRecord(
+          runId: runId,
+          candidateRevision: candidateRevision,
+          writeId: deltaWriteId,
+          projectId: output.brief.projectId!,
+          chapterId: output.brief.chapterId,
+          sceneId: output.brief.sceneId,
+          logicalEntityId: delta.deltaId,
+          writeKind: 'characterDelta',
+          payloadHash: deltaPayloadHash,
+          payloadJson: deltaPayloadJson,
+          derivationClass: 'preProse',
+          createdAtMs: nowMs,
+          expiresAtMs: nowMs + _candidatePayloadRetentionMs,
+          producer: 'story-pipeline',
         );
+        if (sealedFinalization) {
+          atomicPendingWrites.add(pendingDelta);
+        } else {
+          _ledger.upsertPendingWrite(pendingDelta);
+        }
         writes.add({'writeId': deltaWriteId, 'payloadHash': deltaPayloadHash});
       }
     }
@@ -430,91 +778,171 @@ class GenerationLedgerCandidateFinalizer {
     final contributionPayloadHash = GenerationLedgerDigest.text(
       contributionPayloadJson,
     );
-    _ledger.upsertPendingWrite(
-      PendingWriteRecord(
-        runId: runId,
-        candidateRevision: candidateRevision,
-        writeId: contributionWriteId,
-        projectId: output.brief.projectId!,
-        chapterId: output.brief.chapterId,
-        sceneId: output.brief.sceneId,
-        logicalEntityId: output.brief.sceneId,
-        writeKind: 'sceneSummaryContribution',
-        payloadHash: contributionPayloadHash,
-        payloadJson: contributionPayloadJson,
-        derivationClass: 'proseDerived',
-        createdAtMs: nowMs,
-        expiresAtMs: nowMs + _candidatePayloadRetentionMs,
-        producer: 'story-pipeline',
-      ),
+    final contributionWrite = PendingWriteRecord(
+      runId: runId,
+      candidateRevision: candidateRevision,
+      writeId: contributionWriteId,
+      projectId: output.brief.projectId!,
+      chapterId: output.brief.chapterId,
+      sceneId: output.brief.sceneId,
+      logicalEntityId: output.brief.sceneId,
+      writeKind: 'sceneSummaryContribution',
+      payloadHash: contributionPayloadHash,
+      payloadJson: contributionPayloadJson,
+      derivationClass: 'proseDerived',
+      createdAtMs: nowMs,
+      expiresAtMs: nowMs + _candidatePayloadRetentionMs,
+      producer: 'story-pipeline',
     );
+    if (sealedFinalization) {
+      atomicPendingWrites.add(contributionWrite);
+    } else {
+      _ledger.upsertPendingWrite(contributionWrite);
+    }
     writes.add({
       'writeId': contributionWriteId,
       'payloadHash': contributionPayloadHash,
     });
     final manifestJson = GenerationLedgerDigest.canonicalJson(writes);
     final pendingWriteSetHash = GenerationLedgerDigest.object(writes);
-    final candidateHash = GenerationLedgerDigest.object({
-      'runId': runId,
-      'candidateRevision': candidateRevision,
-      'finalProseHash': finalProseHash,
-      'deterministicGateEvidenceHash': gateHash,
-      'finalCouncilEvidenceHash': councilHash,
-      'qualityEvidenceHash': qualityHash,
-      'pendingWriteSetHash': pendingWriteSetHash,
-      'materialDigest': capture.materialDigest,
-      'inputDigest': capture.inputDigest,
-      'generationBundleHash': capture.generationBundleHash,
-    });
+    final candidateHash = GenerationCandidateIdentity.computeV2(
+      runId: runId,
+      candidateRevision: candidateRevision,
+      finalProseHash: finalProseHash,
+      deterministicGateEvidenceHash: gateHash,
+      finalCouncilEvidenceHash: councilHash,
+      qualityEvidenceHash: qualityHash,
+      pendingWriteSetHash: pendingWriteSetHash,
+      materialDigest: capture.materialDigest,
+      effectiveInputDigest: effectiveInputDigest,
+      preparedBriefDigest: capture.preparedBriefDigest,
+      effectiveBriefDigest: effectiveBriefDigest,
+      generationBundleHash: capture.generationBundleHash,
+      generationEvidenceMode: capture.generationEvidenceMode,
+      generationEvidenceReceiptHash: evidenceBinding.receiptHash,
+      attemptEvidenceEnvelopeDigest: evidenceBinding.attemptEnvelopeDigest,
+      generationFingerprintSetDigest: evidenceBinding.fingerprintSetDigest,
+    );
+    final proof = CandidateProofRecord(
+      runId: runId,
+      candidateRevision: candidateRevision,
+      projectId: output.brief.projectId!,
+      chapterId: output.brief.chapterId,
+      sceneId: output.brief.sceneId,
+      sourceProseRevision: proseRevision,
+      candidateHash: candidateHash,
+      finalProseHash: finalProseHash,
+      deterministicGateEvidenceHash: gateHash,
+      finalCouncilEvidenceHash: councilHash,
+      qualityEvidenceHash: qualityHash,
+      pendingWriteSetHash: pendingWriteSetHash,
+      materialDigest: capture.materialDigest,
+      inputDigest: effectiveInputDigest,
+      createdAtMs: nowMs,
+      proofIdentityVersion: GenerationCandidateIdentity.v2,
+      preparedBriefDigest: capture.preparedBriefDigest,
+      effectiveBriefDigest: effectiveBriefDigest,
+      generationEvidenceMode: capture.generationEvidenceMode,
+      generationEvidenceReceiptHash: evidenceBinding.receiptHash,
+      attemptEvidenceEnvelopeDigest: evidenceBinding.attemptEnvelopeDigest,
+      generationFingerprintSetDigest: evidenceBinding.fingerprintSetDigest,
+      generationEvidenceReceiptJson: generationEvidenceReceipt?.canonicalJson,
+    );
+    final payload = CandidatePayloadRecord(
+      runId: runId,
+      candidateRevision: candidateRevision,
+      finalProse: finalProse,
+      pendingWriteManifestJson: manifestJson,
+      reviewPayloadJson: GenerationLedgerDigest.canonicalJson(
+        sealedFinalization
+            ? <String, Object?>{
+                'schemaVersion': GenerationCandidateEvaluationPayloadIntegrity
+                    .reviewSchemaVersion,
+                'reviewEvaluationOutput': reviewEvaluationOutput,
+                'reviewEvaluationOutputDigest': reviewEvaluationOutputDigest,
+                'feedback': output.review.feedback,
+                'reviewAttempts': reviewAttempts,
+              }
+            : <String, Object?>{
+                'schemaVersion': 'candidate-review-payload-v2',
+                'decision': output.review.decision.name,
+                'feedback': output.review.feedback,
+                'reviewAttempts': reviewAttempts,
+              },
+      ),
+      qualityPayloadJson: GenerationLedgerDigest.canonicalJson(
+        sealedFinalization
+            ? <String, Object?>{
+                'schemaVersion': GenerationCandidateEvaluationPayloadIntegrity
+                    .qualitySchemaVersion,
+                'qualityEvaluationOutput': qualityEvaluationOutput,
+                'qualityEvaluationOutputDigest': qualityEvaluationOutputDigest,
+                'deterministicGate': gatePayload,
+              }
+            : <String, Object?>{
+                'schemaVersion': 'candidate-quality-payload-v3',
+                'qualityScore': qualityEvaluationOutput,
+                'deterministicGate': gatePayload,
+              },
+      ),
+      generationEvidenceReceiptJson:
+          generationEvidenceReceipt?.canonicalJson ?? '{}',
+      createdAtMs: nowMs,
+      expiresAtMs: nowMs + _candidatePayloadRetentionMs,
+    );
+    final finalizationCheckpoint = _finalizationCheckpoint(
+      runId: runId,
+      capture: capture,
+      candidateRevision: candidateRevision,
+      proseRevision: proseRevision,
+      candidateHash: candidateHash,
+      finalProseHash: finalProseHash,
+      pendingWriteSetHash: pendingWriteSetHash,
+      nowMs: nowMs,
+    );
+    if (sealedFinalization &&
+        !consumePipelineFinalizationAdmission(
+          output: output,
+          runId: runId,
+          sceneId: output.brief.sceneId,
+          preparedBriefDigest: capture.preparedBriefDigest,
+          generationArmPolicy: capture.generationArmPolicy!,
+          generationBundleHash: capture.generationBundleHash,
+          receiptCanonicalJson: generationEvidenceReceipt!.canonicalJson,
+          receiptHash: generationEvidenceReceipt.receiptHash,
+          finalProseHash: finalProseHash,
+          materialDigest: capture.materialDigest,
+          inputDigest: effectiveInputDigest,
+          pendingWriteSourceDigest: pipelinePendingWriteSourceDigest(output),
+        )) {
+      throw StateError(
+        'sealed candidate finalization requires one exact production runner admission',
+      );
+    }
+    final sealedFinalizationAuthority = sealedFinalization
+        ? GenerationLedgerSealedFinalizationAuthority._(
+            proof: proof,
+            payload: payload,
+            workingProseRevision: atomicWorkingProseRevision!,
+            candidateNamespace: atomicCandidateNamespace!,
+            pendingWrites: atomicPendingWrites,
+            updatedAtMs: nowMs,
+            currentProseRevision: proseRevision,
+            finalizationCheckpoint: finalizationCheckpoint,
+          )
+        : null;
     _ledger.finalizeAndMarkCandidateReady(
-      proof: CandidateProofRecord(
-        runId: runId,
-        candidateRevision: candidateRevision,
-        projectId: output.brief.projectId!,
-        chapterId: output.brief.chapterId,
-        sceneId: output.brief.sceneId,
-        sourceProseRevision: proseRevision,
-        candidateHash: candidateHash,
-        finalProseHash: finalProseHash,
-        deterministicGateEvidenceHash: gateHash,
-        finalCouncilEvidenceHash: councilHash,
-        qualityEvidenceHash: qualityHash,
-        pendingWriteSetHash: pendingWriteSetHash,
-        materialDigest: capture.materialDigest,
-        inputDigest: capture.inputDigest,
-        createdAtMs: nowMs,
-      ),
-      payload: CandidatePayloadRecord(
-        runId: runId,
-        candidateRevision: candidateRevision,
-        finalProse: finalProse,
-        pendingWriteManifestJson: manifestJson,
-        reviewPayloadJson: GenerationLedgerDigest.canonicalJson({
-          'schemaVersion': 'candidate-review-payload-v2',
-          'decision': output.review.decision.name,
-          'feedback': output.review.feedback,
-          'reviewAttempts': reviewAttempts,
-        }),
-        qualityPayloadJson: GenerationLedgerDigest.canonicalJson({
-          'schemaVersion': 'candidate-quality-payload-v3',
-          'qualityScore': quality.toJson(),
-          'deterministicGate': gatePayload,
-        }),
-        createdAtMs: nowMs,
-        expiresAtMs: nowMs + _candidatePayloadRetentionMs,
-      ),
+      proof: proof,
+      payload: payload,
       updatedAtMs: nowMs,
       currentProseRevision: proseRevision,
-      finalizationCheckpoint: _finalizationCheckpoint(
-        runId: runId,
-        capture: capture,
-        candidateRevision: candidateRevision,
-        proseRevision: proseRevision,
-        candidateHash: candidateHash,
-        finalProseHash: finalProseHash,
-        pendingWriteSetHash: pendingWriteSetHash,
-        nowMs: nowMs,
-      ),
+      generationEvidenceReceiptAdmission:
+          generationEvidenceReceipt?.proofAdmission,
+      sealedFinalizationAuthority: sealedFinalizationAuthority,
+      finalizationCheckpoint: finalizationCheckpoint,
+      workingProseRevision: atomicWorkingProseRevision,
+      candidateNamespace: atomicCandidateNamespace,
+      pendingWrites: atomicPendingWrites,
     );
     return DurableCandidateReference(
       runId: runId,
@@ -526,21 +954,93 @@ class GenerationLedgerCandidateFinalizer {
       qualityEvidenceHash: qualityHash,
       pendingWriteSetHash: pendingWriteSetHash,
       materialDigest: capture.materialDigest,
-      inputDigest: capture.inputDigest,
+      inputDigest: effectiveInputDigest,
       baseDraftHash: capture.baseDraftHash,
       generationBundleHash: capture.generationBundleHash,
+      preparedBriefDigest: capture.preparedBriefDigest,
+      effectiveBriefDigest: effectiveBriefDigest,
+      generationEvidenceMode: capture.generationEvidenceMode,
+      generationEvidenceReceiptHash: evidenceBinding.receiptHash,
+      attemptEvidenceEnvelopeDigest: evidenceBinding.attemptEnvelopeDigest,
+      generationFingerprintSetDigest: evidenceBinding.fingerprintSetDigest,
+    );
+  }
+
+  _CandidateEvidenceBinding _validateGenerationEvidence({
+    required String runId,
+    required SceneRuntimeOutput output,
+    required GenerationRunCapture capture,
+    required String finalProse,
+    required String effectiveBriefDigest,
+    required String effectiveInputDigest,
+    required GenerationEvidenceReceipt? receipt,
+  }) {
+    if (capture.generationEvidenceMode ==
+        GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (receipt != null) {
+        throw StateError(
+          'adaptive-unsealed candidate cannot claim a sealed no-redraw receipt',
+        );
+      }
+      return const _CandidateEvidenceBinding();
+    }
+    if (capture.generationEvidenceMode !=
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw StateError('candidate generation evidence mode is unsupported');
+    }
+    if (receipt == null) {
+      throw StateError(
+        'sealed no-redraw candidate requires a verified generation receipt',
+      );
+    }
+    final runRows = _ledger.db.select(
+      'SELECT scene_id FROM story_generation_runs WHERE run_id = ?',
+      <Object?>[runId],
+    );
+    if (runRows.length != 1 ||
+        runRows.single['scene_id'] != output.brief.sceneId ||
+        receipt.evidenceRunId != runId ||
+        receipt.sceneId != runRows.single['scene_id']) {
+      throw StateError(
+        'generation receipt does not belong to the candidate run and scene',
+      );
+    }
+    if (effectiveBriefDigest != capture.preparedBriefDigest ||
+        effectiveInputDigest != capture.inputDigest) {
+      throw StateError(
+        'no-redraw candidate effective brief or input differs from its prepared capture',
+      );
+    }
+    if (receipt.preparedBriefDigest != capture.preparedBriefDigest ||
+        receipt.sceneId != output.brief.sceneId ||
+        receipt.generationArmPolicy != capture.generationArmPolicy ||
+        !receipt.matchesArtifactText(finalProse) ||
+        receipt.generationBundleHashes.length != 1 ||
+        !receipt.generationBundleHashes.contains(
+          capture.generationBundleHash,
+        )) {
+      throw StateError(
+        'generation receipt does not match brief, scene, arm, prose, or bundle',
+      );
+    }
+    return _CandidateEvidenceBinding(
+      receiptHash: receipt.receiptHash,
+      attemptEnvelopeDigest: receipt.attemptEvidenceEnvelopeDigest,
+      fingerprintSetDigest: receipt.generationFingerprintSetDigest,
     );
   }
 
   void _requireCompleteReviewHistory(
     SceneRuntimeOutput output, {
     required String finalProse,
+    required bool sealedEvidenceRequired,
   }) {
     final attempts = output.reviewAttempts;
     if (attempts.isEmpty) {
-      if (output.brief.formalExecution) {
+      if (output.brief.formalExecution || sealedEvidenceRequired) {
         throw StateError(
-          'formal candidate finalization requires a complete review history',
+          'formal or sealed candidate finalization requires a complete '
+          'review history',
         );
       }
       return;
@@ -599,6 +1099,46 @@ class GenerationLedgerCandidateFinalizer {
     }
   }
 
+  void _requirePassingQualityScore(SceneBrief brief, SceneQualityScore score) {
+    final criticalScores = <double>[
+      score.prose,
+      score.coherence,
+      score.character,
+      score.completeness,
+    ];
+    final extendedScores = <double>[
+      score.styleScore,
+      score.imageryScore,
+      score.rhythmScore,
+      score.faithfulnessScore,
+    ];
+    final requiresExtendedRubric =
+        brief.formalExecution ||
+        brief.metadata['requireExtendedQualityRubric'] == true;
+    final evaluatedScores = <double>[
+      score.overall,
+      ...criticalScores,
+      if (score.hasExtendedRubric) ...extendedScores,
+    ];
+    final invalid =
+        score.warning != null ||
+        score.summary.trim().isEmpty ||
+        evaluatedScores.any(
+          (value) => !value.isFinite || value < 0 || value > 100,
+        ) ||
+        (requiresExtendedRubric && !score.hasExtendedRubric) ||
+        score.overall < 95 ||
+        criticalScores.any((value) => value < 90) ||
+        (score.hasExtendedRubric && extendedScores.any((value) => value < 90));
+    if (invalid) {
+      throw StateError(
+        'candidate finalization requires overall>=95, every critical '
+        'dimension>=90, no warning, a non-empty summary, finite 0..100 '
+        'scores, and the complete extended rubric when required',
+      );
+    }
+  }
+
   /// Mirrors PipelineStageRunnerImpl._digestText for review-attempt records.
   ///
   /// Pipeline review records hash the canonical one-field JSON object and
@@ -607,6 +1147,39 @@ class GenerationLedgerCandidateFinalizer {
       GenerationLedgerDigest.object(<String, Object?>{
         'text': value,
       }).substring('sha256:'.length);
+
+  int _nextWorkingProseRevision(String runId) =>
+      _ledger.db
+              .select(
+                '''SELECT COALESCE(MAX(prose_revision), -1) + 1 AS next_revision
+                   FROM story_generation_working_prose_revisions
+                   WHERE run_id = ?''',
+                <Object?>[runId],
+              )
+              .single['next_revision']
+          as int;
+
+  void _requireFreshSealedNamespace({
+    required String runId,
+    required int candidateRevision,
+  }) {
+    for (final table in const <String>[
+      'story_generation_candidate_namespaces',
+      'story_generation_pending_writes',
+      'story_generation_candidate_proofs',
+      'story_generation_candidate_payloads',
+    ]) {
+      final occupied = _ledger.db.select(
+        'SELECT 1 FROM $table WHERE run_id = ? AND candidate_revision = ? LIMIT 1',
+        <Object?>[runId, candidateRevision],
+      );
+      if (occupied.isNotEmpty) {
+        throw const GenerationLedgerInvariantViolation(
+          'sealed finalization requires a fresh candidate namespace',
+        );
+      }
+    }
+  }
 
   int _prepareTargetNamespace({
     required String runId,
@@ -617,16 +1190,7 @@ class GenerationLedgerCandidateFinalizer {
     required bool isInitial,
   }) {
     if (isInitial) {
-      final nextRevision =
-          _ledger.db
-                  .select(
-                    '''SELECT COALESCE(MAX(prose_revision), -1) + 1 AS next_revision
-                       FROM story_generation_working_prose_revisions
-                       WHERE run_id = ?''',
-                    [runId],
-                  )
-                  .single['next_revision']
-              as int;
+      final nextRevision = _nextWorkingProseRevision(runId);
       _ledger.createWorkingProseRevision(
         WorkingProseRevisionRecord(
           runId: runId,
@@ -686,29 +1250,6 @@ class GenerationLedgerCandidateFinalizer {
         },
     ];
   }
-
-  Map<String, Object?> _briefObject(SceneBrief brief) => {
-    'projectId': brief.projectId,
-    'chapterId': brief.chapterId,
-    'sceneId': brief.sceneId,
-    'sceneIndex': brief.sceneIndex,
-    'totalScenesInChapter': brief.totalScenesInChapter,
-    'sceneTitle': brief.sceneTitle,
-    'sceneSummary': brief.sceneSummary,
-    'targetLength': brief.targetLength,
-    'targetBeat': brief.targetBeat,
-    'worldNodeIds': brief.worldNodeIds,
-    'castIds': [for (final cast in brief.cast) cast.characterId],
-    'formalExecution': brief.formalExecution,
-    if (brief.metadata.containsKey('requiredOutlineBeats'))
-      'requiredOutlineBeats': brief.metadata['requiredOutlineBeats'],
-    if (brief.metadata['requireOutlineFidelity'] == true)
-      'requireOutlineFidelity': true,
-    if (brief.metadata.containsKey('continuityLedger'))
-      'continuityLedger': brief.metadata['continuityLedger'],
-    if (brief.metadata['requireContinuityLedger'] == true)
-      'requireContinuityLedger': true,
-  };
 
   GenerationStageCheckpointRecord _finalizationCheckpoint({
     required String runId,
@@ -833,4 +1374,16 @@ Map<String, Object?> _encodeRoleplaySession(Object session) {
         },
     ],
   };
+}
+
+final class _CandidateEvidenceBinding {
+  const _CandidateEvidenceBinding({
+    this.receiptHash,
+    this.attemptEnvelopeDigest,
+    this.fingerprintSetDigest,
+  });
+
+  final String? receiptHash;
+  final String? attemptEnvelopeDigest;
+  final String? fingerprintSetDigest;
 }

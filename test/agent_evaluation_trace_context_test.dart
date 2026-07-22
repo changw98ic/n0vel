@@ -4,6 +4,7 @@ import 'package:novel_writer/app/llm/app_llm_prompt_release.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_invocation.dart';
 import 'package:novel_writer/domain/prompt_language.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_trace_context.dart';
+import 'package:novel_writer/features/story_generation/data/generation_evidence_fingerprints.dart';
 import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
 import 'package:novel_writer/features/story_generation/data/story_prompt_registry.dart';
 import 'package:novel_writer/features/story_generation/domain/contracts/settings_contract.dart';
@@ -72,6 +73,22 @@ void main() {
     }
   });
 
+  test('generation call remains legal under a formal trace', () async {
+    final settings = _CapturingSettings();
+    final context = _context(trialSlotId: 'generation-under-trace');
+
+    final result = await AgentEvaluationTraceContext.run(
+      context,
+      () => _generationRequest(settings),
+    );
+
+    expect(result.succeeded, isTrue);
+    expect(settings.calls, 1);
+    for (final entry in context.toTraceMetadata().entries) {
+      expect(settings.metadata[entry.key], entry.value, reason: entry.key);
+    }
+  });
+
   test('partial formal context fails closed before provider call', () {
     final settings = _CapturingSettings();
 
@@ -114,12 +131,50 @@ void main() {
     );
     expect(settings.calls, 0);
   });
+
+  test('evaluation bundle mismatch fails before provider', () async {
+    final settings = _CapturingSettings();
+    final context = _context(trialSlotId: 'evaluation-bundle-mismatch');
+
+    await expectLater(
+      AgentEvaluationTraceContext.run(
+        context,
+        () => _request(settings, evaluationBundleHash: _otherEvaluationHash),
+      ),
+      throwsA(
+        isA<StoryGenerationEvidencePreflightFailure>().having(
+          (error) => error.code,
+          'code',
+          'story_generation_formal_trace_bundle_mismatch',
+        ),
+      ),
+    );
+    expect(settings.calls, 0);
+  });
+
+  test('formal blinding marker without trace fails before provider', () async {
+    final settings = _CapturingSettings();
+
+    await expectLater(
+      _request(settings, forceFormalBlinding: true),
+      throwsA(
+        isA<StoryGenerationEvidencePreflightFailure>().having(
+          (error) => error.code,
+          'code',
+          'story_generation_formal_blinding_without_trace',
+        ),
+      ),
+    );
+    expect(settings.calls, 0);
+  });
 }
 
 Future<AppLlmChatResult> _request(
   _CapturingSettings settings, {
   Map<String, Object?> traceMetadata = const {},
-}) {
+  String? evaluationBundleHash,
+  bool forceFormalBlinding = false,
+}) async {
   final invocation = StoryPromptRegistry.production.invocation(
     stageId: 'review',
     callSiteId: 'judge',
@@ -144,6 +199,64 @@ Future<AppLlmChatResult> _request(
     'reviewCriteria': '测试评审标准',
   };
   final messages = invocation.render(resolvedVariables).messages;
+  final artifactText = resolvedVariables['prose']! as String;
+  final artifactDigest = ArtifactDigest.fromUtf8String(artifactText);
+  final trace = AgentEvaluationTraceContext.current;
+  return StoryGenerationEvaluationScope.run(
+    phase: StoryGenerationEvaluationPhase.preliminaryReview,
+    artifactText: artifactText,
+    body: () => requestFormalStoryGenerationPassWithRetry(
+      settingsStore: settings,
+      messages: messages,
+      promptInvocation: invocation,
+      promptInvocationEvidence: invocation.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      ),
+      evaluationFingerprintSeed: StoryGenerationEvaluationFingerprintSeed(
+        artifactDigest: artifactDigest,
+        evaluationBundleHash:
+            evaluationBundleHash ??
+            trace?.evaluationBundleHash ??
+            _evaluationHash,
+        judgeInput: storyGenerationEvaluationJudgeInput(
+          phase: StoryGenerationEvaluationPhase.preliminaryReview,
+          stageId: invocation.callSite.stageId,
+          callSiteId: invocation.callSite.callSiteId,
+          artifactDigest: artifactDigest,
+        ),
+        rubricHash: storyGenerationEvaluationRubricHash(
+          phase: StoryGenerationEvaluationPhase.preliminaryReview,
+          promptInvocation: invocation,
+        ),
+        blindingPolicy: forceFormalBlinding || trace != null
+            ? 'formal-evaluation-context-v1'
+            : 'story-generation-runtime-evaluation-v1',
+      ),
+      traceMetadata: traceMetadata,
+      maxTransientRetries: 0,
+    ),
+  );
+}
+
+Future<AppLlmChatResult> _generationRequest(_CapturingSettings settings) {
+  final invocation = StoryPromptRegistry.production.invocation(
+    stageId: 'polish',
+    callSiteId: 'language-polish',
+  );
+  final schema = invocation.release.variablesSchemaSnapshot as Map;
+  final properties = schema['properties']! as Map;
+  final resolvedVariables = <String, Object?>{
+    for (final entry in properties.entries)
+      entry.key: switch ((entry.value as Map)['type']) {
+        'string' => 'fixture=${entry.key}',
+        'integer' => 1,
+        'number' => 1.0,
+        'boolean' => true,
+        _ => throw StateError('unsupported variable ${entry.key}'),
+      },
+  };
+  final messages = invocation.render(resolvedVariables).messages;
   return requestFormalStoryGenerationPassWithRetry(
     settingsStore: settings,
     messages: messages,
@@ -152,7 +265,6 @@ Future<AppLlmChatResult> _request(
       messages,
       resolvedVariables: resolvedVariables,
     ),
-    traceMetadata: traceMetadata,
     maxTransientRetries: 0,
   );
 }
@@ -207,3 +319,5 @@ const _evaluationHash =
     'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 const _otherGenerationHash =
     'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd';
+const _otherEvaluationHash =
+    'sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';

@@ -30,6 +30,7 @@ import 'story_prompt_registry.dart';
 
 import '../domain/contracts/memory_writeback_gate.dart'
     hide CanonKeeper, SoulContractValidator;
+import '../domain/contracts/stage_runner.dart';
 import '../domain/contracts/soul_contract.dart';
 import '../domain/contracts/settings_contract.dart';
 import '../domain/story_pipeline_interfaces.dart';
@@ -42,6 +43,7 @@ import '../domain/story_pipeline_interfaces.dart';
 ///
 /// Optional pre-registrations:
 /// - [HybridRetriever] for fused FTS + vector retrieval.
+/// - [PipelineEventLog] for shared durable no-redraw evidence persistence.
 ///
 /// When no [HybridRetriever] is pre-registered, one is created from the
 /// same SQLite database used by [StoryMemoryStorage], if available.
@@ -178,14 +180,39 @@ void registerStoryGenerationServices(ServiceRegistry registry) {
 }
 
 PipelineStageRunnerImpl _createPipelineRunner(ServiceRegistry registry) {
-  final pipelineConfig = registry.isRegistered<AppWorkspaceStore>()
+  final pipelineConfig = registry.isRegistered<GenerationPipelineConfig>()
+      ? registry.resolve<GenerationPipelineConfig>()
+      : registry.isRegistered<AppWorkspaceStore>()
       ? GenerationPipelineConfig.fromWorkspace(
           registry.resolve<AppWorkspaceStore>(),
         )
       : const GenerationPipelineConfig();
+  if (!pipelineConfig.contentRedrawAllowed) {
+    return PipelineStageRunnerImpl.sealedProduction(
+      settingsStore: registry.resolve<StoryGenerationSettingsContract>(),
+      pipelineConfig: pipelineConfig,
+      eventLog: registry.isRegistered<PipelineEventLog>()
+          ? registry.resolve<PipelineEventLog>()
+          : null,
+      memoryStorage: registry.resolve<StoryMemoryStorage>(),
+      roleplaySessionStore: registry.isRegistered<RoleplaySessionStore>()
+          ? registry.resolve<RoleplaySessionStore>()
+          : null,
+      characterMemoryStore: registry.isRegistered<CharacterMemoryStore>()
+          ? registry.resolve<CharacterMemoryStore>()
+          : null,
+      hybridRetriever: registry.isRegistered<HybridRetriever>()
+          ? registry.resolve<HybridRetriever>()
+          : null,
+      contextCache: registry.resolve<StoryContextCache>(),
+    );
+  }
   return PipelineStageRunnerImpl(
     settingsStore: registry.resolve<StoryGenerationSettingsContract>(),
     pipelineConfig: pipelineConfig,
+    eventLog: registry.isRegistered<PipelineEventLog>()
+        ? registry.resolve<PipelineEventLog>()
+        : null,
     castResolver: registry.resolve<SceneCastResolverService>(),
     directorOrchestrator: registry.resolve<SceneDirectorService>(),
     dynamicRoleAgentRunner: registry.resolve<DynamicRoleAgentService>(),

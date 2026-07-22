@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
@@ -262,6 +264,89 @@ void main() {
       expect(result.succeeded, isFalse);
       expect(result.failureKind, AppLlmFailureKind.server);
       expect(delegate.calls, 1);
+    });
+
+    test(
+      'single physical dispatch policy does not retry or start reconnect probes',
+      () async {
+        final delegate = _CallCountingClient(
+          results: [
+            const AppLlmChatResult.failure(
+              failureKind: AppLlmFailureKind.network,
+              detail: 'first physical dispatch failed',
+            ),
+            const AppLlmChatResult.success(text: 'must not be requested'),
+          ],
+        );
+        final gateway = AppLlmClientGateway(
+          delegate: delegate,
+          maxRetries: 3,
+          baseDelayMs: 1,
+        );
+
+        final result = await gateway.chat(_singlePhysicalDispatchRequest);
+
+        expect(result.succeeded, isFalse);
+        expect(result.failureKind, AppLlmFailureKind.network);
+        expect(delegate.calls, 1);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(delegate.calls, 1);
+        gateway.dispose();
+      },
+    );
+
+    test('single physical dispatch bypasses an already open circuit', () async {
+      final delegate = _CallCountingClient(
+        results: [
+          const AppLlmChatResult.failure(
+            failureKind: AppLlmFailureKind.server,
+            detail: 'open the adaptive circuit',
+          ),
+          const AppLlmChatResult.success(text: 'fresh experiment response'),
+        ],
+      );
+      final gateway = AppLlmClientGateway(
+        delegate: delegate,
+        maxRetries: 1,
+        baseDelayMs: 1,
+        circuitBreaker: AppLlmCircuitBreaker(failureThreshold: 1),
+      );
+
+      final adaptive = await gateway.chat(_testRequest);
+      final single = await gateway.chat(_singlePhysicalDispatchRequest);
+
+      expect(adaptive.succeeded, isFalse);
+      expect(gateway.circuitBreaker.state, AppLlmCircuitState.open);
+      expect(single.succeeded, isTrue);
+      expect(delegate.calls, 2);
+      gateway.dispose();
+    });
+
+    test('single dispatch waits for an in-flight reconnect probe', () async {
+      final delegate = _ReconnectBarrierClient();
+      final gateway = AppLlmClientGateway(
+        delegate: delegate,
+        maxRetries: 1,
+        baseDelayMs: 0,
+      );
+
+      final adaptive = await gateway.chat(_testRequest);
+      expect(adaptive.succeeded, isFalse);
+      await delegate.probeStarted.future.timeout(const Duration(seconds: 1));
+
+      final singleFuture = gateway.chat(_singlePhysicalDispatchRequest);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(delegate.ordinaryCalls, 1);
+      expect(delegate.probeCalls, 1);
+
+      delegate.completeProbe();
+      final single = await singleFuture;
+
+      expect(single.succeeded, isTrue);
+      expect(delegate.ordinaryCalls, 2);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(delegate.probeCalls, 1);
+      gateway.dispose();
     });
 
     test('createResilientAppLlmClient returns a gateway', () {
@@ -728,6 +813,44 @@ void main() {
 
       gateway.dispose();
     });
+
+    test(
+      'shutdown recursively awaits a nested delegate lifecycle once',
+      () async {
+        final leaf = _LifecycleBarrierClient();
+        final inner = AppLlmClientGateway(delegate: leaf);
+        final outer = AppLlmClientGateway(delegate: inner);
+
+        var completed = false;
+        final firstShutdown = outer.shutdownPhysicalDispatches().then((_) {
+          completed = true;
+        });
+        await leaf.shutdownStarted.future.timeout(const Duration(seconds: 1));
+
+        expect(leaf.shutdownCalls, 1);
+        expect(completed, isFalse);
+
+        final secondShutdown = outer.shutdownPhysicalDispatches();
+        await Future<void>.delayed(Duration.zero);
+        expect(leaf.shutdownCalls, 1);
+
+        leaf.completeShutdown();
+        await Future.wait<void>(<Future<void>>[firstShutdown, secondShutdown]);
+        expect(completed, isTrue);
+        expect(leaf.shutdownCalls, 1);
+
+        await expectLater(
+          outer.chat(_testRequest),
+          throwsA(
+            isA<AppLlmPhysicalDispatchPreflightException>().having(
+              (error) => error.code,
+              'code',
+              'client-shutdown',
+            ),
+          ),
+        );
+      },
+    );
   });
 }
 
@@ -739,11 +862,26 @@ const _testRequest = AppLlmChatRequest(
   messages: [AppLlmChatMessage(role: 'user', content: 'test')],
 );
 
-class _CallCountingClient implements AppLlmClient {
+const _singlePhysicalDispatchRequest = AppLlmChatRequest(
+  baseUrl: 'http://localhost',
+  apiKey: 'key',
+  model: 'm',
+  timeoutMs: 1000,
+  messages: [AppLlmChatMessage(role: 'user', content: 'test')],
+  physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+  dispatchEvidenceNonce:
+      'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+);
+
+class _CallCountingClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   _CallCountingClient({required this.results});
 
   final List<AppLlmChatResult> results;
   int calls = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
@@ -754,4 +892,80 @@ class _CallCountingClient implements AppLlmClient {
   Stream<String> chatStream(AppLlmChatRequest request) {
     return Stream<String>.value(results[calls++].text ?? '');
   }
+}
+
+class _ReconnectBarrierClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  final Completer<void> probeStarted = Completer<void>();
+  final Completer<AppLlmChatResult> _probeResult =
+      Completer<AppLlmChatResult>();
+  int ordinaryCalls = 0;
+  int probeCalls = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  void completeProbe() {
+    _probeResult.complete(
+      const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.network,
+        detail: 'stale reconnect probe failed',
+      ),
+    );
+  }
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    final isProbe =
+        request.messages.length == 1 &&
+        request.messages.single.content == 'ping';
+    if (isProbe) {
+      probeCalls += 1;
+      if (!probeStarted.isCompleted) probeStarted.complete();
+      return _probeResult.future;
+    }
+    ordinaryCalls += 1;
+    if (ordinaryCalls == 1) {
+      return const AppLlmChatResult.failure(
+        failureKind: AppLlmFailureKind.network,
+        detail: 'start reconnect automation',
+      );
+    }
+    return const AppLlmChatResult.success(text: 'isolated single response');
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) {
+    throw UnsupportedError('streaming is outside this regression');
+  }
+}
+
+class _LifecycleBarrierClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
+  final Completer<void> shutdownStarted = Completer<void>();
+  final Completer<void> _shutdownCompleted = Completer<void>();
+  int shutdownCalls = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  void completeShutdown() => _shutdownCompleted.complete();
+
+  @override
+  Future<void> shutdownPhysicalDispatches() async {
+    shutdownCalls += 1;
+    if (!shutdownStarted.isCompleted) shutdownStarted.complete();
+    await _shutdownCompleted.future;
+  }
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async =>
+      const AppLlmChatResult.success(text: 'unused');
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) =>
+      const Stream<String>.empty();
 }

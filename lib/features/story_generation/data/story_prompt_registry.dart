@@ -743,6 +743,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _reviewJudgeSystem,
       _reviewUserTemplate,
       _reviewVariables,
+      parserRelease: 'scene-review-parser-v2-exact',
     ),
     current(
       4,
@@ -750,6 +751,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _reviewConsistencySystem,
       _reviewUserTemplate,
       _reviewVariables,
+      parserRelease: 'scene-review-parser-v2-exact',
     ),
     current(
       5,
@@ -765,6 +767,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _qualityUserTemplate,
       _qualityVariables,
       version: '2.1.1-extended-quality-rubric-strict-format',
+      parserRelease: 'scene-quality-scorecard-parser-v2-extended-exact',
       changeNote:
           'Add style, imagery, rhythm, faithfulness, and strict scorecard/name formatting.',
       outputSchema: const {'type': 'object'},
@@ -866,6 +869,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _reviewSystem('scene reader-flow review'),
       _reviewUserTemplate,
       _reviewVariables,
+      parserRelease: 'scene-review-parser-v2-exact',
     ),
     current(
       17,
@@ -873,6 +877,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _reviewSystem('scene lexicon review'),
       _reviewUserTemplate,
       _reviewVariables,
+      parserRelease: 'scene-review-parser-v2-exact',
     ),
     current(
       18,
@@ -880,6 +885,7 @@ List<StoryPromptRegistration> _buildCurrentRegistrations() {
       _reviewSystem('scene review adjudication'),
       _reviewUserTemplate,
       _reviewVariables,
+      parserRelease: 'scene-review-parser-v2-exact',
     ),
     current(
       19,

@@ -184,6 +184,7 @@ class ServiceRegistry {
   Future<void> shutdown() async {
     try {
       await flushAll();
+      await quiesceAll();
     } finally {
       disposeAll();
     }

@@ -23,6 +23,8 @@ import 'package:novel_writer/features/story_generation/domain/contracts/memory_p
 import 'package:novel_writer/features/story_generation/data/character_visible_context_models.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
+
+import 'test_support/legacy_generation_candidate_seed.dart';
 import 'package:novel_writer/features/story_generation/data/story_memory_storage.dart';
 import 'package:novel_writer/features/story_generation/domain/outline_plan_models.dart';
 import 'package:novel_writer/features/story_generation/domain/memory_models.dart';
@@ -1183,33 +1185,27 @@ void _commitPriorContinuity({
       expiresAtMs: 1000,
     ),
   );
-  ledger.finalizeCandidate(
-    proof: CandidateProofRecord(
-      runId: runId,
-      candidateRevision: 0,
-      projectId: projectId,
-      chapterId: chapterId,
-      sceneId: sceneId,
-      sourceProseRevision: 0,
-      candidateHash: candidateHash,
-      finalProseHash: finalProseHash,
-      deterministicGateEvidenceHash: deterministicGateHash,
-      finalCouncilEvidenceHash: finalCouncilHash,
-      qualityEvidenceHash: qualityHash,
-      pendingWriteSetHash: pendingWriteSetHash,
-      materialDigest: materialDigest,
-      inputDigest: inputDigest,
-      createdAtMs: 4,
-    ),
-    payload: CandidatePayloadRecord(
-      runId: runId,
-      candidateRevision: 0,
-      finalProse: finalProse,
-      pendingWriteManifestJson:
-          GenerationPendingWritePayloadIntegrity.canonicalJson(manifest),
-      createdAtMs: 4,
-      expiresAtMs: 1000,
-    ),
+  seedHistoricalV1Candidate(
+    db: db,
+    runId: runId,
+    candidateRevision: 0,
+    projectId: projectId,
+    chapterId: chapterId,
+    sceneId: sceneId,
+    sourceProseRevision: 0,
+    candidateHash: candidateHash,
+    finalProseHash: finalProseHash,
+    deterministicGateEvidenceHash: deterministicGateHash,
+    finalCouncilEvidenceHash: finalCouncilHash,
+    qualityEvidenceHash: qualityHash,
+    pendingWriteSetHash: pendingWriteSetHash,
+    materialDigest: materialDigest,
+    inputDigest: inputDigest,
+    finalProse: finalProse,
+    pendingWriteManifestJson:
+        GenerationPendingWritePayloadIntegrity.canonicalJson(manifest),
+    createdAtMs: 4,
+    expiresAtMs: 1000,
   );
   db.execute(
     '''UPDATE story_generation_runs
@@ -1266,11 +1262,12 @@ class _ControlledOrchestrator extends PipelineStageRunnerImpl {
   ProjectMaterialSnapshot? receivedMaterials;
 
   @override
-  Future<SceneRuntimeOutput> runScene(
-    SceneBrief brief, {
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) async {
+    final brief = prepared.brief;
     receivedBrief = brief;
     receivedMaterials = materials;
     started.complete();
@@ -1311,8 +1308,8 @@ class _TerminalErrorOrchestrator extends PipelineStageRunnerImpl {
   final Object error;
 
   @override
-  Future<SceneRuntimeOutput> runScene(
-    SceneBrief brief, {
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) => Future<SceneRuntimeOutput>.error(error);
@@ -1411,11 +1408,12 @@ class _MemoryPausingOrchestrator extends PipelineStageRunnerImpl {
   final _RecordingCharacterMemoryStore characterMemorySpy;
 
   @override
-  Future<SceneRuntimeOutput> runScene(
-    SceneBrief brief, {
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) async {
+    final brief = prepared.brief;
     await pausingStorage.saveChunks(
       brief.projectId ?? brief.chapterId,
       const [],

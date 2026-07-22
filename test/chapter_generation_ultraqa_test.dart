@@ -23,6 +23,8 @@ import 'package:novel_writer/features/workbench/domain/workbench_orchestrator.da
 import 'package:novel_writer/features/workbench/presentation/workbench_candidate_panel.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'test_support/legacy_generation_candidate_seed.dart';
+
 /// Cross-boundary hostile cases for the chapter-generation recovery contract.
 ///
 /// These tests intentionally use the real SQLite ledger/coordinator and RAG
@@ -643,33 +645,27 @@ void _seedCandidate(
       expiresAtMs: 1000,
     ),
   );
-  ledger.finalizeCandidate(
-    proof: CandidateProofRecord(
-      runId: 'run-ultraqa',
-      candidateRevision: revision,
-      projectId: 'project-ultraqa',
-      chapterId: 'chapter-ultraqa',
-      sceneId: 'scene-ultraqa',
-      sourceProseRevision: revision,
-      candidateHash: 'candidate-ultraqa-$revision',
-      finalProseHash: proseHash,
-      deterministicGateEvidenceHash: 'gate-hash-$revision',
-      finalCouncilEvidenceHash: 'council-hash-$revision',
-      qualityEvidenceHash: 'quality-hash-$revision',
-      pendingWriteSetHash: pendingWriteSetHash,
-      materialDigest: 'material-hash',
-      inputDigest: 'input-hash',
-      createdAtMs: revision + 1,
-    ),
-    payload: CandidatePayloadRecord(
-      runId: 'run-ultraqa',
-      candidateRevision: revision,
-      finalProse: prose,
-      pendingWriteManifestJson:
-          GenerationPendingWritePayloadIntegrity.canonicalJson(writes),
-      createdAtMs: revision + 1,
-      expiresAtMs: 1000,
-    ),
+  seedHistoricalV1Candidate(
+    db: db,
+    runId: 'run-ultraqa',
+    candidateRevision: revision,
+    projectId: 'project-ultraqa',
+    chapterId: 'chapter-ultraqa',
+    sceneId: 'scene-ultraqa',
+    sourceProseRevision: revision,
+    candidateHash: 'candidate-ultraqa-$revision',
+    finalProseHash: proseHash,
+    deterministicGateEvidenceHash: 'gate-hash-$revision',
+    finalCouncilEvidenceHash: 'council-hash-$revision',
+    qualityEvidenceHash: 'quality-hash-$revision',
+    pendingWriteSetHash: pendingWriteSetHash,
+    materialDigest: 'material-hash',
+    inputDigest: 'input-hash',
+    finalProse: prose,
+    pendingWriteManifestJson:
+        GenerationPendingWritePayloadIntegrity.canonicalJson(writes),
+    createdAtMs: revision + 1,
+    expiresAtMs: 1000,
   );
   db.execute(
     '''

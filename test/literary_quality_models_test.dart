@@ -310,42 +310,67 @@ void main() {
       );
     });
 
-    test('voice identity excludes UI text but includes semantic notes', () {
-      final left = _voiceProfile(
-        displayName: 'UI label A',
-        projectOwnedNotes: 'shared notes',
-        provenanceRefs: ['source-1'],
-      );
-      final right = _voiceProfile(
-        displayName: 'UI label B',
-        projectOwnedNotes: 'shared notes',
-        provenanceRefs: ['source-1'],
-      );
+    test(
+      'voice identity includes semantic notes but excludes UI provenance',
+      () {
+        final left = _voiceProfile(
+          displayName: 'UI label A',
+          projectOwnedNotes: 'shared notes',
+          provenanceRefs: ['source-1'],
+        );
+        final right = _voiceProfile(
+          displayName: 'UI label B',
+          projectOwnedNotes: 'shared notes',
+          provenanceRefs: ['source-1'],
+        );
 
-      expect(left.profileHash, right.profileHash);
-      expect(left.identityJson, isNot(contains('displayName')));
-      expect(left.identityJson['projectOwnedNotes'], 'shared notes');
-      expect(left.identityJson['provenanceRefs'], ['source-1']);
+        expect(left.profileHash, right.profileHash);
+        expect(left.identityJson, isNot(contains('displayName')));
+        expect(left.identityJson['projectOwnedNotes'], 'shared notes');
+        expect(left.identityJson, isNot(contains('provenanceRefs')));
 
-      final semanticNotesLeft = _voiceProfile(
-        displayName: 'UI label A',
-        projectOwnedNotes: 'private notes A',
-        provenanceRefs: ['/Users/alice/private/reference-a.txt'],
-      );
-      final semanticNotesRight = _voiceProfile(
-        displayName: 'UI label A',
-        projectOwnedNotes: 'private notes B',
-        provenanceRefs: ['C:\\private\\reference-b.txt'],
-      );
+        final semanticNotesLeft = _voiceProfile(
+          displayName: 'UI label A',
+          projectOwnedNotes: 'private notes A',
+          provenanceRefs: ['/Users/alice/private/reference-a.txt'],
+        );
+        final semanticNotesRight = _voiceProfile(
+          displayName: 'UI label A',
+          projectOwnedNotes: 'private notes B',
+          provenanceRefs: ['C:\\private\\reference-b.txt'],
+        );
 
-      expect(
-        semanticNotesLeft.profileHash,
-        isNot(semanticNotesRight.profileHash),
-      );
+        expect(
+          semanticNotesLeft.profileHash,
+          isNot(semanticNotesRight.profileHash),
+        );
 
-      final tampered = _jsonCopy(left.toJson())..['styleIntensity'] = 68;
-      expect(() => ProjectVoiceProfile.fromJson(tampered), throwsArgumentError);
-    });
+        final provenanceOnlyLeft = _voiceProfile(
+          displayName: 'UI label A',
+          projectOwnedNotes: 'same notes',
+          provenanceRefs: ['/Users/alice/private/reference-a.txt'],
+        );
+        final provenanceOnlyRight = _voiceProfile(
+          displayName: 'UI label A',
+          projectOwnedNotes: 'same notes',
+          provenanceRefs: ['C:\\private\\reference-b.txt'],
+        );
+        expect(provenanceOnlyLeft.profileHash, provenanceOnlyRight.profileHash);
+
+        final tampered = _jsonCopy(left.toJson())..['styleIntensity'] = 68;
+        expect(
+          () => ProjectVoiceProfile.fromJson(tampered),
+          throwsArgumentError,
+        );
+
+        final notesTampered = _jsonCopy(left.toJson())
+          ..['projectOwnedNotes'] = 'changed without a new profile hash';
+        expect(
+          () => ProjectVoiceProfile.fromJson(notesTampered),
+          throwsArgumentError,
+        );
+      },
+    );
   });
 
   group('narrative chain and transitions', () {

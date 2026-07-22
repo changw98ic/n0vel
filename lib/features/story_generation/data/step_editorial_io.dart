@@ -46,6 +46,8 @@ class EditorialOutput extends TypedArtifact {
 
   final pipeline.SceneEditorialDraft draft;
   final SceneProseDraft prose;
+  String? get sourceLogicalAttemptId => draft.sourceLogicalAttemptId;
+  String? get sourceCallSiteId => draft.sourceCallSiteId;
 
   @override
   ArtifactType get type => ArtifactType.proseDraft;
@@ -58,6 +60,9 @@ class EditorialOutput extends TypedArtifact {
     'draftAttempt': draft.attempt,
     'proseText': prose.text,
     'attempt': prose.attempt,
+    if (sourceLogicalAttemptId != null)
+      'sourceLogicalAttemptId': sourceLogicalAttemptId,
+    if (sourceCallSiteId != null) 'sourceCallSiteId': sourceCallSiteId,
   };
 
   @override

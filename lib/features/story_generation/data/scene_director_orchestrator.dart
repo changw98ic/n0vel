@@ -16,9 +16,12 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
 
   SceneDirectorOrchestrator({
     required StoryGenerationSettingsContract settingsStore,
-  }) : _settingsStore = settingsStore;
+    Duration requestTimeout = _requestTimeout,
+  }) : _settingsStore = settingsStore,
+       _providerRequestTimeout = requestTimeout;
 
   final StoryGenerationSettingsContract _settingsStore;
+  final Duration _providerRequestTimeout;
   final SceneTypeClassifier _typeClassifier = SceneTypeClassifier();
   final SceneTypePrompts _typePrompts = const SceneTypePrompts();
 
@@ -28,6 +31,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
     required List<ResolvedSceneCastMember> cast,
     String? ragContext,
   }) async {
+    final noContentRedraw = _noContentRedraw;
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       brief.metadata,
       formalExecution: brief.formalExecution,
@@ -44,6 +48,11 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
     );
 
     if (brief.metadata['localDirectorOnly'] == true) {
+      if (noContentRedraw) {
+        throw StoryGenerationEvidencePreflightFailure(
+          'no-redraw scene director cannot use a local-only plan',
+        );
+      }
       return SceneDirectorOutput(text: localPlanText, plan: localPlan);
     }
 
@@ -74,18 +83,29 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
         'typeSupplement': _typePrompts.directorSupplement(sceneType),
       };
       final messages = promptIdentity.render(resolvedVariables).messages;
-      final result = await requestFormalStoryGenerationPassWithRetry(
+      final evidence = noContentRedraw
+          ? StoryGenerationAttemptEvidenceCapture()
+          : null;
+      final request = requestFormalStoryGenerationPassWithRetry(
         settingsStore: _settingsStore,
         promptInvocation: promptIdentity,
         promptInvocationEvidence: promptIdentity.evidence(
           messages,
           resolvedVariables: resolvedVariables,
         ),
+        onAttemptEvidence: evidence?.record,
         messages: messages,
-      ).timeout(_requestTimeout);
+      );
+      final result = noContentRedraw
+          ? await request
+          : await request.timeout(_providerRequestTimeout);
+      _requireCompleteNoRedrawEvidence(
+        noContentRedraw: noContentRedraw,
+        evidence: evidence,
+      );
 
       if (!result.succeeded || result.text == null) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError(
             result.detail ?? 'formal scene director provider call failed',
           );
@@ -94,7 +114,7 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
       }
       final parsed = SceneDirectorPlan.tryParse(result.text!.trim());
       if (parsed == null) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError('formal scene director output was malformed');
         }
         return SceneDirectorOutput(text: localPlanText, plan: localPlan);
@@ -108,18 +128,29 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
           cast: cast,
         ),
       );
+    } on StoryGenerationEvidencePreflightFailure {
+      rethrow;
     } on TimeoutException {
+      if (noContentRedraw) {
+        rethrow;
+      }
       if (formalEvaluation) {
         throw StateError('formal scene director request timed out');
       }
       return SceneDirectorOutput(text: localPlanText, plan: localPlan);
     } catch (error) {
+      if (noContentRedraw) {
+        rethrow;
+      }
       if (formalEvaluation) {
         throw StateError('formal scene director failed: $error');
       }
       return SceneDirectorOutput(text: localPlanText, plan: localPlan);
     }
   }
+
+  bool get _noContentRedraw =>
+      StoryGenerationRetryScope.current?.allowsContentRedraw == false;
 
   String _buildLocalPlan({
     required SceneBrief brief,
@@ -256,5 +287,17 @@ class SceneDirectorOrchestrator implements SceneDirectorService {
       return normalized;
     }
     return '${normalized.substring(0, maxChars - 3)}...';
+  }
+}
+
+void _requireCompleteNoRedrawEvidence({
+  required bool noContentRedraw,
+  required StoryGenerationAttemptEvidenceCapture? evidence,
+}) {
+  if (!noContentRedraw) return;
+  if (evidence == null || !evidence.toEnvelope().evidenceComplete) {
+    throw StoryGenerationEvidencePreflightFailure(
+      'no-redraw scene director produced incomplete attempt evidence',
+    );
   }
 }

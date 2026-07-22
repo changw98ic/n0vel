@@ -350,6 +350,32 @@ void main() {
       expect(retryMessages.any((m) => m.content.contains('未满足格式要求')), isTrue);
     });
 
+    test(
+      'single physical dispatch policy disables schema repair redraw',
+      () async {
+        fakeClient.results = [
+          const AppLlmChatResult.success(text: 'short'),
+          AppLlmChatResult.success(text: '一' * 60),
+        ];
+        final client = AppLlmSchemaValidatingClient(
+          delegate: fakeClient,
+          maxValidationRetries: 3,
+        );
+
+        final result = await client.validatedChat(
+          _makeRequest(
+            physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+            dispatchEvidenceNonce:
+                'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          ),
+          schema: AppLlmOutputSchema.prose(),
+        );
+
+        expect(result.text, 'short');
+        expect(fakeClient.callCount, 1);
+      },
+    );
+
     test('重试次数耗尽返回最后结果', () async {
       // 连续返回不合规的输出
       fakeClient.results = [
@@ -414,8 +440,12 @@ void main() {
 // =============================================================================
 
 /// A simple fake LLM client for testing, with controllable responses.
-class _FakeLlmClient implements AppLlmClient {
+class _FakeLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   int callCount = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
   List<List<AppLlmChatMessage>> capturedMessages = [];
 
   /// Single result mode: if [results] is not set, [nextResult] is returned
@@ -441,11 +471,17 @@ class _FakeLlmClient implements AppLlmClient {
   }
 }
 
-AppLlmChatRequest _makeRequest() {
-  return const AppLlmChatRequest(
+AppLlmChatRequest _makeRequest({
+  AppLlmPhysicalDispatchPolicy physicalDispatchPolicy =
+      AppLlmPhysicalDispatchPolicy.adaptive,
+  String? dispatchEvidenceNonce,
+}) {
+  return AppLlmChatRequest(
     baseUrl: 'https://example.com',
     apiKey: 'test-key',
     model: 'test-model',
-    messages: [AppLlmChatMessage(role: 'user', content: 'hello')],
+    messages: const [AppLlmChatMessage(role: 'user', content: 'hello')],
+    physicalDispatchPolicy: physicalDispatchPolicy,
+    dispatchEvidenceNonce: dispatchEvidenceNonce,
   );
 }

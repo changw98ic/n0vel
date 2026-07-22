@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 
-class _CountingFakeLlmClient implements AppLlmClient {
+class _CountingFakeLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   int callCount = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
   final List<AppLlmChatResult> _queue = [];
 
   void enqueue(List<AppLlmChatResult> results) {
@@ -32,6 +36,9 @@ AppLlmChatRequest _makeRequest({
   List<AppLlmChatMessage> messages = const [
     AppLlmChatMessage(role: 'user', content: 'hello'),
   ],
+  AppLlmPhysicalDispatchPolicy physicalDispatchPolicy =
+      AppLlmPhysicalDispatchPolicy.adaptive,
+  String? dispatchEvidenceNonce,
 }) {
   return AppLlmChatRequest(
     baseUrl: baseUrl,
@@ -39,6 +46,8 @@ AppLlmChatRequest _makeRequest({
     model: model,
     timeout: timeout,
     messages: messages,
+    physicalDispatchPolicy: physicalDispatchPolicy,
+    dispatchEvidenceNonce: dispatchEvidenceNonce,
   );
 }
 
@@ -77,6 +86,31 @@ void main() {
       expect(cache.hits, 1);
       expect(cache.misses, 1);
       expect(cache.size, 1);
+    });
+
+    test('single physical dispatch bypasses cache reads and writes', () async {
+      fake.enqueue([
+        const AppLlmChatResult.success(text: 'adaptive cached value'),
+        const AppLlmChatResult.success(text: 'fresh single value'),
+      ]);
+      final adaptive = _makeRequest();
+      final single = _makeRequest(
+        physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+        dispatchEvidenceNonce:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      );
+
+      final seeded = await cache.chat(adaptive);
+      final sampled = await cache.chat(single);
+      final afterSample = await cache.chat(adaptive);
+
+      expect(seeded.text, 'adaptive cached value');
+      expect(sampled.text, 'fresh single value');
+      expect(afterSample.text, 'adaptive cached value');
+      expect(fake.callCount, 2);
+      expect(cache.size, 1);
+      expect(cache.hits, 1);
+      expect(cache.misses, 2);
     });
 
     test('does not cache failed responses', () async {

@@ -6,6 +6,8 @@ import 'package:novel_writer/features/story_generation/data/generation_ledger.da
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'test_support/legacy_generation_candidate_seed.dart';
+
 void main() {
   test(
     'V12 file-backed chapter heads are complete, revisioned, isolated, and atomic',
@@ -309,33 +311,27 @@ _SeededCandidate _seedCandidate({
       expiresAtMs: 1000,
     ),
   );
-  ledger.finalizeCandidate(
-    proof: CandidateProofRecord(
-      runId: runId,
-      candidateRevision: 0,
-      projectId: projectId,
-      chapterId: chapterId,
-      sceneId: sceneId,
-      sourceProseRevision: 0,
-      candidateHash: candidateHash,
-      finalProseHash: GenerationCommitDigest.text(prose),
-      deterministicGateEvidenceHash: 'gate-$runId',
-      finalCouncilEvidenceHash: 'council-$runId',
-      qualityEvidenceHash: 'quality-$runId',
-      pendingWriteSetHash: pendingWriteSetHash,
-      materialDigest: 'material-$runId',
-      inputDigest: 'input-$runId',
-      createdAtMs: 100,
-    ),
-    payload: CandidatePayloadRecord(
-      runId: runId,
-      candidateRevision: 0,
-      finalProse: prose,
-      pendingWriteManifestJson:
-          GenerationPendingWritePayloadIntegrity.canonicalJson(writes),
-      createdAtMs: 100,
-      expiresAtMs: 1000,
-    ),
+  seedHistoricalV1Candidate(
+    db: db,
+    runId: runId,
+    candidateRevision: 0,
+    projectId: projectId,
+    chapterId: chapterId,
+    sceneId: sceneId,
+    sourceProseRevision: 0,
+    candidateHash: candidateHash,
+    finalProseHash: GenerationCommitDigest.text(prose),
+    deterministicGateEvidenceHash: 'gate-$runId',
+    finalCouncilEvidenceHash: 'council-$runId',
+    qualityEvidenceHash: 'quality-$runId',
+    pendingWriteSetHash: pendingWriteSetHash,
+    materialDigest: 'material-$runId',
+    inputDigest: 'input-$runId',
+    finalProse: prose,
+    pendingWriteManifestJson:
+        GenerationPendingWritePayloadIntegrity.canonicalJson(writes),
+    createdAtMs: 100,
+    expiresAtMs: 1000,
   );
   db.execute(
     '''

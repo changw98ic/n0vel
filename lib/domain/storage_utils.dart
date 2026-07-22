@@ -9,6 +9,9 @@ Object? cloneStorageValue(Object? value) {
   if (value is List) {
     return [for (final item in value) cloneStorageValue(item)];
   }
+  if (value is Iterable) {
+    return [for (final item in value) cloneStorageValue(item)];
+  }
   return value;
 }
 
@@ -29,11 +32,20 @@ Map<String, Object?> immutableMap(Map<String, Object?> value) =>
     });
 
 Object? _immutableStorageValue(Object? value) {
-  if (value is List) return List<Object?>.unmodifiable(value);
-  if (value is Map<String, Object?>) return immutableMap(value);
+  if (value is List) {
+    return List<Object?>.unmodifiable(
+      value.map<Object?>(_immutableStorageValue),
+    );
+  }
+  if (value is Iterable) {
+    return List<Object?>.unmodifiable(
+      value.map<Object?>(_immutableStorageValue),
+    );
+  }
   if (value is Map) {
     return Map<String, Object?>.unmodifiable({
-      for (final entry in value.entries) entry.key.toString(): entry.value,
+      for (final entry in value.entries)
+        entry.key.toString(): _immutableStorageValue(entry.value),
     });
   }
   return value;

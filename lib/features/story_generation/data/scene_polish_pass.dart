@@ -9,16 +9,21 @@ import 'story_prompt_registry.dart';
 import 'story_generation_models.dart';
 import 'scene_text_utils.dart';
 import 'formal_evaluation_policy.dart';
+import 'generation_evidence_fingerprints.dart';
 
 class ScenePolishResult {
   final String text;
   final AiClicheReport clicheReport;
   final bool usedLocalFallback;
+  final String? sourceLogicalAttemptId;
+  final String? sourceCallSiteId;
 
   const ScenePolishResult({
     required this.text,
     required this.clicheReport,
     this.usedLocalFallback = false,
+    this.sourceLogicalAttemptId,
+    this.sourceCallSiteId,
   });
 }
 
@@ -26,10 +31,14 @@ class ScenePolishPass {
   static const Duration _polishTimeout = Duration(seconds: 120);
   static const int _maxPolishAttempts = 2;
 
-  ScenePolishPass({required StoryGenerationSettingsContract settingsStore})
-    : _settingsStore = settingsStore;
+  ScenePolishPass({
+    required StoryGenerationSettingsContract settingsStore,
+    Duration polishTimeout = _polishTimeout,
+  }) : _settingsStore = settingsStore,
+       _requestTimeout = polishTimeout;
 
   final StoryGenerationSettingsContract _settingsStore;
+  final Duration _requestTimeout;
   final AiClicheDetector _clicheDetector = AiClicheDetector();
 
   Future<ScenePolishResult> polish({
@@ -39,6 +48,7 @@ class ScenePolishPass {
     String? reviewFeedback,
     RefinementGuidance? refinementGuidance,
   }) async {
+    final noContentRedraw = _noContentRedraw;
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       brief.metadata,
       formalExecution: brief.formalExecution,
@@ -48,13 +58,18 @@ class ScenePolishPass {
       formalExecution: brief.formalExecution,
     );
     if (brief.metadata['localPolishOnly'] == true) {
+      if (noContentRedraw) {
+        throw StoryGenerationEvidencePreflightFailure(
+          'no-redraw language polish cannot use a local-only result',
+        );
+      }
       return _localResult(editorialDraft.text);
     }
 
     final acceptedFacts = _acceptedFactsFrom(resolvedBeats);
 
     for (var attempt = 0; attempt < _maxPolishAttempts; attempt++) {
-      final result = await _requestPolish(
+      final requestOutcome = await _requestPolish(
         brief: brief,
         editorialDraft: editorialDraft,
         acceptedFacts: acceptedFacts,
@@ -62,8 +77,9 @@ class ScenePolishPass {
         refinementGuidance: refinementGuidance,
         previousAttempt: attempt > 0,
       );
+      final result = requestOutcome.result;
       if (!result.succeeded || result.text == null) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError(
             result.detail ?? 'formal language polish provider call failed',
           );
@@ -71,17 +87,41 @@ class ScenePolishPass {
         return _localResult(editorialDraft.text);
       }
 
-      final polished = result.text!.trim();
-      if (polished.isEmpty) {
-        if (formalEvaluation) {
+      final returnedText = result.text!;
+      final polished = noContentRedraw ? returnedText : returnedText.trim();
+      if (polished.trim().isEmpty) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError('formal language polish returned empty prose');
         }
         return _localResult(editorialDraft.text);
       }
 
       final report = _clicheDetector.detect(polished);
-      if (!report.isSevere) {
-        return ScenePolishResult(text: polished, clicheReport: report);
+      if (!report.isSevere || noContentRedraw) {
+        // In a frozen experiment the first successful completion is the
+        // sampled completion. A severe cliche report may reject the sample at
+        // a later quality gate, but it must never trigger another provider
+        // draw here.
+        final source = requestOutcome.sourceEvidence;
+        if (noContentRedraw &&
+            (source == null ||
+                source.logicalAttemptId == null ||
+                !source.succeeded ||
+                source.callSiteId != 'language-polish' ||
+                !_sameArtifactDigest(
+                  source.artifactDigest,
+                  ArtifactDigest.fromUtf8String(polished),
+                ))) {
+          throw StoryGenerationEvidenceIntegrityFailure(
+            'polish prose is not the exact successful formal provider artifact',
+          );
+        }
+        return ScenePolishResult(
+          text: polished,
+          clicheReport: report,
+          sourceLogicalAttemptId: source?.logicalAttemptId,
+          sourceCallSiteId: source?.callSiteId,
+        );
       }
     }
 
@@ -98,7 +138,7 @@ class ScenePolishPass {
     );
   }
 
-  Future<AppLlmChatResult> _requestPolish({
+  Future<_PolishRequestOutcome> _requestPolish({
     required SceneBrief brief,
     required SceneEditorialDraft editorialDraft,
     required List<String> acceptedFacts,
@@ -106,6 +146,10 @@ class ScenePolishPass {
     RefinementGuidance? refinementGuidance,
     bool previousAttempt = false,
   }) async {
+    final noContentRedraw = _noContentRedraw;
+    final evidence = noContentRedraw
+        ? StoryGenerationAttemptEvidenceCapture()
+        : null;
     try {
       final promptIdentity = StoryPromptRegistry.production.invocation(
         stageId: 'polish',
@@ -122,7 +166,7 @@ class ScenePolishPass {
         'prose': editorialDraft.text,
       };
       final messages = promptIdentity.render(resolvedVariables).messages;
-      return await requestFormalStoryGenerationPassWithRetry(
+      final request = requestFormalStoryGenerationPassWithRetry(
         settingsStore: _settingsStore,
         promptInvocation: promptIdentity,
         promptInvocationEvidence: promptIdentity.evidence(
@@ -130,15 +174,38 @@ class ScenePolishPass {
           resolvedVariables: resolvedVariables,
         ),
         initialMaxTokens: storyGenerationEditorialMaxTokens,
+        onAttemptEvidence: evidence?.record,
         messages: messages,
-      ).timeout(_polishTimeout);
+      );
+      final result = noContentRedraw
+          ? await request
+          : await request.timeout(_requestTimeout);
+      _requireCompleteNoRedrawEvidence(
+        noContentRedraw: noContentRedraw,
+        evidence: evidence,
+        stageLabel: 'language polish',
+      );
+      final source = evidence != null && evidence.attempts.isNotEmpty
+          ? evidence.attempts.last
+          : null;
+      return _PolishRequestOutcome(result: result, sourceEvidence: source);
+    } on StoryGenerationEvidencePreflightFailure {
+      rethrow;
     } catch (_) {
-      return const AppLlmChatResult.failure(
-        failureKind: AppLlmFailureKind.timeout,
-        detail: 'Language polish timed out.',
+      if (noContentRedraw) {
+        rethrow;
+      }
+      return const _PolishRequestOutcome(
+        result: AppLlmChatResult.failure(
+          failureKind: AppLlmFailureKind.timeout,
+          detail: 'Language polish timed out.',
+        ),
       );
     }
   }
+
+  bool get _noContentRedraw =>
+      StoryGenerationRetryScope.current?.allowsContentRedraw == false;
 
   ScenePolishResult _localResult(String text) {
     final report = _clicheDetector.detect(text);
@@ -181,5 +248,31 @@ class ScenePolishPass {
   String _characterSpeechAnchors(SceneBrief brief) {
     final anchors = characterAnchorsText(brief.characterProfiles);
     return anchors.isEmpty ? '' : '角色语言特征（对白必须符合）：\n$anchors';
+  }
+}
+
+bool _sameArtifactDigest(ArtifactDigest? left, ArtifactDigest right) =>
+    left != null &&
+    left.domainTag == right.domainTag &&
+    left.byteLength == right.byteLength &&
+    left.digest == right.digest;
+
+final class _PolishRequestOutcome {
+  const _PolishRequestOutcome({required this.result, this.sourceEvidence});
+
+  final AppLlmChatResult result;
+  final StoryGenerationAttemptEvidence? sourceEvidence;
+}
+
+void _requireCompleteNoRedrawEvidence({
+  required bool noContentRedraw,
+  required StoryGenerationAttemptEvidenceCapture? evidence,
+  required String stageLabel,
+}) {
+  if (!noContentRedraw) return;
+  if (evidence == null || !evidence.toEnvelope().evidenceComplete) {
+    throw StoryGenerationEvidencePreflightFailure(
+      'no-redraw $stageLabel produced incomplete attempt evidence',
+    );
   }
 }
