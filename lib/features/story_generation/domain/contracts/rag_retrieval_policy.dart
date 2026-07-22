@@ -17,7 +17,11 @@ enum RankingStrategy {
 class RagRetrievalPolicy {
   const RagRetrievalPolicy({
     required this.roleId,
-    this.allowedTiers = const [MemoryTier.canon, MemoryTier.character, MemoryTier.scene],
+    this.allowedTiers = const [
+      MemoryTier.canon,
+      MemoryTier.character,
+      MemoryTier.scene,
+    ],
     this.maxTokens = 2000,
     this.rankingStrategy = RankingStrategy.hybrid,
     this.mustIncludeCanon = false,
@@ -50,8 +54,7 @@ class RagRetrievalPolicy {
   final double keywordWeight;
 
   /// Validate that weights sum to approximately 1.0.
-  bool get weightsValid =>
-      (semanticWeight + keywordWeight - 1.0).abs() < 0.01;
+  bool get weightsValid => (semanticWeight + keywordWeight - 1.0).abs() < 0.01;
 
   /// Factory: director planning role.
   factory RagRetrievalPolicy.director() => const RagRetrievalPolicy(

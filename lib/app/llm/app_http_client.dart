@@ -11,14 +11,16 @@ class AppHttpClient {
   }
 
   static Dio _create() {
-    return Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 120),
-      sendTimeout: const Duration(seconds: 30),
-      responseType: ResponseType.stream,
-      validateStatus: (_) => true,
-      headers: {'Content-Type': 'application/json'},
-    ));
+    return Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 120),
+        sendTimeout: const Duration(seconds: 30),
+        responseType: ResponseType.stream,
+        validateStatus: (_) => true,
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
   }
 
   static void addInterceptor(Interceptor interceptor) {

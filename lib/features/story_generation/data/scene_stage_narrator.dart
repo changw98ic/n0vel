@@ -34,6 +34,7 @@ class SceneStageNarrator {
     SceneRoleplaySession? roleplaySession,
     String? ragContext,
   }) async {
+    final noContentRedraw = _noContentRedraw;
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       taskCard.brief.metadata,
       formalExecution: taskCard.brief.formalExecution,
@@ -47,6 +48,11 @@ class SceneStageNarrator {
       formalExecution: taskCard.brief.formalExecution,
     );
     if (_disabled(taskCard)) {
+      if (noContentRedraw) {
+        throw StoryGenerationEvidencePreflightFailure(
+          'no-redraw stage narration cannot be disabled after invocation',
+        );
+      }
       if (formalEvaluation) {
         throw StateError('formal evaluation cannot disable stage narration');
       }
@@ -105,6 +111,9 @@ class SceneStageNarrator {
             : PromptStringUtils.compact(ragContext, maxChars: 1000),
       };
       final messages = promptIdentity.render(resolvedVariables).messages;
+      final evidence = noContentRedraw
+          ? StoryGenerationAttemptEvidenceCapture()
+          : null;
       final result = await requestFormalStoryGenerationPassWithRetry(
         settingsStore: _settingsStore,
         promptInvocation: promptIdentity,
@@ -117,10 +126,15 @@ class SceneStageNarrator {
         shouldRetryOutput: formalEvaluation
             ? _shouldRejectExactStageText
             : null,
+        onAttemptEvidence: evidence?.record,
         messages: messages,
       );
+      _requireCompleteNoRedrawEvidence(
+        noContentRedraw: noContentRedraw,
+        evidence: evidence,
+      );
       if (!result.succeeded || result.text == null) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError(
             result.detail ?? 'formal scene stage narration failed',
           );
@@ -131,7 +145,7 @@ class SceneStageNarrator {
           ? _parseExactStageText(result.text!)
           : _normalizeStageText(result.text!);
       if (summary == null || summary.isEmpty) {
-        if (formalEvaluation) {
+        if (formalEvaluation || noContentRedraw) {
           throw StateError('formal scene stage narration output was malformed');
         }
         return null;
@@ -145,13 +159,21 @@ class SceneStageNarrator {
         summary: summary,
         tokenBudget: 240,
       );
+    } on StoryGenerationEvidencePreflightFailure {
+      rethrow;
     } on Object catch (error) {
+      if (noContentRedraw) {
+        rethrow;
+      }
       if (formalEvaluation) {
         throw StateError('formal scene stage narration failed: $error');
       }
       return null;
     }
   }
+
+  bool get _noContentRedraw =>
+      StoryGenerationRetryScope.current?.allowsContentRedraw == false;
 
   bool _disabled(pipeline.SceneTaskCard taskCard) {
     final value =
@@ -219,5 +241,17 @@ class SceneStageNarrator {
         normalized == '...' ||
         normalized == '…' ||
         normalized == '……';
+  }
+}
+
+void _requireCompleteNoRedrawEvidence({
+  required bool noContentRedraw,
+  required StoryGenerationAttemptEvidenceCapture? evidence,
+}) {
+  if (!noContentRedraw) return;
+  if (evidence == null || !evidence.toEnvelope().evidenceComplete) {
+    throw StoryGenerationEvidencePreflightFailure(
+      'no-redraw stage narration produced incomplete attempt evidence',
+    );
   }
 }

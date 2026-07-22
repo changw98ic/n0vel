@@ -6,6 +6,7 @@ import 'app_project_scoped_store.dart';
 import 'app_scene_context_storage.dart';
 import 'app_workspace_store.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 
 class AppSceneContextSnapshot {
   const AppSceneContextSnapshot({
@@ -32,20 +33,22 @@ class AppSceneContextSnapshot {
 }
 
 class AppSceneContextStore extends AppProjectScopedStore {
-  AppSceneContextStore({AppSceneContextStorage? storage, super.workspaceStore, super.eventBus})
-    : _storage =
-          storage ??
-          
-          createDefaultAppSceneContextStorage(),
-      super(fallbackProjectId: _defaultSceneScopeId) {
+  AppSceneContextStore({
+    AppSceneContextStorage? storage,
+    super.workspaceStore,
+    super.eventBus,
+  }) : _storage = storage ?? createDefaultAppSceneContextStorage(),
+       super(fallbackProjectId: _defaultSceneScopeId) {
     _snapshot = _snapshotForScope(activeProjectId);
     onRestore();
   }
 
-  
   final AppSceneContextStorage _storage;
   final Map<String, AppSceneContextSnapshot> _snapshotsByProjectId = {};
   late AppSceneContextSnapshot _snapshot;
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   AppSceneContextSnapshot get snapshot => _snapshot;
 

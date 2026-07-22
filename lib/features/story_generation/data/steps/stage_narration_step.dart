@@ -5,12 +5,13 @@ import '../../domain/contracts/pipeline_role_contract.dart';
 import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 4: resolve retrieval capsules and generate stage narration.
-class StageNarrationStep implements PipelineStage<StageNarrationInput, StageNarrationOutput> {
+class StageNarrationStep
+    implements PipelineStage<StageNarrationInput, StageNarrationOutput> {
   StageNarrationStep({
     required SceneStageNarrator stageNarrator,
     required RetrievalController retrievalController,
-  })  : _stageNarrator = stageNarrator,
-        _retrievalController = retrievalController;
+  }) : _stageNarrator = stageNarrator,
+       _retrievalController = retrievalController;
 
   final SceneStageNarrator _stageNarrator;
   final RetrievalController _retrievalController;
@@ -47,9 +48,6 @@ class StageNarrationStep implements PipelineStage<StageNarrationInput, StageNarr
       ragContext: input.ragContext?.formattedContext,
     );
 
-    return StageNarrationOutput(
-      capsules: capsules,
-      stageCapsule: stageCapsule,
-    );
+    return StageNarrationOutput(capsules: capsules, stageCapsule: stageCapsule);
   }
 }

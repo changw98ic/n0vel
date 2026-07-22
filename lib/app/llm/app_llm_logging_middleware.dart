@@ -6,7 +6,11 @@ import 'package:novel_writer/app/logging/app_log.dart';
 import 'app_llm_client_contract.dart';
 import 'app_llm_client_types.dart';
 
-class AppLlmLoggingMiddleware implements AppLlmClient {
+class AppLlmLoggingMiddleware
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AppLlmLoggingMiddleware({
     required AppLlmClient delegate,
     AppEventLog? eventLog,
@@ -17,7 +21,20 @@ class AppLlmLoggingMiddleware implements AppLlmClient {
   final AppEventLog? _eventLog;
 
   @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(_delegate);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(_delegate);
+
+  @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     final parsed = Uri.tryParse(request.baseUrl.trim());
     final host = (parsed != null && parsed.host.isNotEmpty)
         ? parsed.host
@@ -71,6 +88,11 @@ class AppLlmLoggingMiddleware implements AppLlmClient {
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) async* {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     final parsed = Uri.tryParse(request.baseUrl.trim());
     final host = (parsed != null && parsed.host.isNotEmpty)
         ? parsed.host

@@ -843,6 +843,9 @@ class _ProductionHarness {
         provider: gate.provider,
         timeout: const AppLlmTimeoutConfig.uniform(90000),
         maxTokens: 4096,
+        physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+        dispatchEvidenceNonce:
+            'sha256:${AgentEvaluationHashes.domainHash('production-canary-preflight-attempt-v1', <String, Object?>{'budgetId': 'glm-production-canary-${gate.startedAtMs}', 'modelRouteHash': gate.modelRouteHash})}',
         messages: const [
           AppLlmChatMessage(role: 'user', content: 'Reply with pong.'),
         ],

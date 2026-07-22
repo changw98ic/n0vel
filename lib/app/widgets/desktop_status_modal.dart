@@ -101,7 +101,11 @@ class BottomSpecBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.auto_awesome_outlined, size: 14, color: palette.navActive),
+                Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 14,
+                  color: palette.navActive,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   description,
@@ -143,9 +147,7 @@ class DesignActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
         ),
         elevation: 0,
-      ).copyWith(
-        shadowColor: WidgetStateProperty.all(palette.darkPanelBorder),
-      ),
+      ).copyWith(shadowColor: WidgetStateProperty.all(palette.darkPanelBorder)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

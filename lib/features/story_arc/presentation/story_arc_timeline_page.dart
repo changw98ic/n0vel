@@ -118,10 +118,7 @@ class _TimelineMainArea extends StatelessWidget {
         const SizedBox(height: AppDesignTokens.space16),
         // 时间线主体（可拖拽）
         Expanded(
-          child: _DraggableTimeline(
-            snapshot: snapshot,
-            arcStore: arcStore,
-          ),
+          child: _DraggableTimeline(snapshot: snapshot, arcStore: arcStore),
         ),
         // 紧凑模式下的伏笔面板
         if (compact) ...[
@@ -143,9 +140,9 @@ class _TimelineMainArea extends StatelessWidget {
       children: [
         Text(
           '时间线',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const Spacer(),
         if (arcStore.canUndo)
@@ -164,10 +161,7 @@ class _TimelineMainArea extends StatelessWidget {
 // ============================================================================
 
 class _DraggableTimeline extends StatefulWidget {
-  const _DraggableTimeline({
-    required this.snapshot,
-    required this.arcStore,
-  });
+  const _DraggableTimeline({required this.snapshot, required this.arcStore});
 
   final StoryArcSnapshot snapshot;
   final StoryArcStore arcStore;
@@ -209,7 +203,9 @@ class _DraggableTimelineState extends State<_DraggableTimeline> {
         final threads = widget.snapshot.narrativeArcState.activeThreads
             .where((t) => t.introducedInScene.contains(sceneId))
             .toList();
-        final foreshadowing = widget.snapshot.narrativeArcState
+        final foreshadowing = widget
+            .snapshot
+            .narrativeArcState
             .pendingForeshadowing
             .where(
               (f) =>
@@ -325,9 +321,9 @@ class _ForeshadowingSidePanel extends StatelessWidget {
                 const SizedBox(width: AppDesignTokens.space8),
                 Text(
                   '伏笔追踪',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 if (dangling.isNotEmpty)
@@ -372,26 +368,17 @@ class _ForeshadowingSidePanel extends StatelessWidget {
                           ForeshadowingCard(
                             foreshadowing: f,
                             isResolved: false,
-                            onResolve: () => _showResolveDialog(
-                              context,
-                              f.id,
-                              f.hint,
-                            ),
-                            onUrgencyChanged: (urgency) =>
-                                arcStore.updateForeshadowingUrgency(
-                                  f.id,
-                                  urgency,
-                                ),
+                            onResolve: () =>
+                                _showResolveDialog(context, f.id, f.hint),
+                            onUrgencyChanged: (urgency) => arcStore
+                                .updateForeshadowingUrgency(f.id, urgency),
                           ),
                       ],
                       if (resolved.isNotEmpty) ...[
                         const SizedBox(height: AppDesignTokens.space12),
                         _SectionHeader(label: '已回收 (${resolved.length})'),
                         for (final f in resolved)
-                          ForeshadowingCard(
-                            foreshadowing: f,
-                            isResolved: true,
-                          ),
+                          ForeshadowingCard(foreshadowing: f, isResolved: true),
                       ],
                     ],
                   ),

@@ -1,6 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/app/llm/app_llm_canonical_hash.dart';
+import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/features/story_generation/data/generation_evidence_fingerprints.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_scorer.dart';
+import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
+import 'package:novel_writer/features/story_generation/data/story_prompt_registry.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+
+import 'test_support/formal_evaluation_provenance_fixture.dart';
 
 void main() {
   // ── SceneQualityScore model ─────────────────────────────────────────
@@ -287,6 +294,253 @@ void main() {
     test('rejects partial input with only some dimensions', () {
       const raw = '文笔：85\n角色：78';
       expect(() => SceneQualityScorer.parseScore(raw), throwsFormatException);
+    });
+  });
+
+  group('SceneQualityScorer parsed-result provenance', () {
+    const prose = SceneProseDraft(text: '雨线斜切过仓门，柳溪按住被风掀起的货单。', attempt: 1);
+    final brief = SceneBrief(
+      chapterId: 'quality-chapter',
+      chapterTitle: '雨夜',
+      sceneId: 'quality-scene',
+      sceneTitle: '仓门',
+      sceneSummary: '柳溪守住货单。',
+      formalExecution: true,
+    );
+    const director = SceneDirectorOutput(text: '守住货单并确认追兵位置。');
+    const review = SceneReviewResult(
+      judge: SceneReviewPassResult(
+        status: SceneReviewStatus.pass,
+        reason: '行动清楚。',
+        rawText: '决定：PASS\n原因：行动清楚。',
+      ),
+      consistency: SceneReviewPassResult(
+        status: SceneReviewStatus.pass,
+        reason: '事实一致。',
+        rawText: '决定：PASS\n原因：事实一致。',
+      ),
+      decision: SceneReviewDecision.pass,
+    );
+    const response =
+        '文笔：92\n连贯：94\n角色：93\n完整：95\n文风：91\n修辞：90\n'
+        '节奏：92\n忠实：96\n综合：93\n总结：事实边界清楚';
+
+    Future<SceneQualityScore> realScore() async {
+      final run = await runFormalEvaluationProvenanceFixture(
+        responses: const [response],
+        body: (settingsStore) => SceneQualityScorer(
+          settingsStore: settingsStore,
+        ).score(brief: brief, director: director, prose: prose, review: review),
+      );
+      expect(run.providerCallCount, 1);
+      expect(run.attempts.single.callSiteId, 'quality-scorer');
+      return run.value;
+    }
+
+    Future<AppLlmChatResult> rawFormalQualityOutcome() async {
+      final promptIdentity = StoryPromptRegistry.production.invocation(
+        stageId: 'quality-gate',
+        callSiteId: 'quality-scorer',
+      );
+      final variables = <String, Object?>{
+        'sceneTitle': '仓门',
+        'sceneSummary': '柳溪守住货单。',
+        'director': director.text,
+        'prose': prose.text,
+        'review': review.editorialFeedback,
+        'faithfulnessContext': '仅依据场景概要。',
+      };
+      final messages = promptIdentity.render(variables).messages;
+      final artifactDigest = ArtifactDigest.fromUtf8String(prose.text);
+      final run = await runFormalEvaluationProvenanceFixture(
+        responses: const [response],
+        body: (settingsStore) => StoryGenerationEvaluationScope.run(
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactText: prose.text,
+          body: () => requestFormalStoryGenerationPassWithRetry(
+            settingsStore: settingsStore,
+            messages: messages,
+            promptInvocation: promptIdentity,
+            promptInvocationEvidence: promptIdentity.evidence(
+              messages,
+              resolvedVariables: variables,
+            ),
+            evaluationFingerprintSeed: StoryGenerationEvaluationFingerprintSeed(
+              artifactDigest: artifactDigest,
+              evaluationBundleHash: AppLlmCanonicalHash.domainHash(
+                'quality-admission-negative-test-bundle-v1',
+                const <String, Object?>{'release': 'fixture'},
+              ),
+              judgeInput: storyGenerationEvaluationJudgeInput(
+                phase: StoryGenerationEvaluationPhase.quality,
+                stageId: 'quality-gate',
+                callSiteId: 'quality-scorer',
+                artifactDigest: artifactDigest,
+              ),
+              rubricHash: storyGenerationEvaluationRubricHash(
+                phase: StoryGenerationEvaluationPhase.quality,
+                promptInvocation: promptIdentity,
+              ),
+              blindingPolicy: 'formal-evaluation-test-v1',
+            ),
+          ),
+        ),
+      );
+      return run.value;
+    }
+
+    test('real durable provider score mints one exact DTO proof', () async {
+      final score = await realScore();
+      final rehydrated = SceneQualityScore.fromJson(score.toJson());
+      final artifactDigest = ArtifactDigest.fromUtf8String(prose.text);
+
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: rehydrated,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+
+      final provenance = consumeVerifiedSceneQualityProvenance(
+        score: score,
+        phase: StoryGenerationEvaluationPhase.quality,
+        artifactDigest: artifactDigest,
+      );
+      expect(provenance, isNotNull);
+      expect(provenance!.outcome.stageId, 'quality-gate');
+      expect(provenance.outcome.callSiteId, 'quality-scorer');
+      expect(
+        provenance.outcome.parserRelease,
+        StoryPromptRegistry.production
+            .invocation(stageId: 'quality-gate', callSiteId: 'quality-scorer')
+            .release
+            .parserRelease,
+      );
+      expect(
+        provenance.parsedOutputDigest,
+        storyGenerationParsedOutputDigest(score.toJson()),
+      );
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+    });
+
+    test('phase mismatch burns the exact score proof', () async {
+      final score = await realScore();
+      final artifactDigest = ArtifactDigest.fromUtf8String(prose.text);
+
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.finalCouncil,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+    });
+
+    test('artifact mismatch burns the exact score proof', () async {
+      final score = await realScore();
+
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: ArtifactDigest.fromUtf8String('different prose'),
+        ),
+        isNull,
+      );
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: ArtifactDigest.fromUtf8String(prose.text),
+        ),
+        isNull,
+      );
+    });
+
+    test('public parser output cannot mint a score proof', () {
+      final score = SceneQualityScorer.parseScore(response);
+      expect(
+        consumeVerifiedSceneQualityProvenance(
+          score: score,
+          phase: StoryGenerationEvaluationPhase.quality,
+          artifactDigest: ArtifactDigest.fromUtf8String(prose.text),
+        ),
+        isNull,
+      );
+    });
+
+    test('wrong callsite or parser burns the raw provider admission', () async {
+      final promptIdentity = StoryPromptRegistry.production.invocation(
+        stageId: 'quality-gate',
+        callSiteId: 'quality-scorer',
+      );
+      final artifactDigest = ArtifactDigest.fromUtf8String(prose.text);
+      final wrongCallSiteResult = await rawFormalQualityOutcome();
+
+      expect(
+        takeStoryGenerationFormalOutcomeAdmission(
+          result: wrongCallSiteResult,
+          stageId: 'quality-gate',
+          callSiteId: 'not-quality-scorer',
+          parserRelease: promptIdentity.release.parserRelease,
+          evaluationPhase: StoryGenerationEvaluationPhase.quality,
+          evaluatedArtifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+      expect(
+        takeStoryGenerationFormalOutcomeAdmission(
+          result: wrongCallSiteResult,
+          stageId: 'quality-gate',
+          callSiteId: 'quality-scorer',
+          parserRelease: promptIdentity.release.parserRelease,
+          evaluationPhase: StoryGenerationEvaluationPhase.quality,
+          evaluatedArtifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+
+      final wrongParserResult = await rawFormalQualityOutcome();
+      expect(
+        takeStoryGenerationFormalOutcomeAdmission(
+          result: wrongParserResult,
+          stageId: 'quality-gate',
+          callSiteId: 'quality-scorer',
+          parserRelease: 'wrong-parser-release',
+          evaluationPhase: StoryGenerationEvaluationPhase.quality,
+          evaluatedArtifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
+      expect(
+        takeStoryGenerationFormalOutcomeAdmission(
+          result: wrongParserResult,
+          stageId: 'quality-gate',
+          callSiteId: 'quality-scorer',
+          parserRelease: promptIdentity.release.parserRelease,
+          evaluationPhase: StoryGenerationEvaluationPhase.quality,
+          evaluatedArtifactDigest: artifactDigest,
+        ),
+        isNull,
+      );
     });
   });
 

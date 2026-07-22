@@ -19,7 +19,8 @@ class ProductionBoardPage extends ConsumerStatefulWidget {
   static const recentRunKey = ValueKey<String>('production-board-recent-run');
 
   @override
-  ConsumerState<ProductionBoardPage> createState() => _ProductionBoardPageState();
+  ConsumerState<ProductionBoardPage> createState() =>
+      _ProductionBoardPageState();
 }
 
 class _ProductionBoardPageState extends ConsumerState<ProductionBoardPage> {
@@ -40,8 +41,7 @@ class _ProductionBoardPageState extends ConsumerState<ProductionBoardPage> {
         ? outlineStore.snapshot
         : StoryOutlineSnapshot.empty(workspaceStore.currentProjectId);
     final generation =
-        generationStore.snapshot.projectId ==
-            workspaceStore.currentProjectId
+        generationStore.snapshot.projectId == workspaceStore.currentProjectId
         ? generationStore.snapshot
         : StoryGenerationSnapshot.empty(workspaceStore.currentProjectId);
     final snapshot = _builder.build(
@@ -105,11 +105,9 @@ class _ProductionBoardPageState extends ConsumerState<ProductionBoardPage> {
         },
       ),
       statusBar: DesktopStatusStrip(
-        leftText:
-            '进度 ${snapshot.completedScenes}/${snapshot.totalScenes} 章节',
+        leftText: '进度 ${snapshot.completedScenes}/${snapshot.totalScenes} 章节',
         rightText: '最近写作：${snapshot.recentRun.statusLabel}',
       ),
     );
   }
-
 }

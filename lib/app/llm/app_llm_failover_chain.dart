@@ -155,7 +155,12 @@ class LlmFailoverChain {
     AppLlmChatRequest requestTemplate, {
     List<FailoverAttemptResult>? attempts,
   }) async {
-    final ordered = orderedEndpoints();
+    final configured = orderedEndpoints();
+    final ordered =
+        requestTemplate.physicalDispatchPolicy ==
+            AppLlmPhysicalDispatchPolicy.single
+        ? configured.take(1).toList(growable: false)
+        : configured;
     if (ordered.isEmpty) {
       return const AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
@@ -201,7 +206,10 @@ class LlmFailoverChain {
         provider: endpoint.provider,
         onPartialText: requestTemplate.onPartialText,
         formalCacheIdentity: requestTemplate.formalCacheIdentity,
+        formalDispatchIdentity: requestTemplate.formalDispatchIdentity,
         preferStreaming: requestTemplate.preferStreaming,
+        physicalDispatchPolicy: requestTemplate.physicalDispatchPolicy,
+        dispatchEvidenceNonce: requestTemplate.dispatchEvidenceNonce,
       );
 
       Future<AppLlmChatResult> executeGateway() {

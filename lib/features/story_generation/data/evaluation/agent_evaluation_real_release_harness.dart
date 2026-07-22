@@ -1438,19 +1438,36 @@ final class AgentEvaluationRealReleaseHarness {
       dbPath: path,
       requireExistingSchema: true,
     );
-    final workspace = _canonicalPublicReleaseWorkspace();
-    final outline = _canonicalPublicReleaseOutline();
     final existingWorkspace = await workspaceStorage.load();
     final existingOutline = await outlineStorage.load(
-      projectId: _publicReleaseProjectId,
+      projectId: _publicFixtureProjectId,
     );
-    if (AgentEvaluationHashes.canonicalJson(existingWorkspace) !=
-        AgentEvaluationHashes.canonicalJson(workspace)) {
-      await workspaceStorage.save(workspace);
+    if (existingWorkspace == null && existingOutline == null) {
+      await workspaceStorage.save(_publicFixtureWorkspace());
+      await outlineStorage.save(
+        _publicFixtureOutline(),
+        projectId: _publicFixtureProjectId,
+      );
+    } else if (existingWorkspace == null || existingOutline == null) {
+      throw StateError('canonical public fixture is only partially persisted');
     }
-    if (AgentEvaluationHashes.canonicalJson(existingOutline) !=
-        AgentEvaluationHashes.canonicalJson(outline)) {
-      await outlineStorage.save(outline, projectId: _publicReleaseProjectId);
+    final persistedWorkspace = await workspaceStorage.load();
+    final persistedOutline = await outlineStorage.load(
+      projectId: _publicFixtureProjectId,
+    );
+    final persistedRelease = <String, Object?>{
+      'workspace': persistedWorkspace,
+      'outline': persistedOutline,
+    };
+    if (persistedWorkspace == null ||
+        persistedOutline == null ||
+        AgentEvaluationHashes.canonicalJson(persistedRelease) !=
+            AgentEvaluationHashes.canonicalJson(
+              _canonicalPublicFixtureRelease(),
+            ) ||
+        _publicFixtureReleaseHash(persistedRelease) !=
+            _publicFixtureReleaseHash(_canonicalPublicFixtureRelease())) {
+      throw StateError('canonical public fixture failed write verification');
     }
   }
 
@@ -1474,8 +1491,8 @@ final class AgentEvaluationRealReleaseHarness {
     final frozenScenarioSet =
         scenarioSet ??
         ScenarioSetRelease(
-          setId: 'real-provider-release-episode-v1',
-          version: '1.0.0',
+          setId: 'real-provider-release-episode-v2',
+          version: '2.0.0',
           scenarios: scenarios,
           fixtureCount: 10,
           outlineSceneCount: 10,
@@ -1520,8 +1537,9 @@ final class AgentEvaluationRealReleaseHarness {
         'mode': 'durable-randomized-dispatch-v1',
       },
       trialIsolationPolicy: const <String, Object?>{
-        'mode': 'durable-independent-sandbox-v1',
+        'mode': 'durable-independent-sandbox-v2',
         'scenarioCount': 10,
+        'canonicalPublicFixture': 'real-release-public-fixture-release-v2',
       },
       transportAttemptPolicy: <String, Object?>{
         'maxAttempts': configuration.maxAttemptsPerTrial,
@@ -1881,7 +1899,8 @@ final class _DurableReleaseRuntimeFactory
   }
 }
 
-final class _BudgetGuardedJudgeClient implements AppLlmClient {
+final class _BudgetGuardedJudgeClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   const _BudgetGuardedJudgeClient({
     required AppLlmClient inner,
     required this.route,
@@ -1901,6 +1920,11 @@ final class _BudgetGuardedJudgeClient implements AppLlmClient {
   final int maxCostMicrousdPerCall;
   final int promptMicrousdPerMillionTokens;
   final int completionMicrousdPerMillionTokens;
+
+  // This wrapper imposes an outer Future.timeout and therefore cannot prove
+  // that a timed-out logical request has stopped its physical provider call.
+  @override
+  bool get supportsSinglePhysicalDispatch => false;
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
@@ -2177,46 +2201,205 @@ _RealReleaseDbReport _buildDbReport({
   );
 }
 
+const _publicFixtureProjectId = 'real-release-public-project-v2';
+const _publicFixtureSceneId = 'real-release-public-scene-v2';
+const _publicFixtureSceneScopeId =
+    '$_publicFixtureProjectId::$_publicFixtureSceneId';
+
+Map<String, Object?> _publicFixtureWorkspace() => <String, Object?>{
+  'projects': <Object?>[
+    <String, Object?>{
+      'id': _publicFixtureProjectId,
+      'sceneId': _publicFixtureSceneId,
+      'title': '七号仓公开评测夹具',
+      'genre': '悬疑',
+      'summary': '调查者林舟追查被篡改的七号仓门禁记录。',
+      'recentLocation': '第一章 / 七号仓',
+      'lastOpenedAtMs': 1,
+    },
+  ],
+  'charactersByProject': <String, Object?>{
+    _publicFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': 'character-linzhou',
+        'name': '林舟',
+        'role': '调查者',
+        'note': '坚持核对门禁与物证',
+        'need': '找到账本并查清篡改者',
+        'summary': '谨慎、果断',
+        'referenceSummary': '追查七号仓门禁记录',
+        'linkedSceneIds': <String>[_publicFixtureSceneId],
+      },
+    ],
+  },
+  'scenesByProject': <String, Object?>{
+    _publicFixtureProjectId: <Object?>[
+      <String, Object?>{
+        'id': _publicFixtureSceneId,
+        'chapterLabel': '第一章',
+        'title': '七号仓门后',
+        'summary': '林舟取得七号仓账本线索，并面对门后仍在逼近的威胁。',
+      },
+    ],
+  },
+  'worldNodesByProject': <String, Object?>{},
+  'auditIssuesByProject': <String, Object?>{},
+  'projectStyles': <String, Object?>{},
+  'projectAuditStates': <String, Object?>{},
+  'projectDeletionTombstones': <String, Object?>{},
+  'projectTransferState': '',
+  'currentProjectId': _publicFixtureProjectId,
+};
+
+Map<String, Object?> _publicFixtureOutline() => <String, Object?>{
+  'projectId': _publicFixtureProjectId,
+  'chapters': <Object?>[
+    <String, Object?>{
+      'id': 'real-release-public-chapter-v2',
+      'title': '第一章',
+      'summary': '七号仓调查',
+      'scenes': <Object?>[
+        <String, Object?>{
+          'id': _publicFixtureSceneId,
+          'title': '七号仓门后',
+          'summary': '林舟取得账本线索并面对门后伏击。',
+          'metadata': <String, Object?>{
+            'requireOutlineFidelity': true,
+            'requiredOutlineBeats': <Object?>[
+              <String, Object?>{
+                'id': 'recover-seven-warehouse-ledger',
+                'description': '林舟取得七号仓账本线索。',
+                'evidenceGroups': <Object?>[
+                  <String>['林舟'],
+                  <String>['七号仓'],
+                  <String>['账本'],
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    },
+  ],
+  'executablePlan': <String, Object?>{
+    'id': 'real-release-public-plan-v2',
+    'projectId': _publicFixtureProjectId,
+    'title': '旧港七号仓正式评测执行大纲',
+    'premise': '林舟必须在账本被焚毁前取得原始记录。',
+    'targetChapterCount': 1,
+    'chapters': <Object?>[
+      <String, Object?>{
+        'id': 'real-release-public-chapter-plan-v2',
+        'novelPlanId': 'real-release-public-plan-v2',
+        'title': '第一章',
+        'summary': '林舟在旧港追查七号仓账本。',
+        'targetSceneCount': 1,
+        'scenes': <Object?>[
+          <String, Object?>{
+            'id': _publicFixtureSceneId,
+            'chapterPlanId': 'real-release-public-chapter-plan-v2',
+            'title': '七号仓门后',
+            'summary': '林舟取得账本线索并面对门后伏击。',
+            'targetLength': 2000,
+            'povCharacterId': 'character-linzhou',
+            'castIds': <String>['character-linzhou'],
+            'worldNodeIds': <String>[],
+            'beats': <Object?>[],
+            'narrativeArc': '线索揭示与倒计时压力',
+            'metadata': <String, Object?>{
+              'requireOutlineFidelity': true,
+              'requiredOutlineBeats': <Object?>[
+                <String, Object?>{
+                  'id': 'recover-seven-warehouse-ledger',
+                  'description': '林舟取得七号仓账本线索。',
+                  'evidenceGroups': <Object?>[
+                    <String>['林舟'],
+                    <String>['七号仓'],
+                    <String>['账本'],
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+    'metadata': <String, Object?>{
+      'fixtureRelease': 'real-release-public-formal-fixture-v2',
+    },
+  },
+  'metadata': <String, Object?>{
+    'fixtureRelease': 'real-release-public-formal-fixture-v2',
+  },
+};
+
+Map<String, Object?> _canonicalPublicFixtureRelease() => <String, Object?>{
+  'workspace': _publicFixtureWorkspace(),
+  'outline': _publicFixtureOutline(),
+};
+
+String _publicFixtureReleaseHash(Map<String, Object?> release) =>
+    AgentEvaluationHashes.domainHash(
+      'real-release-public-fixture-release-v2',
+      release,
+    );
+
 List<ScenarioRelease> _scenarios({required int calls, required int tokens}) =>
     <ScenarioRelease>[
       for (var step = 1; step <= 10; step += 1)
-        ScenarioRelease(
-          scenarioId: 'real-release-scene-$step',
-          version: '1.0.0',
-          difficulty: 'release',
-          inputFixture: <String, Object?>{
-            'projectId': _publicReleaseProjectId,
-            'sceneId': _publicReleasePrimarySceneId,
-            'episodeId': 'real-release-episode-1',
-            'episodeStep': step,
-            'prompt':
-                '第 $step 场：调查者林舟在旧港追查被篡改的七号仓门禁记录。'
-                '写出有行动、对白、因果推进与场尾压力的可采纳场景。',
-          },
-          fixtureHash: _hash('fixture', 'scene-$step'),
-          isolationMode: 'independent',
-          requiredCapabilities: const <String>['story-generation'],
-          adversarialMutations: const <String>['causal-transition'],
-          verifierReleaseRefs: const <String>['production-safety@1.0.0'],
-          rubricReleaseRef: 'six-dimension-rubric@1.0.0',
-          expectedTerminalState: 'accepted',
-          requiredFailureCodes: const <String>[],
-          allowedAdditionalFailureCodes: const <String>[],
-          forbiddenFailureCodes: const <String>['provider.invalid_content'],
-          outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
-          forbiddenSideEffects: const <String>[
-            AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
-          ],
-          acceptExpected: true,
-          referenceFacts: const <String, Object?>{
-            'requiredLiterals': <String>['七号仓'],
-            'forbiddenLiterals': <String>[],
-            'requiredCharacterNames': <String>[],
-            'requiredCanonRootSourceIds': <String>[],
-          },
-          maxBudget: <String, Object?>{'calls': calls, 'maxTokens': tokens},
-        ),
+        _publicScenario(step: step, calls: calls, tokens: tokens),
     ];
+
+ScenarioRelease _publicScenario({
+  required int step,
+  required int calls,
+  required int tokens,
+}) {
+  final inputFixture = <String, Object?>{
+    'fixtureReleaseHash': _publicFixtureReleaseHash(
+      _canonicalPublicFixtureRelease(),
+    ),
+    'projectId': _publicFixtureProjectId,
+    'sceneId': _publicFixtureSceneId,
+    'sceneScopeId': _publicFixtureSceneScopeId,
+    'episodeId': 'real-release-episode-2',
+    'episodeStep': step,
+    'prompt':
+        '第 $step 场：调查者林舟在旧港追查被篡改的七号仓门禁记录。'
+        '写出有行动、对白、因果推进与场尾压力的可采纳场景。',
+  };
+  return ScenarioRelease(
+    scenarioId: 'real-release-scene-$step',
+    version: '2.0.0',
+    difficulty: 'release',
+    inputFixture: inputFixture,
+    fixtureHash: AgentEvaluationHashes.domainHash(
+      'real-release-public-scenario-fixture-v2',
+      inputFixture,
+    ),
+    isolationMode: 'independent',
+    requiredCapabilities: const <String>['story-generation'],
+    adversarialMutations: const <String>['causal-transition'],
+    verifierReleaseRefs: const <String>['production-safety@1.0.0'],
+    rubricReleaseRef: 'six-dimension-rubric@1.0.0',
+    expectedTerminalState: 'accepted',
+    requiredFailureCodes: const <String>[],
+    allowedAdditionalFailureCodes: const <String>[],
+    forbiddenFailureCodes: const <String>['provider.invalid_content'],
+    outcomeComparatorReleaseRef: 'expected-outcome@1.0.0',
+    forbiddenSideEffects: const <String>[
+      AgentEvaluationProductionSideEffectKeys.authoritativeWrite,
+    ],
+    acceptExpected: true,
+    referenceFacts: const <String, Object?>{
+      'requiredLiterals': <String>['七号仓'],
+      'forbiddenLiterals': <String>[],
+      'requiredCharacterNames': <String>['林舟'],
+      'requiredCanonRootSourceIds': <String>[],
+    },
+    maxBudget: <String, Object?>{'calls': calls, 'maxTokens': tokens},
+  );
+}
 
 /// Canonical accepted prose for purpose-built formal release evaluations.
 ///
@@ -2326,156 +2509,6 @@ String agentEvaluationPurposeBuiltReleaseProse() {
         '便把这组数记下，留待与原账核对。',
   );
 }
-
-const String _publicReleaseProjectId = 'real-release-public-project';
-const String _publicReleasePrimarySceneId = 'real-release-public-scene-1';
-const String _publicReleaseCharacterId = 'real-release-public-linzhou';
-const String _publicReleaseChapterId = 'real-release-public-chapter-1';
-const String _publicReleaseChapterPlanId = 'real-release-public-chapter-plan-1';
-const String _publicReleaseNovelPlanId = 'real-release-public-plan';
-
-String _publicReleaseSceneId(int step) => 'real-release-public-scene-$step';
-
-List<Object?> _publicReleaseOutlineContract(int step) => <Object?>[
-  <String, Object?>{
-    'id': 'real-release-scene-$step-ledger-clue',
-    'description': '林舟确认七号仓与被篡改的账本有关。',
-    'evidenceGroups': <Object?>[
-      <String>['林舟'],
-      <String>['七号仓'],
-      <String>['账本', '原账'],
-    ],
-  },
-  <String, Object?>{
-    'id': 'real-release-scene-$step-access-clue',
-    'description': '守门人交代主管与备用钥匙线索。',
-    'evidenceGroups': <Object?>[
-      <String>['守门人'],
-      <String>['码头主管', '贺彬'],
-      <String>['备用钥匙'],
-    ],
-  },
-  <String, Object?>{
-    'id': 'real-release-scene-$step-ambush',
-    'description': '林舟进入仓库后遭遇仍未解除的威胁。',
-    'evidenceGroups': <Object?>[
-      <String>['仓库'],
-      <String>['枪栓'],
-      <String>['真正的账本', '真正账本'],
-    ],
-  },
-];
-
-Map<String, Object?> _canonicalPublicReleaseWorkspace() => <String, Object?>{
-  'projects': <Object?>[
-    <String, Object?>{
-      'id': _publicReleaseProjectId,
-      'sceneId': _publicReleasePrimarySceneId,
-      'title': '旧港七号仓正式评测',
-      'genre': '悬疑',
-      'summary': '调查者林舟追查被篡改的七号仓账本。',
-      'recentLocation': '第一章 / 七号仓门后',
-      'lastOpenedAtMs': 1,
-    },
-  ],
-  'charactersByProject': <String, Object?>{
-    _publicReleaseProjectId: <Object?>[
-      <String, Object?>{
-        'id': _publicReleaseCharacterId,
-        'name': '林舟',
-        'role': '调查者',
-        'note': '坚持核对公开物证，不凭猜测定罪。',
-        'need': '在账本被焚毁前取得原始记录。',
-        'summary': '港务稽核处调查者，行动果断。',
-        'referenceSummary': '追查七号仓门禁与账本篡改。',
-        'linkedSceneIds': <String>[
-          for (var step = 1; step <= 10; step += 1) _publicReleaseSceneId(step),
-        ],
-      },
-    ],
-  },
-  'scenesByProject': <String, Object?>{
-    _publicReleaseProjectId: <Object?>[
-      for (var step = 1; step <= 10; step += 1)
-        <String, Object?>{
-          'id': _publicReleaseSceneId(step),
-          'chapterLabel': '第一章',
-          'title': '七号仓门后·$step',
-          'summary': '林舟取得账本与备用钥匙线索，并面对仓内伏击。',
-        },
-    ],
-  },
-  'worldNodesByProject': <String, Object?>{},
-  'auditIssuesByProject': <String, Object?>{},
-  'projectStyles': <String, Object?>{},
-  'projectAuditStates': <String, Object?>{},
-  'projectTransferState': '',
-  'currentProjectId': _publicReleaseProjectId,
-};
-
-Map<String, Object?> _canonicalPublicReleaseOutline() => <String, Object?>{
-  'projectId': _publicReleaseProjectId,
-  'chapters': <Object?>[
-    <String, Object?>{
-      'id': _publicReleaseChapterId,
-      'title': '第一章',
-      'summary': '林舟在旧港追查七号仓账本。',
-      'scenes': <Object?>[
-        for (var step = 1; step <= 10; step += 1)
-          <String, Object?>{
-            'id': _publicReleaseSceneId(step),
-            'title': '七号仓门后·$step',
-            'summary': '林舟取得账本与备用钥匙线索，并面对仓内伏击。',
-            'metadata': <String, Object?>{
-              'requireOutlineFidelity': true,
-              'requiredOutlineBeats': _publicReleaseOutlineContract(step),
-            },
-          },
-      ],
-    },
-  ],
-  'executablePlan': <String, Object?>{
-    'id': _publicReleaseNovelPlanId,
-    'projectId': _publicReleaseProjectId,
-    'title': '旧港七号仓正式评测执行大纲',
-    'premise': '林舟必须在账本被焚毁前取得原始记录。',
-    'targetChapterCount': 1,
-    'chapters': <Object?>[
-      <String, Object?>{
-        'id': _publicReleaseChapterPlanId,
-        'novelPlanId': _publicReleaseNovelPlanId,
-        'title': '第一章',
-        'summary': '林舟在旧港追查七号仓账本。',
-        'targetSceneCount': 10,
-        'scenes': <Object?>[
-          for (var step = 1; step <= 10; step += 1)
-            <String, Object?>{
-              'id': _publicReleaseSceneId(step),
-              'chapterPlanId': _publicReleaseChapterPlanId,
-              'title': '七号仓门后·$step',
-              'summary': '林舟取得账本与备用钥匙线索，并面对仓内伏击。',
-              'targetLength': 2000,
-              'povCharacterId': _publicReleaseCharacterId,
-              'castIds': <String>[_publicReleaseCharacterId],
-              'worldNodeIds': <String>[],
-              'beats': <Object?>[],
-              'narrativeArc': '线索揭示与倒计时压力',
-              'metadata': <String, Object?>{
-                'requireOutlineFidelity': true,
-                'requiredOutlineBeats': _publicReleaseOutlineContract(step),
-              },
-            },
-        ],
-      },
-    ],
-    'metadata': <String, Object?>{
-      'fixtureRelease': 'real-release-public-formal-fixture-v1',
-    },
-  },
-  'metadata': <String, Object?>{
-    'fixtureRelease': 'real-release-public-formal-fixture-v1',
-  },
-};
 
 PromptRelease _judgePrompt() => PromptRelease(
   templateId: 'real_release_independent_six_dimension_judge',

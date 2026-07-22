@@ -49,10 +49,22 @@ void main() {
     });
 
     test('meetsMinimum: draft meets only draft and meta', () {
-      expect(MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.draft), isTrue);
-      expect(MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.meta), isTrue);
-      expect(MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.scene), isFalse);
-      expect(MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.canon), isFalse);
+      expect(
+        MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.draft),
+        isTrue,
+      );
+      expect(
+        MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.meta),
+        isTrue,
+      );
+      expect(
+        MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.scene),
+        isFalse,
+      );
+      expect(
+        MemoryPolicy.meetsMinimum(MemoryTier.draft, MemoryTier.canon),
+        isFalse,
+      );
     });
 
     test('meetsMinimum: same tier meets itself', () {

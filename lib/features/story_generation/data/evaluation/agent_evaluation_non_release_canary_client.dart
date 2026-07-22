@@ -64,7 +64,11 @@ final class AgentEvaluationNonReleaseCanaryException implements Exception {
 /// HTTP dispatch, reserves a conservative token upper bound before dispatch,
 /// and requires the provider response to echo both exact usage and the exact
 /// requested model. Any indeterminate result permanently stops the client.
-final class AgentEvaluationNonReleaseCanaryClient implements AppLlmClient {
+final class AgentEvaluationNonReleaseCanaryClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AgentEvaluationNonReleaseCanaryClient({
     required AppLlmClient inner,
     required AgentEvaluationExecutionBudgetGuard budget,
@@ -134,6 +138,14 @@ final class AgentEvaluationNonReleaseCanaryClient implements AppLlmClient {
       _budget.snapshot();
 
   @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(_inner);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(_inner);
+
+  @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     final terminal = _terminalFailureCode;
     if (terminal != null) {
@@ -142,6 +154,13 @@ final class AgentEvaluationNonReleaseCanaryClient implements AppLlmClient {
         'canary was permanently stopped by $terminal',
       );
     }
+    if (request.physicalDispatchPolicy != AppLlmPhysicalDispatchPolicy.single) {
+      throw const AppLlmPhysicalDispatchPreflightException(
+        'canary-single-dispatch-policy-required',
+        'non-release canary requests must carry a durable single-dispatch attempt identity',
+      );
+    }
+    validateAppLlmSinglePhysicalDispatchRequest(request);
     if (request.model.trim() != expectedModel.trim() ||
         request.provider != expectedProvider ||
         canonicalAgentEvaluationBaseUrl(request.baseUrl) != _expectedBaseUrl ||
@@ -163,6 +182,14 @@ final class AgentEvaluationNonReleaseCanaryClient implements AppLlmClient {
         request.maxTokens <= AppLlmChatRequest.unlimitedMaxTokens
         ? AppLlmChatRequest.defaultMaxTokens
         : request.effectiveMaxTokens;
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _inner,
+      request: _copyWithSinglePhysicalDispatch(
+        request,
+        timeout: request.timeout,
+        maxTokens: completionUpperBound,
+      ),
+    );
     final reservation = _budget.reserve(
       modelRouteHash: _modelRouteHash,
       model: expectedModel,
@@ -196,8 +223,11 @@ final class AgentEvaluationNonReleaseCanaryClient implements AppLlmClient {
         remaining: remaining,
         maxTokens: completionUpperBound,
       );
+      // The bounded request owns a cancellable transport deadline. An outer
+      // Future.timeout would return while the physical request was still in
+      // flight, making provider completion indeterminate.
       // llm-call-site: boundary.evaluation.non-release-canary-single-dispatch
-      final result = await _inner.chat(boundedRequest).timeout(remaining);
+      final result = await _inner.chat(boundedRequest);
       final providerModel = result.providerModel?.trim();
       if (!result.succeeded) {
         _budget.finishFailure(reservation);
@@ -314,10 +344,8 @@ AppLlmChatRequest _copyForSingleDispatch(
   final remainingMs = math.max(1, remaining.inMilliseconds);
   int bounded(int value) => math.max(1, math.min(value, remainingMs));
   final timeout = request.timeout;
-  return AppLlmChatRequest(
-    baseUrl: request.baseUrl,
-    apiKey: request.apiKey,
-    model: request.model,
+  return _copyWithSinglePhysicalDispatch(
+    request,
     timeout: AppLlmTimeoutConfig(
       connectTimeoutMs: bounded(timeout.connectTimeoutMs),
       sendTimeoutMs: bounded(timeout.sendTimeoutMs),
@@ -325,10 +353,27 @@ AppLlmChatRequest _copyForSingleDispatch(
       idleTimeoutMs: bounded(timeout.effectiveIdleTimeoutMs),
     ),
     maxTokens: maxTokens,
+  );
+}
+
+AppLlmChatRequest _copyWithSinglePhysicalDispatch(
+  AppLlmChatRequest request, {
+  required AppLlmTimeoutConfig timeout,
+  required int maxTokens,
+}) {
+  return AppLlmChatRequest(
+    baseUrl: request.baseUrl,
+    apiKey: request.apiKey,
+    model: request.model,
+    timeout: timeout,
+    maxTokens: maxTokens,
     messages: request.messages,
     provider: request.provider,
     onPartialText: request.onPartialText,
     formalCacheIdentity: request.formalCacheIdentity,
+    formalDispatchIdentity: request.formalDispatchIdentity,
     preferStreaming: false,
+    physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+    dispatchEvidenceNonce: request.dispatchEvidenceNonce,
   );
 }

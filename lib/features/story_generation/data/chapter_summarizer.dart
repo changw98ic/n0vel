@@ -3,8 +3,10 @@ import 'dart:convert';
 import '../domain/contracts/settings_contract.dart';
 
 import '../domain/memory_models.dart';
+import 'formal_evaluation_policy.dart';
 import 'scene_review_models.dart';
 import 'story_prompt_registry.dart';
+import 'story_generation_pass_retry.dart';
 import 'evaluation/agent_evaluation_trace_context.dart';
 
 /// Uses an LLM to produce structured chapter summaries for cross-chapter
@@ -18,8 +20,9 @@ class ChapterSummarizer {
   /// completed chapter.
   ///
   /// If [previousSummary] is provided, the LLM receives it as context for
-  /// incremental summarization. On any LLM failure, returns null so the
-  /// caller can fall back to the structural approach.
+  /// incremental summarization. Adaptive production calls return null on LLM
+  /// failure so the caller can use the structural approach. Formal and
+  /// no-content-redraw calls fail closed instead.
   Future<ChapterSummary?> summarizeChapter({
     required String chapterId,
     required String chapterTitle,
@@ -31,6 +34,14 @@ class ChapterSummarizer {
 
     final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     final sceneTexts = _collectSceneTexts(outputs);
+    final formalEvaluation = outputs.any(
+      (output) => FormalEvaluationPolicy.isActive(
+        output.brief.metadata,
+        formalExecution: output.brief.formalExecution,
+      ),
+    );
+    final noContentRedraw =
+        StoryGenerationRetryScope.current?.allowsContentRedraw == false;
 
     try {
       final promptIdentity = StoryPromptRegistry.production.invocation(
@@ -43,35 +54,61 @@ class ChapterSummarizer {
         'sceneTexts': sceneTexts,
       };
       final messages = promptIdentity.render(resolvedVariables).messages;
-      // llm-call-site: boundary.story.chapter-summary
-      final result = await settingsStore.requestAiCompletion(
+      final invocationEvidence = promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      );
+      final result = await requestFormalStoryGenerationPassWithRetry(
+        settingsStore: settingsStore,
         messages: messages,
-        maxTokens: 2048,
+        maxTransientRetries: 0,
+        maxOutputRetries: 0,
+        initialMaxTokens: 2048,
+        maxEscalatedTokens: 2048,
         traceName: 'chapter-summarizer',
         traceMetadata:
             AgentEvaluationTraceContext.current?.toTraceMetadata() ??
             const <String, Object?>{},
-        promptReleaseRef: promptIdentity.promptReleaseRef,
-        promptInvocationEvidence: promptIdentity.evidence(
-          messages,
-          resolvedVariables: resolvedVariables,
-        ),
-        stageId: promptIdentity.callSite.stageId,
-        callSiteId: promptIdentity.callSite.callSiteId,
-        variantId: promptIdentity.callSite.variantId,
-        generationBundleHash: promptIdentity.generationBundleHash,
+        promptInvocation: promptIdentity,
+        promptInvocationEvidence: invocationEvidence,
       );
 
-      if (result.text == null || result.text!.trim().isEmpty) return null;
+      if (!result.succeeded) {
+        if (formalEvaluation || noContentRedraw) {
+          throw StateError(
+            'formal chapter summary provider failure '
+            '(${result.failureKind?.name ?? 'unknown'}): '
+            '${result.detail ?? 'no detail'}',
+          );
+        }
+        return null;
+      }
+      if (result.text!.trim().isEmpty) {
+        if (formalEvaluation || noContentRedraw) {
+          throw StateError(
+            'formal chapter summary provider returned empty output',
+          );
+        }
+        return null;
+      }
 
-      return _parseSummaryResponse(
+      final summary = _parseSummaryResponse(
         result.text!,
         chapterId: chapterId,
         chapterTitle: chapterTitle,
         sceneCount: outputs.length,
         createdAtMs: ts,
       );
+      if (summary == null && (formalEvaluation || noContentRedraw)) {
+        throw StateError('formal chapter summary output was malformed');
+      }
+      return summary;
+    } on StoryGenerationEvidencePreflightFailure {
+      rethrow;
     } on Object {
+      if (formalEvaluation || noContentRedraw) {
+        rethrow;
+      }
       return null;
     }
   }

@@ -14,9 +14,9 @@ class AppLlmCircuitBreaker {
     int failureThreshold = 5,
     Duration recoveryTimeout = const Duration(seconds: 30),
     int halfOpenMaxRequests = 1,
-  })  : _failureThreshold = failureThreshold,
-        _recoveryTimeout = recoveryTimeout,
-        _halfOpenMaxRequests = halfOpenMaxRequests;
+  }) : _failureThreshold = failureThreshold,
+       _recoveryTimeout = recoveryTimeout,
+       _halfOpenMaxRequests = halfOpenMaxRequests;
 
   final int _failureThreshold;
   final Duration _recoveryTimeout;
@@ -48,7 +48,8 @@ class AppLlmCircuitBreaker {
     if (effective == AppLlmCircuitState.open) {
       return AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.server,
-        detail: 'Circuit breaker is open - '
+        detail:
+            'Circuit breaker is open - '
             '$_consecutiveFailures consecutive failures, '
             'retry after $_recoveryTimeout',
       );
@@ -59,7 +60,8 @@ class AppLlmCircuitBreaker {
         // 探测名额用完，等价于 open。
         return const AppLlmChatResult.failure(
           failureKind: AppLlmFailureKind.server,
-          detail: 'Circuit breaker is half-open - '
+          detail:
+              'Circuit breaker is half-open - '
               'probe limit reached, waiting for results',
         );
       }

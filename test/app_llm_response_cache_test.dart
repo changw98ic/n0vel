@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 
-class _CountingFakeLlmClient implements AppLlmClient {
+class _CountingFakeLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   int callCount = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
   final List<AppLlmChatResult> _queue = [];
 
   void enqueue(List<AppLlmChatResult> results) {
@@ -32,6 +36,9 @@ AppLlmChatRequest _makeRequest({
   List<AppLlmChatMessage> messages = const [
     AppLlmChatMessage(role: 'user', content: 'hello'),
   ],
+  AppLlmPhysicalDispatchPolicy physicalDispatchPolicy =
+      AppLlmPhysicalDispatchPolicy.adaptive,
+  String? dispatchEvidenceNonce,
 }) {
   return AppLlmChatRequest(
     baseUrl: baseUrl,
@@ -39,6 +46,8 @@ AppLlmChatRequest _makeRequest({
     model: model,
     timeout: timeout,
     messages: messages,
+    physicalDispatchPolicy: physicalDispatchPolicy,
+    dispatchEvidenceNonce: dispatchEvidenceNonce,
   );
 }
 
@@ -53,9 +62,7 @@ void main() {
     });
 
     test('delegates to underlying client on cache miss', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'response'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'response')]);
 
       final result = await cache.chat(_makeRequest());
 
@@ -67,9 +74,7 @@ void main() {
     });
 
     test('returns cached response on cache hit', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'cached'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'cached')]);
 
       final request = _makeRequest();
       final result1 = await cache.chat(request);
@@ -81,6 +86,31 @@ void main() {
       expect(cache.hits, 1);
       expect(cache.misses, 1);
       expect(cache.size, 1);
+    });
+
+    test('single physical dispatch bypasses cache reads and writes', () async {
+      fake.enqueue([
+        const AppLlmChatResult.success(text: 'adaptive cached value'),
+        const AppLlmChatResult.success(text: 'fresh single value'),
+      ]);
+      final adaptive = _makeRequest();
+      final single = _makeRequest(
+        physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+        dispatchEvidenceNonce:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      );
+
+      final seeded = await cache.chat(adaptive);
+      final sampled = await cache.chat(single);
+      final afterSample = await cache.chat(adaptive);
+
+      expect(seeded.text, 'adaptive cached value');
+      expect(sampled.text, 'fresh single value');
+      expect(afterSample.text, 'adaptive cached value');
+      expect(fake.callCount, 2);
+      expect(cache.size, 1);
+      expect(cache.hits, 1);
+      expect(cache.misses, 2);
     });
 
     test('does not cache failed responses', () async {
@@ -173,9 +203,7 @@ void main() {
     });
 
     test('timeout config does not affect cache key', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'same'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'same')]);
 
       final request1 = _makeRequest(
         timeout: const AppLlmTimeoutConfig.uniform(10000),
@@ -214,15 +242,10 @@ void main() {
     });
 
     test('evicts oldest entries when maxEntries exceeded', () async {
-      final smallCache = AppLlmResponseCache(
-        delegate: fake,
-        maxEntries: 2,
-      );
+      final smallCache = AppLlmResponseCache(delegate: fake, maxEntries: 2);
 
       for (var i = 0; i < 3; i++) {
-        fake.enqueue([
-          AppLlmChatResult.success(text: 'response-$i'),
-        ]);
+        fake.enqueue([AppLlmChatResult.success(text: 'response-$i')]);
         await smallCache.chat(
           _makeRequest(
             messages: [AppLlmChatMessage(role: 'user', content: 'prompt-$i')],
@@ -233,12 +256,12 @@ void main() {
       expect(smallCache.size, 2);
 
       // First entry should be evicted; second and third should remain
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 're-fetched'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 're-fetched')]);
       final result = await smallCache.chat(
         _makeRequest(
-          messages: const [AppLlmChatMessage(role: 'user', content: 'prompt-0')],
+          messages: const [
+            AppLlmChatMessage(role: 'user', content: 'prompt-0'),
+          ],
         ),
       );
       expect(result.text, 're-fetched');
@@ -246,9 +269,7 @@ void main() {
     });
 
     test('clearAll removes entries and resets counters', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'hello'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'hello')]);
 
       await cache.chat(_makeRequest());
       expect(cache.size, 1);
@@ -274,9 +295,7 @@ void main() {
 
       // Simulate TTL expiry by clearing and re-requesting
       cache.clearAll();
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'second'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'second')]);
       await cache.chat(request);
 
       expect(cache.size, 1);
@@ -320,9 +339,7 @@ void main() {
     });
 
     test('same messages in same order produces cache hit', () async {
-      fake.enqueue([
-        const AppLlmChatResult.success(text: 'match'),
-      ]);
+      fake.enqueue([const AppLlmChatResult.success(text: 'match')]);
 
       final messages = [
         const AppLlmChatMessage(role: 'system', content: 'sys'),

@@ -12,8 +12,7 @@ Map<String, Object?> encodeSimulationJson({
     'template': template.name,
     'runMode': runMode.name,
     'promptOverrides': {
-      for (final entry in promptOverrides.entries)
-        entry.key.name: entry.value,
+      for (final entry in promptOverrides.entries) entry.key.name: entry.value,
     },
     'extraMessages': [
       for (final message in extraMessages)

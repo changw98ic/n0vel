@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "source-ledger-v1",
+  "generatedAtMs": 1784505600000,
+  "entries": [
+    {
+      "sourceId": "writing-reference-jianlai",
+      "title": "剑来",
+      "creator": "烽火戏诸侯",
+      "licenseStatus": "unknown",
+      "allowedUses": [],
+      "provenanceUri": "assets/novels/剑来-烽火戏诸侯.txt",
+      "provenanceHash": "sha256:314fe2964fb5fef63889ba166ce2aa8bb9b83b829ef9a9cc455c53af21b19ae1",
+      "jurisdiction": "unknown",
+      "determinationDateMs": 1784505600000,
+      "excerptLimitChars": null,
+      "attributionRequired": false,
+      "reviewedBy": "repository-inventory-wp0",
+      "reviewedAtMs": 1784505600000
+    },
+    {
+      "sourceId": "writing-reference-guimi",
+      "title": "诡秘之主",
+      "creator": "爱潜水的乌贼",
+      "licenseStatus": "unknown",
+      "allowedUses": [],
+      "provenanceUri": "assets/novels/【网站：小诺.我爱你】诡秘之主.txt",
+      "provenanceHash": "sha256:d32f53d19360bb6a0de97d07d8edf0ce51bf7e732e57725bc32659d3d4318f5c",
+      "jurisdiction": "unknown",
+      "determinationDateMs": 1784505600000,
+      "excerptLimitChars": null,
+      "attributionRequired": false,
+      "reviewedBy": "repository-inventory-wp0",
+      "reviewedAtMs": 1784505600000
+    },
+    {
+      "sourceId": "writing-reference-tigui",
+      "title": "我身体里有只鬼",
+      "creator": null,
+      "licenseStatus": "unknown",
+      "allowedUses": [],
+      "provenanceUri": "assets/novels/我身体里有只鬼-utf8.txt",
+      "provenanceHash": "sha256:81d5dad4c562c0080ad920d259503950aaa2ba1d0bdce01ab8ffa0c2c461c282",
+      "jurisdiction": "unknown",
+      "determinationDateMs": 1784505600000,
+      "excerptLimitChars": null,
+      "attributionRequired": false,
+      "reviewedBy": "repository-inventory-wp0",
+      "reviewedAtMs": 1784505600000
+    }
+  ],
+  "rootBindings": [
+    {
+      "rootPath": "artifacts/writing_reference/jianlai",
+      "sourceIds": ["writing-reference-jianlai"],
+      "contributionShares": {"writing-reference-jianlai": 1.0}
+    },
+    {
+      "rootPath": "artifacts/writing_reference/guimi",
+      "sourceIds": ["writing-reference-guimi"],
+      "contributionShares": {"writing-reference-guimi": 1.0}
+    },
+    {
+      "rootPath": "artifacts/writing_reference/tigui",
+      "sourceIds": ["writing-reference-tigui"],
+      "contributionShares": {"writing-reference-tigui": 1.0}
+    }
+  ]
+}

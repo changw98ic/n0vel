@@ -3,10 +3,18 @@ import 'dart:async';
 import '../events/app_domain_events.dart';
 import 'app_draft_storage.dart';
 import 'app_project_scoped_store.dart';
-import 'persist_guard.dart';
+import 'project_storage.dart';
 
 const String _defaultDraftText = '';
 const String _fallbackDraftProjectId = 'project-yuechao::scene-05-witness-room';
+
+/// Describes the durability of the draft currently shown in the editor.
+///
+/// The editor updates its in-memory snapshot synchronously, while the
+/// storage decorator may debounce the physical write. Keeping this state in
+/// the store prevents the UI from claiming a draft is saved before the
+/// storage Future has completed.
+enum DraftPersistenceStatus { saved, saving, failed }
 
 class AppDraftSnapshot {
   const AppDraftSnapshot({required this.text});
@@ -42,8 +50,21 @@ class AppDraftStore extends AppProjectScopedStore {
   final AppDraftStorage _storage;
   AppDraftSnapshot _snapshot;
   bool _isRestoring = false;
+  DraftPersistenceStatus _persistenceStatus = DraftPersistenceStatus.saved;
+  Object? _persistenceError;
+  int _persistRevision = 0;
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   AppDraftSnapshot get snapshot => _snapshot;
+
+  DraftPersistenceStatus get persistenceStatus => _persistenceStatus;
+
+  Object? get persistenceError => _persistenceError;
+
+  bool get hasPersistenceIssue =>
+      _persistenceStatus == DraftPersistenceStatus.failed;
 
   Map<String, Object?> exportJson() => _snapshot.toJson();
 
@@ -63,7 +84,17 @@ class AppDraftStore extends AppProjectScopedStore {
     _isRestoring = false;
     _snapshot = _snapshot.copyWith(text: text);
     _publishDraftUpdated(previousText, text);
-    unawaited(safePersist(_persist, eventBus: eventBus));
+    final revision = ++_persistRevision;
+    _persistenceStatus = DraftPersistenceStatus.saving;
+    _persistenceError = null;
+    unawaited(
+      _persistSnapshot(
+        revision: revision,
+        projectId: activeProjectId,
+        data: _snapshot.toJson(),
+        rethrowOnFailure: false,
+      ),
+    );
     notifyListeners();
   }
 
@@ -74,11 +105,38 @@ class AppDraftStore extends AppProjectScopedStore {
     _isRestoring = false;
     _snapshot = _snapshot.copyWith(text: text);
     _publishDraftUpdated(previousText, text);
+    final revision = ++_persistRevision;
+    final projectId = activeProjectId;
+    _persistenceStatus = DraftPersistenceStatus.saving;
+    _persistenceError = null;
     try {
-      await _persist();
+      await _persistSnapshot(
+        revision: revision,
+        projectId: projectId,
+        data: _snapshot.toJson(),
+        notifyOnCompletion: false,
+      );
       notifyListeners();
-    } catch (_) {
-      _snapshot = previousSnapshot;
+    } catch (error) {
+      final isLatest =
+          revision == _persistRevision && projectId == activeProjectId;
+      if (isLatest) {
+        _snapshot = previousSnapshot;
+        _persistenceStatus = DraftPersistenceStatus.failed;
+        _persistenceError = error;
+        // Cached storage deliberately retains a failed write for a later
+        // retry. Replace that retained snapshot with the rolled-back value so
+        // a future flush cannot resurrect the rejected transaction.
+        try {
+          await _storage.save(previousSnapshot.toJson(), projectId: projectId);
+        } catch (_) {
+          // The original transaction error remains the actionable failure.
+        }
+        notifyListeners();
+      }
+      // A stale failure still belongs to the caller that awaited this
+      // operation, but it must never roll back a newer edit or overwrite its
+      // visible persistence state.
       rethrow;
     }
   }
@@ -106,14 +164,27 @@ class AppDraftStore extends AppProjectScopedStore {
     markMutated();
     _isRestoring = false;
     _snapshot = AppDraftSnapshot.fromJson(data);
-    unawaited(safePersist(_persist, eventBus: eventBus));
+    final revision = ++_persistRevision;
+    _persistenceStatus = DraftPersistenceStatus.saving;
+    _persistenceError = null;
+    unawaited(
+      _persistSnapshot(
+        revision: revision,
+        projectId: activeProjectId,
+        data: _snapshot.toJson(),
+        rethrowOnFailure: false,
+      ),
+    );
     notifyListeners();
   }
 
   @override
   void onProjectScopeChanged(String previousProjectId, String nextProjectId) {
+    _persistRevision++;
     _isRestoring = true;
     _snapshot = const AppDraftSnapshot(text: _defaultDraftText);
+    _persistenceStatus = DraftPersistenceStatus.saved;
+    _persistenceError = null;
   }
 
   @override
@@ -125,10 +196,13 @@ class AppDraftStore extends AppProjectScopedStore {
       return;
     }
     if (restored == null) {
+      _isRestoring = false;
       return;
     }
     _isRestoring = false;
     _snapshot = AppDraftSnapshot.fromJson(restored);
+    _persistenceStatus = DraftPersistenceStatus.saved;
+    _persistenceError = null;
     notifyListeners();
   }
 
@@ -147,8 +221,73 @@ class AppDraftStore extends AppProjectScopedStore {
     }
   }
 
-  Future<void> _persist() =>
-      _storage.save(_snapshot.toJson(), projectId: activeProjectId);
+  Future<void> _persistSnapshot({
+    required int revision,
+    required String projectId,
+    required Map<String, Object?> data,
+    bool notifyOnCompletion = true,
+    bool rethrowOnFailure = true,
+  }) async {
+    Object? lastError;
+    StackTrace? lastStackTrace;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        await _storage.save(data, projectId: projectId);
+        lastError = null;
+        break;
+      } catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          // A newer edit supersedes this attempt. Retrying the old payload
+          // would enqueue it after the newer snapshot and could resurrect
+          // stale text in the durable store.
+          if (revision != _persistRevision || projectId != activeProjectId) {
+            return;
+          }
+        }
+      }
+    }
+
+    final isLatest =
+        revision == _persistRevision && projectId == activeProjectId;
+    if (lastError != null) {
+      if (isLatest) {
+        _persistenceStatus = DraftPersistenceStatus.failed;
+        _persistenceError = lastError;
+        _notifyPersistenceFailure();
+        if (notifyOnCompletion) notifyListeners();
+        if (rethrowOnFailure) {
+          Error.throwWithStackTrace(lastError, lastStackTrace!);
+        }
+      }
+      // A newer revision owns the user-visible result. The stale write may
+      // fail while the newer waiter is still retrying, but must not surface
+      // as an unhandled asynchronous error.
+      return;
+    }
+
+    if (isLatest) {
+      _persistenceStatus = DraftPersistenceStatus.saved;
+      _persistenceError = null;
+      if (notifyOnCompletion) notifyListeners();
+    }
+  }
+
+  void _notifyPersistenceFailure() {
+    try {
+      eventBus?.publish(
+        const NotificationRequestedEvent(
+          title: '正文保存失败',
+          message: '最新正文仍保留在当前编辑器中，请重试保存。',
+          severity: AppNoticeSeverity.error,
+        ),
+      );
+    } on StateError {
+      // eventBus 可能已 disposed
+    }
+  }
 
   @override
   Future<void> clearDeletedProjectScope(String projectId) =>

@@ -16,12 +16,11 @@ void main() {
     final ledger = GenerationLedgerSqliteStore(db: db)..ensureTables();
     final coordinator = GenerationCommitCoordinator(db: db)..ensureTables();
     final finalizer = GenerationLedgerCandidateFinalizer(ledger: ledger);
-    const sceneScopeId = 'project-1::chapter-03::scene-04';
-    db.execute(
-      'INSERT INTO draft_documents (project_id, text_body, updated_at_ms) '
-      'VALUES (?, ?, ?)',
-      <Object?>[sceneScopeId, '', 1],
-    );
+    const sceneScopeId = 'project-1::scene-04';
+    const materials = ProjectMaterialSnapshot();
+    const prose =
+        '“警告，U盘交给你。”沈渡把U盘交给柳溪。'
+        '“文件完整，存储卡收好了。”柳溪从衣袋里取出存储卡，确认文件完整。';
     final brief = SceneBrief(
       projectId: 'project-1',
       chapterId: 'chapter-03',
@@ -54,21 +53,25 @@ void main() {
       sceneScopeId: sceneScopeId,
       baseDraft: '',
       brief: brief,
-      materials: const ProjectMaterialSnapshot(),
+      materials: materials,
       nowMs: 100,
     );
+    final preQuality = ProductionPreQualityGate.standard.verifyPipelinePolish(
+      brief: brief,
+      materials: materials,
+      prePolishProse: prose,
+      finalProse: prose,
+      hardGatesEnabled: true,
+    );
+    expect(
+      preQuality.passed,
+      isTrue,
+      reason:
+          'hard=${preQuality.hardGateViolations.map((item) => item.text).toList()}; '
+          'canon=${preQuality.polishCanonEvidence.failureCodes}; '
+          'mechanics=${preQuality.storyMechanicsEvidence.failureCodes}',
+    );
 
-    const finalProse =
-        '「U盘里的文件都在，存储卡也交给你。」'
-        '沈渡把U盘交给柳溪。柳溪从衣袋里取出存储卡，确认文件完整。';
-    final preQualityEvidence = ProductionPreQualityGate.standard
-        .verifyPipelinePolish(
-          brief: brief,
-          materials: const ProjectMaterialSnapshot(),
-          prePolishProse: finalProse,
-          finalProse: finalProse,
-          hardGatesEnabled: true,
-        );
     final candidate = finalizer.finalize(
       runId: 'run-continuity',
       capture: capture,
@@ -78,7 +81,7 @@ void main() {
         resolvedCast: const [],
         director: const SceneDirectorOutput(text: '交接证据。'),
         roleOutputs: const [],
-        prose: const SceneProseDraft(text: finalProse, attempt: 1),
+        prose: const SceneProseDraft(text: prose, attempt: 1),
         review: const SceneReviewResult(
           judge: SceneReviewPassResult(
             status: SceneReviewStatus.pass,
@@ -102,9 +105,9 @@ void main() {
           completeness: 96,
           summary: '质量通过。',
         ),
-        polishCanonEvidence: preQualityEvidence.polishCanonEvidence,
-        storyMechanicsEvidence: preQualityEvidence.storyMechanicsEvidence,
-        productionPreQualityEvidence: preQualityEvidence.toJson(),
+        polishCanonEvidence: preQuality.polishCanonEvidence,
+        storyMechanicsEvidence: preQuality.storyMechanicsEvidence,
+        productionPreQualityEvidence: preQuality.toJson(),
       ),
     );
 
@@ -123,29 +126,32 @@ void main() {
       'chapter-03/scene-04',
     );
 
-    expect(
-      coordinator.accept(
-        GenerationCommitRequest(
-          acceptIdempotencyKey: 'accept-continuity',
-          runId: candidate.runId,
-          candidateRevision: candidate.candidateRevision,
-          projectId: 'project-1',
-          sceneScopeId: sceneScopeId,
-          candidateHash: candidate.candidateHash,
-          expectedBaseDraftHash: candidate.baseDraftHash,
-          expectedMaterialDigest: candidate.materialDigest,
-          expectedInputDigest: candidate.inputDigest,
-          expectedFinalProseHash: candidate.finalProseHash,
-          expectedDeterministicGateEvidenceHash:
-              candidate.deterministicGateEvidenceHash,
-          expectedFinalCouncilEvidenceHash: candidate.finalCouncilEvidenceHash,
-          expectedQualityEvidenceHash: candidate.qualityEvidenceHash,
-          expectedPendingWriteSetHash: candidate.pendingWriteSetHash,
-          committedAtMs: 300,
-        ),
-      ),
-      isA<GenerationCommitApplied>(),
+    db.execute(
+      'INSERT INTO draft_documents '
+      '(project_id, text_body, updated_at_ms) VALUES (?, ?, ?)',
+      <Object?>[sceneScopeId, '', 200],
     );
+    final committed = coordinator.accept(
+      GenerationCommitRequest(
+        acceptIdempotencyKey: 'accept-continuity',
+        runId: candidate.runId,
+        candidateRevision: candidate.candidateRevision,
+        projectId: 'project-1',
+        sceneScopeId: sceneScopeId,
+        candidateHash: candidate.candidateHash,
+        expectedBaseDraftHash: candidate.baseDraftHash,
+        expectedMaterialDigest: candidate.materialDigest,
+        expectedInputDigest: candidate.inputDigest,
+        expectedFinalProseHash: candidate.finalProseHash,
+        expectedDeterministicGateEvidenceHash:
+            candidate.deterministicGateEvidenceHash,
+        expectedFinalCouncilEvidenceHash: candidate.finalCouncilEvidenceHash,
+        expectedQualityEvidenceHash: candidate.qualityEvidenceHash,
+        expectedPendingWriteSetHash: candidate.pendingWriteSetHash,
+        committedAtMs: 300,
+      ),
+    );
+    expect(committed, isA<GenerationCommitApplied>());
     final reloaded = ledger.loadCommittedContinuityLedger(
       projectId: 'project-1',
       sourceSceneIds: const <String>['scene-04'],

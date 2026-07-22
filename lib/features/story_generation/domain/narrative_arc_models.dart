@@ -29,8 +29,7 @@ class PlotPoint {
     Map<String, Object?> metadata = const {},
   }) : tension = tension.clamp(0.0, 1.0),
        characterIds = List<String>.unmodifiable(characterIds),
-       precedingPlotPointIds =
-           List<String>.unmodifiable(precedingPlotPointIds),
+       precedingPlotPointIds = List<String>.unmodifiable(precedingPlotPointIds),
        metadata = _immutableMap(metadata);
 
   final String id;
@@ -154,8 +153,7 @@ class CharacterArc {
       characterId: json['characterId']?.toString() ?? '',
       startState: json['startState']?.toString() ?? '',
       endState: json['endState']?.toString() ?? '',
-      transformDescription:
-          json['transformDescription']?.toString() ?? '',
+      transformDescription: json['transformDescription']?.toString() ?? '',
       plotPointIds: _stringList(json['plotPointIds']),
       metadata: _asStringObjectMap(json['metadata']),
     );
@@ -173,8 +171,7 @@ class CharacterArc {
       characterId: characterId ?? this.characterId,
       startState: startState ?? this.startState,
       endState: endState ?? this.endState,
-      transformDescription:
-          transformDescription ?? this.transformDescription,
+      transformDescription: transformDescription ?? this.transformDescription,
       plotPointIds: plotPointIds ?? this.plotPointIds,
       metadata: metadata ?? this.metadata,
     );
@@ -201,9 +198,8 @@ class CharacterArc {
 }
 
 class NarrativeTensionCurve {
-  NarrativeTensionCurve({
-    List<NarrativeTensionPoint> points = const [],
-  }) : points = List<NarrativeTensionPoint>.unmodifiable(points);
+  NarrativeTensionCurve({List<NarrativeTensionPoint> points = const []})
+    : points = List<NarrativeTensionPoint>.unmodifiable(points);
 
   final List<NarrativeTensionPoint> points;
 
@@ -212,8 +208,7 @@ class NarrativeTensionCurve {
 
   double get averageTension => points.isEmpty
       ? 0.0
-      : points.map((p) => p.tension).reduce((a, b) => a + b) /
-            points.length;
+      : points.map((p) => p.tension).reduce((a, b) => a + b) / points.length;
 
   NarrativeTensionPoint? pointAtChapter(String chapterId) {
     for (final p in points) {
@@ -303,8 +298,10 @@ class NarrativeArc {
   final NarrativeTensionCurve tensionCurve;
   final Map<String, Object?> metadata;
 
-  List<PlotPoint> plotPointsInPhase(NarrativeArcPhase phase) =>
-      [for (final p in plotPoints) if (p.phase == phase) p];
+  List<PlotPoint> plotPointsInPhase(NarrativeArcPhase phase) => [
+    for (final p in plotPoints)
+      if (p.phase == phase) p,
+  ];
 
   CharacterArc? arcForCharacter(String characterId) {
     for (final arc in characterArcs) {
@@ -343,13 +340,11 @@ class NarrativeArc {
       ),
       plotPoints: [
         for (final entry in rawPlotPoints)
-          if (entry is Map)
-            PlotPoint.fromJson(_asStringObjectMap(entry)),
+          if (entry is Map) PlotPoint.fromJson(_asStringObjectMap(entry)),
       ],
       characterArcs: [
         for (final entry in rawCharacterArcs)
-          if (entry is Map)
-            CharacterArc.fromJson(_asStringObjectMap(entry)),
+          if (entry is Map) CharacterArc.fromJson(_asStringObjectMap(entry)),
       ],
       tensionCurve: NarrativeTensionCurve.fromJson(
         _asStringObjectMap(rawTensionCurve),

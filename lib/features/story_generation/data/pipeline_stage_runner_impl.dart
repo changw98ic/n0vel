@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:novel_writer/app/llm/app_llm_canonical_hash.dart';
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
 import '../domain/contracts/settings_contract.dart';
 
@@ -8,6 +9,11 @@ import 'character_consistency_verifier.dart';
 import 'pipeline_event_log.dart';
 import 'dynamic_role_agent_runner.dart';
 import 'generation_pipeline_config.dart';
+import 'generation_evidence_fingerprints.dart';
+import 'generation_evidence_receipt.dart';
+import 'scene_generation_identity.dart';
+import 'scene_brief_snapshot.dart';
+import 'story_generation_pass_retry.dart';
 import 'material_reference_retriever.dart';
 import 'retrieval_controller.dart';
 import 'scene_cast_resolver.dart';
@@ -59,6 +65,7 @@ import 'steps/polish_step.dart';
 import 'steps/finalization_step.dart';
 import 'generation_ledger_models.dart';
 import 'generation_ledger.dart';
+import 'generation_ledger_digest.dart';
 import 'generation_stage_checkpoint_codec.dart';
 
 /// Cancellation is a first-class lifecycle outcome, rather than a generic
@@ -90,6 +97,16 @@ class QualityGateFailure extends StateError {
       );
 
   final SceneQualityScore score;
+}
+
+/// A formal comparison sealed its first candidate and therefore refused a
+/// review-, gate-, or exception-driven second content sample.
+class ContentRedrawBlocked extends StateError {
+  ContentRedrawBlocked({required this.stageId, required this.reason})
+    : super('content redraw disabled at $stageId: $reason');
+
+  final String stageId;
+  final String reason;
 }
 
 /// Versioned, hash-bound checkpoint data. Checkpoints are resumability hints;
@@ -158,8 +175,338 @@ typedef PipelineCheckpointArtifactRestorer =
       TypedArtifact input,
     );
 
+/// Immutable scene input constructed once by the runner before a generation
+/// run is admitted.  Ledger capture, write-ahead intents, fingerprints and
+/// provider execution must all use this exact value; rebuilding a superficially
+/// similar [SceneBrief] in an outer store makes the evidence chain ambiguous.
+final class PreparedSceneBrief {
+  const PreparedSceneBrief._({
+    required this.brief,
+    required this.digest,
+    this.materials,
+  });
+
+  final SceneBrief brief;
+  final String digest;
+  final ProjectMaterialSnapshot? materials;
+}
+
+final Expando<_PipelineFinalizationAdmission> _pipelineFinalizationAdmissions =
+    Expando<_PipelineFinalizationAdmission>('pipeline-finalization-admission');
+
+/// Runtime-only, burn-first admission for the exact output object returned by
+/// a sealed production runner.
+///
+/// There is intentionally no public getter or constructible capability. The
+/// candidate finalizer may only consume the admission while presenting every
+/// independently captured durable identity. A value-equal reconstructed
+/// [SceneRuntimeOutput] has a different identity and is rejected.
+bool consumePipelineFinalizationAdmission({
+  required SceneRuntimeOutput output,
+  required String runId,
+  required String sceneId,
+  required String preparedBriefDigest,
+  required String generationArmPolicy,
+  required String generationBundleHash,
+  required String receiptCanonicalJson,
+  required String receiptHash,
+  required String finalProseHash,
+  required String materialDigest,
+  required String inputDigest,
+  required String pendingWriteSourceDigest,
+}) {
+  final admission = _pipelineFinalizationAdmissions[output];
+  // Burn before comparing. A mismatched presentation must not become a
+  // reusable oracle for discovering a valid ledger binding.
+  _pipelineFinalizationAdmissions[output] = null;
+  if (admission == null) return false;
+  return admission.runId == runId &&
+      admission.sceneId == sceneId &&
+      admission.preparedBriefDigest == preparedBriefDigest &&
+      admission.generationArmPolicy == generationArmPolicy &&
+      admission.generationBundleHash == generationBundleHash &&
+      admission.receiptCanonicalJson == receiptCanonicalJson &&
+      admission.receiptHash == receiptHash &&
+      admission.finalProseHash == finalProseHash &&
+      admission.materialDigest == materialDigest &&
+      admission.inputDigest == inputDigest &&
+      admission.pendingWriteSourceDigest == pendingWriteSourceDigest &&
+      admission.outputBindingHash == _pipelineOutputBindingHash(output) &&
+      finalProseHash == GenerationLedgerDigest.text(output.prose.text) &&
+      pendingWriteSourceDigest == pipelinePendingWriteSourceDigest(output);
+}
+
+/// Canonical source identity for every pending write derived from a pipeline
+/// output. This helper grants no authority; it only keeps runner and ledger
+/// finalizer on one domain-separated digest contract.
+String pipelinePendingWriteSourceDigest(SceneRuntimeOutput output) =>
+    AppLlmCanonicalHash.domainHash(
+      'pipeline-pending-write-source-v1',
+      <String, Object?>{
+        'projectId': output.brief.projectId,
+        'chapterId': output.brief.chapterId,
+        'sceneId': output.brief.sceneId,
+        'finalProseHash': GenerationLedgerDigest.text(output.prose.text),
+        'finalProseUtf8': ArtifactDigest.fromUtf8String(
+          output.prose.text,
+        ).toCanonicalMap(),
+        'roleplaySession': _roleplayPendingSource(output.roleplaySession),
+      },
+    );
+
+@pragma('vm:isolate-unsendable')
+final class _PipelineFinalizationAdmission {
+  const _PipelineFinalizationAdmission({
+    required this.runId,
+    required this.sceneId,
+    required this.preparedBriefDigest,
+    required this.generationArmPolicy,
+    required this.generationBundleHash,
+    required this.receiptCanonicalJson,
+    required this.receiptHash,
+    required this.finalProseHash,
+    required this.materialDigest,
+    required this.inputDigest,
+    required this.pendingWriteSourceDigest,
+    required this.outputBindingHash,
+  });
+
+  final String runId;
+  final String sceneId;
+  final String preparedBriefDigest;
+  final String generationArmPolicy;
+  final String generationBundleHash;
+  final String receiptCanonicalJson;
+  final String receiptHash;
+  final String finalProseHash;
+  final String materialDigest;
+  final String inputDigest;
+  final String pendingWriteSourceDigest;
+  final String outputBindingHash;
+}
+
+/// One-shot typed bridge from live parser-bound DTO provenance into the
+/// durable generation receipt. Only the sealed runner library can construct
+/// it; receipt code may consume it but cannot synthesize a manifest map.
+@pragma('vm:isolate-unsendable')
+final class PipelineFinalEvaluationManifestAuthority {
+  PipelineFinalEvaluationManifestAuthority._({
+    required this.runId,
+    required this.sceneId,
+    required this.preparedBriefDigest,
+    required this.generationArmPolicy,
+    required this.generationBundleHash,
+    required this.finalArtifactDigest,
+    required Map<String, Object?> manifest,
+  }) : _manifest = Map<String, Object?>.unmodifiable(manifest);
+
+  final String runId;
+  final String sceneId;
+  final String preparedBriefDigest;
+  final String generationArmPolicy;
+  final String generationBundleHash;
+  final ArtifactDigest finalArtifactDigest;
+  final Map<String, Object?> _manifest;
+  bool _consumed = false;
+
+  /// Burns before matching and returns immutable canonical manifest input only
+  /// to the receipt construction boundary.
+  Map<String, Object?>? consumeForReceipt({
+    required String runId,
+    required String sceneId,
+    required String preparedBriefDigest,
+    required String generationArmPolicy,
+    required String generationBundleHash,
+    required ArtifactDigest finalArtifactDigest,
+  }) {
+    if (_consumed) return null;
+    _consumed = true;
+    if (this.runId != runId ||
+        this.sceneId != sceneId ||
+        this.preparedBriefDigest != preparedBriefDigest ||
+        this.generationArmPolicy != generationArmPolicy ||
+        this.generationBundleHash != generationBundleHash ||
+        !_samePipelineArtifact(finalArtifactDigest, this.finalArtifactDigest)) {
+      return null;
+    }
+    return Map<String, Object?>.unmodifiable(_manifest);
+  }
+}
+
+bool _samePipelineArtifact(ArtifactDigest left, ArtifactDigest right) =>
+    left.digest == right.digest && left.byteLength == right.byteLength;
+
+bool _pipelineArtifactMapMatches(
+  Map<String, Object?> candidate,
+  ArtifactDigest expected,
+) =>
+    candidate['digest'] == expected.digest &&
+    candidate['byteLength'] == expected.byteLength;
+
+final class _SealedMaterialBinding {
+  const _SealedMaterialBinding({
+    required this.materialDigest,
+    required this.inputDigest,
+  });
+
+  final String materialDigest;
+  final String inputDigest;
+}
+
+final class _FinalEvaluationManifestBinding {
+  const _FinalEvaluationManifestBinding({
+    required this.authority,
+    required this.generationBundleHash,
+    required this.reviewParsedOutputDigest,
+    required this.qualityParsedOutputDigest,
+  });
+
+  final PipelineFinalEvaluationManifestAuthority authority;
+  final String generationBundleHash;
+  final String reviewParsedOutputDigest;
+  final String qualityParsedOutputDigest;
+}
+
+String _pipelineOutputBindingHash(SceneRuntimeOutput output) =>
+    AppLlmCanonicalHash.domainHash(
+      'pipeline-finalization-output-binding-v1',
+      <String, Object?>{
+        'briefDigest': SceneGenerationIdentity.briefHash(output.brief),
+        'prose': ArtifactDigest.fromUtf8String(
+          output.prose.text,
+        ).toCanonicalMap(),
+        'review': canonicalSceneReviewEvaluationOutput(output.review),
+        'qualityScore': output.qualityScore?.toJson(),
+        'reviewAttempts': <Object?>[
+          for (final attempt in output.reviewAttempts) attempt.toJson(),
+        ],
+        'preQuality': output.productionPreQualityEvidence,
+        'polishCanon': output.polishCanonEvidence?.toJson(),
+        'storyMechanics': output.storyMechanicsEvidence?.toJson(),
+        'pendingWriteSourceDigest': pipelinePendingWriteSourceDigest(output),
+        'receiptHash': output.generationEvidenceReceipt?.receiptHash,
+        'receiptCanonicalJson': output.generationEvidenceReceipt?.canonicalJson,
+      },
+    );
+
+Object? _roleplayPendingSource(Object? rawSession) {
+  if (rawSession == null) return null;
+  final session = rawSession as dynamic;
+  return <String, Object?>{
+    'chapterId': session.chapterId,
+    'sceneId': session.sceneId,
+    'sceneTitle': session.sceneTitle,
+    'finalPublicState': session.finalPublicState,
+    'rounds': <Object?>[
+      for (final round in session.rounds)
+        <String, Object?>{
+          'round': round.round,
+          'turns': <Object?>[
+            for (final turn in round.turns)
+              <String, Object?>{
+                'characterId': turn.characterId,
+                'name': turn.name,
+                'intent': turn.intent,
+                'visibleAction': turn.visibleAction,
+                'dialogue': turn.dialogue,
+                'innerState': turn.innerState,
+                'proseFragment': turn.proseFragment,
+                'taboo': turn.taboo,
+                'rawText': turn.rawText,
+                'skillId': turn.skillId,
+                'skillVersion': turn.skillVersion,
+                'proposedMemoryDeltas': <Object?>[
+                  for (final delta in turn.proposedMemoryDeltas) delta.toJson(),
+                ],
+              },
+          ],
+          'arbitration': <String, Object?>{
+            'fact': round.arbitration.fact,
+            'state': round.arbitration.state,
+            'pressure': round.arbitration.pressure,
+            'nextPublicState': round.arbitration.nextPublicState,
+            'shouldStop': round.arbitration.shouldStop,
+            'rawText': round.arbitration.rawText,
+            'skillId': round.arbitration.skillId,
+            'skillVersion': round.arbitration.skillVersion,
+            'acceptedMemoryDeltas': <Object?>[
+              for (final delta in round.arbitration.acceptedMemoryDeltas)
+                delta.toJson(),
+            ],
+            'rejectedMemoryDeltas': <Object?>[
+              for (final delta in round.arbitration.rejectedMemoryDeltas)
+                delta.toJson(),
+            ],
+          },
+        },
+    ],
+    'committedFacts': <Object?>[
+      for (final fact in session.committedFacts)
+        <String, Object?>{
+          'sequenceId': fact.sequenceId,
+          'round': fact.round,
+          'source': fact.source,
+          'content': fact.content,
+          'previousHash': fact.previousHash,
+          'contentHash': fact.contentHash,
+        },
+    ],
+  };
+}
+
+Map<String, Object?>? _finalEvaluationManifestCall({
+  required StoryGenerationFormalOutcomeProvenance outcome,
+  required String parsedOutputDigest,
+  required Map<String, int> sequenceByLogicalAttemptId,
+}) {
+  final sequenceNo = sequenceByLogicalAttemptId[outcome.logicalAttemptId];
+  if (sequenceNo == null) return null;
+  return <String, Object?>{
+    'sequenceNo': sequenceNo,
+    'phase': outcome.evaluationPhase.name,
+    'stageId': outcome.stageId,
+    'callSiteId': outcome.callSiteId,
+    'logicalAttemptId': outcome.logicalAttemptId,
+    'providerOutcomeSealHash': outcome.providerOutcomeSealHash,
+    'providerArtifactDigest': outcome.providerArtifactDigest.toCanonicalMap(),
+    'promptReleaseContentHash': outcome.promptReleaseContentHash,
+    'parserRelease': outcome.parserRelease,
+    'evaluationFingerprintDigest': outcome.evaluationFingerprintDigest,
+    'parsedOutputDigest': parsedOutputDigest,
+  };
+}
+
 class PipelineStageRunnerImpl
     implements ChapterGenerationService, PipelineStageRunner {
+  /// Constructs the only dependency graph eligible to mint a sealed
+  /// finalization admission. Output-affecting services are intentionally not
+  /// injectable here; the ordinary constructor remains available for
+  /// adaptive production and focused tests but can issue receipts only.
+  factory PipelineStageRunnerImpl.sealedProduction({
+    required StoryGenerationSettingsContract settingsStore,
+    required GenerationPipelineConfig pipelineConfig,
+    PipelineEventLog? eventLog,
+    StoryMemoryStorage? memoryStorage,
+    RoleplaySessionStore? roleplaySessionStore,
+    CharacterMemoryStore? characterMemoryStore,
+    HybridRetriever? hybridRetriever,
+    StoryContextCache? contextCache,
+  }) {
+    final runner = PipelineStageRunnerImpl(
+      settingsStore: settingsStore,
+      pipelineConfig: pipelineConfig,
+      eventLog: eventLog,
+      memoryStorage: memoryStorage,
+      roleplaySessionStore: roleplaySessionStore,
+      characterMemoryStore: characterMemoryStore,
+      hybridRetriever: hybridRetriever,
+      contextCache: contextCache,
+      promptRegistry: StoryPromptRegistry.production,
+    );
+    runner._sealedProductionEligible = true;
+    return runner;
+  }
+
   PipelineStageRunnerImpl({
     required StoryGenerationSettingsContract settingsStore,
     GenerationPipelineConfig pipelineConfig = const GenerationPipelineConfig(),
@@ -191,7 +538,8 @@ class PipelineStageRunnerImpl
     MemoryWritebackGate? writebackGate,
     StoryPromptRegistry? promptRegistry,
   }) {
-    final sharedEventLog = eventLog ?? PipelineEventLogImpl();
+    final sharedEventLog =
+        eventLog ?? PipelineEvidenceLogScope.current ?? PipelineEventLogImpl();
     final sharedWritebackGate =
         writebackGate ??
         BasicMemoryWritebackGate(
@@ -236,12 +584,12 @@ class PipelineStageRunnerImpl
       roleplaySessionStore: roleplaySessionStore,
       characterMemoryStore: characterMemoryStore,
       retrievalController: RetrievalController(
-        materialReferenceRetriever: MaterialReferenceRetriever(
-          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        materialReferenceRetriever: _materialReferenceRetrieverFrom(
+          pipelineConfig.styleReferenceConfig,
         ),
-        enableWritingReference:
-            pipelineConfig.enableWritingReference &&
-            pipelineConfig.styleReferenceConfig.enabled,
+        enableWritingReference: _writingReferenceRetrievalEnabled(
+          pipelineConfig,
+        ),
       ),
     );
     _stageNarrationStep = StageNarrationStep(
@@ -252,12 +600,12 @@ class PipelineStageRunnerImpl
             eventLog: sharedEventLog,
           ),
       retrievalController: RetrievalController(
-        materialReferenceRetriever: MaterialReferenceRetriever(
-          rootPath: pipelineConfig.styleReferenceConfig.rootPath,
+        materialReferenceRetriever: _materialReferenceRetrieverFrom(
+          pipelineConfig.styleReferenceConfig,
         ),
-        enableWritingReference:
-            pipelineConfig.enableWritingReference &&
-            pipelineConfig.styleReferenceConfig.enabled,
+        enableWritingReference: _writingReferenceRetrievalEnabled(
+          pipelineConfig,
+        ),
       ),
     );
     _beatResolutionStep = BeatResolutionStep(
@@ -298,14 +646,423 @@ class PipelineStageRunnerImpl
   int get maxQualityRepairRetries => _pipelineConfig.maxQualityRepairRetries;
   int get maxSceneReplanRetries => _pipelineConfig.maxSceneReplanRetries;
   bool get enableWritingReference => _pipelineConfig.enableWritingReference;
+  bool get _contentRedrawAllowed => _pipelineConfig.contentRedrawAllowed;
   StyleReferenceConfig get styleReferenceConfig =>
       _pipelineConfig.styleReferenceConfig;
+
+  _SealedMaterialBinding? _sealedMaterialBinding({
+    required SceneRuntimeOutput output,
+    required String runId,
+  }) {
+    final ledger = generationLedger;
+    final configuredRunId = checkpointRunId?.trim();
+    final projectId = output.brief.projectId?.trim();
+    if (!_sealedProductionEligible ||
+        ledger == null ||
+        configuredRunId == null ||
+        configuredRunId != runId ||
+        projectId == null ||
+        projectId.isEmpty) {
+      return null;
+    }
+    final rows = ledger.db.select(
+      '''SELECT project_id, scene_id, material_digest, manifest_json
+         FROM story_generation_material_manifests
+         WHERE run_id = ?''',
+      <Object?>[runId],
+    );
+    if (rows.length != 1) return null;
+    final row = rows.single;
+    final materialDigest = row['material_digest'];
+    final manifestJson = row['manifest_json'];
+    if (row['project_id'] != projectId ||
+        row['scene_id'] != output.brief.sceneId ||
+        materialDigest is! String ||
+        manifestJson is! String ||
+        !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(materialDigest) ||
+        GenerationLedgerDigest.text(manifestJson) != materialDigest) {
+      return null;
+    }
+    return _SealedMaterialBinding(
+      materialDigest: materialDigest,
+      inputDigest: GenerationLedgerDigest.object(<String, Object?>{
+        'brief': SceneGenerationIdentity.briefObject(output.brief),
+        'materialDigest': materialDigest,
+      }),
+    );
+  }
+
+  _FinalEvaluationManifestBinding? _takeFinalEvaluationManifestBinding({
+    required SceneRuntimeOutput output,
+    required String runId,
+    required String preparedBriefDigest,
+    required ArtifactDigest finalArtifactDigest,
+    required List<VerifiedStoryGenerationAttemptAdmission> admissions,
+  }) {
+    final qualityScore = output.qualityScore;
+    if (!_sealedProductionEligible || qualityScore == null) return null;
+
+    final reviewProvenance = consumeVerifiedSceneReviewProvenance(
+      result: output.review,
+      phase: StoryGenerationEvaluationPhase.finalCouncil,
+      artifactDigest: finalArtifactDigest,
+    );
+    // Both DTO capabilities are burn-first. Even when the review token is
+    // absent, consume the exact quality identity so a failed presentation
+    // cannot leave a reusable authority behind.
+    final qualityProvenance = consumeVerifiedSceneQualityProvenance(
+      score: qualityScore,
+      phase: StoryGenerationEvaluationPhase.quality,
+      artifactDigest: finalArtifactDigest,
+    );
+    if (reviewProvenance == null || qualityProvenance == null) return null;
+
+    final sequenceByLogicalAttemptId = <String, int>{};
+    final generationBundleHashes = <String>{};
+    for (final admission in admissions) {
+      final logicalAttemptId = admission.intent.logicalAttemptId;
+      if (sequenceByLogicalAttemptId.putIfAbsent(
+            logicalAttemptId,
+            () => admission.sequenceNo,
+          ) !=
+          admission.sequenceNo) {
+        return null;
+      }
+      generationBundleHashes.add(admission.intent.generationBundleHash);
+    }
+    if (generationBundleHashes.length != 1) return null;
+    final generationBundleHash = generationBundleHashes.single;
+
+    final calls = <Map<String, Object?>>[];
+    for (final pass in reviewProvenance.orderedPasses) {
+      final call = _finalEvaluationManifestCall(
+        outcome: pass.outcome,
+        parsedOutputDigest: pass.parsedOutputDigest,
+        sequenceByLogicalAttemptId: sequenceByLogicalAttemptId,
+      );
+      if (call == null) return null;
+      calls.add(call);
+    }
+    final qualityCall = _finalEvaluationManifestCall(
+      outcome: qualityProvenance.outcome,
+      parsedOutputDigest: qualityProvenance.parsedOutputDigest,
+      sequenceByLogicalAttemptId: sequenceByLogicalAttemptId,
+    );
+    if (qualityCall == null) return null;
+    calls.add(qualityCall);
+
+    var previousSequenceNo = -1;
+    for (final call in calls) {
+      final sequenceNo = call['sequenceNo']! as int;
+      if (sequenceNo <= previousSequenceNo) return null;
+      previousSequenceNo = sequenceNo;
+    }
+
+    final manifest = <String, Object?>{
+      'schemaVersion': 'pipeline-final-evaluation-manifest-v1',
+      'finalArtifactDigest': finalArtifactDigest.toCanonicalMap(),
+      'reviewParsedOutputDigest': reviewProvenance.parsedOutputDigest,
+      'qualityParsedOutputDigest': qualityProvenance.parsedOutputDigest,
+      'orderedCalls': <Object?>[...calls],
+    };
+    return _FinalEvaluationManifestBinding(
+      authority: PipelineFinalEvaluationManifestAuthority._(
+        runId: runId,
+        sceneId: output.brief.sceneId,
+        preparedBriefDigest: preparedBriefDigest,
+        generationArmPolicy: _pipelineConfig.generationArmPolicy,
+        generationBundleHash: generationBundleHash,
+        finalArtifactDigest: finalArtifactDigest,
+        manifest: manifest,
+      ),
+      generationBundleHash: generationBundleHash,
+      reviewParsedOutputDigest: reviewProvenance.parsedOutputDigest,
+      qualityParsedOutputDigest: qualityProvenance.parsedOutputDigest,
+    );
+  }
+
+  Future<R> _runWithRetryPolicy<R>({
+    required Future<R> Function() body,
+    required String sceneId,
+    required String? preparedBriefDigest,
+    required bool Function(R value) runCompleted,
+    required String? Function(R value) finalArtifactText,
+    R Function(R value, GenerationEvidenceReceipt receipt)?
+    attachVerifiedEvidenceReceipt,
+    R Function(R value, List<PipelineEvent> events)? refreshResultEvents,
+  }) async {
+    if (_contentRedrawAllowed) {
+      return body();
+    }
+    final evidenceLog = _eventLog;
+    if (evidenceLog is! PipelineEventLogImpl ||
+        !evidenceLog.canPersistAndRetrieveEvidence ||
+        evidenceLog.evidenceLocator == null) {
+      throw StateError(
+        'no-redraw pipeline requires a persistent, retrievable evidence sink',
+      );
+    }
+    final evidenceRunId = _pipelineConfig.evidenceRunId?.trim();
+    if (evidenceRunId == null || evidenceRunId.isEmpty) {
+      throw StoryGenerationEvidencePreflightFailure(
+        'no-redraw pipeline requires a stable caller-owned evidenceRunId',
+      );
+    }
+    final normalizedPreparedBriefDigest = preparedBriefDigest?.trim();
+    if (normalizedPreparedBriefDigest == null ||
+        !RegExp(
+          r'^sha256:[0-9a-f]{64}$',
+        ).hasMatch(normalizedPreparedBriefDigest)) {
+      throw StoryGenerationEvidencePreflightFailure(
+        'no-redraw pipeline requires a prepared SceneBrief digest',
+      );
+    }
+    final capture = StoryGenerationAttemptEvidenceCapture();
+    final evidenceJournal = await evidenceLog
+        .openStoryGenerationEvidenceJournal(
+          evidenceRunId: evidenceRunId,
+          sceneId: sceneId,
+          preparedBriefDigest: normalizedPreparedBriefDigest,
+          generationArmPolicy: _pipelineConfig.generationArmPolicy,
+        );
+
+    var completed = false;
+    ArtifactDigest? finalDigest;
+    late R value;
+    Object? bodyError;
+    StackTrace? bodyStackTrace;
+    try {
+      value = await StoryGenerationRetryScope.run<Future<R>>(
+        policy: const StoryGenerationRetryPolicy.experimentNoContentRedraw(
+          maxTotalAttempts: 3,
+          maxNoProviderCompletionRetries: 2,
+        ),
+        onAttemptEvidence: capture.record,
+        persistAttemptEvidence: evidenceJournal.persistAttempt,
+        persistAttemptIntent: evidenceJournal.persistIntent,
+        sealArtifactEvidence: evidenceJournal.sealArtifact,
+        generationArmPolicy: _pipelineConfig.generationArmPolicy,
+        evidenceRunId: evidenceRunId,
+        evidenceSceneId: sceneId,
+        preparedBriefDigest: normalizedPreparedBriefDigest,
+        body: body,
+      );
+      completed = runCompleted(value);
+      final prose = finalArtifactText(value);
+      if (prose != null) {
+        finalDigest = ArtifactDigest.fromUtf8String(prose);
+      }
+    } on Object catch (error, stackTrace) {
+      bodyError = error;
+      bodyStackTrace = stackTrace;
+    }
+
+    final envelope = capture.toEnvelope();
+    late final bool evidenceComplete;
+    try {
+      evidenceComplete = await evidenceJournal.persistAndVerifyEnvelope(
+        envelope: envelope,
+        completed: completed,
+        finalArtifactDigest: finalDigest,
+      );
+    } on Object {
+      // The envelope pass still owns journal invalidation, but an error it
+      // derives from the already-failed body (for example, the resulting
+      // unclosed write-ahead intent) must not replace the first failure or its
+      // stack. With no body failure, preserve the envelope error unchanged.
+      if (bodyError != null) {
+        Error.throwWithStackTrace(bodyError, bodyStackTrace!);
+      }
+      rethrow;
+    }
+
+    if (bodyError != null) {
+      Error.throwWithStackTrace(bodyError, bodyStackTrace!);
+    }
+    if (completed && !evidenceComplete) {
+      throw StoryGenerationEvidenceIntegrityFailure(
+        'no-redraw result cannot leave the pipeline with incomplete attempt, '
+        'artifact-seal, or envelope evidence',
+      );
+    }
+    if (completed && evidenceComplete && finalDigest != null) {
+      final verifiedAdmissions =
+          evidenceJournal.verifiedAdmissionOrderedAdmissions;
+      _FinalEvaluationManifestBinding? finalEvaluationBinding;
+      _SealedMaterialBinding? sealedMaterialBinding;
+      if (_sealedProductionEligible && value is SceneRuntimeOutput) {
+        finalEvaluationBinding = _takeFinalEvaluationManifestBinding(
+          output: value,
+          runId: evidenceRunId,
+          preparedBriefDigest: normalizedPreparedBriefDigest,
+          finalArtifactDigest: finalDigest,
+          admissions: verifiedAdmissions,
+        );
+        sealedMaterialBinding = _sealedMaterialBinding(
+          output: value,
+          runId: evidenceRunId,
+        );
+        if (finalEvaluationBinding == null || sealedMaterialBinding == null) {
+          throw StoryGenerationEvidenceIntegrityFailure(
+            'sealed production result requires live final-council and quality '
+            'parser provenance plus one frozen material/input binding',
+          );
+        }
+      }
+      final receipt = GenerationEvidenceReceipt.fromVerified(
+        authority: evidenceJournal.issueReceiptAuthority(
+          sealedArtifactDigest: finalDigest,
+        ),
+        evidenceRunId: evidenceRunId,
+        sceneId: sceneId,
+        generationArmPolicy: _pipelineConfig.generationArmPolicy,
+        preparedBriefDigest: normalizedPreparedBriefDigest,
+        intents: verifiedAdmissions.map(
+          (admission) => GenerationEvidenceReceiptIntent(
+            admissionSequenceNo: admission.sequenceNo,
+            intent: admission.intent,
+          ),
+        ),
+        envelope: envelope,
+        sealedArtifactDigest: finalDigest,
+        finalEvaluationManifestAuthority: finalEvaluationBinding?.authority,
+      );
+      final reparsedReceipt = GenerationEvidenceReceipt.fromCanonicalJson(
+        receipt.canonicalJson,
+      );
+      if (reparsedReceipt.receiptHash != receipt.receiptHash ||
+          reparsedReceipt.evidenceRunId != evidenceRunId ||
+          reparsedReceipt.sceneId != sceneId ||
+          !_pipelineArtifactMapMatches(
+            reparsedReceipt.sealedArtifactDigest,
+            finalDigest,
+          )) {
+        throw StoryGenerationEvidenceIntegrityFailure(
+          'terminal receipt failed canonical reparse reconciliation',
+        );
+      }
+      final attach = attachVerifiedEvidenceReceipt;
+      if (attach != null) {
+        value = attach(value, receipt);
+      }
+      if (_sealedProductionEligible && value is SceneRuntimeOutput) {
+        final binding = finalEvaluationBinding;
+        final materialBinding = sealedMaterialBinding;
+        final qualityScore = value.qualityScore;
+        if (binding == null ||
+            materialBinding == null ||
+            qualityScore == null ||
+            !identical(value.generationEvidenceReceipt, receipt) ||
+            reparsedReceipt.finalEvaluationManifest == null ||
+            reparsedReceipt.finalReviewParsedOutputDigest !=
+                binding.reviewParsedOutputDigest ||
+            reparsedReceipt.finalQualityParsedOutputDigest !=
+                binding.qualityParsedOutputDigest ||
+            binding.reviewParsedOutputDigest !=
+                storyGenerationParsedOutputDigest(
+                  canonicalSceneReviewEvaluationOutput(value.review),
+                ) ||
+            binding.qualityParsedOutputDigest !=
+                storyGenerationParsedOutputDigest(qualityScore.toJson())) {
+          throw StoryGenerationEvidenceIntegrityFailure(
+            'sealed receipt does not reconcile with the exact live review '
+            'and quality parser outputs',
+          );
+        }
+        final pendingWriteSourceDigest = pipelinePendingWriteSourceDigest(
+          value,
+        );
+        _pipelineFinalizationAdmissions[value] = _PipelineFinalizationAdmission(
+          runId: evidenceRunId,
+          sceneId: sceneId,
+          preparedBriefDigest: normalizedPreparedBriefDigest,
+          generationArmPolicy: _pipelineConfig.generationArmPolicy,
+          generationBundleHash: binding.generationBundleHash,
+          receiptCanonicalJson: receipt.canonicalJson,
+          receiptHash: receipt.receiptHash,
+          finalProseHash: GenerationLedgerDigest.text(value.prose.text),
+          materialDigest: materialBinding.materialDigest,
+          inputDigest: materialBinding.inputDigest,
+          pendingWriteSourceDigest: pendingWriteSourceDigest,
+          outputBindingHash: _pipelineOutputBindingHash(value),
+        );
+      }
+    }
+    final refresh = refreshResultEvents;
+    if (refresh != null) {
+      return refresh(
+        value,
+        List<PipelineEvent>.unmodifiable(_eventLog.query()),
+      );
+    }
+    return value;
+  }
+
+  Never _blockContentRedraw({
+    required SceneBrief brief,
+    required String stageId,
+    required String reason,
+  }) {
+    _eventLog.emit(
+      PipelineEvent(
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        stageId: stageId,
+        eventType: 'content_redraw_blocked',
+        metadata: {
+          'sceneId': brief.sceneId,
+          'reason': reason,
+          'sceneContentRedrawPolicy':
+              _pipelineConfig.sceneContentRedrawPolicy.name,
+        },
+      ),
+    );
+    throw ContentRedrawBlocked(stageId: stageId, reason: reason);
+  }
+
+  static bool _writingReferenceRetrievalEnabled(
+    GenerationPipelineConfig config,
+  ) {
+    return config.enableWritingReference &&
+        config.styleReferenceConfig.enabled &&
+        config.styleReferenceConfig.allowWritingReferenceRetrieval &&
+        config.styleReferenceConfig.rootPath.trim().isNotEmpty;
+  }
+
+  static MaterialReferenceRetriever? _materialReferenceRetrieverFrom(
+    StyleReferenceConfig config,
+  ) {
+    if (!config.allowWritingReferenceRetrieval ||
+        config.rootPath.trim().isEmpty) {
+      return null;
+    }
+    final approvedBundle = config.approvedBundle;
+    if (approvedBundle == null) return null;
+    final excerptLimit = config.approvedBundle?.sources
+        .map((source) => source.excerptLimitChars)
+        .whereType<int>()
+        .fold<int?>(
+          null,
+          (min, limit) => min == null || limit < min ? limit : min,
+        );
+    if (excerptLimit != null) {
+      return MaterialReferenceRetriever(
+        rootPath: config.rootPath,
+        approvedBundle: approvedBundle,
+        excerptCharLimit: excerptLimit,
+      );
+    }
+    return MaterialReferenceRetriever(
+      rootPath: config.rootPath,
+      approvedBundle: approvedBundle,
+    );
+  }
 
   late final PipelineEventLog _eventLog;
   late final MemoryWritebackGate _writebackGate;
   late final StoryPromptRegistry _promptRegistry;
   late final SceneQualityScorerService _qualityScorer;
   late final ProductionPreQualityGate _preQualityGate;
+  bool _sealedProductionEligible = false;
 
   bool Function()? isRunCancelled;
 
@@ -374,23 +1131,55 @@ class PipelineStageRunnerImpl
   MemoryWritebackGate get writebackGate => _writebackGate;
 
   @override
-  Future<PipelineRunResult> run(SceneBriefRef brief, PipelineContext context) =>
-      _promptRegistry.runAsync(() => _runPipeline(brief, context));
+  Future<PipelineRunResult> run(SceneBriefRef brief, PipelineContext context) {
+    final sourceBrief = context.metadata['sceneBrief'];
+    final sourceMaterials = context.metadata['materials'];
+    final prepared = sourceBrief is SceneBrief
+        ? prepareSceneBrief(
+            sourceBrief,
+            materials: sourceMaterials is ProjectMaterialSnapshot
+                ? sourceMaterials
+                : null,
+          )
+        : null;
+    return _runWithRetryPolicy<PipelineRunResult>(
+      body: () => _promptRegistry.runAsync(
+        () => _runPipeline(brief, context, prepared: prepared),
+      ),
+      sceneId: brief.sceneId,
+      preparedBriefDigest: prepared?.digest,
+      runCompleted: (value) => value.success,
+      finalArtifactText: (value) {
+        final artifact = value.finalArtifact;
+        return artifact is FinalizationOutput
+            ? artifact.output.prose.text
+            : null;
+      },
+      refreshResultEvents: (value, events) => PipelineRunResult(
+        success: value.success,
+        events: events,
+        finalArtifact: value.finalArtifact,
+        failureCode: value.failureCode,
+        failedStageId: value.failedStageId,
+      ),
+    );
+  }
 
   Future<PipelineRunResult> _runPipeline(
     SceneBriefRef brief,
-    PipelineContext context,
-  ) async {
-    final sceneBrief = context.metadata['sceneBrief'];
+    PipelineContext context, {
+    required PreparedSceneBrief? prepared,
+  }) async {
+    final sceneBrief = prepared?.brief ?? context.metadata['sceneBrief'];
     if (sceneBrief is SceneBrief) {
-      final materials = context.metadata['materials'];
       try {
         final output = await StoryPromptTemplates.runWithLanguage(
           _settingsStore.promptLanguage,
           () => _runSceneFinalization(
-            _briefWithStyleReference(sceneBrief),
-            materials: materials is ProjectMaterialSnapshot ? materials : null,
+            prepared?.brief ?? _briefWithStyleReference(sceneBrief),
+            materials: prepared?.materials,
             context: _runnerContextFor(brief, context),
+            providerFacingBriefPrepared: prepared != null,
           ),
         );
         return PipelineRunResult(
@@ -403,6 +1192,9 @@ class PipelineStageRunnerImpl
         var failureCode = failureEvent?.failureCode ?? FailureCode.fatal;
         var failedStageId = failureEvent?.stageId ?? 'runner';
         if (error is PipelineRunCancelled) {
+          failureCode = FailureCode.blocked;
+          failedStageId = error.stageId;
+        } else if (error is ContentRedrawBlocked) {
           failureCode = FailureCode.blocked;
           failedStageId = error.stageId;
         } else if (error is QualityGateFailure) {
@@ -464,15 +1256,67 @@ class PipelineStageRunnerImpl
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) {
-    return _promptRegistry.runAsync(
+    return runPreparedScene(
+      prepareSceneBrief(brief, materials: materials),
+      onSpeculationReady: onSpeculationReady,
+    );
+  }
+
+  /// The sole construction boundary for the provider-facing scene brief.
+  /// Callers which also create a ledger capture must retain this object and
+  /// pass it to [runPreparedScene], rather than independently deriving a hash.
+  PreparedSceneBrief prepareSceneBrief(
+    SceneBrief brief, {
+    ProjectMaterialSnapshot? materials,
+  }) {
+    final styled = _briefWithStyleReference(brief);
+    // Capture even an empty runner arc. A null arc would otherwise let a
+    // later run mutate `_narrativeArc` between admission and provider dispatch.
+    final providerFacing = styled.copyWith(
+      narrativeArc: styled.narrativeArc ?? _narrativeArc,
+    );
+    final prepared = SceneBriefSnapshot.freeze(providerFacing);
+    return PreparedSceneBrief._(
+      brief: prepared,
+      digest: SceneGenerationIdentity.briefHash(prepared),
+      materials: materials == null
+          ? null
+          : SceneBriefSnapshot.freezeMaterials(materials),
+    );
+  }
+
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
+    ProjectMaterialSnapshot? materials,
+    void Function()? onSpeculationReady,
+  }) {
+    // Legacy callers may still supply materials at execution time. Snapshot
+    // them synchronously before any await; prepared callers always win so a
+    // second caller-owned object cannot replace the admitted material graph.
+    final executionMaterials =
+        prepared.materials ??
+        (materials == null
+            ? null
+            : SceneBriefSnapshot.freezeMaterials(materials));
+    Future<SceneRuntimeOutput> execute() => _promptRegistry.runAsync(
       () => StoryPromptTemplates.runWithLanguage(
         _settingsStore.promptLanguage,
         () => _runScene(
-          _briefWithStyleReference(brief),
-          materials: materials,
+          prepared.brief,
+          materials: executionMaterials,
           onSpeculationReady: onSpeculationReady,
+          providerFacingBriefPrepared: true,
         ),
       ),
+    );
+    return _runWithRetryPolicy<SceneRuntimeOutput>(
+      body: execute,
+      sceneId: prepared.brief.sceneId,
+      preparedBriefDigest: prepared.digest,
+      runCompleted: (_) => true,
+      finalArtifactText: (value) => value.prose.text,
+      attachVerifiedEvidenceReceipt: (value, receipt) =>
+          value.withGenerationEvidenceReceipt(receipt),
     );
   }
 
@@ -529,7 +1373,7 @@ class PipelineStageRunnerImpl
   }
 
   SceneBrief _briefWithStyleReference(SceneBrief brief) {
-    if (!enableWritingReference || !styleReferenceConfig.enabled) {
+    if (!styleReferenceConfig.enabled) {
       return brief;
     }
     final styleSummary = styleReferenceConfig.promptSummary;
@@ -544,9 +1388,12 @@ class PipelineStageRunnerImpl
       ].join('\n'),
       metadata: {
         ...brief.metadata,
-        'styleReferenceProfileId': styleReferenceConfig.profileId,
-        'styleReferenceProfileName': styleReferenceConfig.profileName,
-        'styleReferenceRootPath': styleReferenceConfig.rootPath,
+        if (styleReferenceConfig.approvedBundle != null)
+          'styleReferenceBundleHash':
+              styleReferenceConfig.approvedBundle!.identityHash,
+        if (styleReferenceConfig.approvedBundle != null)
+          'styleReferenceUsage':
+              styleReferenceConfig.approvedBundle!.referenceUsage.name,
       },
     );
   }
@@ -555,6 +1402,7 @@ class PipelineStageRunnerImpl
     SceneBrief brief, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
+    bool providerFacingBriefPrepared = false,
   }) async {
     _globalRetryCount = 0;
     _throwIfCancelled('run_start');
@@ -564,6 +1412,7 @@ class PipelineStageRunnerImpl
       materials: materials,
       onSpeculationReady: onSpeculationReady,
       context: _defaultContextFor(brief),
+      providerFacingBriefPrepared: providerFacingBriefPrepared,
     );
     return finalization.output;
   }
@@ -573,6 +1422,7 @@ class PipelineStageRunnerImpl
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
     required PipelineContext context,
+    bool providerFacingBriefPrepared = false,
   }) async {
     _globalRetryCount = 0;
     _throwIfCancelled('run_start');
@@ -583,7 +1433,9 @@ class PipelineStageRunnerImpl
       ),
     );
     final narrativeArcBeforeScene = brief.narrativeArc ?? _narrativeArc;
-    brief = _briefWithNarrativeArc(brief, narrativeArcBeforeScene);
+    if (!providerFacingBriefPrepared) {
+      brief = _briefWithNarrativeArc(brief, narrativeArcBeforeScene);
+    }
     var currentBrief = brief;
     var sceneReplanCount = 0;
     var speculationReadySent = false;
@@ -612,7 +1464,7 @@ class PipelineStageRunnerImpl
           brief: currentBrief,
           ragContext: contextOutput.ragContext,
           directorMemory: _directorMemory,
-          narrativeArc: _narrativeArc,
+          narrativeArc: narrativeArcBeforeScene,
         ),
         context,
         currentBrief,
@@ -684,21 +1536,26 @@ class PipelineStageRunnerImpl
         );
 
         // Step 7: Review
-        final reviewOutput = await _executeTypedStage(
-          _reviewStep,
-          ReviewInput(
-            brief: currentBrief,
-            plan: planOutput,
-            roleplay: roleplayOutput,
-            editorial: editorialOutput,
-            context: contextOutput,
-            attempt: attempt,
-            softFailureCount: softFailureCount,
-          ),
-          context,
-          currentBrief,
-          checkpointAttemptGroup: attempt,
-        );
+        final reviewOutput =
+            await StoryGenerationEvaluationScope.run<Future<ReviewOutput>>(
+              phase: StoryGenerationEvaluationPhase.preliminaryReview,
+              artifactText: editorialOutput.prose.text,
+              body: () => _executeTypedStage(
+                _reviewStep,
+                ReviewInput(
+                  brief: currentBrief,
+                  plan: planOutput,
+                  roleplay: roleplayOutput,
+                  editorial: editorialOutput,
+                  context: contextOutput,
+                  attempt: attempt,
+                  softFailureCount: softFailureCount,
+                ),
+                context,
+                currentBrief,
+                checkpointAttemptGroup: attempt,
+              ),
+            );
         reviewAttempts.add(
           SceneReviewAttempt.snapshot(
             round: sceneReplanCount + 1,
@@ -736,6 +1593,15 @@ class PipelineStageRunnerImpl
               ),
             );
 
+        if (!_contentRedrawAllowed &&
+            reviewOutput.action == SceneReviewDecision.replanScene) {
+          _blockContentRedraw(
+            brief: currentBrief,
+            stageId: 'planning',
+            reason: 'preliminary review requested scene replan',
+          );
+        }
+
         // Replan: break inner, continue outer
         if (!reviewOutput.wasLengthRetry &&
             reviewOutput.action == SceneReviewDecision.replanScene &&
@@ -755,6 +1621,13 @@ class PipelineStageRunnerImpl
 
         // Rewrite prose: continue inner loop
         if (reviewOutput.action == SceneReviewDecision.rewriteProse) {
+          if (!_contentRedrawAllowed) {
+            _blockContentRedraw(
+              brief: currentBrief,
+              stageId: 'editorial',
+              reason: 'preliminary review requested prose rewrite',
+            );
+          }
           softFailureCount += 1;
           if (softFailureCount <= maxProseRetries) {
             _emitStatus(
@@ -793,6 +1666,22 @@ class PipelineStageRunnerImpl
           currentBrief,
           checkpointAttemptGroup: attempt,
         );
+        if (!_contentRedrawAllowed) {
+          final sealArtifact =
+              StoryGenerationRetryScope.currentArtifactEvidenceSealer;
+          if (sealArtifact == null) {
+            throw StoryGenerationEvidencePreflightFailure(
+              'no-redraw pipeline requires a durable candidate artifact seal',
+            );
+          }
+          await sealArtifact(
+            stageId: 'polish_candidate_before_gates',
+            artifactText: rawPolishOutput.prose.text,
+            sourceLogicalAttemptId:
+                rawPolishOutput.sourceLogicalAttemptId ?? '',
+            sourceCallSiteId: rawPolishOutput.sourceCallSiteId ?? '',
+          );
+        }
         final preQualityEvidence = _preQualityGate.verifyPipelinePolish(
           prePolishProse: editorialOutput.prose.text,
           finalProse: rawPolishOutput.prose.text,
@@ -834,7 +1723,8 @@ class PipelineStageRunnerImpl
         final storyMechanicsEvidence =
             preQualityEvidence.storyMechanicsEvidence;
         if (preQualityEvidence.hardGateViolations.isNotEmpty) {
-          final repairScheduled = softFailureCount < maxProseRetries;
+          final repairScheduled =
+              _contentRedrawAllowed && softFailureCount < maxProseRetries;
           final failureCodes = <String>['quality.pre_quality_hard_gate'];
           reviewAttempts.add(
             SceneReviewAttempt.snapshot(
@@ -851,6 +1741,13 @@ class PipelineStageRunnerImpl
               repairScheduled: repairScheduled,
             ),
           );
+          if (!_contentRedrawAllowed) {
+            _blockContentRedraw(
+              brief: currentBrief,
+              stageId: 'deterministic_gate',
+              reason: 'pre-quality hard gate requested prose repair',
+            );
+          }
           if (repairScheduled) {
             softFailureCount += 1;
             attempt += 1;
@@ -896,7 +1793,8 @@ class PipelineStageRunnerImpl
           throw ProductionPreQualityGateViolation(preQualityEvidence);
         }
         if (!storyMechanicsEvidence.passed) {
-          final repairScheduled = softFailureCount < maxProseRetries;
+          final repairScheduled =
+              _contentRedrawAllowed && softFailureCount < maxProseRetries;
           reviewAttempts.add(
             SceneReviewAttempt.snapshot(
               round: sceneReplanCount + 1,
@@ -912,7 +1810,14 @@ class PipelineStageRunnerImpl
               repairScheduled: repairScheduled,
             ),
           );
-          if (softFailureCount < maxProseRetries) {
+          if (!_contentRedrawAllowed) {
+            _blockContentRedraw(
+              brief: currentBrief,
+              stageId: 'deterministic_gate',
+              reason: 'story mechanics gate requested prose repair',
+            );
+          }
+          if (repairScheduled) {
             softFailureCount += 1;
             attempt += 1;
             previousProse = rawPolishOutput.prose.text;
@@ -957,6 +1862,8 @@ class PipelineStageRunnerImpl
         }
         final polishOutput = PolishOutput(
           prose: rawPolishOutput.prose,
+          sourceLogicalAttemptId: rawPolishOutput.sourceLogicalAttemptId,
+          sourceCallSiteId: rawPolishOutput.sourceCallSiteId,
           canonEvidence: polishCanonEvidence,
           storyMechanicsEvidence: storyMechanicsEvidence,
           productionPreQualityEvidence: preQualityEvidence,
@@ -990,25 +1897,30 @@ class PipelineStageRunnerImpl
 
         // Step 9: final council review of the polished revision. Reusing the
         // preliminary review would certify a different text revision.
-        final finalReviewOutput = await _executeTypedStage(
-          _reviewStep,
-          ReviewInput(
-            brief: currentBrief,
-            plan: planOutput,
-            roleplay: roleplayOutput,
-            editorial: EditorialOutput(
-              draft: editorialOutput.draft,
-              prose: polishOutput.prose,
-            ),
-            context: contextOutput,
-            attempt: attempt,
-            softFailureCount: softFailureCount,
-          ),
-          context,
-          currentBrief,
-          checkpointOrdinal: 9,
-          checkpointAttemptGroup: attempt,
-        );
+        final finalReviewOutput =
+            await StoryGenerationEvaluationScope.run<Future<ReviewOutput>>(
+              phase: StoryGenerationEvaluationPhase.finalCouncil,
+              artifactText: polishOutput.prose.text,
+              body: () => _executeTypedStage(
+                _reviewStep,
+                ReviewInput(
+                  brief: currentBrief,
+                  plan: planOutput,
+                  roleplay: roleplayOutput,
+                  editorial: EditorialOutput(
+                    draft: editorialOutput.draft,
+                    prose: polishOutput.prose,
+                  ),
+                  context: contextOutput,
+                  attempt: attempt,
+                  softFailureCount: softFailureCount,
+                ),
+                context,
+                currentBrief,
+                checkpointOrdinal: 9,
+                checkpointAttemptGroup: attempt,
+              ),
+            );
         reviewAttempts.add(
           SceneReviewAttempt.snapshot(
             round: sceneReplanCount + 1,
@@ -1019,11 +1931,19 @@ class PipelineStageRunnerImpl
             timestamp: DateTime.now().millisecondsSinceEpoch,
             proseHash: await _digestText(polishOutput.prose.text),
             repairScheduled:
+                _contentRedrawAllowed &&
                 finalReviewOutput.action != SceneReviewDecision.pass &&
                 softFailureCount < maxProseRetries,
           ),
         );
         if (finalReviewOutput.action != SceneReviewDecision.pass) {
+          if (!_contentRedrawAllowed) {
+            _blockContentRedraw(
+              brief: currentBrief,
+              stageId: 'review',
+              reason: 'final council review requested prose repair',
+            );
+          }
           softFailureCount += 1;
           if (softFailureCount <= maxProseRetries) {
             attempt += 1;
@@ -1064,7 +1984,9 @@ class PipelineStageRunnerImpl
             qualityAttempt: qualityRepairCount + 1,
           );
         } on QualityGateFailure catch (failure) {
-          final repairScheduled = qualityRepairCount < maxQualityRepairRetries;
+          final repairScheduled =
+              _contentRedrawAllowed &&
+              qualityRepairCount < maxQualityRepairRetries;
           reviewAttempts.add(
             SceneReviewAttempt.snapshot(
               round: sceneReplanCount + 1,
@@ -1078,6 +2000,13 @@ class PipelineStageRunnerImpl
               repairScheduled: repairScheduled,
             ),
           );
+          if (!_contentRedrawAllowed) {
+            _blockContentRedraw(
+              brief: currentBrief,
+              stageId: 'quality_gate',
+              reason: 'quality gate requested prose repair',
+            );
+          }
           if (!repairScheduled) rethrow;
           qualityRepairCount += 1;
           attempt += 1;
@@ -1261,12 +2190,17 @@ class PipelineStageRunnerImpl
         stageId: 'quality_gate',
         attempt: qualityAttempt,
       );
-      final score = await _qualityScorer.score(
-        brief: brief,
-        director: director,
-        prose: prose,
-        review: review,
-      );
+      final score =
+          await StoryGenerationEvaluationScope.run<Future<SceneQualityScore>>(
+            phase: StoryGenerationEvaluationPhase.quality,
+            artifactText: prose.text,
+            body: () => _qualityScorer.score(
+              brief: brief,
+              director: director,
+              prose: prose,
+              review: review,
+            ),
+          );
       _throwIfCancelled('quality_gate');
       _settleStageBudget(reservation: reservation, consumed: true);
       final criticalScores = [
@@ -1450,6 +2384,10 @@ class PipelineStageRunnerImpl
     required SceneProseDraft prose,
     required SceneReviewResult review,
   }) async {
+    // A checkpoint contains a public score DTO, not the private parser-bound
+    // provider outcome capability. Sealed production must obtain a new live
+    // quality result before it can mint finalization authority.
+    if (_sealedProductionEligible) return null;
     final store = checkpointStore;
     final runId = checkpointRunId;
     if (store == null || runId == null || runId.isEmpty) return null;
@@ -1570,7 +2508,11 @@ class PipelineStageRunnerImpl
         brief: brief,
       );
     }
-    final maximumAttempts = stage.maxRetries + 1;
+    // The provider helper owns classified transport retry. Replaying an
+    // entire stage after an arbitrary exception can create a second content
+    // sample with unknowable completion state, so frozen experiments fail
+    // closed at this outer lifecycle boundary.
+    final maximumAttempts = _contentRedrawAllowed ? stage.maxRetries + 1 : 1;
     Object? lastError;
     StackTrace? lastStackTrace;
     for (var attempt = 1; attempt <= maximumAttempts; attempt++) {
@@ -1744,6 +2686,12 @@ class PipelineStageRunnerImpl
     required TypedArtifact input,
     required SceneBrief brief,
   }) async {
+    // Ordinal 9 is the final council. Ordinal 11 is independently guarded in
+    // [_restoreQualityCheckpoint]. Public checkpoint JSON can resume work, but
+    // it can never substitute for either live evaluation in a sealed run.
+    if (_sealedProductionEligible && (ordinal == 9 || ordinal == 11)) {
+      return null;
+    }
     final store = checkpointStore;
     final runId = checkpointRunId;
     final restorer = checkpointArtifactRestorer;
@@ -2004,7 +2952,7 @@ class PipelineStageRunnerImpl
     };
     final result = <String, Object?>{
       'type': input.type.name,
-      if (brief != null) 'brief': _checkpointBriefObject(brief),
+      if (brief != null) 'brief': SceneGenerationIdentity.briefObject(brief),
     };
     switch (input) {
       case ScenePlanningInput(:final directorMemory, :final narrativeArc):
@@ -2087,20 +3035,6 @@ class PipelineStageRunnerImpl
     }
     return result;
   }
-
-  Map<String, Object?> _checkpointBriefObject(SceneBrief brief) => {
-    'projectId': brief.projectId,
-    'chapterId': brief.chapterId,
-    'sceneId': brief.sceneId,
-    'sceneIndex': brief.sceneIndex,
-    'totalScenesInChapter': brief.totalScenesInChapter,
-    'sceneTitle': brief.sceneTitle,
-    'sceneSummary': brief.sceneSummary,
-    'targetLength': brief.targetLength,
-    'targetBeat': brief.targetBeat,
-    'worldNodeIds': brief.worldNodeIds,
-    'castIds': [for (final member in brief.cast) member.characterId],
-  };
 
   Future<String> _digestText(String value) => _digestJson({'text': value});
 
@@ -2311,6 +3245,7 @@ class PipelineStageRunnerImpl
     required int sceneReplanCount,
     required int softFailureCount,
   }) {
+    if (!_contentRedrawAllowed) return false;
     if (reviewOutput.action == SceneReviewDecision.replanScene) {
       return !reviewOutput.wasLengthRetry &&
           sceneReplanCount < maxSceneReplanRetries;

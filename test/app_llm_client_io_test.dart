@@ -5,7 +5,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/app_llm_canonical_hash.dart';
+import 'package:novel_writer/app/llm/app_llm_client_io.dart' as direct_io;
 import 'package:novel_writer/app/llm/app_llm_prompt_release.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_event_log.dart';
+import 'package:novel_writer/features/story_generation/data/story_generation_pass_retry.dart';
 
 void main() {
   group('real IO app llm client', () {
@@ -23,10 +27,10 @@ void main() {
           ..statusCode = HttpStatus.ok
           ..headers.contentType = ContentType('text', 'event-stream')
           ..write(
-            'data: {"choices":[{"delta":{"content":"  reply  "},"index":0}]}\n\n',
+            'data: {"id":"chatcmpl-io-stream-1","choices":[{"delta":{"content":"  reply  "},"index":0}]}\n\n',
           )
           ..write(
-            'data: {"choices":[{"delta":{},"finish_reason":"stop","index":0}]}\n\n',
+            'data: {"id":"chatcmpl-io-stream-1","choices":[{"delta":{},"finish_reason":"stop","index":0}]}\n\n',
           )
           ..write('data: [DONE]\n\n');
         await request.response.close();
@@ -49,6 +53,7 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'reply');
+      expect(result.providerResponseId, 'chatcmpl-io-stream-1');
       expect(result.latencyMs, isNotNull);
       expect(requestUri.path, '/v1/chat/completions');
       expect(authorization, 'Bearer sk-real-key');
@@ -59,6 +64,104 @@ void main() {
         {'role': 'user', 'content': '请给我一句建议'},
       ]);
     });
+
+    test('raw single request is rejected before wildcard loopback IO', () async {
+      var calls = 0;
+      final server = await _startServer((request) async {
+        calls += 1;
+        await utf8.decoder.bind(request).join();
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json
+          ..write(
+            jsonEncode(<String, Object?>{
+              'choices': <Object?>[
+                <String, Object?>{
+                  'message': <String, Object?>{'content': 'local receipt'},
+                },
+              ],
+            }),
+          );
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final result = await createDefaultAppLlmClient().chat(
+        AppLlmChatRequest(
+          baseUrl: 'http://0.0.0.0:${server.port}/v1',
+          apiKey: '',
+          model: 'local-model',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          messages: const [AppLlmChatMessage(role: 'user', content: 'ping')],
+          physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+          dispatchEvidenceNonce:
+              'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ),
+      );
+
+      expect(result.succeeded, isFalse);
+      expect(result.providerBoundaryReceipt, isNull);
+      expect(result.detail, contains('permit is missing'));
+      expect(calls, 0);
+    });
+
+    test(
+      'copying and freezing a raw request cannot reconstruct its permit',
+      () async {
+        Map<String, Object?>? wireBody;
+        final server = await _startServer((request) async {
+          wireBody =
+              jsonDecode(await utf8.decoder.bind(request).join())
+                  as Map<String, Object?>;
+          request.response
+            ..statusCode = HttpStatus.ok
+            ..headers.contentType = ContentType.json
+            ..write(
+              jsonEncode(<String, Object?>{
+                'id': 'frozen-message-receipt',
+                'model': 'local-model',
+                'choices': <Object?>[
+                  <String, Object?>{
+                    'message': <String, Object?>{'content': 'sealed'},
+                  },
+                ],
+              }),
+            );
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+        final mutableMessages = <AppLlmChatMessage>[
+          const AppLlmChatMessage(role: 'user', content: 'frozen A'),
+        ];
+        final request = AppLlmChatRequest(
+          baseUrl: 'http://127.0.0.1:${server.port}/v1',
+          apiKey: '',
+          model: 'local-model',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          messages: mutableMessages,
+          physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+          dispatchEvidenceNonce:
+              'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        );
+
+        final reconstructed = request.freezeMessages();
+        final pending = createDefaultAppLlmClient().chat(reconstructed);
+        mutableMessages[0] = const AppLlmChatMessage(
+          role: 'user',
+          content: 'mutated B',
+        );
+        mutableMessages[0] = const AppLlmChatMessage(
+          role: 'user',
+          content: 'frozen A',
+        );
+        final result = await pending;
+
+        expect(wireBody, isNull);
+        expect(result.succeeded, isFalse);
+        expect(result.providerBoundaryReceipt, isNull);
+        expect(result.detail, contains('permit is missing'));
+      },
+    );
 
     test(
       'joins text segments from structured content without auth header',
@@ -148,6 +251,7 @@ void main() {
           ..headers.contentType = ContentType.json
           ..write(
             jsonEncode({
+              'id': 'chatcmpl-io-json-1',
               'choices': [
                 {
                   'message': {'content': 'hello tokens'},
@@ -178,6 +282,7 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(result.text, 'hello tokens');
+      expect(result.providerResponseId, 'chatcmpl-io-json-1');
       expect(result.promptTokens, 42);
       expect(result.completionTokens, 18);
       expect(result.totalTokens, 60);
@@ -256,6 +361,7 @@ void main() {
         expect(unauthorized.failureKind, AppLlmFailureKind.unauthorized);
         expect(unauthorized.statusCode, HttpStatus.unauthorized);
         expect(unauthorized.detail, 'API Key 无效');
+        expect(unauthorized.dispatchFailureDisposition, isNull);
 
         final missingModelServer = await _startServer((request) async {
           await utf8.decoder.bind(request).join();
@@ -281,6 +387,7 @@ void main() {
         expect(missingModel.failureKind, AppLlmFailureKind.modelNotFound);
         expect(missingModel.statusCode, HttpStatus.notFound);
         expect(missingModel.detail, '模型不存在');
+        expect(missingModel.dispatchFailureDisposition, isNull);
       },
     );
 
@@ -312,6 +419,7 @@ void main() {
         expect(malformed.succeeded, isFalse);
         expect(malformed.failureKind, AppLlmFailureKind.invalidResponse);
         expect(malformed.detail, isNotNull);
+        expect(malformed.dispatchFailureDisposition, isNull);
 
         final emptyBodyServer = await _startServer((request) async {
           await utf8.decoder.bind(request).join();
@@ -344,6 +452,7 @@ void main() {
         expect(emptyBody.succeeded, isFalse);
         expect(emptyBody.failureKind, AppLlmFailureKind.invalidResponse);
         expect(emptyBody.detail, '模型返回成功，但响应体里没有可用文本。');
+        expect(emptyBody.dispatchFailureDisposition, isNull);
       },
     );
 
@@ -424,6 +533,7 @@ void main() {
         expect(timeout.succeeded, isFalse);
         expect(timeout.failureKind, AppLlmFailureKind.timeout);
         expect(timeout.detail, '请求在超时时间内未完成。');
+        expect(timeout.dispatchFailureDisposition, isNull);
 
         final invalidUrl = await createDefaultAppLlmClient().chat(
           const AppLlmChatRequest(
@@ -442,7 +552,12 @@ void main() {
     );
 
     test('shares one timeout budget across stream fallback', () async {
+      const timeoutMs = 1500;
+      const perAttemptDelay = Duration(milliseconds: 900);
       var calls = 0;
+      final firstResponseSent = Completer<void>();
+      final fallbackRequestSeen = Completer<void>();
+      final fallbackHandlerDone = Completer<void>();
       final server = await _startServer((request) async {
         calls += 1;
         final body =
@@ -451,21 +566,34 @@ void main() {
         request.response.statusCode = HttpStatus.ok;
         request.response.headers.contentType = ContentType.json;
         if (body['stream'] == true) {
+          // Consume enough of the shared deadline that the fallback has less
+          // than one full per-attempt delay left, while keeping this first
+          // attempt comfortably below the configured timeout.
+          await Future<void>.delayed(perAttemptDelay);
           // Force the client to take its non-stream fallback path.
           request.response.write(jsonEncode({'unexpected': 'stream body'}));
+          await request.response.close();
+          firstResponseSent.complete();
         } else {
-          await Future<void>.delayed(const Duration(milliseconds: 120));
-          request.response.write(
-            jsonEncode({
-              'choices': [
-                {
-                  'message': {'content': 'too late'},
-                },
-              ],
-            }),
-          );
+          fallbackRequestSeen.complete();
+          try {
+            // This would succeed if the fallback received a fresh 1500 ms
+            // budget. It must time out because only about 600 ms remains.
+            await Future<void>.delayed(perAttemptDelay);
+            request.response.write(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'too late'},
+                  },
+                ],
+              }),
+            );
+            await request.response.close();
+          } finally {
+            fallbackHandlerDone.complete();
+          }
         }
-        await request.response.close();
       });
       addTearDown(() => server.close(force: true));
 
@@ -474,15 +602,227 @@ void main() {
           baseUrl: _baseUrl(server),
           apiKey: 'sk-ok',
           model: 'gpt-5.4',
-          timeout: const AppLlmTimeoutConfig.uniform(60),
+          timeout: const AppLlmTimeoutConfig.uniform(timeoutMs),
           messages: const [AppLlmChatMessage(role: 'user', content: '限时')],
         ),
       );
 
+      await fallbackHandlerDone.future.timeout(const Duration(seconds: 2));
       expect(calls, 2);
+      expect(firstResponseSent.isCompleted, isTrue);
+      expect(fallbackRequestSeen.isCompleted, isTrue);
       expect(result.succeeded, isFalse);
       expect(result.failureKind, AppLlmFailureKind.timeout);
     });
+
+    test(
+      'direct IO permit attach rejects missing central admission even with a genuine journal authority',
+      () async {
+        var calls = 0;
+        bool? requestedStreaming;
+        final server = await _startServer((request) async {
+          calls += 1;
+          final body =
+              jsonDecode(await utf8.decoder.bind(request).join())
+                  as Map<String, Object?>;
+          requestedStreaming = body['stream'] as bool?;
+          request.response.statusCode = HttpStatus.ok;
+          request.response.headers.contentType = ContentType.json;
+          if (body['stream'] == true) {
+            request.response.write(jsonEncode({'unexpected': 'stream body'}));
+          } else {
+            request.response.write(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'must not be requested'},
+                  },
+                ],
+              }),
+            );
+          }
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final tempDir = await Directory.systemTemp.createTemp(
+          'novel-writer-direct-io-authority-',
+        );
+        final eventLog = PipelineEventLogImpl(
+          jsonlPath: '${tempDir.path}/evidence.jsonl',
+        );
+        addTearDown(() async {
+          await eventLog.dispose();
+          if (await tempDir.exists()) {
+            await tempDir.delete(recursive: true);
+          }
+        });
+        await eventLog.prepareEvidencePersistence();
+        final nonce = AppLlmCanonicalHash.domainHash(
+          'direct-io-central-authority-attack-test-v1',
+          tempDir.path,
+        );
+        final preparedBriefDigest = AppLlmCanonicalHash.domainHash(
+          'direct-io-central-authority-brief-test-v1',
+          tempDir.path,
+        );
+        final journal = await eventLog.openStoryGenerationEvidenceJournal(
+          evidenceRunId: 'direct-io-${DateTime.now().microsecondsSinceEpoch}',
+          sceneId: 'arbitrary-prompt',
+          preparedBriefDigest: preparedBriefDigest,
+          generationArmPolicy: 'attack-test',
+        );
+        final intent = StoryGenerationAttemptIntent(
+          evidenceRunId: journal.evidenceRunId,
+          sceneId: journal.sceneId,
+          preparedBriefDigest: preparedBriefDigest,
+          logicalAttemptId: nonce,
+          attempt: 1,
+          maxTokens: AppLlmChatRequest.unlimitedMaxTokens,
+          transientRetryCount: 0,
+          outputRetryCount: 0,
+          stageId: 'workbench',
+          callSiteId: 'rewrite',
+          variantId: 'attack',
+          generationBundleHash: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-bundle-test-v1',
+            tempDir.path,
+          ),
+          promptReleaseRef: <String, Object?>{
+            'templateId': 'forged-direct-prompt',
+            'semanticVersion': '1.0.0',
+            'language': 'zh',
+            'contentHash': AppLlmCanonicalHash.domainHash(
+              'direct-io-central-authority-release-test-v1',
+              tempDir.path,
+            ),
+          },
+          promptReleaseContentHash: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-release-test-v1',
+            tempDir.path,
+          ),
+          renderedMessagesDigest: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-messages-test-v1',
+            'arbitrary prompt',
+          ),
+          resolvedVariablesDigest: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-variables-test-v1',
+            const <String, Object?>{},
+          ),
+          rendererContractHash: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-renderer-test-v1',
+            'forged',
+          ),
+          selectedRouteBindingHash: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-route-test-v1',
+            const <String, Object?>{},
+          ),
+          generationArmPolicy: journal.generationArmPolicy,
+          retryContractHash: AppLlmCanonicalHash.domainHash(
+            'direct-io-central-authority-retry-test-v1',
+            'none',
+          ),
+          evaluationPhase: null,
+        );
+        final genuineJournalAuthority = await journal.persistIntent(intent);
+
+        final request = AppLlmChatRequest(
+          baseUrl: _baseUrl(server),
+          apiKey: 'sk-ok',
+          model: 'gpt-5.4',
+          timeout: const AppLlmTimeoutConfig.uniform(1000),
+          physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+          dispatchEvidenceNonce: nonce,
+          messages: const [AppLlmChatMessage(role: 'user', content: '只允许一次请求')],
+        );
+
+        expect(
+          () => direct_io.attachPlatformFormalDispatchPermit(
+            request: request,
+            committedIntentAuthority: genuineJournalAuthority,
+            formalDispatchIntent: intent.toPrivateJson(),
+            formalDispatchRouteIdentity: const <String, Object?>{},
+            centralDispatchAuthority: Object(),
+          ),
+          throwsA(
+            isA<AppLlmPhysicalDispatchPreflightException>().having(
+              (error) => error.code,
+              'code',
+              'invalid-central-dispatch-authority',
+            ),
+          ),
+        );
+        expect(calls, 0);
+        expect(requestedStreaming, isNull);
+      },
+    );
+
+    test('single physical dispatch requires a durable attempt nonce', () async {
+      await expectLater(
+        createDefaultAppLlmClient().chat(
+          const AppLlmChatRequest(
+            baseUrl: 'http://127.0.0.1:9/v1',
+            apiKey: '',
+            model: 'local-model',
+            physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+            messages: [AppLlmChatMessage(role: 'user', content: '不得发出请求')],
+          ),
+        ),
+        throwsA(
+          isA<AppLlmPhysicalDispatchPreflightException>().having(
+            (error) => error.code,
+            'code',
+            'invalid-dispatch-evidence-nonce',
+          ),
+        ),
+      );
+    });
+
+    test('adaptive dispatch rejects a formal attempt nonce', () async {
+      await expectLater(
+        createDefaultAppLlmClient().chat(
+          const AppLlmChatRequest(
+            baseUrl: 'http://127.0.0.1:9/v1',
+            apiKey: '',
+            model: 'local-model',
+            dispatchEvidenceNonce:
+                'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            messages: [AppLlmChatMessage(role: 'user', content: '不得发出请求')],
+          ),
+        ),
+        throwsA(
+          isA<AppLlmPhysicalDispatchPreflightException>().having(
+            (error) => error.code,
+            'code',
+            'adaptive-dispatch-evidence-nonce',
+          ),
+        ),
+      );
+    });
+
+    test(
+      'single physical dispatch rejects an invalid route before IO',
+      () async {
+        await expectLater(
+          createDefaultAppLlmClient().chat(
+            const AppLlmChatRequest(
+              baseUrl: 'http://remote.example.com/v1',
+              apiKey: 'sk-ok',
+              model: 'gpt-5.4',
+              physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+              messages: [AppLlmChatMessage(role: 'user', content: '不得发出网络请求')],
+            ),
+          ),
+          throwsA(
+            isA<AppLlmPhysicalDispatchPreflightException>().having(
+              (error) => error.code,
+              'code',
+              'insecure-remote-url',
+            ),
+          ),
+        );
+      },
+    );
 
     test('maps 429 rate-limited responses to rateLimited failures', () async {
       final server = await _startServer((request) async {
@@ -513,6 +853,7 @@ void main() {
       expect(result.failureKind, AppLlmFailureKind.rateLimited);
       expect(result.statusCode, HttpStatus.tooManyRequests);
       expect(result.detail, 'You are sending requests too quickly.');
+      expect(result.dispatchFailureDisposition, isNull);
     });
 
     test('maps plain-text 500 responses to server failures', () async {
@@ -539,7 +880,46 @@ void main() {
       expect(result.failureKind, AppLlmFailureKind.server);
       expect(result.statusCode, HttpStatus.internalServerError);
       expect(result.detail, 'plain upstream failure');
+      expect(result.dispatchFailureDisposition, isNull);
     });
+
+    for (final statusCode in <int>[
+      HttpStatus.badRequest,
+      413,
+      HttpStatus.found,
+    ]) {
+      test(
+        'keeps HTTP $statusCode no-completion proof separate from retry class',
+        () async {
+          final server = await _startServer((request) async {
+            await utf8.decoder.bind(request).join();
+            request.response
+              ..statusCode = statusCode
+              ..write('request rejected');
+            await request.response.close();
+          });
+          addTearDown(() => server.close(force: true));
+
+          final result = await createDefaultAppLlmClient().chat(
+            AppLlmChatRequest(
+              baseUrl: _baseUrl(server),
+              apiKey: 'sk-ok',
+              model: 'gpt-5.4',
+              timeout: const AppLlmTimeoutConfig.uniform(1000),
+              messages: const [
+                AppLlmChatMessage(role: 'user', content: '不可重试的拒绝'),
+              ],
+            ),
+          );
+
+          expect(result.succeeded, isFalse);
+          expect(result.failureKind, AppLlmFailureKind.server);
+          expect(result.failureKind, isNot(AppLlmFailureKind.rateLimited));
+          expect(result.statusCode, statusCode);
+          expect(result.dispatchFailureDisposition, isNull);
+        },
+      );
+    }
 
     test('maps closed-port requests to socket network failures', () async {
       final reserved = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);

@@ -10,9 +10,7 @@ void main() {
   late AppWorkspaceStore workspaceStore;
 
   setUp(() {
-    workspaceStore = AppWorkspaceStore(
-      storage: InMemoryAppWorkspaceStorage(),
-    );
+    workspaceStore = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
     store = AppVersionStore(
       storage: InMemoryAppVersionStorage(),
       workspaceStore: workspaceStore,

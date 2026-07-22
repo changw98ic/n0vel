@@ -21,9 +21,7 @@ int storageFingerprint(Map<String, Object?> data) {
 Object? _canonicalize(Object? value) {
   if (value is Map) {
     final sortedKeys = value.keys.map((k) => k.toString()).toList()..sort();
-    return {
-      for (final key in sortedKeys) key: _canonicalize(value[key]),
-    };
+    return {for (final key in sortedKeys) key: _canonicalize(value[key])};
   }
   if (value is List) {
     return [for (final item in value) _canonicalize(item)];

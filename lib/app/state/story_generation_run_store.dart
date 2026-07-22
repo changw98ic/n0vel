@@ -86,11 +86,20 @@ class StoryGenerationRunStore extends AppStoreListenable {
        _orchestratorFactory =
            orchestratorFactory ??
            ((settingsStore) {
+             final pipelineConfig = GenerationPipelineConfig.fromWorkspace(
+               workspaceStore,
+             );
+             if (!pipelineConfig.contentRedrawAllowed) {
+               return PipelineStageRunnerImpl.sealedProduction(
+                 settingsStore: settingsStore,
+                 pipelineConfig: pipelineConfig,
+                 roleplaySessionStore: roleplaySessionStore,
+                 characterMemoryStore: characterMemoryStore,
+               );
+             }
              return PipelineStageRunnerImpl(
                settingsStore: settingsStore,
-               pipelineConfig: GenerationPipelineConfig.fromWorkspace(
-                 workspaceStore,
-               ),
+               pipelineConfig: pipelineConfig,
                roleplaySessionStore: roleplaySessionStore,
                characterMemoryStore: characterMemoryStore,
              );
@@ -397,6 +406,16 @@ class StoryGenerationRunStore extends AppStoreListenable {
     }
 
     try {
+      final orchestrator = _orchestratorFactory(_settingsStore);
+      // The runner is the only component allowed to prepare a provider-facing
+      // brief.  Reuse the exact immutable object for both ledger admission and
+      // execution so capture, intent, fingerprint and prose cannot describe
+      // subtly different scene inputs.
+      final preparedBrief = orchestrator.prepareSceneBrief(
+        brief,
+        materials: materials,
+      );
+      final preparedMaterials = preparedBrief.materials!;
       GenerationRunCapture? ledgerCapture;
       final ledgerFinalizer = _generationCandidateFinalizer;
       if (ledgerFinalizer != null) {
@@ -411,12 +430,12 @@ class StoryGenerationRunStore extends AppStoreListenable {
           sceneId: brief.sceneId,
           sceneScopeId: runSceneScopeId,
           baseDraft: baseDraft,
-          brief: brief,
-          materials: materials,
+          brief: preparedBrief.brief,
+          materials: preparedMaterials,
           nowMs: DateTime.now().millisecondsSinceEpoch,
+          preparedBriefDigest: preparedBrief.digest,
         );
       }
-      final orchestrator = _orchestratorFactory(_settingsStore);
       orchestrator.generationLedger = _generationLedger;
       orchestrator.deferFinalizationCheckpointToCandidateLedger =
           ledgerFinalizer != null;
@@ -459,7 +478,13 @@ class StoryGenerationRunStore extends AppStoreListenable {
           sceneScopeId: runSceneScopeId,
         );
       }
-      final output = await orchestrator.runScene(brief, materials: materials);
+      final output = await orchestrator.runPreparedScene(
+        preparedBrief,
+        // Preserve this argument for runner test doubles while guaranteeing
+        // that ledger admission and provider execution receive the same
+        // detached object.
+        materials: preparedMaterials,
+      );
       if (!_isCurrentRun(runToken, runSceneScopeId)) {
         return;
       }
@@ -596,11 +621,14 @@ class StoryGenerationRunStore extends AppStoreListenable {
   }
 
   Future<bool> cancelCurrentRun() async {
+    final runSnapshot = _snapshot;
+    final runId = runSnapshot.runId;
+    final runSceneScopeId = _activeRunSceneScopeId ?? _activeSceneScopeId;
     final activeRun =
-        _snapshot.status == StoryGenerationRunStatus.running &&
-        _activeRunToken != null &&
-        _activeRunSceneScopeId == _activeSceneScopeId;
-    final blockedRun = switch (_snapshot.status) {
+        runSnapshot.status == StoryGenerationRunStatus.running &&
+        runSceneScopeId == _activeSceneScopeId &&
+        (_activeRunToken != null || runId.isNotEmpty);
+    final blockedRun = switch (runSnapshot.status) {
       StoryGenerationRunStatus.preliminaryReviewBlocked ||
       StoryGenerationRunStatus.finalReviewBlocked ||
       StoryGenerationRunStatus.qualityBlocked ||
@@ -615,43 +643,58 @@ class StoryGenerationRunStore extends AppStoreListenable {
     if (!activeRun && !blockedRun) {
       return false;
     }
-    await _recordSceneStateForCurrentRun(
-      status: StorySceneGenerationStatus.blocked,
-      reviewStatus: StoryReviewStatus.failed,
-      terminalReason: 'cancelled',
-    );
-    final runId = _snapshot.runId;
-    if (_generationLedger != null && runId.isNotEmpty) {
-      _generationLedger.markRunTerminal(
-        runId: runId,
-        status: 'cancelled',
-        phase: 'cancel',
-        errorCode: 'cancelled',
-        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
-      );
-    }
-    await _setSnapshot(
-      _snapshot.copyWith(
-        status: StoryGenerationRunStatus.cancelled,
-        phase: StoryGenerationRunPhase.cancel,
-        headline: 'AI 试写已取消',
-        summary: activeRun
-            ? '这次 AI 试写已停止，已保留停止前的记录。'
-            : '作者已取消这条被阻断的运行；没有候选或权威写入会被提交。',
-        stageSummary: '已取消',
-        errorDetail: 'cancelled',
-        messages: [
-          ..._snapshot.messages,
-          const StoryGenerationRunMessage(
-            title: '运行已取消',
-            body: '用户停止了当前运行；已完成的阶段记录会保留，后续异步结果将被忽略。',
-            kind: StoryGenerationRunMessageKind.status,
-          ),
-        ],
-      ),
-    );
+    // Invalidate the pipeline before any awaited ledger/scene-state work. A
+    // late provider result must observe the cancelled token and stop before
+    // it can finalize a candidate or write a new checkpoint.
+    _runToken += 1;
     _activeRunToken = null;
     _activeRunSceneScopeId = null;
+
+    if (runSceneScopeId == _activeSceneScopeId) {
+      await _recordSceneStateForCurrentRun(
+        status: StorySceneGenerationStatus.blocked,
+        reviewStatus: StoryReviewStatus.failed,
+        terminalReason: 'cancelled',
+      );
+    }
+    if (_generationLedger != null && runId.isNotEmpty) {
+      try {
+        _generationLedger.markRunTerminal(
+          runId: runId,
+          status: 'cancelled',
+          phase: 'cancel',
+          errorCode: 'cancelled',
+          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        );
+      } on GenerationLedgerInvariantViolation {
+        // A pipeline that won the terminal race already owns the ledger
+        // state. Cancellation still needs to close the UI surface safely.
+      }
+    }
+    final cancelledSnapshot = runSnapshot.copyWith(
+      status: StoryGenerationRunStatus.cancelled,
+      phase: StoryGenerationRunPhase.cancel,
+      headline: 'AI 试写已取消',
+      summary: activeRun
+          ? '这次 AI 试写已停止，已保留停止前的记录。'
+          : '作者已取消这条被阻断的运行；没有候选或权威写入会被提交。',
+      stageSummary: '已取消',
+      errorDetail: 'cancelled',
+      messages: [
+        ..._snapshot.messages,
+        const StoryGenerationRunMessage(
+          title: '运行已取消',
+          body: '用户停止了当前运行；已完成的阶段记录会保留，后续异步结果将被忽略。',
+          kind: StoryGenerationRunMessageKind.status,
+        ),
+      ],
+    );
+    if (runSceneScopeId == _activeSceneScopeId) {
+      await _setSnapshot(cancelledSnapshot);
+    } else {
+      await _persistSnapshot(cancelledSnapshot, runSceneScopeId);
+      _snapshotsBySceneScope[runSceneScopeId] = cancelledSnapshot;
+    }
     return true;
   }
 

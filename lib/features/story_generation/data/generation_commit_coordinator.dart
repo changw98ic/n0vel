@@ -7,10 +7,13 @@ import '../../../app/llm/app_llm_canonical_hash.dart';
 import '../../../app/state/app_version_store.dart';
 import '../../../app/state/authoring_table_definitions.dart';
 import '../../author_feedback/data/author_feedback_store.dart';
+import 'generation_candidate_identity.dart';
+import 'generation_evidence_receipt.dart';
 import 'generation_ledger.dart';
 import 'generation_ledger_digest.dart';
 import 'generation_ledger_models.dart';
 import 'generation_material_manifest_repository.dart';
+import 'generation_scene_scope_identity.dart';
 
 /// The sole authoritative transition from a durable candidate to author prose.
 ///
@@ -43,6 +46,9 @@ class GenerationCommitCoordinator {
           'canonical-payload-manifest-proof-revalidation-before-projection-v2',
       'continuityAuthority':
           'immutable-receipt-bound-projection-with-commit-ordinal-v2',
+      'sceneScopeIdentity': 'injective-project-scene-address-v1',
+      'sealedParsedEvaluation':
+          'restart-recomputed-receipt-and-proof-cross-check-v1',
     },
   );
 
@@ -71,6 +77,7 @@ class GenerationCommitCoordinator {
     db.execute('BEGIN IMMEDIATE');
     try {
       _step(GenerationCommitStep.begun);
+      _requireCanonicalRunSceneScope(request);
       final prior = _findReceiptForKey(request.acceptIdempotencyKey);
       if (prior != null) {
         if (prior.runId == request.runId &&
@@ -342,7 +349,8 @@ class GenerationCommitCoordinator {
       throw const GenerationRunStateConflict('generation run does not exist');
     }
     final run = runRows.single;
-    if (run['project_id'] != request.projectId ||
+    if (!_runSceneScopeIsCanonical(run) ||
+        run['project_id'] != request.projectId ||
         run['scene_scope_id'] != request.sceneScopeId) {
       throw const GenerationRunStateConflict(
         'run ownership or scene scope does not match the accept request',
@@ -364,11 +372,15 @@ class GenerationCommitCoordinator {
     final rows = db.select(
       '''
       SELECT p.*, cp.final_prose, cp.pending_write_manifest_json,
+        cp.review_payload_json, cp.quality_payload_json,
+        cp.generation_evidence_receipt_json AS payload_generation_evidence_receipt_json,
+        rb.bundle_hash AS generation_bundle_hash,
         n.source_prose_revision AS namespace_source_prose_revision,
         w.prose_hash AS source_prose_hash
       FROM story_generation_candidate_proofs p
       JOIN story_generation_candidate_payloads cp
         ON cp.run_id = p.run_id AND cp.candidate_revision = p.candidate_revision
+      LEFT JOIN story_generation_run_bundles rb ON rb.run_id = p.run_id
       JOIN story_generation_candidate_namespaces n
         ON n.run_id = p.run_id AND n.candidate_revision = p.candidate_revision
       JOIN story_generation_working_prose_revisions w
@@ -419,6 +431,12 @@ class GenerationCommitCoordinator {
         'candidate payload prose no longer matches its proof hash',
       );
     }
+    _validateV2CandidateIdentity(
+      row,
+      finalProse,
+      expectedRunId: request.runId,
+      expectedSceneId: run['scene_id'] as String,
+    );
     final manifestWriteIds = _validateManifest(
       request: request,
       manifestJson: row['pending_write_manifest_json'] as String,
@@ -431,6 +449,146 @@ class GenerationCommitCoordinator {
       chapterId: run['chapter_id'] as String,
       sceneId: run['scene_id'] as String,
     );
+  }
+
+  void _validateV2CandidateIdentity(
+    Row row,
+    String finalProse, {
+    required String expectedRunId,
+    required String expectedSceneId,
+  }) {
+    final version = row['proof_identity_version'] as String;
+    if (version == GenerationCandidateIdentity.v1) return;
+    if (version != GenerationCandidateIdentity.v2) {
+      throw const GenerationCandidateEvidenceConflict(
+        'candidate proof identity version is unsupported',
+      );
+    }
+    final preparedBriefDigest = row['prepared_brief_digest'] as String?;
+    final effectiveBriefDigest = row['effective_brief_digest'] as String?;
+    final rawBundleHash = row['generation_bundle_hash'] as String?;
+    if (preparedBriefDigest == null ||
+        effectiveBriefDigest == null ||
+        rawBundleHash == null ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(rawBundleHash)) {
+      throw const GenerationCandidateEvidenceConflict(
+        'V2 candidate proof is missing brief or generation-bundle identity',
+      );
+    }
+    final mode = row['generation_evidence_mode'] as String;
+    final receiptJson = row['generation_evidence_receipt_json'] as String?;
+    if (mode == GenerationCandidateIdentity.sealedNoRedrawMode) {
+      final GenerationEvidenceReceipt receipt;
+      try {
+        if (receiptJson == null || receiptJson.isEmpty) {
+          throw const FormatException();
+        }
+        receipt = GenerationEvidenceReceipt.fromCanonicalJson(receiptJson);
+      } on Object {
+        throw const GenerationCandidateEvidenceConflict(
+          'sealed candidate receipt is malformed or internally inconsistent',
+        );
+      }
+      if (receipt.receiptHash != row['generation_evidence_receipt_hash'] ||
+          row['run_id'] != expectedRunId ||
+          row['scene_id'] != expectedSceneId ||
+          receipt.evidenceRunId != expectedRunId ||
+          receipt.sceneId != expectedSceneId ||
+          receipt.attemptEvidenceEnvelopeDigest !=
+              row['attempt_evidence_envelope_digest'] ||
+          receipt.generationFingerprintSetDigest !=
+              row['generation_fingerprint_set_digest'] ||
+          receipt.preparedBriefDigest != preparedBriefDigest ||
+          receipt.generationBundleHashes.length != 1 ||
+          !receipt.generationBundleHashes.contains('sha256:$rawBundleHash') ||
+          !receipt.matchesArtifactText(finalProse)) {
+        throw const GenerationCandidateEvidenceConflict(
+          'sealed candidate receipt no longer matches proof, bundle, or prose',
+        );
+      }
+      if (row['payload_generation_evidence_receipt_json'] != receiptJson) {
+        throw const GenerationCandidateEvidenceConflict(
+          'sealed candidate payload receipt does not mirror permanent proof evidence',
+        );
+      }
+      final reviewDigest = receipt.finalReviewParsedOutputDigest;
+      final qualityDigest = receipt.finalQualityParsedOutputDigest;
+      if (reviewDigest == null || qualityDigest == null) {
+        throw const GenerationCandidateEvidenceConflict(
+          'sealed candidate receipt lacks final parsed evaluation evidence',
+        );
+      }
+      try {
+        GenerationCandidateEvaluationPayloadIntegrity.validateSealed(
+          reviewPayloadJson: row['review_payload_json'] as String,
+          qualityPayloadJson: row['quality_payload_json'] as String,
+          finalProseHash: row['final_prose_hash'] as String,
+          deterministicGateEvidenceHash:
+              row['deterministic_gate_evidence_hash'] as String,
+          finalCouncilEvidenceHash:
+              row['final_council_evidence_hash'] as String,
+          qualityEvidenceHash: row['quality_evidence_hash'] as String,
+          receiptReviewParsedOutputDigest: reviewDigest,
+          receiptQualityParsedOutputDigest: qualityDigest,
+        );
+      } on Object {
+        throw const GenerationCandidateEvidenceConflict(
+          'sealed candidate parsed evaluation evidence is malformed or inconsistent',
+        );
+      }
+    } else if (mode == GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      try {
+        final decoded = receiptJson == null ? null : jsonDecode(receiptJson);
+        if (receiptJson != null ||
+            decoded != null ||
+            row['payload_generation_evidence_receipt_json'] != '{}') {
+          throw const FormatException();
+        }
+      } on Object {
+        throw const GenerationCandidateEvidenceConflict(
+          'adaptive-unsealed proof or payload carries unexpected sealed evidence',
+        );
+      }
+    } else {
+      throw const GenerationCandidateEvidenceConflict(
+        'V2 candidate evidence mode is unsupported',
+      );
+    }
+
+    final String recomputed;
+    try {
+      recomputed = GenerationCandidateIdentity.computeV2(
+        runId: row['run_id'] as String,
+        candidateRevision: row['candidate_revision'] as int,
+        finalProseHash: row['final_prose_hash'] as String,
+        deterministicGateEvidenceHash:
+            row['deterministic_gate_evidence_hash'] as String,
+        finalCouncilEvidenceHash: row['final_council_evidence_hash'] as String,
+        qualityEvidenceHash: row['quality_evidence_hash'] as String,
+        pendingWriteSetHash: row['pending_write_set_hash'] as String,
+        materialDigest: row['material_digest'] as String,
+        effectiveInputDigest: row['input_digest'] as String,
+        preparedBriefDigest: preparedBriefDigest,
+        effectiveBriefDigest: effectiveBriefDigest,
+        generationBundleHash: 'sha256:$rawBundleHash',
+        generationEvidenceMode: mode,
+        generationEvidenceReceiptHash:
+            row['generation_evidence_receipt_hash'] as String?,
+        attemptEvidenceEnvelopeDigest:
+            row['attempt_evidence_envelope_digest'] as String?,
+        generationFingerprintSetDigest:
+            row['generation_fingerprint_set_digest'] as String?,
+      );
+    } on Object {
+      throw const GenerationCandidateEvidenceConflict(
+        'V2 candidate proof fields cannot form a valid identity',
+      );
+    }
+    if (recomputed != row['candidate_hash']) {
+      throw const GenerationCandidateEvidenceConflict(
+        'V2 candidate hash does not match its durable evidence fields',
+      );
+    }
   }
 
   List<String> _validateManifest({
@@ -1494,6 +1652,30 @@ class GenerationCommitCoordinator {
         'author accept request is missing a required immutable identity',
       );
     }
+  }
+
+  void _requireCanonicalRunSceneScope(GenerationCommitRequest request) {
+    final rows = db.select(
+      '''SELECT project_id, scene_id, scene_scope_id
+         FROM story_generation_runs WHERE run_id = ?''',
+      <Object?>[request.runId],
+    );
+    if (rows.length != 1 ||
+        !_runSceneScopeIsCanonical(rows.single) ||
+        rows.single['project_id'] != request.projectId ||
+        rows.single['scene_scope_id'] != request.sceneScopeId) {
+      throw const GenerationRunStateConflict(
+        'run has no canonical scene address for this accept request',
+      );
+    }
+  }
+
+  bool _runSceneScopeIsCanonical(Row row) {
+    return GenerationSceneScopeIdentity.matches(
+      projectId: row['project_id'] as String,
+      sceneId: row['scene_id'] as String,
+      sceneScopeId: row['scene_scope_id'] as String,
+    );
   }
 
   void _step(GenerationCommitStep step) => faultInjector?.call(step);

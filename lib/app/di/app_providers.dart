@@ -45,7 +45,6 @@ final appLlmRequestPoolProvider = Provider<AppLlmRequestPool>((ref) {
   return ref.watch(serviceRegistryProvider).resolve<AppLlmRequestPool>();
 });
 
-
 // -- Core store providers --
 // These providers expose ServiceRegistry-owned stores through Riverpod
 // Notifiers. The stores are still the existing controllers for this migration

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/widgets/desktop_shell.dart';
 
-
 class WorkSettingsStatChip extends StatelessWidget {
   const WorkSettingsStatChip({
     super.key,
@@ -69,9 +68,7 @@ class WorkSettingsNavItem extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: palette.border, width: 1),
-            ),
+            border: Border(bottom: BorderSide(color: palette.border, width: 1)),
           ),
           child: Row(
             children: [
@@ -81,9 +78,12 @@ class WorkSettingsNavItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(
                       subtitle,
                       maxLines: 1,
@@ -103,11 +103,7 @@ class WorkSettingsNavItem extends StatelessWidget {
 }
 
 class HoverableCardWrapper extends StatefulWidget {
-  const HoverableCardWrapper({
-    required this.child,
-    this.onTap,
-    super.key,
-  });
+  const HoverableCardWrapper({required this.child, this.onTap, super.key});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -124,15 +120,24 @@ class _HoverableCardWrapperState extends State<HoverableCardWrapper> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      cursor: widget.onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : MouseCursor.defer,
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
           transformAlignment: Alignment.center,
-          transform: Matrix4.translationValues(0.0, _isHovered ? -3.0 : 0.0, 0.0)
-            ..multiply(Matrix4.diagonal3Values(_isHovered ? 1.025 : 1.0, _isHovered ? 1.025 : 1.0, 1.0)),
+          transform:
+              Matrix4.translationValues(0.0, _isHovered ? -3.0 : 0.0, 0.0)
+                ..multiply(
+                  Matrix4.diagonal3Values(
+                    _isHovered ? 1.025 : 1.0,
+                    _isHovered ? 1.025 : 1.0,
+                    1.0,
+                  ),
+                ),
           child: widget.child,
         ),
       ),
@@ -306,17 +311,21 @@ class PremiumHorizontalScrollView extends StatefulWidget {
     super.key,
   });
 
-  final Widget Function(BuildContext context, ScrollController controller) builder;
+  final Widget Function(BuildContext context, ScrollController controller)
+  builder;
   final ScrollController? controller;
   final Color? gradientColor;
 
   @override
-  State<PremiumHorizontalScrollView> createState() => _PremiumHorizontalScrollViewState();
+  State<PremiumHorizontalScrollView> createState() =>
+      _PremiumHorizontalScrollViewState();
 }
 
-class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollView> {
+class _PremiumHorizontalScrollViewState
+    extends State<PremiumHorizontalScrollView> {
   ScrollController? _internalController;
-  ScrollController get _scrollController => widget.controller ?? _internalController!;
+  ScrollController get _scrollController =>
+      widget.controller ?? _internalController!;
 
   bool _showLeftArrow = false;
   bool _showRightArrow = false;
@@ -347,7 +356,9 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
       }
 
       _scrollController.addListener(_scrollListener);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollMetrics());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _updateScrollMetrics(),
+      );
     }
   }
 
@@ -375,7 +386,9 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
         progress = (offset / maxScroll).clamp(0.0, 1.0);
       }
 
-      if (showLeft != _showLeftArrow || showRight != _showRightArrow || progress != _scrollProgress) {
+      if (showLeft != _showLeftArrow ||
+          showRight != _showRightArrow ||
+          progress != _scrollProgress) {
         setState(() {
           _showLeftArrow = showLeft;
           _showRightArrow = showRight;
@@ -390,7 +403,10 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
       final maxScroll = _scrollController.position.maxScrollExtent;
       final viewport = _scrollController.position.viewportDimension;
       final scrollAmount = viewport > 0.0 ? viewport * 0.75 : 200.0;
-      final target = (_scrollController.offset - scrollAmount).clamp(0.0, maxScroll);
+      final target = (_scrollController.offset - scrollAmount).clamp(
+        0.0,
+        maxScroll,
+      );
       _scrollController.animateTo(
         target,
         duration: const Duration(milliseconds: 350),
@@ -404,7 +420,10 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
       final maxScroll = _scrollController.position.maxScrollExtent;
       final viewport = _scrollController.position.viewportDimension;
       final scrollAmount = viewport > 0.0 ? viewport * 0.75 : 200.0;
-      final target = (_scrollController.offset + scrollAmount).clamp(0.0, maxScroll);
+      final target = (_scrollController.offset + scrollAmount).clamp(
+        0.0,
+        maxScroll,
+      );
       _scrollController.animateTo(
         target,
         duration: const Duration(milliseconds: 350),
@@ -604,7 +623,12 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
                 bottom: 4,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
-                  opacity: (_isHovered && _scrollController.hasClients && _scrollController.position.maxScrollExtent > 0.0) ? 1.0 : 0.0,
+                  opacity:
+                      (_isHovered &&
+                          _scrollController.hasClients &&
+                          _scrollController.position.maxScrollExtent > 0.0)
+                      ? 1.0
+                      : 0.0,
                   child: Container(
                     height: 3,
                     decoration: BoxDecoration(
@@ -617,16 +641,25 @@ class _PremiumHorizontalScrollViewState extends State<PremiumHorizontalScrollVie
                           return const SizedBox.shrink();
                         }
                         final trackWidth = constraints.maxWidth;
-                        final maxScroll = _scrollController.position.maxScrollExtent;
+                        final maxScroll =
+                            _scrollController.position.maxScrollExtent;
                         final offset = _scrollController.offset;
-                        final viewport = _scrollController.position.viewportDimension;
+                        final viewport =
+                            _scrollController.position.viewportDimension;
 
                         final totalContent = maxScroll + viewport;
-                        final thumbRatio = totalContent > 0 ? (viewport / totalContent) : 0.2;
-                        final thumbWidth = (trackWidth * thumbRatio).clamp(24.0, trackWidth);
+                        final thumbRatio = totalContent > 0
+                            ? (viewport / totalContent)
+                            : 0.2;
+                        final thumbWidth = (trackWidth * thumbRatio).clamp(
+                          24.0,
+                          trackWidth,
+                        );
 
                         final scrollableWidth = trackWidth - thumbWidth;
-                        final progress = maxScroll > 0 ? (offset / maxScroll).clamp(0.0, 1.0) : 0.0;
+                        final progress = maxScroll > 0
+                            ? (offset / maxScroll).clamp(0.0, 1.0)
+                            : 0.0;
                         final thumbLeft = progress * scrollableWidth;
 
                         return Stack(

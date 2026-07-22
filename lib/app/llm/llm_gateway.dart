@@ -11,9 +11,22 @@ import 'app_llm_provider_adapters.dart';
 import 'app_llm_response_decoding.dart';
 import 'token_usage.dart';
 
-class LlmGateway implements AppLlmClient {
+class LlmGateway
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  // The legacy gateway enforces its deadline with Future.timeout without a
+  // transport cancellation token. It cannot prove that the physical request
+  // has stopped when the logical future times out, so formal single dispatch
+  // must use the cancellable IO client instead.
+  @override
+  bool get supportsSinglePhysicalDispatch => false;
+
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: this,
+      request: request,
+    );
     final adapter = AppLlmProviderAdapters.of(request.provider);
     final endpoint = _resolveEndpoint(request.baseUrl, adapter.endpointPath);
     if (endpoint == null) {

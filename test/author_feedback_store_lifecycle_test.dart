@@ -13,9 +13,7 @@ void main() {
 
   setUp(() async {
     storage = InMemoryAuthorFeedbackStorage();
-    workspaceStore = AppWorkspaceStore(
-      storage: InMemoryAppWorkspaceStorage(),
-    );
+    workspaceStore = AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage());
     var tick = DateTime.utc(2026, 4, 1, 12);
     store = AuthorFeedbackStore(
       storage: storage,
@@ -46,8 +44,14 @@ void main() {
 
       expect(store.items.first.status, AuthorFeedbackStatus.accepted);
       expect(store.items.first.decisions.first.note, 'Good revision');
-      expect(store.items.first.decisions.first.status, AuthorFeedbackStatus.accepted);
-      expect(store.items.first.decisions.length, greaterThan(item.decisions.length));
+      expect(
+        store.items.first.decisions.first.status,
+        AuthorFeedbackStatus.accepted,
+      );
+      expect(
+        store.items.first.decisions.length,
+        greaterThan(item.decisions.length),
+      );
     });
 
     test('reject transitions item to rejected', () {
@@ -153,9 +157,18 @@ void main() {
   group('activeRevisionRequestsForScene', () {
     test('returns only revision-requested items for the specified scene', () {
       final scene = workspaceStore.currentScene;
-      final item1 =
-          _createItem(store, sceneId: scene.id, chapterId: scene.chapterLabel, note: 'Rev');
-      _createItem(store, sceneId: scene.id, chapterId: scene.chapterLabel, note: 'Open');
+      final item1 = _createItem(
+        store,
+        sceneId: scene.id,
+        chapterId: scene.chapterLabel,
+        note: 'Rev',
+      );
+      _createItem(
+        store,
+        sceneId: scene.id,
+        chapterId: scene.chapterLabel,
+        note: 'Open',
+      );
 
       store.requestRevision(item1.id);
 
@@ -171,8 +184,12 @@ void main() {
 
     test('excludes items from other scenes', () {
       final scene = workspaceStore.currentScene;
-      final item =
-          _createItem(store, sceneId: 'other-scene', chapterId: 'other', note: 'Other');
+      final item = _createItem(
+        store,
+        sceneId: 'other-scene',
+        chapterId: 'other',
+        note: 'Other',
+      );
       store.requestRevision(item.id);
 
       final result = store.activeRevisionRequestsForScene(
@@ -276,44 +293,47 @@ void main() {
       expect(store.items, hasLength(1));
     });
 
-    test('storage-based round-trip preserves items across store instances', () async {
-      final sharedStorage = InMemoryAuthorFeedbackStorage();
-      var tick = DateTime.utc(2026, 5, 1);
-      DateTime clock() {
-        final value = tick;
-        tick = tick.add(const Duration(minutes: 1));
-        return value;
-      }
+    test(
+      'storage-based round-trip preserves items across store instances',
+      () async {
+        final sharedStorage = InMemoryAuthorFeedbackStorage();
+        var tick = DateTime.utc(2026, 5, 1);
+        DateTime clock() {
+          final value = tick;
+          tick = tick.add(const Duration(minutes: 1));
+          return value;
+        }
 
-      final source = AuthorFeedbackStore(
-        storage: sharedStorage,
-        workspaceStore: workspaceStore,
-        clock: clock,
-      );
-      addTearDown(source.dispose);
-      await source.waitUntilReady();
+        final source = AuthorFeedbackStore(
+          storage: sharedStorage,
+          workspaceStore: workspaceStore,
+          clock: clock,
+        );
+        addTearDown(source.dispose);
+        await source.waitUntilReady();
 
-      final item = source.createFeedback(
-        chapterId: 'ch-1',
-        sceneId: 'sc-1',
-        sceneLabel: 'Scene 1',
-        note: 'Persisted feedback',
-        priority: AuthorFeedbackPriority.high,
-      );
-      source.resolve(item.id, note: 'Resolved via storage');
+        final item = source.createFeedback(
+          chapterId: 'ch-1',
+          sceneId: 'sc-1',
+          sceneLabel: 'Scene 1',
+          note: 'Persisted feedback',
+          priority: AuthorFeedbackPriority.high,
+        );
+        source.resolve(item.id, note: 'Resolved via storage');
 
-      final target = AuthorFeedbackStore(
-        storage: sharedStorage,
-        workspaceStore: workspaceStore,
-      );
-      addTearDown(target.dispose);
-      await target.waitUntilReady();
+        final target = AuthorFeedbackStore(
+          storage: sharedStorage,
+          workspaceStore: workspaceStore,
+        );
+        addTearDown(target.dispose);
+        await target.waitUntilReady();
 
-      expect(target.items, hasLength(1));
-      expect(target.items.single.note, 'Persisted feedback');
-      expect(target.items.single.status, AuthorFeedbackStatus.resolved);
-      expect(target.items.single.priority, AuthorFeedbackPriority.high);
-    });
+        expect(target.items, hasLength(1));
+        expect(target.items.single.note, 'Persisted feedback');
+        expect(target.items.single.status, AuthorFeedbackStatus.resolved);
+        expect(target.items.single.priority, AuthorFeedbackPriority.high);
+      },
+    );
   });
 
   // =========================================================================

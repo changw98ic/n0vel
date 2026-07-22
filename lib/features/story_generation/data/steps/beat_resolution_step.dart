@@ -1,16 +1,23 @@
-import '../scene_pipeline_models.dart' as pipeline
+import '../scene_pipeline_models.dart'
+    as pipeline
     show SceneBeat, SceneBeatKind, LightContextCapsule;
 import '../scene_runtime_models.dart'
-    show ResolvedBeat, SceneBrief, SceneState, SceneStateDelta, SceneStateDeltaKind;
+    show
+        ResolvedBeat,
+        SceneBrief,
+        SceneState,
+        SceneStateDelta,
+        SceneStateDeltaKind;
 import '../scene_state_resolver.dart' show SceneStateResolver;
 import '../step_io.dart';
 import '../../domain/contracts/pipeline_role_contract.dart';
 import '../../domain/contracts/typed_artifact.dart';
 
 /// Step 5: resolve beats, convert to runtime beats, build scene state.
-class BeatResolutionStep implements PipelineStage<BeatResolutionInput, BeatResolutionOutput> {
+class BeatResolutionStep
+    implements PipelineStage<BeatResolutionInput, BeatResolutionOutput> {
   BeatResolutionStep({required SceneStateResolver stateResolver})
-      : _stateResolver = stateResolver;
+    : _stateResolver = stateResolver;
 
   final SceneStateResolver _stateResolver;
 
@@ -64,17 +71,18 @@ class BeatResolutionStep implements PipelineStage<BeatResolutionInput, BeatResol
     ];
   }
 
-  ResolvedBeat _runtimeBeatFromResolved(
-      pipeline.SceneBeat beat, int index) {
+  ResolvedBeat _runtimeBeatFromResolved(pipeline.SceneBeat beat, int index) {
     final typedDeltas = _stateDeltasFromText(beat.content);
     return ResolvedBeat(
       beatIndex: index,
       actorId: beat.sourceCharacterId,
       actionAccepted: true,
-      acceptedSpeech:
-          beat.kind == pipeline.SceneBeatKind.dialogue ? beat.content : '',
-      acceptedAction:
-          beat.kind == pipeline.SceneBeatKind.dialogue ? '' : beat.content,
+      acceptedSpeech: beat.kind == pipeline.SceneBeatKind.dialogue
+          ? beat.content
+          : '',
+      acceptedAction: beat.kind == pipeline.SceneBeatKind.dialogue
+          ? ''
+          : beat.content,
       typedStateDeltas: typedDeltas,
       stateDelta: [for (final delta in typedDeltas) delta.value],
       newPublicFacts: beat.kind == pipeline.SceneBeatKind.fact

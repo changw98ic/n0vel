@@ -135,7 +135,7 @@ final class AgentEvaluationAppRuntimeFactory
     final requestPool = AppLlmRequestPool(
       maxConcurrent: decoding.maxConcurrentRequests,
     );
-    final runtimeClient = maxTokensPerCall == null
+    final AppLlmClient runtimeClient = maxTokensPerCall == null
         ? meter
         : _EvaluationMaxTokenClient(
             delegate: meter,
@@ -269,6 +269,7 @@ final class AgentEvaluationAppRuntimeFactory
       await runStore.ready;
       return _AgentEvaluationAppRuntime(
         registry: registry,
+        settingsStore: settingsStore,
         database: context.database,
         databasePath: databasePath,
         isolationTrialId: context.isolationTrialId,
@@ -314,7 +315,11 @@ final class AgentEvaluationAppRuntimeFactory
   }
 }
 
-final class _EvaluationMaxTokenClient implements AppLlmClient {
+final class _EvaluationMaxTokenClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   const _EvaluationMaxTokenClient({
     required this.delegate,
     required this.maxTokensPerCall,
@@ -322,6 +327,14 @@ final class _EvaluationMaxTokenClient implements AppLlmClient {
 
   final AppLlmClient delegate;
   final int maxTokensPerCall;
+
+  @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(delegate);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(delegate);
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) {
@@ -353,6 +366,10 @@ final class _EvaluationMaxTokenClient implements AppLlmClient {
         provider: request.provider,
         onPartialText: request.onPartialText,
         formalCacheIdentity: request.formalCacheIdentity,
+        formalDispatchIdentity: request.formalDispatchIdentity,
+        preferStreaming: request.preferStreaming,
+        physicalDispatchPolicy: request.physicalDispatchPolicy,
+        dispatchEvidenceNonce: request.dispatchEvidenceNonce,
       ),
     );
   }
@@ -880,6 +897,7 @@ final class _AgentEvaluationAppRuntime
     implements AgentEvaluationProductionRuntime {
   _AgentEvaluationAppRuntime({
     required ServiceRegistry registry,
+    required AppSettingsStore settingsStore,
     required sqlite3.Database database,
     required this.databasePath,
     required this.isolationTrialId,
@@ -904,6 +922,7 @@ final class _AgentEvaluationAppRuntime
     required this.meter,
     required this.traceSink,
   }) : _registry = registry,
+       _settingsStore = settingsStore,
        _runStorage = runStorage,
        _shortConnectionFence = shortConnectionFence,
        _releaseConnectionOwner = releaseConnectionOwner,
@@ -920,6 +939,7 @@ final class _AgentEvaluationAppRuntime
        _reviewTaskStore = reviewTaskStore;
 
   final ServiceRegistry _registry;
+  final AppSettingsStore _settingsStore;
   final SqliteStoryGenerationRunStorage _runStorage;
   final _SandboxShortConnectionFence _shortConnectionFence;
   final void Function()? _releaseConnectionOwner;
@@ -1021,15 +1041,19 @@ final class _AgentEvaluationAppRuntime
     if (_disposed) return;
     _disposed = true;
     try {
-      _registry.disposeAll();
+      await _settingsStore.quiesceLlmDispatches();
     } finally {
       try {
-        await _shortConnectionFence.close();
+        _registry.disposeAll();
       } finally {
         try {
-          _runStorage.dispose();
+          await _shortConnectionFence.close();
         } finally {
-          _releaseConnectionOwner?.call();
+          try {
+            _runStorage.dispose();
+          } finally {
+            _releaseConnectionOwner?.call();
+          }
         }
       }
     }

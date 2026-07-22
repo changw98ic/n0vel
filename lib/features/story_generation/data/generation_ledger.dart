@@ -4,8 +4,15 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../../app/llm/app_llm_canonical_hash.dart';
 import '../../../app/state/authoring_table_definitions.dart';
+import 'generation_candidate_identity.dart';
+import 'generation_evidence_receipt.dart';
+import 'generation_ledger_candidate_finalizer.dart'
+    show GenerationLedgerSealedFinalizationAuthority;
 import 'generation_ledger_digest.dart';
 import 'generation_ledger_models.dart';
+import 'generation_scene_scope_identity.dart';
+import 'story_generation_pass_retry.dart'
+    show storyGenerationParsedOutputDigest;
 
 /// Canonical encoding and SHA-256 identity for pending-write payloads.
 ///
@@ -39,6 +46,185 @@ abstract final class GenerationPendingWritePayloadIntegrity {
   static String hashText(String value) => GenerationLedgerDigest.text(value);
 }
 
+/// Canonical, restart-verifiable binding between the terminal parsed
+/// evaluation outputs, their receipt manifest, and the candidate proof hashes.
+///
+/// Only the current *sealed* payload schemas are writable/committable through
+/// this boundary. Legacy V1 proof rows remain readable and adaptive-unsealed
+/// V2 keeps its original review-v2/quality-v3 compatibility path. A legacy
+/// sealed payload without these exact fields is deliberately fail-closed
+/// because it cannot prove which parsed evaluator outputs produced its council
+/// and quality evidence.
+abstract final class GenerationCandidateEvaluationPayloadIntegrity {
+  static const String reviewSchemaVersion = 'candidate-review-payload-v3';
+  static const String qualitySchemaVersion = 'candidate-quality-payload-v4';
+
+  static void validateSealed({
+    required String reviewPayloadJson,
+    required String qualityPayloadJson,
+    required String finalProseHash,
+    required String deterministicGateEvidenceHash,
+    required String finalCouncilEvidenceHash,
+    required String qualityEvidenceHash,
+    required String receiptReviewParsedOutputDigest,
+    required String receiptQualityParsedOutputDigest,
+  }) {
+    final review = _decodeCanonicalObject(
+      reviewPayloadJson,
+      label: 'candidate review payload',
+    );
+    _requireExactKeys(review, const <String>{
+      'schemaVersion',
+      'reviewEvaluationOutput',
+      'reviewEvaluationOutputDigest',
+      'feedback',
+      'reviewAttempts',
+    }, label: 'candidate review payload');
+    if (review['schemaVersion'] != reviewSchemaVersion) {
+      throw const FormatException(
+        'candidate review payload schema is not committable',
+      );
+    }
+    final reviewOutput = _requireObject(
+      review['reviewEvaluationOutput'],
+      label: 'candidate review evaluation output',
+    );
+    final persistedReviewDigest = _requireSha256(
+      review['reviewEvaluationOutputDigest'],
+      label: 'candidate review evaluation output digest',
+    );
+    final recomputedReviewDigest = storyGenerationParsedOutputDigest(
+      reviewOutput,
+    );
+    if (persistedReviewDigest != recomputedReviewDigest ||
+        persistedReviewDigest != receiptReviewParsedOutputDigest) {
+      throw const FormatException(
+        'candidate review output digest does not match payload or receipt',
+      );
+    }
+    final decision = reviewOutput['decision'];
+    final feedback = review['feedback'];
+    final reviewAttempts = review['reviewAttempts'];
+    if (decision is! String || decision != 'pass' || feedback is! String) {
+      throw const FormatException(
+        'candidate review payload does not contain a passing review result',
+      );
+    }
+    if (reviewAttempts is! List ||
+        reviewAttempts.any((attempt) => attempt is! Map)) {
+      throw const FormatException(
+        'candidate review attempts must be an ordered object list',
+      );
+    }
+
+    final quality = _decodeCanonicalObject(
+      qualityPayloadJson,
+      label: 'candidate quality payload',
+    );
+    _requireExactKeys(quality, const <String>{
+      'schemaVersion',
+      'qualityEvaluationOutput',
+      'qualityEvaluationOutputDigest',
+      'deterministicGate',
+    }, label: 'candidate quality payload');
+    if (quality['schemaVersion'] != qualitySchemaVersion) {
+      throw const FormatException(
+        'candidate quality payload schema is not committable',
+      );
+    }
+    final qualityOutput = _requireObject(
+      quality['qualityEvaluationOutput'],
+      label: 'candidate quality evaluation output',
+    );
+    final persistedQualityDigest = _requireSha256(
+      quality['qualityEvaluationOutputDigest'],
+      label: 'candidate quality evaluation output digest',
+    );
+    final recomputedQualityDigest = storyGenerationParsedOutputDigest(
+      qualityOutput,
+    );
+    if (persistedQualityDigest != recomputedQualityDigest ||
+        persistedQualityDigest != receiptQualityParsedOutputDigest) {
+      throw const FormatException(
+        'candidate quality output digest does not match payload or receipt',
+      );
+    }
+    final deterministicGate = _requireObject(
+      quality['deterministicGate'],
+      label: 'candidate deterministic gate',
+    );
+
+    final recomputedGateHash = GenerationLedgerDigest.object(deterministicGate);
+    final recomputedCouncilHash =
+        GenerationLedgerDigest.object(<String, Object?>{
+          'finalProseHash': finalProseHash,
+          'decision': decision,
+          'feedback': feedback,
+          'reviewAttempts': reviewAttempts,
+        });
+    final recomputedQualityHash = GenerationLedgerDigest.object(
+      <String, Object?>{
+        'finalProseHash': finalProseHash,
+        'score': qualityOutput,
+      },
+    );
+    if (recomputedGateHash != deterministicGateEvidenceHash ||
+        recomputedCouncilHash != finalCouncilEvidenceHash ||
+        recomputedQualityHash != qualityEvidenceHash) {
+      throw const FormatException(
+        'candidate evaluation payload no longer matches proof evidence hashes',
+      );
+    }
+  }
+
+  static Map<String, Object?> _decodeCanonicalObject(
+    String source, {
+    required String label,
+  }) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(source);
+    } on FormatException {
+      throw FormatException('$label is not JSON');
+    }
+    final value = _requireObject(decoded, label: label);
+    if (GenerationLedgerDigest.canonicalJson(value) != source) {
+      throw FormatException('$label is not canonical');
+    }
+    return value;
+  }
+
+  static Map<String, Object?> _requireObject(
+    Object? value, {
+    required String label,
+  }) {
+    if (value is! Map || value.keys.any((key) => key is! String)) {
+      throw FormatException('$label must be an object with string keys');
+    }
+    return <String, Object?>{
+      for (final entry in value.entries) entry.key as String: entry.value,
+    };
+  }
+
+  static void _requireExactKeys(
+    Map<String, Object?> value,
+    Set<String> expected, {
+    required String label,
+  }) {
+    if (value.length != expected.length ||
+        !value.keys.every(expected.contains)) {
+      throw FormatException('$label has unsupported fields');
+    }
+  }
+
+  static String _requireSha256(Object? value, {required String label}) {
+    if (value is! String || !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(value)) {
+      throw FormatException('$label is not a canonical SHA-256 digest');
+    }
+    return value;
+  }
+}
+
 final class _CommittedContinuityAuthority {
   const _CommittedContinuityAuthority({
     required this.commitOrdinal,
@@ -67,6 +253,9 @@ class GenerationLedgerSqliteStore {
       'transaction': 'sqlite-begin-immediate',
       'continuityReload':
           'latest-authority-per-scene-then-caller-narrative-order-v2',
+      'runSceneScope': 'injective-project-scene-address-v1',
+      'sealedParsedEvaluation':
+          'receipt-manifest-review-v3-quality-v4-proof-hash-cross-check-v1',
     },
   );
 
@@ -516,19 +705,28 @@ class GenerationLedgerSqliteStore {
     _requireIdentity(run.chapterId, 'chapterId');
     _requireIdentity(run.sceneId, 'sceneId');
     _requireIdentity(run.sceneScopeId, 'sceneScopeId');
+    _requireCanonicalSceneScope(run);
     if (run.status == 'committing') {
       throw const GenerationLedgerInvariantViolation(
         'committing is not a persisted run state',
       );
     }
     final byRequest = db.select(
-      'SELECT run_id FROM story_generation_runs WHERE request_id = ?',
+      '''SELECT run_id, project_id, chapter_id, scene_id, scene_scope_id
+         FROM story_generation_runs WHERE request_id = ?''',
       [run.requestId],
     );
     if (byRequest.isNotEmpty) {
-      if (byRequest.single['run_id'] == run.runId) return run;
+      final existing = byRequest.single;
+      if (existing['run_id'] == run.runId &&
+          existing['project_id'] == run.projectId &&
+          existing['chapter_id'] == run.chapterId &&
+          existing['scene_id'] == run.sceneId &&
+          existing['scene_scope_id'] == run.sceneScopeId) {
+        return run;
+      }
       throw const GenerationLedgerInvariantViolation(
-        'request id is already owned by another run',
+        'request id is already bound to another run identity',
       );
     }
     db.execute(
@@ -570,6 +768,9 @@ class GenerationLedgerSqliteStore {
     required String generationBundleHash,
     required int createdAtMs,
   }) {
+    // Reject before table creation, bundle lookup, or transaction entry.  A
+    // malformed address must not leave even preparatory durable state behind.
+    _requireCanonicalSceneScope(run);
     final rawBundleHash = _rawPrefixedSha256(
       generationBundleHash,
       'generationBundleHash',
@@ -929,8 +1130,29 @@ class GenerationLedgerSqliteStore {
     return write;
   }
 
-  void createCandidateProof(CandidateProofRecord proof) {
-    _createCandidateProof(proof);
+  void createCandidateProof(
+    CandidateProofRecord proof, {
+    GenerationEvidenceReceiptProofAdmission? generationEvidenceReceiptAdmission,
+  }) {
+    // V1 is a read-compatibility format, not a format new code may mint.  The
+    // old public helper was an escape hatch around finalization and could
+    // create permanent evidence that no current verifier could attribute.
+    if (proof.proofIdentityVersion == GenerationCandidateIdentity.v1) {
+      throw const GenerationLedgerInvariantViolation(
+        'new candidate proofs must use the V2 identity contract',
+      );
+    }
+    _consumeCandidateProofAdmission(proof, generationEvidenceReceiptAdmission);
+    if (proof.generationEvidenceMode ==
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof requires atomic proof-and-payload finalization',
+      );
+    }
+    _validateCandidateProofForInsert(proof);
+    _inImmediateTransaction(() {
+      _createCandidateProof(proof);
+    });
   }
 
   /// Writes provider-free finalization atomically: proof and its expiring
@@ -938,6 +1160,8 @@ class GenerationLedgerSqliteStore {
   void finalizeCandidate({
     required CandidateProofRecord proof,
     required CandidatePayloadRecord payload,
+    GenerationEvidenceReceiptProofAdmission? generationEvidenceReceiptAdmission,
+    GenerationLedgerSealedFinalizationAuthority? sealedFinalizationAuthority,
   }) {
     if (proof.runId != payload.runId ||
         proof.candidateRevision != payload.candidateRevision) {
@@ -945,6 +1169,22 @@ class GenerationLedgerSqliteStore {
         'candidate proof and payload must share one namespace',
       );
     }
+    _consumeCandidateProofAdmission(
+      proof,
+      generationEvidenceReceiptAdmission,
+      finalArtifactText: payload.finalProse,
+    );
+    _consumeSealedFinalizationAuthority(
+      operation: GenerationLedgerSealedFinalizationAuthority
+          .finalizeCandidateOperation,
+      proof: proof,
+      payload: payload,
+      authority: sealedFinalizationAuthority,
+      workingProseRevision: null,
+      candidateNamespace: null,
+      pendingWrites: const <PendingWriteRecord>[],
+    );
+    _validateCandidateProofForInsert(proof);
     _inImmediateTransaction(() {
       _createCandidateProof(proof);
       _saveCandidatePayload(payload);
@@ -960,6 +1200,11 @@ class GenerationLedgerSqliteStore {
     required int updatedAtMs,
     required int currentProseRevision,
     GenerationStageCheckpointRecord? finalizationCheckpoint,
+    GenerationEvidenceReceiptProofAdmission? generationEvidenceReceiptAdmission,
+    GenerationLedgerSealedFinalizationAuthority? sealedFinalizationAuthority,
+    WorkingProseRevisionRecord? workingProseRevision,
+    CandidateNamespaceRecord? candidateNamespace,
+    List<PendingWriteRecord> pendingWrites = const <PendingWriteRecord>[],
   }) {
     if (proof.runId != payload.runId ||
         proof.candidateRevision != payload.candidateRevision) {
@@ -967,7 +1212,99 @@ class GenerationLedgerSqliteStore {
         'candidate proof and payload must share one namespace',
       );
     }
+    _consumeCandidateProofAdmission(
+      proof,
+      generationEvidenceReceiptAdmission,
+      finalArtifactText: payload.finalProse,
+    );
+    _consumeSealedFinalizationAuthority(
+      operation: GenerationLedgerSealedFinalizationAuthority
+          .markCandidateReadyOperation,
+      proof: proof,
+      payload: payload,
+      authority: sealedFinalizationAuthority,
+      workingProseRevision: workingProseRevision,
+      candidateNamespace: candidateNamespace,
+      pendingWrites: pendingWrites,
+      updatedAtMs: updatedAtMs,
+      currentProseRevision: currentProseRevision,
+      finalizationCheckpoint: finalizationCheckpoint,
+    );
+    final sealedAtomicInsert =
+        proof.generationEvidenceMode ==
+        GenerationCandidateIdentity.sealedNoRedrawMode;
+    if (sealedAtomicInsert) {
+      _validateSealedAtomicFinalization(
+        proof: proof,
+        payload: payload,
+        currentProseRevision: currentProseRevision,
+        workingProseRevision: workingProseRevision,
+        candidateNamespace: candidateNamespace,
+        pendingWrites: pendingWrites,
+      );
+    } else {
+      if (workingProseRevision != null ||
+          candidateNamespace != null ||
+          pendingWrites.isNotEmpty) {
+        throw const GenerationLedgerInvariantViolation(
+          'adaptive finalization cannot insert sealed atomic staging rows',
+        );
+      }
+      _validateCandidateProofForInsert(proof);
+    }
     _inImmediateTransaction(() {
+      if (sealedAtomicInsert) {
+        final run = db.select(
+          '''SELECT status, current_candidate_revision, project_id,
+                    chapter_id, scene_id
+             FROM story_generation_runs WHERE run_id = ?''',
+          <Object?>[proof.runId],
+        );
+        if (run.length != 1 ||
+            run.single['status'] != 'running' ||
+            run.single['current_candidate_revision'] != null ||
+            run.single['project_id'] != proof.projectId ||
+            run.single['chapter_id'] != proof.chapterId ||
+            run.single['scene_id'] != proof.sceneId) {
+          throw const GenerationLedgerInvariantViolation(
+            'sealed candidate requires one matching active run',
+          );
+        }
+        final occupied = db.select(
+          '''SELECT 1 FROM story_generation_candidate_namespaces
+             WHERE run_id = ? AND candidate_revision = ?
+             UNION ALL
+             SELECT 1 FROM story_generation_pending_writes
+             WHERE run_id = ? AND candidate_revision = ?
+             UNION ALL
+             SELECT 1 FROM story_generation_candidate_proofs
+             WHERE run_id = ? AND candidate_revision = ?
+             UNION ALL
+             SELECT 1 FROM story_generation_candidate_payloads
+             WHERE run_id = ? AND candidate_revision = ?
+             LIMIT 1''',
+          <Object?>[
+            proof.runId,
+            proof.candidateRevision,
+            proof.runId,
+            proof.candidateRevision,
+            proof.runId,
+            proof.candidateRevision,
+            proof.runId,
+            proof.candidateRevision,
+          ],
+        );
+        if (occupied.isNotEmpty) {
+          throw const GenerationLedgerInvariantViolation(
+            'sealed finalization requires a fresh candidate namespace',
+          );
+        }
+        createWorkingProseRevision(workingProseRevision!);
+        reserveCandidateNamespace(candidateNamespace!);
+        for (final write in pendingWrites) {
+          upsertPendingWrite(write);
+        }
+      }
       _createCandidateProof(proof);
       _saveCandidatePayload(payload);
       if (finalizationCheckpoint != null) {
@@ -994,6 +1331,113 @@ class GenerationLedgerSqliteStore {
         );
       }
     });
+  }
+
+  void _consumeCandidateProofAdmission(
+    CandidateProofRecord proof,
+    GenerationEvidenceReceiptProofAdmission? admission, {
+    String? finalArtifactText,
+  }) {
+    if (proof.generationEvidenceMode ==
+        GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (admission != null) {
+        throw const GenerationLedgerInvariantViolation(
+          'adaptive V2 proof cannot consume sealed receipt authority',
+        );
+      }
+      return;
+    }
+    if (proof.generationEvidenceMode !=
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      // The regular identity validator reports the unsupported mode.  This
+      // early rejection keeps every malformed proof side-effect free.
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate evidence mode is unsupported',
+      );
+    }
+    final canonicalReceipt = proof.generationEvidenceReceiptJson;
+    final receiptHash = proof.generationEvidenceReceiptHash;
+    GenerationEvidenceReceipt? parsedReceipt;
+    if (canonicalReceipt != null && canonicalReceipt.isNotEmpty) {
+      try {
+        parsedReceipt = GenerationEvidenceReceipt.fromCanonicalJson(
+          canonicalReceipt,
+        );
+      } on Object {
+        // The permanent proof validator owns the detailed parse error.  This
+        // boundary reports only that no runtime authority matches it.
+      }
+    }
+    // Presenting a runtime capability is itself a one-shot admission attempt.
+    // Feed malformed scope as a guaranteed mismatch so even probing with an
+    // invalid receipt burns the capability without touching SQLite.
+    final admitted =
+        admission?.consume(
+          canonicalJson: canonicalReceipt ?? '',
+          receiptHash: receiptHash ?? '',
+          runId: proof.runId,
+          sceneId: proof.sceneId,
+          candidateHash: proof.candidateHash,
+          sealedArtifactDigest:
+              parsedReceipt?.sealedArtifactDigest ?? const <String, Object?>{},
+        ) ??
+        false;
+    // Exact prose is available only on the atomic finalization paths. Perform
+    // this check after consuming so a mismatched artifact burns the capability
+    // while the surrounding database transaction remains untouched.
+    if (!admitted ||
+        (finalArtifactText != null &&
+            (parsedReceipt == null ||
+                !parsedReceipt.matchesArtifactText(finalArtifactText)))) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof requires fresh terminal-journal authority for its exact artifact',
+      );
+    }
+  }
+
+  void _consumeSealedFinalizationAuthority({
+    required String operation,
+    required CandidateProofRecord proof,
+    required CandidatePayloadRecord payload,
+    required GenerationLedgerSealedFinalizationAuthority? authority,
+    required WorkingProseRevisionRecord? workingProseRevision,
+    required CandidateNamespaceRecord? candidateNamespace,
+    required List<PendingWriteRecord> pendingWrites,
+    int? updatedAtMs,
+    int? currentProseRevision,
+    GenerationStageCheckpointRecord? finalizationCheckpoint,
+  }) {
+    if (proof.generationEvidenceMode ==
+        GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (authority != null) {
+        throw const GenerationLedgerInvariantViolation(
+          'adaptive V2 proof cannot consume sealed finalizer authority',
+        );
+      }
+      return;
+    }
+    if (proof.generationEvidenceMode !=
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate evidence mode is unsupported',
+      );
+    }
+    if (authority == null ||
+        !authority.consumeForLedger(
+          operation: operation,
+          proof: proof,
+          payload: payload,
+          workingProseRevision: workingProseRevision,
+          candidateNamespace: candidateNamespace,
+          pendingWrites: pendingWrites,
+          updatedAtMs: updatedAtMs,
+          currentProseRevision: currentProseRevision,
+          finalizationCheckpoint: finalizationCheckpoint,
+        )) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof requires one exact high-level finalizer authority',
+      );
+    }
   }
 
   void _insertStageCheckpointInTransaction(
@@ -1058,22 +1502,7 @@ class GenerationLedgerSqliteStore {
   }
 
   void _createCandidateProof(CandidateProofRecord proof) {
-    _requireIdentity(proof.candidateHash, 'candidateHash');
-    final namespace = db.select(
-      '''
-      SELECT source_prose_revision
-      FROM story_generation_candidate_namespaces
-      WHERE run_id = ? AND candidate_revision = ?
-      ''',
-      [proof.runId, proof.candidateRevision],
-    );
-    if (namespace.length != 1 ||
-        namespace.single['source_prose_revision'] !=
-            proof.sourceProseRevision) {
-      throw const GenerationLedgerInvariantViolation(
-        'proof must use its namespace source prose revision',
-      );
-    }
+    _validateCandidateProofForInsert(proof);
     db.execute(
       '''
       INSERT INTO story_generation_candidate_proofs (
@@ -1081,8 +1510,12 @@ class GenerationLedgerSqliteStore {
         source_prose_revision, candidate_hash, final_prose_hash,
         deterministic_gate_evidence_hash, final_council_evidence_hash,
         quality_evidence_hash, pending_write_set_hash, material_digest,
-        input_digest, created_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        input_digest, proof_identity_version, prepared_brief_digest,
+        effective_brief_digest, generation_evidence_mode,
+        generation_evidence_receipt_hash, attempt_evidence_envelope_digest,
+        generation_fingerprint_set_digest, generation_evidence_receipt_json,
+        created_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         proof.runId,
@@ -1099,9 +1532,162 @@ class GenerationLedgerSqliteStore {
         proof.pendingWriteSetHash,
         proof.materialDigest,
         proof.inputDigest,
+        proof.proofIdentityVersion,
+        proof.preparedBriefDigest,
+        proof.effectiveBriefDigest,
+        proof.generationEvidenceMode,
+        proof.generationEvidenceReceiptHash,
+        proof.attemptEvidenceEnvelopeDigest,
+        proof.generationFingerprintSetDigest,
+        proof.generationEvidenceReceiptJson,
         proof.createdAtMs,
       ],
     );
+  }
+
+  void _validateCandidateProofForInsert(CandidateProofRecord proof) {
+    _requireIdentity(proof.candidateHash, 'candidateHash');
+    _validateCandidateProofIdentity(proof);
+    final namespace = db.select(
+      '''
+      SELECT source_prose_revision
+      FROM story_generation_candidate_namespaces
+      WHERE run_id = ? AND candidate_revision = ?
+      ''',
+      [proof.runId, proof.candidateRevision],
+    );
+    if (namespace.length != 1 ||
+        namespace.single['source_prose_revision'] !=
+            proof.sourceProseRevision) {
+      throw const GenerationLedgerInvariantViolation(
+        'proof must use its namespace source prose revision',
+      );
+    }
+  }
+
+  void _validateSealedAtomicFinalization({
+    required CandidateProofRecord proof,
+    required CandidatePayloadRecord payload,
+    required int currentProseRevision,
+    required WorkingProseRevisionRecord? workingProseRevision,
+    required CandidateNamespaceRecord? candidateNamespace,
+    required List<PendingWriteRecord> pendingWrites,
+  }) {
+    final working = workingProseRevision;
+    final namespace = candidateNamespace;
+    if (working == null || namespace == null) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed finalization requires atomic prose and namespace rows',
+      );
+    }
+    _requireIdentity(proof.candidateHash, 'candidateHash');
+    _validateCandidateProofIdentity(proof);
+    if (proof.candidateRevision != 0 ||
+        working.runId != proof.runId ||
+        working.proseRevision != proof.sourceProseRevision ||
+        working.proseRevision != currentProseRevision ||
+        working.proseHash != proof.finalProseHash ||
+        working.proseHash != GenerationLedgerDigest.text(payload.finalProse) ||
+        working.proseText != payload.finalProse ||
+        working.sourceKind != 'finalization' ||
+        working.createdAtMs != proof.createdAtMs ||
+        namespace.runId != proof.runId ||
+        namespace.candidateRevision != proof.candidateRevision ||
+        namespace.sourceProseRevision != working.proseRevision ||
+        namespace.reservedAtMs != proof.createdAtMs ||
+        payload.createdAtMs != proof.createdAtMs) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed atomic staging rows do not match the exact candidate proof',
+      );
+    }
+
+    final seenWriteIds = <String>{};
+    final writeReferences = <Map<String, Object?>>[];
+    var summaryContributionCount = 0;
+    for (final write in pendingWrites) {
+      _validatePendingWrite(write);
+      if (!seenWriteIds.add(write.writeId) ||
+          write.runId != proof.runId ||
+          write.candidateRevision != proof.candidateRevision ||
+          write.projectId != proof.projectId ||
+          write.chapterId != proof.chapterId ||
+          write.sceneId != proof.sceneId ||
+          write.state != 'staged' ||
+          write.committedAtMs != null ||
+          write.discardedAtMs != null ||
+          write.createdAtMs != proof.createdAtMs ||
+          write.expiresAtMs != payload.expiresAtMs ||
+          write.producer != 'story-pipeline') {
+        throw const GenerationLedgerInvariantViolation(
+          'sealed pending write is outside its exact candidate namespace',
+        );
+      }
+      late final String recomputedPayloadHash;
+      try {
+        recomputedPayloadHash =
+            GenerationPendingWritePayloadIntegrity.hashCanonicalJson(
+              write.payloadJson,
+            );
+      } on FormatException {
+        throw const GenerationLedgerInvariantViolation(
+          'sealed pending write payload is not canonical JSON',
+        );
+      }
+      final decoded = jsonDecode(write.payloadJson);
+      final target = decoded is Map ? decoded['target'] : null;
+      final contribution = decoded is Map ? decoded['contribution'] : null;
+      final boundFinalProseHash = write.writeKind == 'sceneSummaryContribution'
+          ? contribution is Map
+                ? contribution['finalProseHash']
+                : null
+          : decoded is Map
+          ? decoded['finalProseHash']
+          : null;
+      final expectedDerivationClass =
+          write.writeKind == 'sceneSummaryContribution'
+          ? 'proseDerived'
+          : 'preProse';
+      if (recomputedPayloadHash != write.payloadHash ||
+          decoded is! Map ||
+          !const <String>{
+            'roleplaySession',
+            'characterDelta',
+            'sceneSummaryContribution',
+          }.contains(write.writeKind) ||
+          decoded['kind'] != write.writeKind ||
+          decoded['schemaVersion'] != 1 ||
+          decoded['projectId'] != proof.projectId ||
+          decoded['chapterId'] != proof.chapterId ||
+          decoded['sceneId'] != proof.sceneId ||
+          target is! Map ||
+          target['projectId'] != proof.projectId ||
+          target['chapterId'] != proof.chapterId ||
+          target['sceneId'] != proof.sceneId ||
+          boundFinalProseHash != proof.finalProseHash ||
+          write.derivationClass != expectedDerivationClass) {
+        throw const GenerationLedgerInvariantViolation(
+          'sealed pending write payload does not match its typed target',
+        );
+      }
+      if (write.writeKind == 'sceneSummaryContribution') {
+        summaryContributionCount += 1;
+      }
+      writeReferences.add(<String, Object?>{
+        'writeId': write.writeId,
+        'payloadHash': write.payloadHash,
+      });
+    }
+    final canonicalManifest = GenerationLedgerDigest.canonicalJson(
+      writeReferences,
+    );
+    if (summaryContributionCount != 1 ||
+        payload.pendingWriteManifestJson != canonicalManifest ||
+        proof.pendingWriteSetHash !=
+            GenerationLedgerDigest.object(writeReferences)) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed candidate manifest does not exactly bind its pending writes',
+      );
+    }
   }
 
   void saveCandidatePayload(CandidatePayloadRecord payload) {
@@ -1215,13 +1801,14 @@ class GenerationLedgerSqliteStore {
         'candidate payload expiry must be after creation',
       );
     }
+    _validateCandidatePayloadEvidence(payload);
     db.execute(
       '''
       INSERT INTO story_generation_candidate_payloads (
         run_id, candidate_revision, final_prose, pending_write_manifest_json,
         retrieval_trace_json, review_payload_json, quality_payload_json,
-        created_at_ms, expires_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        generation_evidence_receipt_json, created_at_ms, expires_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         payload.runId,
@@ -1231,10 +1818,244 @@ class GenerationLedgerSqliteStore {
         payload.retrievalTraceJson,
         payload.reviewPayloadJson,
         payload.qualityPayloadJson,
+        payload.generationEvidenceReceiptJson,
         payload.createdAtMs,
         payload.expiresAtMs,
       ],
     );
+  }
+
+  void _validateCandidateProofIdentity(CandidateProofRecord proof) {
+    if (proof.proofIdentityVersion == GenerationCandidateIdentity.v1) {
+      throw const GenerationLedgerInvariantViolation(
+        'V1 candidate proofs are retained for read compatibility only',
+      );
+    }
+    if (proof.proofIdentityVersion != GenerationCandidateIdentity.v2) {
+      throw const GenerationLedgerInvariantViolation(
+        'candidate proof identity version is unsupported',
+      );
+    }
+    final preparedBriefDigest = proof.preparedBriefDigest;
+    final effectiveBriefDigest = proof.effectiveBriefDigest;
+    if (preparedBriefDigest == null || effectiveBriefDigest == null) {
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate proof requires prepared and effective brief identity',
+      );
+    }
+    _validatePermanentCandidateReceipt(proof);
+    final expectedHash = _computeV2CandidateHash(
+      proof: proof,
+      preparedBriefDigest: preparedBriefDigest,
+      effectiveBriefDigest: effectiveBriefDigest,
+    );
+    if (proof.candidateHash != expectedHash) {
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate hash does not match its durable proof fields',
+      );
+    }
+  }
+
+  void _validatePermanentCandidateReceipt(CandidateProofRecord proof) {
+    final canonicalReceipt = proof.generationEvidenceReceiptJson;
+    if (proof.generationEvidenceMode ==
+        GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (canonicalReceipt != null ||
+          proof.generationEvidenceReceiptHash != null ||
+          proof.attemptEvidenceEnvelopeDigest != null ||
+          proof.generationFingerprintSetDigest != null) {
+        throw const GenerationLedgerInvariantViolation(
+          'adaptive V2 proof cannot carry sealed generation evidence',
+        );
+      }
+      return;
+    }
+    if (proof.generationEvidenceMode !=
+        GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate evidence mode is unsupported',
+      );
+    }
+    if (canonicalReceipt == null || canonicalReceipt.isEmpty) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof requires its permanent canonical receipt',
+      );
+    }
+    final GenerationEvidenceReceipt receipt;
+    try {
+      receipt = GenerationEvidenceReceipt.fromCanonicalJson(canonicalReceipt);
+    } on Object catch (error) {
+      throw GenerationLedgerInvariantViolation(
+        'sealed V2 proof receipt is invalid: $error',
+      );
+    }
+    final runRows = db.select(
+      'SELECT scene_id FROM story_generation_runs WHERE run_id = ?',
+      <Object?>[proof.runId],
+    );
+    if (runRows.length != 1 ||
+        runRows.single['scene_id'] != proof.sceneId ||
+        receipt.evidenceRunId != proof.runId ||
+        receipt.sceneId != proof.sceneId) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof receipt does not belong to its run and scene',
+      );
+    }
+    final expectedBundle = generationBundleHashForRun(proof.runId);
+    if (receipt.receiptHash != proof.generationEvidenceReceiptHash ||
+        receipt.attemptEvidenceEnvelopeDigest !=
+            proof.attemptEvidenceEnvelopeDigest ||
+        receipt.generationFingerprintSetDigest !=
+            proof.generationFingerprintSetDigest ||
+        receipt.preparedBriefDigest != proof.preparedBriefDigest ||
+        receipt.generationBundleHashes.length != 1 ||
+        !receipt.generationBundleHashes.contains(expectedBundle)) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed V2 proof receipt does not match its durable proof fields',
+      );
+    }
+  }
+
+  String _computeV2CandidateHash({
+    required CandidateProofRecord proof,
+    required String preparedBriefDigest,
+    required String effectiveBriefDigest,
+  }) {
+    try {
+      return GenerationCandidateIdentity.computeV2(
+        runId: proof.runId,
+        candidateRevision: proof.candidateRevision,
+        finalProseHash: proof.finalProseHash,
+        deterministicGateEvidenceHash: proof.deterministicGateEvidenceHash,
+        finalCouncilEvidenceHash: proof.finalCouncilEvidenceHash,
+        qualityEvidenceHash: proof.qualityEvidenceHash,
+        pendingWriteSetHash: proof.pendingWriteSetHash,
+        materialDigest: proof.materialDigest,
+        effectiveInputDigest: proof.inputDigest,
+        preparedBriefDigest: preparedBriefDigest,
+        effectiveBriefDigest: effectiveBriefDigest,
+        generationBundleHash: generationBundleHashForRun(proof.runId),
+        generationEvidenceMode: proof.generationEvidenceMode,
+        generationEvidenceReceiptHash: proof.generationEvidenceReceiptHash,
+        attemptEvidenceEnvelopeDigest: proof.attemptEvidenceEnvelopeDigest,
+        generationFingerprintSetDigest: proof.generationFingerprintSetDigest,
+      );
+    } on ArgumentError catch (error) {
+      throw GenerationLedgerInvariantViolation(
+        'V2 candidate proof is invalid: $error',
+      );
+    }
+  }
+
+  void _validateCandidatePayloadEvidence(CandidatePayloadRecord payload) {
+    final rows = db.select(
+      '''
+      SELECT proof_identity_version, prepared_brief_digest,
+        run_id, scene_id, final_prose_hash,
+        deterministic_gate_evidence_hash, final_council_evidence_hash,
+        quality_evidence_hash,
+        generation_evidence_mode, generation_evidence_receipt_hash,
+        attempt_evidence_envelope_digest, generation_fingerprint_set_digest,
+        generation_evidence_receipt_json
+      FROM story_generation_candidate_proofs
+      WHERE run_id = ? AND candidate_revision = ?
+      ''',
+      <Object?>[payload.runId, payload.candidateRevision],
+    );
+    if (rows.length != 1) {
+      throw const GenerationLedgerInvariantViolation(
+        'candidate payload requires its durable proof',
+      );
+    }
+    final row = rows.single;
+    switch (row['proof_identity_version']) {
+      case GenerationCandidateIdentity.v1:
+        return;
+      case GenerationCandidateIdentity.v2:
+        break;
+      default:
+        throw const GenerationLedgerInvariantViolation(
+          'candidate payload proof identity version is unsupported',
+        );
+    }
+    final mode = row['generation_evidence_mode'] as String;
+    if (mode == GenerationCandidateIdentity.adaptiveUnsealedMode) {
+      if (payload.generationEvidenceReceiptJson != '{}') {
+        throw const GenerationLedgerInvariantViolation(
+          'adaptive-unsealed candidate requires the canonical empty receipt',
+        );
+      }
+      return;
+    }
+    if (mode != GenerationCandidateIdentity.sealedNoRedrawMode) {
+      throw const GenerationLedgerInvariantViolation(
+        'V2 candidate evidence mode is unsupported',
+      );
+    }
+    if (row['final_prose_hash'] !=
+        GenerationLedgerDigest.text(payload.finalProse)) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed candidate payload prose does not match its permanent proof hash',
+      );
+    }
+    final permanentReceiptJson = row['generation_evidence_receipt_json'];
+    if (permanentReceiptJson is! String ||
+        permanentReceiptJson.isEmpty ||
+        payload.generationEvidenceReceiptJson != permanentReceiptJson) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed candidate payload must exactly mirror the proof-owned receipt',
+      );
+    }
+    final GenerationEvidenceReceipt receipt;
+    try {
+      receipt = GenerationEvidenceReceipt.fromCanonicalJson(
+        permanentReceiptJson,
+      );
+    } on Object catch (error) {
+      throw GenerationLedgerInvariantViolation(
+        'sealed candidate receipt is invalid: $error',
+      );
+    }
+    final expectedBundle = generationBundleHashForRun(payload.runId);
+    if (receipt.receiptHash != row['generation_evidence_receipt_hash'] ||
+        receipt.evidenceRunId != row['run_id'] ||
+        receipt.sceneId != row['scene_id'] ||
+        receipt.attemptEvidenceEnvelopeDigest !=
+            row['attempt_evidence_envelope_digest'] ||
+        receipt.generationFingerprintSetDigest !=
+            row['generation_fingerprint_set_digest'] ||
+        receipt.preparedBriefDigest != row['prepared_brief_digest'] ||
+        receipt.generationBundleHashes.length != 1 ||
+        !receipt.generationBundleHashes.contains(expectedBundle) ||
+        !receipt.matchesArtifactText(payload.finalProse)) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed candidate receipt does not match proof, bundle, or prose',
+      );
+    }
+    final reviewDigest = receipt.finalReviewParsedOutputDigest;
+    final qualityDigest = receipt.finalQualityParsedOutputDigest;
+    if (reviewDigest == null || qualityDigest == null) {
+      throw const GenerationLedgerInvariantViolation(
+        'sealed candidate receipt lacks final parsed evaluation evidence',
+      );
+    }
+    try {
+      GenerationCandidateEvaluationPayloadIntegrity.validateSealed(
+        reviewPayloadJson: payload.reviewPayloadJson,
+        qualityPayloadJson: payload.qualityPayloadJson,
+        finalProseHash: row['final_prose_hash'] as String,
+        deterministicGateEvidenceHash:
+            row['deterministic_gate_evidence_hash'] as String,
+        finalCouncilEvidenceHash: row['final_council_evidence_hash'] as String,
+        qualityEvidenceHash: row['quality_evidence_hash'] as String,
+        receiptReviewParsedOutputDigest: reviewDigest,
+        receiptQualityParsedOutputDigest: qualityDigest,
+      );
+    } on Object catch (error) {
+      throw GenerationLedgerInvariantViolation(
+        'sealed candidate evaluation payload is invalid: $error',
+      );
+    }
   }
 
   int deleteExpiredCandidatePayloads({required int nowMs}) {
@@ -1915,6 +2736,18 @@ class GenerationLedgerSqliteStore {
   void _requireIdentity(String value, String field) {
     if (value.trim().isEmpty) {
       throw GenerationLedgerInvariantViolation('$field is required');
+    }
+  }
+
+  void _requireCanonicalSceneScope(GenerationRunRecord run) {
+    if (!GenerationSceneScopeIdentity.matches(
+      projectId: run.projectId,
+      sceneId: run.sceneId,
+      sceneScopeId: run.sceneScopeId,
+    )) {
+      throw const GenerationLedgerInvariantViolation(
+        'sceneScopeId must be the unambiguous projectId::sceneId address',
+      );
     }
   }
 

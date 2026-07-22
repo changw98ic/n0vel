@@ -39,23 +39,26 @@ void main() {
 
     test('catches core value anti-pattern', () {
       final violations = contract.validate('选择不诚实回答');
-      expect(violations, anyElement(predicate<SoulViolation>(
-        (v) => v.rule == 'coreValue:诚实',
-      )));
+      expect(
+        violations,
+        anyElement(predicate<SoulViolation>((v) => v.rule == 'coreValue:诚实')),
+      );
     });
 
     test('catches forbidden emotion', () {
       final violations = contract.validate('感到暴怒涌上心头');
-      expect(violations, anyElement(predicate<SoulViolation>(
-        (v) => v.rule == 'emotion:暴怒',
-      )));
+      expect(
+        violations,
+        anyElement(predicate<SoulViolation>((v) => v.rule == 'emotion:暴怒')),
+      );
     });
 
     test('catches broken promise', () {
       final violations = contract.validate('违背守护林家');
-      expect(violations, anyElement(predicate<SoulViolation>(
-        (v) => v.rule == 'promise:守护林家',
-      )));
+      expect(
+        violations,
+        anyElement(predicate<SoulViolation>((v) => v.rule == 'promise:守护林家')),
+      );
     });
 
     test('empty contract allows everything', () {

@@ -1,4 +1,3 @@
-
 import '../events/app_event_bus.dart';
 import '../logging/app_event_log.dart';
 import '../llm/app_llm_client.dart';
@@ -28,7 +27,10 @@ class AppSettingsStore extends AppStoreListenable
         AppSettingsStoreSave,
         AppSettingsStoreRetry,
         AppSettingsStoreAiRouting
-    implements StoryGenerationSettingsContract {
+    implements
+        StoryGenerationSettingsContract,
+        StoryGenerationModelRouteIdentityProvider,
+        StoryGenerationSinglePhysicalDispatchSettingsContract {
   AppSettingsStore({
     AppSettingsStorage? storage,
     AppLlmClient? llmClient,
@@ -36,10 +38,9 @@ class AppSettingsStore extends AppStoreListenable
     AppEventLog? eventLog,
     AppEventBus? eventBus,
     AppLlmCallTraceSink? llmTraceSink,
-  }) : _storage =
-           storage ?? createDefaultAppSettingsStorage(),
-       _llmClient =
-           llmClient ?? createDefaultAppLlmClient(),
+    FailoverEndpointGatewayProvider? failoverGatewayProvider,
+  }) : _storage = storage ?? createDefaultAppSettingsStorage(),
+       _llmClient = llmClient ?? createDefaultAppLlmClient(),
        _requestPool = requestPool ?? AppLlmRequestPool(maxConcurrent: 3),
        _eventLog = eventLog ?? AppEventLog(),
        _eventBus = eventBus,
@@ -60,6 +61,7 @@ class AppSettingsStore extends AppStoreListenable
       llmClient: _llmClient,
       llmTraceSink: _llmTraceSink,
       eventLog: _eventLog,
+      failoverGatewayProvider: failoverGatewayProvider,
     );
     _restore();
   }
@@ -81,6 +83,15 @@ class AppSettingsStore extends AppStoreListenable
   String? _activePersistenceSummary;
   String? _activePersistenceDetail;
   bool _hasLocalMutations = false;
+
+  Future<void> quiesceLlmDispatches() =>
+      _aiRequestService.quiescePhysicalDispatches();
+
+  @override
+  Future<void> quiescePersistence() async {
+    await quiesceLlmDispatches();
+    await super.quiescePersistence();
+  }
 
   // --- 统一 mixin 桥接（替代 5 套前缀的 bridge） ---
   @override
@@ -155,6 +166,7 @@ class AppSettingsStore extends AppStoreListenable
       notify: notify,
     );
   }
+
   @override
   bool storeIsSupportedModel(String model) => isSupportedModelFromUtils(model);
   @override
@@ -193,8 +205,7 @@ class AppSettingsStore extends AppStoreListenable
   bool get _hasRequiredApiKey =>
       _snapshot.apiKey.trim().isNotEmpty || _allowsEmptyApiKey;
 
-  bool isSupportedModel(String model) =>
-      isSupportedModelFromUtils(model);
+  bool isSupportedModel(String model) => isSupportedModelFromUtils(model);
 
   bool get hasSupportedModel =>
       isSupportedModel(_snapshot.model) || _allowsEmptyApiKey;

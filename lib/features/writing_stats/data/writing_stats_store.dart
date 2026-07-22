@@ -24,10 +24,7 @@ class WritingStatsStore extends AppProjectScopedStore {
        ),
        _eventBus = eventBus,
        _reminderEnabled = reminderEnabled,
-       super(
-         eventBus: eventBus,
-         scopeMode: AppStoreScopeMode.project,
-       ) {
+       super(eventBus: eventBus, scopeMode: AppStoreScopeMode.project) {
     _draftSubscription = eventBus?.listen<DraftUpdatedEvent>(_onDraftUpdated);
     _projectDeletedSubscription = eventBus?.listen<ProjectDeletedEvent>(
       _onProjectDeleted,
@@ -184,12 +181,14 @@ class WritingStatsStore extends AppProjectScopedStore {
       WritingGoalType.dailyChapters => '每日${goal.targetValue}章',
     };
     try {
-      _eventBus?.publish(NotificationRequestedEvent(
-        title: '写作目标达成!',
-        message: '$label — 已完成 ${(progress * 100).toInt()}%',
-        severity: AppNoticeSeverity.success,
-        duration: const Duration(seconds: 6),
-      ));
+      _eventBus?.publish(
+        NotificationRequestedEvent(
+          title: '写作目标达成!',
+          message: '$label — 已完成 ${(progress * 100).toInt()}%',
+          severity: AppNoticeSeverity.success,
+          duration: const Duration(seconds: 6),
+        ),
+      );
     } on StateError {
       // eventBus 可能已 disposed
     }
@@ -207,9 +206,7 @@ class WritingStatsStore extends AppProjectScopedStore {
   @override
   Future<void> onRestore() async {
     final restoreVersion = mutationVersion;
-    final snapshot = await _service.loadSnapshot(
-      projectId: activeProjectId,
-    );
+    final snapshot = await _service.loadSnapshot(projectId: activeProjectId);
     if (restoreVersion != mutationVersion) return;
     _snapshot = snapshot;
     _goals = snapshot.goals;

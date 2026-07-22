@@ -5,6 +5,7 @@ import 'package:novel_writer/features/story_generation/domain/outline_plan_model
 import 'app_project_scoped_store.dart';
 import 'app_storage_clone.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 import 'story_outline_storage.dart';
 
 const String _fallbackStoryOutlineProjectId = 'project-yuechao';
@@ -298,21 +299,25 @@ class StoryOutlineSnapshot {
 }
 
 class StoryOutlineStore extends AppProjectScopedStore {
-  StoryOutlineStore({StoryOutlineStorage? storage, super.workspaceStore, super.eventBus})
-    : _storage =
-          storage ?? createDefaultStoryOutlineStorage(),
-      super(
-        scopeMode: AppStoreScopeMode.project,
-        fallbackProjectId: _fallbackStoryOutlineProjectId,
-      ) {
+  StoryOutlineStore({
+    StoryOutlineStorage? storage,
+    super.workspaceStore,
+    super.eventBus,
+  }) : _storage = storage ?? createDefaultStoryOutlineStorage(),
+       super(
+         scopeMode: AppStoreScopeMode.project,
+         fallbackProjectId: _fallbackStoryOutlineProjectId,
+       ) {
     _snapshot = StoryOutlineSnapshot.empty(activeProjectId);
     onRestore();
   }
 
-  
   final StoryOutlineStorage _storage;
   final Map<String, StoryOutlineSnapshot> _snapshotsByProjectId = {};
   late StoryOutlineSnapshot _snapshot;
+
+  @override
+  ProjectStorage get persistenceStorage => _storage;
 
   StoryOutlineSnapshot get snapshot => _snapshot.deepCopy();
 

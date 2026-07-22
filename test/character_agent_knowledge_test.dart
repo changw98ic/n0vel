@@ -233,7 +233,11 @@ void main() {
 
     test('public facts are visible to all characters', () {
       final facts = [
-        const KnowledgeFact(factId: 'fact-weather', content: '暴雨如注', isPublic: true),
+        const KnowledgeFact(
+          factId: 'fact-weather',
+          content: '暴雨如注',
+          isPublic: true,
+        ),
       ];
       final visible = filter.visibleFacts(facts, 'char-liuxi', []);
       expect(visible, hasLength(1));
@@ -263,7 +267,11 @@ void main() {
 
     test('isFactVisibleTo returns correct visibility', () {
       final facts = [
-        const KnowledgeFact(factId: 'fact-secret', content: '秘密', isPublic: false),
+        const KnowledgeFact(
+          factId: 'fact-secret',
+          content: '秘密',
+          isPublic: false,
+        ),
       ];
       final policies = [
         DisclosurePolicy(factId: 'fact-secret', knownBy: {'char-liuxi'}),
@@ -389,8 +397,16 @@ void main() {
 
     test('different targets do not conflict', () {
       final beats = [
-        const SceneBeat(characterId: 'a', action: '抓住货单', targetId: 'item-manifest'),
-        const SceneBeat(characterId: 'b', action: '打开门锁', targetId: 'item-door'),
+        const SceneBeat(
+          characterId: 'a',
+          action: '抓住货单',
+          targetId: 'item-manifest',
+        ),
+        const SceneBeat(
+          characterId: 'b',
+          action: '打开门锁',
+          targetId: 'item-door',
+        ),
       ];
       final delta = resolver.resolve(beats);
       expect(delta.acceptedBeats, hasLength(2));

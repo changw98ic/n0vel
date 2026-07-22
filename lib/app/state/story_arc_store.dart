@@ -5,6 +5,7 @@ import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
 import 'app_workspace_store.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 import 'story_arc_storage.dart';
 import '../../features/story_generation/data/narrative_arc_models.dart';
 
@@ -67,13 +68,12 @@ class StoryArcSnapshot {
   }
 
   static StoryArcSnapshot fromJson(Map<String, Object?> json) {
-    final projectId = json['projectId']?.toString() ?? _fallbackStoryArcProjectId;
+    final projectId =
+        json['projectId']?.toString() ?? _fallbackStoryArcProjectId;
     final stateJson = json['narrativeArcState'];
     final NarrativeArcState state;
     if (stateJson is Map) {
-      state = _decodeNarrativeArcState(
-        Map<String, Object?>.from(stateJson),
-      );
+      state = _decodeNarrativeArcState(Map<String, Object?>.from(stateJson));
     } else {
       state = NarrativeArcState();
     }
@@ -132,6 +132,9 @@ class StoryArcStore extends AppStoreListenable {
   Future<void> _readyFuture = Future<void>.value();
   int _mutationVersion = 0;
   StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
+
+  @override
+  Future<void> flushPersistence() => flushProjectStorage(_storage);
 
   StoryArcSnapshot get snapshot => _snapshot.deepCopy();
   String get activeProjectId => _activeProjectId;
@@ -256,10 +259,12 @@ class StoryArcStore extends AppStoreListenable {
   Map<String, Object?> exportJson() => _snapshot.toJson();
 
   void importJson(Map<String, Object?> data) {
-    replaceSnapshot(StoryArcSnapshot.fromJson({
-      for (final entry in data.entries) entry.key: entry.value,
-      'projectId': _activeProjectId,
-    }));
+    replaceSnapshot(
+      StoryArcSnapshot.fromJson({
+        for (final entry in data.entries) entry.key: entry.value,
+        'projectId': _activeProjectId,
+      }),
+    );
   }
 
   void replaceSnapshot(StoryArcSnapshot snapshot) {
@@ -330,6 +335,9 @@ class StoryArcStore extends AppStoreListenable {
     _workspaceStore?.removeListener(_handleWorkspaceChanged);
     unawaited(_projectDeletedSubscription?.cancel());
     _projectDeletedSubscription = null;
+    if (_storage case final ProjectStorageDiscardable discardable) {
+      discardable.discard();
+    }
     super.dispose();
   }
 }

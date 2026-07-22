@@ -30,6 +30,8 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
     final editorial = input.editorial;
     final review = input.review.review;
     var outputProse = editorial.prose;
+    var sourceLogicalAttemptId = editorial.sourceLogicalAttemptId;
+    var sourceCallSiteId = editorial.sourceCallSiteId;
 
     // 1. Refinement when rewriteProse and retries exhausted.
     if (!input.review.wasLengthRetry &&
@@ -40,6 +42,8 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
           text: editorial.draft.text,
           beatCount: editorial.draft.beatCount,
           attempt: editorial.draft.attempt,
+          sourceLogicalAttemptId: editorial.sourceLogicalAttemptId,
+          sourceCallSiteId: editorial.sourceCallSiteId,
         ),
         resolvedBeats: input.beats.runtimeBeats,
         review: review,
@@ -48,6 +52,8 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
         text: refinedDraft.text,
         attempt: refinedDraft.attempt,
       );
+      sourceLogicalAttemptId = refinedDraft.sourceLogicalAttemptId;
+      sourceCallSiteId = refinedDraft.sourceCallSiteId;
     }
 
     // 2. Final polish pass (only on passed reviews with metadata opt-in).
@@ -76,7 +82,7 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
         reviewFeedback: review.editorialFeedback,
         refinementGuidance: review.refinementGuidance,
       );
-      final polishedText = polishResult.text.trim();
+      final polishedText = polishResult.text;
       _rejectFormalPolishFallback(
         brief: brief,
         result: polishResult,
@@ -87,10 +93,16 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
           text: polishedText,
           attempt: outputProse.attempt,
         );
+        sourceLogicalAttemptId = polishResult.sourceLogicalAttemptId;
+        sourceCallSiteId = polishResult.sourceCallSiteId;
       }
     }
 
-    return PolishOutput(prose: outputProse);
+    return PolishOutput(
+      prose: outputProse,
+      sourceLogicalAttemptId: sourceLogicalAttemptId,
+      sourceCallSiteId: sourceCallSiteId,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -126,6 +138,8 @@ class PolishStep implements PipelineStage<PolishInput, PolishOutput> {
       text: polishResult.text,
       beatCount: draft.beatCount,
       attempt: draft.attempt,
+      sourceLogicalAttemptId: polishResult.sourceLogicalAttemptId,
+      sourceCallSiteId: polishResult.sourceCallSiteId,
     );
   }
 

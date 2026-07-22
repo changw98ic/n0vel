@@ -24,7 +24,8 @@ class InvalidationScope {
   bool get isGlobal => sceneIds.isEmpty && chapterIds.isEmpty;
 
   /// An empty scope means nothing needs invalidation.
-  bool get isEmpty => sceneIds.isEmpty && chapterIds.isEmpty && categories.isEmpty;
+  bool get isEmpty =>
+      sceneIds.isEmpty && chapterIds.isEmpty && categories.isEmpty;
 
   InvalidationScope merge(InvalidationScope other) {
     return InvalidationScope(

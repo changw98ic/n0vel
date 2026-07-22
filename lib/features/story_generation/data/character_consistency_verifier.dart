@@ -1,12 +1,14 @@
 import '../domain/contracts/settings_contract.dart';
 
 import 'character_consistency_models.dart';
+import 'formal_evaluation_policy.dart';
 import 'knowledge_visibility_filter.dart';
 import 'scene_context_models.dart';
 import 'scene_pipeline_models.dart' as pipeline;
 import 'scene_runtime_models.dart';
 import 'soul_contract_validator.dart';
 import 'story_prompt_registry.dart';
+import 'story_generation_pass_retry.dart';
 import 'evaluation/agent_evaluation_trace_context.dart';
 
 /// Proactive character consistency verification for pre- and post-generation.
@@ -97,6 +99,12 @@ class CharacterConsistencyVerifier {
   }) async {
     if (cast.isEmpty) return const ConsistencyReport(issues: []);
 
+    final formalEvaluation = FormalEvaluationPolicy.isActive(
+      brief.metadata,
+      formalExecution: brief.formalExecution,
+    );
+    final noContentRedraw =
+        StoryGenerationRetryScope.current?.allowsContentRedraw == false;
     final profileSummaries = _buildProfileSummaries(cast);
     final generatedContent = _collectGeneratedContent(
       director,
@@ -120,32 +128,53 @@ class CharacterConsistencyVerifier {
         'generatedContent': generatedContent,
       };
       final messages = promptIdentity.render(resolvedVariables).messages;
-      // llm-call-site: boundary.story.character-consistency
-      final result = await settingsStore.requestAiCompletion(
+      final invocationEvidence = promptIdentity.evidence(
+        messages,
+        resolvedVariables: resolvedVariables,
+      );
+      final result = await requestFormalStoryGenerationPassWithRetry(
+        settingsStore: settingsStore,
         messages: messages,
-        maxTokens: 1024,
+        maxTransientRetries: 0,
+        maxOutputRetries: 0,
+        initialMaxTokens: 1024,
+        maxEscalatedTokens: 1024,
         traceName: 'character-consistency-check',
         traceMetadata:
             AgentEvaluationTraceContext.current?.toTraceMetadata() ??
             const <String, Object?>{},
-        promptReleaseRef: promptIdentity.promptReleaseRef,
-        promptInvocationEvidence: promptIdentity.evidence(
-          messages,
-          resolvedVariables: resolvedVariables,
-        ),
-        stageId: promptIdentity.callSite.stageId,
-        callSiteId: promptIdentity.callSite.callSiteId,
-        variantId: promptIdentity.callSite.variantId,
-        generationBundleHash: promptIdentity.generationBundleHash,
+        promptInvocation: promptIdentity,
+        promptInvocationEvidence: invocationEvidence,
       );
 
-      if (result.text == null || result.text!.trim().isEmpty) {
+      if (!result.succeeded) {
+        if (formalEvaluation || noContentRedraw) {
+          throw StateError(
+            'formal character consistency provider failure '
+            '(${result.failureKind?.name ?? 'unknown'}): '
+            '${result.detail ?? 'no detail'}',
+          );
+        }
+        return ConsistencyReport(issues: soulIssues);
+      }
+
+      if (result.text!.trim().isEmpty) {
+        if (formalEvaluation || noContentRedraw) {
+          throw StateError(
+            'formal character consistency provider returned empty output',
+          );
+        }
         return ConsistencyReport(issues: soulIssues);
       }
 
       final llmReport = _parseCheckResponse(result.text!);
       return ConsistencyReport(issues: [...llmReport.issues, ...soulIssues]);
+    } on StoryGenerationEvidencePreflightFailure {
+      rethrow;
     } on Object {
+      if (formalEvaluation || noContentRedraw) {
+        rethrow;
+      }
       return ConsistencyReport(issues: soulIssues);
     }
   }

@@ -105,6 +105,12 @@ void main() {
           fixture.select('SELECT * FROM generation_bundle_releases'),
           hasLength(2),
         );
+        final workspaceProject = fixture.select(
+          '''SELECT id, scene_id FROM workspace_projects
+                 WHERE scope_key = 'workspace-default' ''',
+        ).single;
+        expect(workspaceProject['id'], 'private-holdout-project-v2');
+        expect(workspaceProject['scene_id'], 'private-holdout-scene-v2');
         final privateManifest = fixture
             .select('SELECT * FROM private_holdout_material_manifest')
             .single;
@@ -363,6 +369,12 @@ void main() {
           loaded.scenarios.every(
             (scenario) =>
                 scenario.requiredCapabilities.contains('story-generation') &&
+                scenario.inputFixture['projectId'] ==
+                    'private-holdout-project-v2' &&
+                scenario.inputFixture['sceneId'] ==
+                    'private-holdout-scene-v2' &&
+                scenario.inputFixture['sceneScopeId'] ==
+                    'private-holdout-project-v2::private-holdout-scene-v2' &&
                 scenario.referenceFacts['requiredLiterals'] is List<Object?> &&
                 scenario.maxBudget['calls'] == 48,
           ),

@@ -405,10 +405,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('取消'),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('添加'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('添加')),
       ],
     );
   }
@@ -417,8 +414,8 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
     final target = int.tryParse(_targetController.text);
     if (target == null || target <= 0) return;
     final period = switch (_goalType) {
-      WritingGoalType.dailyChars || WritingGoalType.dailyChapters =>
-        WritingGoalPeriod.daily,
+      WritingGoalType.dailyChars ||
+      WritingGoalType.dailyChapters => WritingGoalPeriod.daily,
       WritingGoalType.weeklyChars => WritingGoalPeriod.weekly,
       WritingGoalType.projectTotalChars => WritingGoalPeriod.project,
     };

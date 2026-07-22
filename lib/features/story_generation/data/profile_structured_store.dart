@@ -79,10 +79,9 @@ class ProfileStructuredStore {
 
   Future<void> clearProject(String projectId) async {
     await ensureTables();
-    db.execute(
-      'DELETE FROM structured_profiles WHERE project_id = ?',
-      [projectId],
-    );
+    db.execute('DELETE FROM structured_profiles WHERE project_id = ?', [
+      projectId,
+    ]);
   }
 
   StructuredProfile _decode(String raw) {

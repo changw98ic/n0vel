@@ -101,22 +101,22 @@ class _AppSplitHandleState extends State<AppSplitHandle> {
       return Tooltip(
         message: '切换导航菜单',
         child: Semantics(
-        button: true,
-        label: widget.semanticLabel,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: widget.onTap,
-            hoverColor: palette.sidebar,
-            splashColor: palette.border,
-            onHover: (hovering) => setState(() => _hovered = hovering),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: ExcludeSemantics(child: tappableHandle),
+          button: true,
+          label: widget.semanticLabel,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: widget.onTap,
+              hoverColor: palette.sidebar,
+              splashColor: palette.border,
+              onHover: (hovering) => setState(() => _hovered = hovering),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: ExcludeSemantics(child: tappableHandle),
+              ),
             ),
           ),
-        ),
         ),
       );
     }

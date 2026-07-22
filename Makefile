@@ -6,6 +6,7 @@ test:
 analyze:
 	flutter analyze
 
+# Keep routine CI deterministic; the complete suite remains available via test.
 ci-smoke:
 	flutter test --no-pub -r compact \
 		test/main_test.dart \

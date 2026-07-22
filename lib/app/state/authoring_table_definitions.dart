@@ -227,10 +227,17 @@ void createStoryGenerationLedgerTables(Database db) {
     CREATE TABLE IF NOT EXISTS story_generation_runs (
       run_id TEXT PRIMARY KEY CHECK (length(trim(run_id)) > 0),
       request_id TEXT NOT NULL UNIQUE CHECK (length(trim(request_id)) > 0),
-      project_id TEXT NOT NULL CHECK (length(trim(project_id)) > 0),
+      project_id TEXT NOT NULL CHECK (
+        length(trim(project_id)) > 0 AND instr(project_id, ':') = 0
+      ),
       chapter_id TEXT NOT NULL CHECK (length(trim(chapter_id)) > 0),
-      scene_id TEXT NOT NULL CHECK (length(trim(scene_id)) > 0),
-      scene_scope_id TEXT NOT NULL CHECK (length(trim(scene_scope_id)) > 0),
+      scene_id TEXT NOT NULL CHECK (
+        length(trim(scene_id)) > 0 AND instr(scene_id, ':') = 0
+      ),
+      scene_scope_id TEXT NOT NULL CHECK (
+        length(trim(scene_scope_id)) > 0
+        AND scene_scope_id = project_id || '::' || scene_id
+      ),
       status TEXT NOT NULL CHECK (status <> 'committing'),
       phase TEXT NOT NULL,
       blocked_stage TEXT,
@@ -249,6 +256,7 @@ void createStoryGenerationLedgerTables(Database db) {
         ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED
     )
   ''');
+  createStoryGenerationRunIdentityWriteGuards(db);
   db.execute('''
     CREATE INDEX IF NOT EXISTS idx_generation_runs_project_scene
     ON story_generation_runs(project_id, scene_scope_id, created_at_ms DESC)
@@ -312,6 +320,14 @@ void createStoryGenerationLedgerTables(Database db) {
         CHECK (length(trim(pending_write_set_hash)) > 0),
       material_digest TEXT NOT NULL CHECK (length(trim(material_digest)) > 0),
       input_digest TEXT NOT NULL CHECK (length(trim(input_digest)) > 0),
+      proof_identity_version TEXT NOT NULL DEFAULT 'candidate-proof-v1',
+      prepared_brief_digest TEXT,
+      effective_brief_digest TEXT,
+      generation_evidence_mode TEXT NOT NULL DEFAULT 'legacy-unsealed-v1',
+      generation_evidence_receipt_hash TEXT,
+      attempt_evidence_envelope_digest TEXT,
+      generation_fingerprint_set_digest TEXT,
+      generation_evidence_receipt_json TEXT,
       created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
       PRIMARY KEY (run_id, candidate_revision),
       FOREIGN KEY (run_id, candidate_revision)
@@ -330,6 +346,7 @@ void createStoryGenerationLedgerTables(Database db) {
     BEFORE UPDATE ON story_generation_candidate_proofs
     BEGIN SELECT RAISE(ABORT, 'candidate proof is immutable'); END
   ''');
+  createCandidateProofV2WriteGuards(db);
   db.execute('''
     CREATE TRIGGER IF NOT EXISTS prevent_generation_proof_delete
     BEFORE DELETE ON story_generation_candidate_proofs
@@ -345,6 +362,7 @@ void createStoryGenerationLedgerTables(Database db) {
       retrieval_trace_json TEXT NOT NULL DEFAULT '{}',
       review_payload_json TEXT NOT NULL DEFAULT '{}',
       quality_payload_json TEXT NOT NULL DEFAULT '{}',
+      generation_evidence_receipt_json TEXT NOT NULL DEFAULT '{}',
       created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
       expires_at_ms INTEGER NOT NULL CHECK (expires_at_ms > created_at_ms),
       PRIMARY KEY (run_id, candidate_revision),
@@ -610,6 +628,145 @@ void createStoryGenerationCommittedContinuityTables(Database db) {
     CREATE TRIGGER IF NOT EXISTS prevent_committed_continuity_delete
     BEFORE DELETE ON story_generation_committed_continuity
     BEGIN SELECT RAISE(ABORT, 'committed continuity is permanent'); END
+  ''');
+}
+
+/// Makes the identity of a durable generation run immutable in SQLite.
+///
+/// Candidate proofs and receipts are bound to the run row. Allowing callers
+/// to relabel that row after proof creation would move an already-sealed
+/// candidate to a different project or scene without changing its evidence.
+/// Mutable lifecycle fields (status, phase, revisions, errors, timestamps for
+/// updates/commit) deliberately remain outside this guard.
+void createStoryGenerationRunIdentityWriteGuards(Database db) {
+  db.execute('''
+    CREATE TRIGGER IF NOT EXISTS prevent_noncanonical_generation_run_insert
+    BEFORE INSERT ON story_generation_runs
+    WHEN instr(NEW.project_id, ':') <> 0
+      OR instr(NEW.scene_id, ':') <> 0
+      OR NEW.scene_scope_id <> (NEW.project_id || '::' || NEW.scene_id)
+    BEGIN
+      SELECT RAISE(ABORT, 'generation run scene scope is not canonical');
+    END
+  ''');
+  db.execute('''
+    CREATE TRIGGER IF NOT EXISTS prevent_generation_run_identity_update
+    BEFORE UPDATE OF
+      run_id,
+      request_id,
+      project_id,
+      chapter_id,
+      scene_id,
+      scene_scope_id,
+      schema_version,
+      created_at_ms
+    ON story_generation_runs
+    WHEN OLD.run_id IS NOT NEW.run_id
+      OR OLD.request_id IS NOT NEW.request_id
+      OR OLD.project_id IS NOT NEW.project_id
+      OR OLD.chapter_id IS NOT NEW.chapter_id
+      OR OLD.scene_id IS NOT NEW.scene_id
+      OR OLD.scene_scope_id IS NOT NEW.scene_scope_id
+      OR OLD.schema_version IS NOT NEW.schema_version
+      OR OLD.created_at_ms IS NOT NEW.created_at_ms
+    BEGIN
+      SELECT RAISE(ABORT, 'generation run identity is immutable');
+    END
+  ''');
+}
+
+/// Fails a V29 upgrade when an older database contains an ambiguous or
+/// cross-scene run address.
+///
+/// The schema manager wraps migrations in one transaction.  Throwing here
+/// leaves both the rows and `user_version` at V28 so an operator can repair or
+/// restore the database explicitly; migration must never guess a new identity.
+void auditStoryGenerationRunSceneScopeIdentities(Database db) {
+  final tableExists = db
+      .select(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'story_generation_runs'",
+      )
+      .isNotEmpty;
+  if (!tableExists) return;
+  final invalidCount =
+      db.select('''
+        SELECT COUNT(*) AS invalid_count
+        FROM story_generation_runs
+        WHERE instr(project_id, ':') <> 0
+          OR instr(scene_id, ':') <> 0
+          OR scene_scope_id <> (project_id || '::' || scene_id)
+      ''').single['invalid_count']
+          as int;
+  if (invalidCount != 0) {
+    throw StateError(
+      'V29 scene-scope migration blocked by $invalidCount non-canonical '
+      'generation run(s); repair or restore the V28 database before retrying',
+    );
+  }
+}
+
+/// Rejects malformed or legacy proof identity on every post-V28 insert.
+///
+/// This guard intentionally lives in SQLite rather than only in the Dart
+/// writer.  A process that opened the database before V28 can retain an old
+/// INSERT shape which omits [proof_identity_version]; SQLite would otherwise
+/// fill its V1 default after the upgrade and fabricate a new legacy row.
+/// Existing durable V1 rows are never updated or deleted by this trigger.
+void createCandidateProofV2WriteGuards(Database db) {
+  // `IF NOT EXISTS` would leave an earlier V28 build's weaker V1-only guard
+  // installed. Recreating this immutable admission guard is idempotent and
+  // makes upgrades fail closed as the V2 proof contract gains fields.
+  db.execute(
+    'DROP TRIGGER IF EXISTS prevent_new_legacy_generation_proof_insert',
+  );
+  db.execute('''
+    CREATE TRIGGER IF NOT EXISTS prevent_new_legacy_generation_proof_insert
+    BEFORE INSERT ON story_generation_candidate_proofs
+    WHEN NEW.proof_identity_version <> 'candidate-proof-v2'
+      OR NEW.prepared_brief_digest IS NULL
+      OR NEW.effective_brief_digest IS NULL
+      OR NEW.generation_evidence_mode NOT IN (
+        'adaptive-unsealed-v1', 'sealed-no-redraw-v1'
+      )
+      OR (
+        NEW.generation_evidence_mode = 'adaptive-unsealed-v1'
+        AND (
+          NEW.generation_evidence_receipt_hash IS NOT NULL
+          OR NEW.attempt_evidence_envelope_digest IS NOT NULL
+          OR NEW.generation_fingerprint_set_digest IS NOT NULL
+          OR NEW.generation_evidence_receipt_json IS NOT NULL
+        )
+      )
+      OR (
+        NEW.generation_evidence_mode = 'sealed-no-redraw-v1'
+        AND (
+          NEW.prepared_brief_digest <> NEW.effective_brief_digest
+          OR NEW.generation_evidence_receipt_hash IS NULL
+          OR length(trim(NEW.generation_evidence_receipt_hash)) = 0
+          OR NEW.generation_evidence_receipt_hash NOT GLOB 'sha256:*'
+          OR length(NEW.generation_evidence_receipt_hash) <> 71
+          OR substr(NEW.generation_evidence_receipt_hash, 8)
+             GLOB '*[^0-9a-f]*'
+          OR NEW.attempt_evidence_envelope_digest IS NULL
+          OR length(trim(NEW.attempt_evidence_envelope_digest)) = 0
+          OR NEW.attempt_evidence_envelope_digest NOT GLOB 'sha256:*'
+          OR length(NEW.attempt_evidence_envelope_digest) <> 71
+          OR substr(NEW.attempt_evidence_envelope_digest, 8)
+             GLOB '*[^0-9a-f]*'
+          OR NEW.generation_fingerprint_set_digest IS NULL
+          OR length(trim(NEW.generation_fingerprint_set_digest)) = 0
+          OR NEW.generation_fingerprint_set_digest NOT GLOB 'sha256:*'
+          OR length(NEW.generation_fingerprint_set_digest) <> 71
+          OR substr(NEW.generation_fingerprint_set_digest, 8)
+             GLOB '*[^0-9a-f]*'
+          OR NEW.generation_evidence_receipt_json IS NULL
+          OR length(trim(NEW.generation_evidence_receipt_json)) = 0
+        )
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'new candidate proof violates V2 evidence contract');
+    END
   ''');
 }
 

@@ -420,7 +420,10 @@ void main() {
 
     final restored = await readerStorage.load();
     expect(restored, isNull);
-    expect(readerStorage.lastLoadIssue, AppSettingsPersistenceIssue.fileReadFailed);
+    expect(
+      readerStorage.lastLoadIssue,
+      AppSettingsPersistenceIssue.fileReadFailed,
+    );
     expect(readerStorage.lastLoadDetail, contains('AES 解密失败'));
   });
 }
@@ -438,10 +441,7 @@ Future<void> _writeAndCorruptEncryptedSettings({
     final corrupted = utf8.decode(bytes);
     await file.parent.create(recursive: true);
     await file.writeAsString(
-      jsonEncode({
-        ...envelope,
-        'ciphertext': corrupted,
-      }),
+      jsonEncode({...envelope, 'ciphertext': corrupted}),
     );
   }
 }

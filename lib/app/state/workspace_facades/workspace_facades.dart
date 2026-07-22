@@ -18,6 +18,7 @@ abstract interface class WorkspaceProjectSceneFacade {
 
   ProjectRecord createProject({String? projectName});
   void deleteProject(ProjectRecord project);
+  Future<DeleteProjectResult> deleteProjectAndWait(ProjectRecord project);
   void selectProject(String projectId);
   void openProject(String projectId);
   void updateCurrentScene({
@@ -168,6 +169,10 @@ final class _AppWorkspaceProjectSceneFacade
 
   @override
   void deleteProject(ProjectRecord project) => _store.deleteProject(project);
+
+  @override
+  Future<DeleteProjectResult> deleteProjectAndWait(ProjectRecord project) =>
+      _store.deleteProjectAndWait(project);
 
   @override
   void selectProject(String projectId) => _store.selectProject(projectId);

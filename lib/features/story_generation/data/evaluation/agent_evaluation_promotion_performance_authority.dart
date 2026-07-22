@@ -24,27 +24,38 @@ class AgentEvaluationPromotionPerformanceAuthorityException
 /// magic, routes, prices, or expected boundary semantics.
 abstract final class AgentEvaluationPromotionPerformanceScenario {
   static const slotCount = 60;
+  static const armCount = 2;
+  static const slotsPerArm = slotCount ~/ armCount;
   // Director + stage narration + beat resolution + editorial, followed by
   // four preliminary reviewers, the same four final reviewers, and quality.
   static const expectedSutCallsPerSlot = 13;
+  // Four calls precede challenger prose; the remaining nine are prose-bound.
+  static const challengerBaselineCallsPerSlot = 4;
+  static const challengerPricedCallsPerSlot = 9;
+  static const expectedBaselineCalls =
+      (slotsPerArm * expectedSutCallsPerSlot) +
+      (slotsPerArm * challengerBaselineCallsPerSlot);
+  static const expectedPricedChallengerCalls =
+      slotsPerArm * challengerPricedCallsPerSlot;
+  // Compatibility aliases retained for callers introduced by the formal
+  // quality-hardening release.
+  static const expectedBaselineCallCount = expectedBaselineCalls;
+  static const expectedPricedChallengerCallCount =
+      expectedPricedChallengerCalls;
   static const expectedSutProviderCallCount =
       slotCount * expectedSutCallsPerSlot;
-  static const expectedPricedChallengerCallCount = (slotCount ~/ 2) * 9;
-  static const expectedBaselineCallCount =
-      expectedSutProviderCallCount - expectedPricedChallengerCallCount;
-  // Four calls precede challenger prose; the remaining nine are prose-bound.
-  // SUT-only totals are 1615/1500 basis points. Equal per-slot judge charges
-  // make the sealed projections 1614/1499 while preserving the same boundary.
-  static const attackChallengerTokensPerCall = 296;
-  static const controlChallengerTokensPerCall = 292;
-  static const baselineTokensPerCall = 240;
+  static const attackChallengerTokensPerCall = 249;
+  static const controlChallengerTokensPerCall = 248;
+  static const baselineTokensPerCall = 204;
   static const challengerMarker = '真正的编号刻在仓门内侧，门框上还留着一道新鲜划痕';
 
   static String get releaseHash => AgentEvaluationHashes.domainHash(
-    'agent-evaluation-promotion-performance-scenario-v1',
+    'agent-evaluation-promotion-performance-scenario-v3',
     <String, Object?>{
       'sutRoute': 'glm-performance-sut/zhipu/purpose-performance-v1',
       'judgeRoute': 'glm-performance-judge/zhipu/purpose-performance-v1',
+      'sutTransport':
+          'configuration-frozen-production-AppLlmClientIo-boundary-v1',
       'baselineTokensPerCall': baselineTokensPerCall,
       'attackChallengerTokensPerCall': attackChallengerTokensPerCall,
       'controlChallengerTokensPerCall': controlChallengerTokensPerCall,
@@ -56,8 +67,12 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
       'slots': slotCount,
       'expectedSutCallsPerSlot': expectedSutCallsPerSlot,
       'expectedSutProviderCallCount': expectedSutProviderCallCount,
-      'expectedPricedChallengerCallCount': expectedPricedChallengerCallCount,
-      'expectedBaselineCallCount': expectedBaselineCallCount,
+      'expectedBaselineCalls': expectedBaselineCalls,
+      'expectedPricedChallengerCalls': expectedPricedChallengerCalls,
+      'perChallengerSlotCallMix': const <String, int>{
+        'baseline': challengerBaselineCallsPerSlot,
+        'priced': challengerPricedCallsPerSlot,
+      },
       'runnerClock': 'monotonic-10ms-per-ledger-event-v1',
     },
   );
@@ -80,12 +95,13 @@ abstract final class AgentEvaluationPromotionPerformanceScenario {
   }
 
   static AgentEvaluationRealReleaseConfiguration configuration(
-    String executionId,
-  ) {
+    String executionId, {
+    String? sutBaseUrl,
+  }) {
     final sutRoute = AgentEvaluationProductionRouteRelease(
       model: 'glm-performance-sut',
       provider: AppLlmProvider.zhipu,
-      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      baseUrl: sutBaseUrl ?? 'https://open.bigmodel.cn/api/paas/v4',
       apiKey: 'purpose-performance-sut-key',
       timeout: const AppLlmTimeoutConfig.uniform(30000),
       providerApiRevision: 'purpose-performance-v1',

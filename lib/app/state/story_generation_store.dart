@@ -1,11 +1,11 @@
 import 'dart:async';
 
-
 import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
 import 'app_workspace_store.dart';
 import 'persist_guard.dart';
+import 'project_storage.dart';
 import 'story_generation_storage.dart';
 import 'story_generation_types.dart';
 
@@ -16,10 +16,7 @@ class StoryGenerationStore extends AppStoreListenable {
     StoryGenerationStorage? storage,
     AppWorkspaceStore? workspaceStore,
     AppEventBus? eventBus,
-  }) : _storage =
-           storage ??
-           
-           createDefaultStoryGenerationStorage(),
+  }) : _storage = storage ?? createDefaultStoryGenerationStorage(),
        _workspaceStore = workspaceStore,
        _eventBus = eventBus {
     _activeProjectId = _resolveProjectId(workspaceStore);
@@ -32,7 +29,6 @@ class StoryGenerationStore extends AppStoreListenable {
     unawaited(_readyFuture);
   }
 
-  
   final StoryGenerationStorage _storage;
   final AppWorkspaceStore? _workspaceStore;
   final AppEventBus? _eventBus;
@@ -42,6 +38,9 @@ class StoryGenerationStore extends AppStoreListenable {
   Future<void> _readyFuture = Future<void>.value();
   int _mutationVersion = 0;
   StreamSubscription<ProjectDeletedEvent>? _projectDeletedSubscription;
+
+  @override
+  Future<void> flushPersistence() => flushProjectStorage(_storage);
 
   StoryGenerationSnapshot get snapshot => _snapshot.deepCopy();
   String get activeProjectId => _activeProjectId;
@@ -232,6 +231,9 @@ class StoryGenerationStore extends AppStoreListenable {
     _workspaceStore?.removeListener(_handleWorkspaceChanged);
     unawaited(_projectDeletedSubscription?.cancel());
     _projectDeletedSubscription = null;
+    if (_storage case final ProjectStorageDiscardable discardable) {
+      discardable.discard();
+    }
     super.dispose();
   }
 }

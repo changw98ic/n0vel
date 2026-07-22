@@ -34,7 +34,11 @@ class StyleModeButton extends StatelessWidget {
 }
 
 class StyleModeFramingCard extends StatelessWidget {
-  const StyleModeFramingCard({super.key, required this.title, required this.message});
+  const StyleModeFramingCard({
+    super.key,
+    required this.title,
+    required this.message,
+  });
 
   final String title;
   final String message;

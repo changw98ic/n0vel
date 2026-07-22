@@ -56,19 +56,19 @@ class ProjectTransferService {
   /// Optional callback to export story memory data for a project.
   /// Returns a JSON-serializable map of memory records, or null if none.
   final Future<Map<String, Object?>?> Function(String projectId)?
-      storyMemoryExport;
+  storyMemoryExport;
 
   /// Optional callback to import story memory data for a project.
   final Future<void> Function(String projectId, Map<String, Object?> data)?
-      storyMemoryImport;
+  storyMemoryImport;
 
   /// Optional callback to export roleplay sessions and character memories.
   final Future<Map<String, Object?>?> Function(String projectId)?
-      roleplayStateExport;
+  roleplayStateExport;
 
   /// Optional callback to import roleplay sessions and character memories.
   final Future<void> Function(String projectId, Map<String, Object?> data)?
-      roleplayStateImport;
+  roleplayStateImport;
 
   final ProjectTransferExporter _exporter;
   final ProjectTransferImporter _importer;

@@ -11,10 +11,7 @@ void main() {
         eventLog: _FakeEventLog(),
         retrievalPolicy: RagRetrievalPolicy.director(),
         writebackGate: const BasicMemoryWritebackGate(),
-        sceneBrief: const SceneBriefRef(
-          projectId: 'p1',
-          sceneId: 's1',
-        ),
+        sceneBrief: const SceneBriefRef(projectId: 'p1', sceneId: 's1'),
         metadata: {'key': 'value'},
       );
       expect(ctx.metadata['key'], 'value');
@@ -46,10 +43,7 @@ void main() {
 
   group('PipelineRunResult', () {
     test('success result', () {
-      const result = PipelineRunResult(
-        success: true,
-        events: [],
-      );
+      const result = PipelineRunResult(success: true, events: []);
       expect(result.success, isTrue);
       expect(result.failureCode, isNull);
       expect(result.finalArtifact, isNull);

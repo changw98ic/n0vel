@@ -79,18 +79,14 @@ int _parseInt(Object? raw) {
   return int.tryParse(raw?.toString() ?? '') ?? 0;
 }
 
-final _artifactTypeByName = {
-  for (final v in ArtifactType.values) v.name: v,
-};
+final _artifactTypeByName = {for (final v in ArtifactType.values) v.name: v};
 
 ArtifactType? _parseArtifactType(Object? raw) {
   if (raw == null) return null;
   return _artifactTypeByName[raw.toString()];
 }
 
-final _failureCodeByName = {
-  for (final v in FailureCode.values) v.name: v,
-};
+final _failureCodeByName = {for (final v in FailureCode.values) v.name: v};
 
 FailureCode? _parseFailureCode(Object? raw) {
   if (raw == null) return null;

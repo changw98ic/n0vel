@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -44,6 +46,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   int _sortIndex = 0;
   int _filterIndex = 0;
   int _headerTabIndex = 0;
+  bool _deletingProject = false;
 
   static const _headerTabs = ['书架', '最近编辑', '进行中'];
 
@@ -261,6 +264,59 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
             },
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusFull),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x88FFFFFF),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusFull,
+                    ),
+                    border: Border.all(
+                      color: const Color(0x99FFFFFF),
+                      width: 1,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x181F2A1D),
+                        blurRadius: 28,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: Color(0xFF243226),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        '卡片 hover 上浮 6px / 160ms',
+                        style: TextStyle(
+                          fontFamily: AppDesignTokens.fontCaption,
+                          fontSize: 12,
+                          color: Color(0xFF243226),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -422,9 +478,18 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       },
     );
     if (shouldDelete != true || !context.mounted) return;
-    setState(() {
-      ref.read(appWorkspaceStoreProvider).deleteProject(project);
-    });
+    if (_deletingProject) return;
+    setState(() => _deletingProject = true);
+    final result = await ref
+        .read(appWorkspaceStoreProvider)
+        .deleteProjectAndWait(project);
+    if (!context.mounted) return;
+    setState(() => _deletingProject = false);
+    if (!result.succeeded && result.status == DeleteProjectStatus.failed) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('删除失败：${result.error}')));
+    }
   }
 
   void _openEditor(BuildContext context, ProjectRecord project) {

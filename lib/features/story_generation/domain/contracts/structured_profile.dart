@@ -56,13 +56,9 @@ class StructuredProfile extends TypedArtifact {
     return StructuredProfile(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      personality: PersonalityVector.fromJson(
-        _asMap(json['personality']),
-      ),
+      personality: PersonalityVector.fromJson(_asMap(json['personality'])),
       voicePrint: VoicePrint.fromJson(_asMap(json['voicePrint'])),
-      behaviorBounds: BehaviorBounds.fromJson(
-        _asMap(json['behaviorBounds']),
-      ),
+      behaviorBounds: BehaviorBounds.fromJson(_asMap(json['behaviorBounds'])),
       soul: json['soul'] is Map
           ? SoulContract.fromJson(_asMap(json['soul']))
           : const SoulContract(),
@@ -165,9 +161,7 @@ class BehaviorBounds {
     return BehaviorBounds(
       forbiddenActions: _asStringList(json['forbiddenActions']),
       mandatoryResponses: _asStringList(json['mandatoryResponses']),
-      emotionalRange: EmotionalRange.fromJson(
-        _asMap(json['emotionalRange']),
-      ),
+      emotionalRange: EmotionalRange.fromJson(_asMap(json['emotionalRange'])),
     );
   }
 }
@@ -259,6 +253,7 @@ List<RelationshipEdge> _parseEdges(Object? raw) {
   if (raw is! List) return const [];
   return [
     for (final item in raw)
-      if (item is Map) RelationshipEdge.fromJson(Map<String, Object?>.from(item)),
+      if (item is Map)
+        RelationshipEdge.fromJson(Map<String, Object?>.from(item)),
   ];
 }

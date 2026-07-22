@@ -177,22 +177,21 @@ void main() {
       expect(actions, contains('selectNextScene'));
     });
 
-    testWidgets(
-      'workbenchShortcutMap contains all expected shortcut entries',
-      (tester) async {
-        expect(workbenchShortcutMap, isNotEmpty);
-        final intents = workbenchShortcutMap.values.toList();
-        expect(intents.whereType<SaveVersionIntent>(), hasLength(2));
-        expect(intents.whereType<ToggleMenuDrawerIntent>(), hasLength(2));
-        expect(intents.whereType<ToggleResourcesPanelIntent>(), hasLength(2));
-        expect(intents.whereType<ToggleAiPanelIntent>(), hasLength(2));
-        expect(intents.whereType<ToggleSettingsPanelIntent>(), hasLength(2));
-        expect(intents.whereType<OpenReadingModeIntent>(), hasLength(2));
-        expect(intents.whereType<CreateSceneIntent>(), hasLength(2));
-        expect(intents.whereType<CloseActivePanelIntent>(), hasLength(1));
-        expect(intents.whereType<SelectPreviousSceneIntent>(), hasLength(2));
-        expect(intents.whereType<SelectNextSceneIntent>(), hasLength(2));
-      },
-    );
+    testWidgets('workbenchShortcutMap contains all expected shortcut entries', (
+      tester,
+    ) async {
+      expect(workbenchShortcutMap, isNotEmpty);
+      final intents = workbenchShortcutMap.values.toList();
+      expect(intents.whereType<SaveVersionIntent>(), hasLength(2));
+      expect(intents.whereType<ToggleMenuDrawerIntent>(), hasLength(2));
+      expect(intents.whereType<ToggleResourcesPanelIntent>(), hasLength(2));
+      expect(intents.whereType<ToggleAiPanelIntent>(), hasLength(2));
+      expect(intents.whereType<ToggleSettingsPanelIntent>(), hasLength(2));
+      expect(intents.whereType<OpenReadingModeIntent>(), hasLength(2));
+      expect(intents.whereType<CreateSceneIntent>(), hasLength(2));
+      expect(intents.whereType<CloseActivePanelIntent>(), hasLength(1));
+      expect(intents.whereType<SelectPreviousSceneIntent>(), hasLength(2));
+      expect(intents.whereType<SelectNextSceneIntent>(), hasLength(2));
+    });
   });
 }

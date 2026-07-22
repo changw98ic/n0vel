@@ -17,7 +17,9 @@ import 'package:novel_writer/features/story_generation/data/narrative_arc_models
 import 'package:novel_writer/features/story_generation/data/narrative_arc_tracker.dart';
 import 'package:novel_writer/features/story_generation/data/prose_style_analyzer.dart';
 import 'package:novel_writer/features/story_generation/data/scene_quality_reporter.dart';
+import 'package:novel_writer/features/story_generation/data/source_admission_resolver.dart';
 import 'package:novel_writer/features/story_generation/domain/scene_models.dart';
+import 'package:novel_writer/features/story_generation/domain/source_ledger_models.dart';
 
 const String _outputRoot = 'artifacts/real_validation/novel_quality_benchmark';
 const Duration _heartbeatInterval = Duration(minutes: 10);
@@ -3069,14 +3071,8 @@ void main() {
 
       // 风格对比
       final styleAnalyzer = ProseStyleAnalyzer();
-      final referenceLibs = <String, String>{
-        '剑来': 'artifacts/writing_reference/jianlai/scenes.jsonl',
-        '诡秘': 'artifacts/writing_reference/guimi/scenes.jsonl',
-        '体鬼': 'artifacts/writing_reference/tigui/scenes.jsonl',
-      };
-
       final styleReports = <String, ProseStyleDivergenceReport>{};
-      for (final entry in referenceLibs.entries) {
+      for (final entry in _admittedStyleReferenceLibraries()) {
         final refFile = File(entry.value);
         if (!await refFile.exists()) continue;
 
@@ -3139,11 +3135,7 @@ void main() {
       // 风格对比
       final styleAnalyzer = ProseStyleAnalyzer();
       final styleSimilarities = <String, double>{};
-      for (final entry in {
-        '剑来': 'artifacts/writing_reference/jianlai/scenes.jsonl',
-        '诡秘': 'artifacts/writing_reference/guimi/scenes.jsonl',
-        '体鬼': 'artifacts/writing_reference/tigui/scenes.jsonl',
-      }.entries) {
+      for (final entry in _admittedStyleReferenceLibraries()) {
         final refFile = File(entry.value);
         if (!await refFile.exists()) continue;
         final refText = _loadReferenceText(refFile);
@@ -3244,4 +3236,28 @@ String _loadReferenceText(File jsonlFile) {
     }
   }
   return buffer.toString();
+}
+
+Iterable<MapEntry<String, String>> _admittedStyleReferenceLibraries() sync* {
+  final resolver = SourceAdmissionResolver.fromDefaultManifest();
+  const referenceFilesByRoot = <String, String>{
+    'artifacts/writing_reference/jianlai':
+        'artifacts/writing_reference/jianlai/scenes.jsonl',
+    'artifacts/writing_reference/guimi':
+        'artifacts/writing_reference/guimi/scenes.jsonl',
+    'artifacts/writing_reference/tigui':
+        'artifacts/writing_reference/tigui/scenes.jsonl',
+  };
+  for (final entry in referenceFilesByRoot.entries) {
+    final bundle = resolver.resolveRoot(
+      rootPath: entry.key,
+      requestedUsage: ReferenceUsage.localAnalysisOnly,
+    );
+    if (!bundle.allowed ||
+        bundle.referenceUsage != ReferenceUsage.localAnalysisOnly) {
+      continue;
+    }
+    // Reports use an opaque capability identity, never a work/creator label.
+    yield MapEntry(bundle.identityHash, entry.value);
+  }
 }

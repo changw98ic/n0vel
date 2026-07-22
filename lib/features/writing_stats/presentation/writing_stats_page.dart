@@ -26,8 +26,7 @@ class WritingStatsPage extends ConsumerWidget {
                   : Icons.notifications_off,
             ),
             tooltip: store.reminderEnabled ? '关闭目标提醒' : '开启目标提醒',
-            onPressed: () =>
-                store.reminderEnabled = !store.reminderEnabled,
+            onPressed: () => store.reminderEnabled = !store.reminderEnabled,
           ),
         ],
       ),
@@ -127,7 +126,8 @@ class _TrendSectionState extends State<_TrendSection> {
   Future<void> _loadWeekStats() async {
     final now = DateTime.now();
     final from = now.subtract(const Duration(days: 6));
-    final fromStr = '${from.year.toString().padLeft(4, '0')}-'
+    final fromStr =
+        '${from.year.toString().padLeft(4, '0')}-'
         '${from.month.toString().padLeft(2, '0')}-'
         '${from.day.toString().padLeft(2, '0')}';
     final stats = await widget.store.loadDailyStats(fromDate: fromStr);

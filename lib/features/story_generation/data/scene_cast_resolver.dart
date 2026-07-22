@@ -13,14 +13,14 @@ class SceneCastResolver implements SceneCastResolverService {
       for (final candidate in brief.cast)
         if (!isNoninteractiveCastCandidate(candidate))
           if (_resolveContributions(candidate.participation).isNotEmpty)
-          ResolvedSceneCastMember(
-            characterId: candidate.characterId,
-            name: candidate.name,
-            role: candidate.role,
-            contributions: _resolveContributions(candidate.participation),
-            metadata: candidate.metadata,
-            profile: profileById[candidate.characterId],
-          ),
+            ResolvedSceneCastMember(
+              characterId: candidate.characterId,
+              name: candidate.name,
+              role: candidate.role,
+              contributions: _resolveContributions(candidate.participation),
+              metadata: candidate.metadata,
+              profile: profileById[candidate.characterId],
+            ),
     ];
   }
 

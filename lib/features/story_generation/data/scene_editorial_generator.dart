@@ -10,6 +10,7 @@ import 'scene_pipeline_models.dart';
 import 'scene_roleplay_session_models.dart';
 import 'story_prompt_templates.dart';
 import 'formal_evaluation_policy.dart';
+import 'generation_evidence_fingerprints.dart';
 
 /// Generates prose only from resolved [SceneBeat]s and allowed narration state.
 ///
@@ -60,6 +61,7 @@ class SceneEditorialGenerator {
     String? reviewFeedback,
     String? previousProse,
   }) async {
+    final noContentRedraw = _noContentRedraw;
     FormalEvaluationPolicy.rejectLocalFallbackRequest(
       taskCard.metadata,
       formalExecution: taskCard.brief.formalExecution,
@@ -70,6 +72,11 @@ class SceneEditorialGenerator {
     );
     if (taskCard.metadata['localEditorialOnly'] == true ||
         taskCard.brief.metadata['localEditorialOnly'] == true) {
+      if (noContentRedraw) {
+        throw StoryGenerationEvidencePreflightFailure(
+          'no-redraw scene editorial cannot use a local-only draft',
+        );
+      }
       return _localDraft(
         taskCard: taskCard,
         resolvedBeats: resolvedBeats,
@@ -143,6 +150,9 @@ class SceneEditorialGenerator {
           : '',
     };
     final messages = promptIdentity.render(resolvedVariables).messages;
+    final evidence = noContentRedraw
+        ? StoryGenerationAttemptEvidenceCapture()
+        : null;
     final result = await requestFormalStoryGenerationPassWithRetry(
       settingsStore: _settingsStore,
       promptInvocation: promptIdentity,
@@ -151,27 +161,53 @@ class SceneEditorialGenerator {
         resolvedVariables: resolvedVariables,
       ),
       initialMaxTokens: storyGenerationEditorialMaxTokens,
+      onAttemptEvidence: evidence?.record,
       messages: messages,
     );
+    _requireCompleteNoRedrawEvidence(
+      noContentRedraw: noContentRedraw,
+      evidence: evidence,
+    );
 
-    if (!result.succeeded) {
+    if (!result.succeeded || result.text == null) {
       throw StateError(result.detail ?? 'Scene editorial generation failed.');
     }
 
-    final text = result.text!.trim();
-    if (text.isEmpty &&
-        FormalEvaluationPolicy.isActive(
-          taskCard.brief.metadata,
-          formalExecution: taskCard.brief.formalExecution,
-        )) {
+    final returnedText = result.text!;
+    final text = noContentRedraw ? returnedText : returnedText.trim();
+    if (text.trim().isEmpty &&
+        (noContentRedraw ||
+            FormalEvaluationPolicy.isActive(
+              taskCard.brief.metadata,
+              formalExecution: taskCard.brief.formalExecution,
+            ))) {
       throw StateError('formal scene editorial generation returned empty text');
+    }
+    final source = evidence != null && evidence.attempts.isNotEmpty
+        ? evidence.attempts.last
+        : null;
+    final expectedDigest = ArtifactDigest.fromUtf8String(text);
+    if (noContentRedraw &&
+        (source == null ||
+            source.logicalAttemptId == null ||
+            !source.succeeded ||
+            source.callSiteId != 'scene-editorial-generator' ||
+            !_sameArtifactDigest(source.artifactDigest, expectedDigest))) {
+      throw StoryGenerationEvidenceIntegrityFailure(
+        'editorial prose is not the exact successful formal provider artifact',
+      );
     }
     return SceneEditorialDraft(
       text: text,
       beatCount: resolvedBeats.length,
       attempt: attempt,
+      sourceLogicalAttemptId: source?.logicalAttemptId,
+      sourceCallSiteId: source?.callSiteId,
     );
   }
+
+  bool get _noContentRedraw =>
+      StoryGenerationRetryScope.current?.allowsContentRedraw == false;
 
   String? _dialogueRepairDirective(String? reviewFeedback) {
     if (reviewFeedback == null || !reviewFeedback.contains('对话占比')) {
@@ -289,3 +325,21 @@ class SceneEditorialGenerator {
     return '';
   }
 }
+
+void _requireCompleteNoRedrawEvidence({
+  required bool noContentRedraw,
+  required StoryGenerationAttemptEvidenceCapture? evidence,
+}) {
+  if (!noContentRedraw) return;
+  if (evidence == null || !evidence.toEnvelope().evidenceComplete) {
+    throw StoryGenerationEvidencePreflightFailure(
+      'no-redraw scene editorial produced incomplete attempt evidence',
+    );
+  }
+}
+
+bool _sameArtifactDigest(ArtifactDigest? left, ArtifactDigest right) =>
+    left != null &&
+    left.domainTag == right.domainTag &&
+    left.byteLength == right.byteLength &&
+    left.digest == right.digest;

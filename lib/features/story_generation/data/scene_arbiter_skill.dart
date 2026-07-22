@@ -46,6 +46,9 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
     final formalEvaluation = FormalEvaluationPolicy.isActive(
       const <String, Object?>{},
     );
+    final requiresExactOutput =
+        formalEvaluation ||
+        StoryGenerationRetryScope.current?.allowsContentRedraw == false;
     final promptIdentity = StoryPromptRegistry.production.invocation(
       stageId: 'roleplay',
       callSiteId: 'arbiter',
@@ -72,7 +75,7 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
           messages,
           resolvedVariables: resolvedVariables,
         ),
-        shouldRetryOutput: formalEvaluation
+        shouldRetryOutput: requiresExactOutput
             ? _shouldRejectExactArbitration
             : _shouldRetryMalformedArbitration,
         traceName: 'scene_roleplay_arbitrate',
@@ -94,9 +97,12 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
       rethrow;
     }
     if (!result.succeeded) {
-      if (formalEvaluation) {
+      if (requiresExactOutput) {
         throw StateError(
-          result.detail ?? 'formal scene arbitration provider call failed',
+          result.detail ??
+              (formalEvaluation
+                  ? 'formal scene arbitration provider call failed'
+                  : 'no-redraw scene arbitration provider call failed'),
         );
       }
       final nextState = _fallbackState(
@@ -114,9 +120,13 @@ class BasicSceneArbiterSkill implements SceneArbiterSkill {
         skillVersion: version,
       );
     }
-    final raw = formalEvaluation ? result.text! : result.text!.trim();
-    if (formalEvaluation && _shouldRejectExactArbitration(raw)) {
-      throw StateError('formal scene arbitration output was malformed');
+    final raw = requiresExactOutput ? result.text! : result.text!.trim();
+    if (requiresExactOutput && _shouldRejectExactArbitration(raw)) {
+      throw StateError(
+        formalEvaluation
+            ? 'formal scene arbitration output was malformed'
+            : 'no-redraw scene arbitration output was malformed',
+      );
     }
     return _parseArbitration(
       raw: raw,

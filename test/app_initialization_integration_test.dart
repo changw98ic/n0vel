@@ -15,6 +15,7 @@ import 'package:novel_writer/app/state/app_scene_context_store.dart';
 import 'package:novel_writer/app/state/app_settings_store.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
 import 'package:novel_writer/app/state/app_simulation_store.dart';
+import 'package:novel_writer/app/state/app_store_listenable.dart';
 import 'package:novel_writer/app/state/app_version_store.dart';
 import 'package:novel_writer/app/state/app_workspace_store.dart';
 import 'package:novel_writer/app/state/crash_detector.dart';
@@ -65,6 +66,40 @@ class _ThrowingRestoreBackupService implements AutoBackupService {
   Future<void> restoreBackup(String id) async {
     restoreAttempts++;
     throw StateError('restore failed');
+  }
+}
+
+class _ThrowingListBackupsService implements AutoBackupService {
+  @override
+  Future<BackupEntry> createBackup() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteBackup(String id) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<BackupEntry>> listBackups() async {
+    throw StateError('list backups failed');
+  }
+
+  @override
+  Future<int> pruneBackups({int keepCount = 10}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> restoreBackup(String id) {
+    throw UnimplementedError();
+  }
+}
+
+class _FailingPersistenceStore extends AppStoreListenable {
+  @override
+  Future<void> flushPersistence() async {
+    throw StateError('flush failed');
   }
 }
 
@@ -353,7 +388,32 @@ void main() {
       expect(crashDetector.cleanShutdownMarks, 1);
     });
 
-    testWidgets('restore backup errors do not crash startup recovery overlay', (
+    testWidgets('failed shutdown flush keeps the session dirty', (
+      tester,
+    ) async {
+      final crashDetector = _FakeCrashDetector();
+      NovelWriterApp.debugRegistryOverride = createTestRegistry()
+        ..registerSingleton<_FailingPersistenceStore>(
+          _FailingPersistenceStore(),
+        );
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: crashDetector,
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pump();
+
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
+      await tester.pump();
+
+      expect(crashDetector.cleanShutdownMarks, 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('restore backup errors stay on a terminal recovery screen', (
       tester,
     ) async {
       final crashDetector = _FakeCrashDetector(dirtyShutdown: true);
@@ -374,6 +434,25 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(backupService.restoreAttempts, 1);
+      expect(find.text('恢复未完成'), findsOneWidget);
+      expect(find.text('ready'), findsNothing);
+      expect(find.text('继续使用当前数据'), findsNothing);
+    });
+
+    testWidgets('backup listing failure may continue before services close', (
+      tester,
+    ) async {
+      NovelWriterApp.debugCreateAutoBackupService = () =>
+          _ThrowingListBackupsService();
+
+      await tester.pumpWidget(
+        NovelWriterApp(
+          crashDetector: _FakeCrashDetector(dirtyShutdown: true),
+          home: const Text('ready', textDirection: TextDirection.ltr),
+        ),
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('恢复失败'), findsOneWidget);
       expect(find.text('ready'), findsNothing);
 
@@ -383,7 +462,7 @@ void main() {
       expect(find.text('ready'), findsOneWidget);
     });
 
-    testWidgets('finishes restore before resolving or mounting app services', (
+    testWidgets('restore never remounts services before terminal outcome', (
       tester,
     ) async {
       var persistedValue = '崩溃前的未恢复值';
@@ -419,9 +498,11 @@ void main() {
       restoreGate.complete();
       await tester.pumpAndSettle();
 
-      expect(valueAtFirstResolve, '备份中的值');
-      expect(registry.resolveCalls, greaterThan(0));
-      expect(find.text('ready'), findsOneWidget);
+      expect(persistedValue, '备份中的值');
+      expect(valueAtFirstResolve, isNull);
+      expect(registry.resolveCalls, 0);
+      expect(find.text('恢复完成'), findsOneWidget);
+      expect(find.text('ready'), findsNothing);
     });
   });
 }

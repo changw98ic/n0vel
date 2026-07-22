@@ -21,7 +21,8 @@ void main() {
     }
   });
 
-  SqliteAppWorkspaceStorage storage0() => SqliteAppWorkspaceStorage(dbPath: dbPath);
+  SqliteAppWorkspaceStorage storage0() =>
+      SqliteAppWorkspaceStorage(dbPath: dbPath);
 
   Map<String, Object?> projectAData() => {
     'projects': [
@@ -211,15 +212,15 @@ void main() {
 
     // Verify project B is untouched.
     final projects = loaded!['projects'] as List<Object?>;
-    final projectB = projects.firstWhere(
-      (p) => (p as Map)['id'] == 'project-B',
-    ) as Map<String, Object?>;
+    final projectB =
+        projects.firstWhere((p) => (p as Map)['id'] == 'project-B')
+            as Map<String, Object?>;
     expect(projectB['title'], '项目B');
 
     // Verify project A was modified.
-    final projectA = projects.firstWhere(
-      (p) => (p as Map)['id'] == 'project-A',
-    ) as Map<String, Object?>;
+    final projectA =
+        projects.firstWhere((p) => (p as Map)['id'] == 'project-A')
+            as Map<String, Object?>;
     expect(projectA['title'], '项目A-修改后');
     expect(projectA['lastOpenedAtMs'], 3000);
   });

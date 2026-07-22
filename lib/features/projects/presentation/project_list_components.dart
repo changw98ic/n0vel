@@ -47,23 +47,34 @@ class _ProjectShelfCardState extends State<ProjectShelfCard> {
     final topColor = Color.lerp(base, Colors.white, 0.3)!;
     final bottomColor = Color.lerp(base, Colors.black, 0.4)!;
 
-    final shadowAlpha = _pressed ? 0.10 : _hovered ? 0.18 : 0.13;
-    final shadowBlur = _pressed ? 6.0 : _hovered ? 36.0 : 36.0;
+    final shadowAlpha = _pressed
+        ? 0.10
+        : _hovered
+        ? 0.18
+        : 0.13;
+    final shadowBlur = _pressed
+        ? 6.0
+        : _hovered
+        ? 36.0
+        : 36.0;
     final shadowOffset = _pressed
         ? const Offset(1, 2)
         : _hovered
-            ? const Offset(0, 16)
-            : const Offset(0, 16);
+        ? const Offset(0, 16)
+        : const Offset(0, 16);
     final translateY = _pressed
         ? 0.0
         : _hovered
-            ? -6.0
-            : 0.0;
+        ? -6.0
+        : 0.0;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() { _hovered = false; _pressed = false; }),
+      onExit: (_) => setState(() {
+        _hovered = false;
+        _pressed = false;
+      }),
       child: Listener(
         onPointerDown: (event) {
           if (event.buttons == kSecondaryButton) {
@@ -84,7 +95,9 @@ class _ProjectShelfCardState extends State<ProjectShelfCard> {
               borderRadius: BorderRadius.circular(AppDesignTokens.radiusLarge),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0x221F2A1D).withValues(alpha: shadowAlpha / 0.13),
+                  color: const Color(
+                    0x221F2A1D,
+                  ).withValues(alpha: shadowAlpha / 0.13),
                   blurRadius: shadowBlur,
                   offset: shadowOffset,
                 ),
@@ -155,9 +168,7 @@ class _ProjectShelfCardState extends State<ProjectShelfCard> {
                         borderRadius: BorderRadius.circular(
                           AppDesignTokens.radiusFull,
                         ),
-                        border: Border.all(
-                          color: const Color(0x66FFFFFF),
-                        ),
+                        border: Border.all(color: const Color(0x66FFFFFF)),
                       ),
                       child: Text(
                         widget.project.lastOpenedAtMs > 0 ? '继续写' : '打开',

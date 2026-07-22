@@ -136,6 +136,43 @@ void main() {
     expect(providerCalls, 0);
   });
 
+  test(
+    'production preflight rejects missing or non-string scene address before provider',
+    () {
+      for (final fixture in <Map<String, Object?>>[
+        const <String, Object?>{'fixture': 1},
+        const <String, Object?>{
+          'fixture': 1,
+          'sceneId': 1,
+          'sceneScopeId': 'scope-1',
+        },
+      ]) {
+        final manifest = _manifest(
+          scenarios: <ScenarioRelease>[_scenario(1, inputFixture: fixture)],
+        );
+
+        expect(
+          () => store.preflightAndRun<void>(
+            manifest: manifest,
+            actualBuildArtifactHash: manifest.buildArtifactHash,
+            verifierExists: (_) => true,
+            requireProductionAuthorities: true,
+            providerCall: () => providerCalls += 1,
+          ),
+          throwsA(
+            isA<AgentEvaluationPreflightException>().having(
+              (error) => error.message,
+              'message',
+              contains('production scenario'),
+            ),
+          ),
+          reason: fixture.toString(),
+        );
+      }
+      expect(providerCalls, 0);
+    },
+  );
+
   test('valid manifest persists immutable releases before provider call', () {
     final manifest = _manifest(
       scenarios: <ScenarioRelease>[_scenario(1)],
@@ -231,11 +268,12 @@ ScenarioRelease _scenario(
   String verifier = 'verifier-v1',
   String isolationMode = 'independent',
   int? episodeStep,
+  Map<String, Object?>? inputFixture,
 }) => ScenarioRelease(
   scenarioId: 'scenario-$number',
   version: '1.0.0',
   difficulty: 'adversarial',
-  inputFixture: <String, Object?>{'fixture': number},
+  inputFixture: inputFixture ?? <String, Object?>{'fixture': number},
   fixtureHash: _digest(number.toRadixString(16)),
   isolationMode: isolationMode,
   episodeId: isolationMode == 'episode' ? 'episode-1' : null,

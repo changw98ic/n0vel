@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../app/state/app_draft_store.dart';
 import '../../../app/theme/app_design_tokens.dart';
 import '../../../app/widgets/desktop_shell.dart';
 import 'workbench_shell_page.dart';
@@ -11,6 +12,7 @@ class WorkbenchEditorPane extends StatelessWidget {
     required this.hasScenes,
     required this.sceneTitle,
     required this.draftText,
+    required this.persistenceStatus,
     required this.draftController,
     required this.focusNode,
     required this.scrollController,
@@ -24,6 +26,7 @@ class WorkbenchEditorPane extends StatelessWidget {
   final bool hasScenes;
   final String sceneTitle;
   final String draftText;
+  final DraftPersistenceStatus persistenceStatus;
   final TextEditingController? draftController;
   final FocusNode focusNode;
   final ScrollController scrollController;
@@ -128,12 +131,16 @@ class WorkbenchEditorPane extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                isDirty ? '有未保存的修改' : '已保存',
+                                _draftPersistenceLabel(
+                                  persistenceStatus,
+                                  isDirty: isDirty,
+                                ),
                                 key: WorkbenchShellPage.editorSurfaceMetaKey,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: isDirty
-                                      ? const Color(0xFFB6813B)
-                                      : const Color(0xFF77736A),
+                                  color: _draftPersistenceColor(
+                                    persistenceStatus,
+                                    isDirty: isDirty,
+                                  ),
                                 ),
                               ),
                             ],
@@ -149,6 +156,40 @@ class WorkbenchEditorPane extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _draftPersistenceLabel(
+  DraftPersistenceStatus status, {
+  required bool isDirty,
+}) {
+  if (status == DraftPersistenceStatus.saved && isDirty) {
+    return '有未保存的修改';
+  }
+  switch (status) {
+    case DraftPersistenceStatus.saved:
+      return '已保存';
+    case DraftPersistenceStatus.saving:
+      return '保存中…';
+    case DraftPersistenceStatus.failed:
+      return '保存失败';
+  }
+}
+
+Color _draftPersistenceColor(
+  DraftPersistenceStatus status, {
+  required bool isDirty,
+}) {
+  if (status == DraftPersistenceStatus.saved && isDirty) {
+    return const Color(0xFFB6813B);
+  }
+  switch (status) {
+    case DraftPersistenceStatus.saved:
+      return const Color(0xFF77736A);
+    case DraftPersistenceStatus.saving:
+      return const Color(0xFF8A6A2D);
+    case DraftPersistenceStatus.failed:
+      return const Color(0xFFB14A3B);
   }
 }
 

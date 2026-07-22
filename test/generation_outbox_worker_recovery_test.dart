@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/rag/hybrid_retriever.dart';
+import 'package:novel_writer/app/state/authoring_table_definitions.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
 import 'package:novel_writer/features/story_generation/data/generation_outbox_worker.dart';
@@ -165,24 +166,21 @@ void _seedReceiptOutbox(GenerationLedgerSqliteStore ledger, Database db) {
       reservedAtMs: 1,
     ),
   );
-  ledger.createCandidateProof(
-    const CandidateProofRecord(
-      runId: 'run-1',
-      candidateRevision: 0,
-      projectId: 'project-1',
-      chapterId: 'chapter-1',
-      sceneId: 'scene-1',
-      sourceProseRevision: 0,
-      candidateHash: 'candidate-hash',
-      finalProseHash: 'prose-hash',
-      deterministicGateEvidenceHash: 'gate-hash',
-      finalCouncilEvidenceHash: 'council-hash',
-      qualityEvidenceHash: 'quality-hash',
-      pendingWriteSetHash: 'pending-hash',
-      materialDigest: 'material-digest',
-      inputDigest: 'input-digest',
-      createdAtMs: 2,
-    ),
+  _withHistoricalV1SeedAdmission(
+    db,
+    () => db.execute('''
+    INSERT INTO story_generation_candidate_proofs (
+      run_id, candidate_revision, project_id, chapter_id, scene_id,
+      source_prose_revision, candidate_hash, final_prose_hash,
+      deterministic_gate_evidence_hash, final_council_evidence_hash,
+      quality_evidence_hash, pending_write_set_hash, material_digest,
+      input_digest, proof_identity_version, generation_evidence_mode,
+      created_at_ms
+    ) VALUES ('run-1', 0, 'project-1', 'chapter-1', 'scene-1', 0,
+      'candidate-hash', 'prose-hash', 'gate-hash', 'council-hash',
+      'quality-hash', 'pending-hash', 'material-digest', 'input-digest',
+      'candidate-proof-v1', 'legacy-unsealed-v1', 2)
+  '''),
   );
   ledger.saveCandidatePayload(
     const CandidatePayloadRecord(
@@ -224,6 +222,17 @@ void _seedReceiptOutbox(GenerationLedgerSqliteStore ledger, Database db) {
       updatedAtMs: 3,
     ),
   );
+}
+
+void _withHistoricalV1SeedAdmission(Database db, void Function() seed) {
+  db.execute(
+    'DROP TRIGGER IF EXISTS prevent_new_legacy_generation_proof_insert',
+  );
+  try {
+    seed();
+  } finally {
+    createCandidateProofV2WriteGuards(db);
+  }
 }
 
 class _FakeTime {

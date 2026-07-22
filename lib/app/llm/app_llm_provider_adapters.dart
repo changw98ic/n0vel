@@ -3,6 +3,19 @@ import 'dart:convert';
 import 'app_llm_client_types.dart';
 import 'app_llm_response_decoding.dart';
 
+/// Resolves the one transport endpoint owned by a provider adapter.
+///
+/// Keeping this shared prevents the evidence verifier from accepting a route
+/// that differs from the URI the IO client actually dispatches.
+Uri? resolveAppLlmTransportEndpoint(String baseUrl, String endpointPath) {
+  final trimmed = baseUrl.trim();
+  if (trimmed.isEmpty) return null;
+  final baseUri = Uri.tryParse(trimmed);
+  if (baseUri == null || !baseUri.hasAuthority) return null;
+  final normalizedBase = trimmed.endsWith('/') ? trimmed : '$trimmed/';
+  return Uri.tryParse('$normalizedBase$endpointPath')?.normalizePath();
+}
+
 abstract class AppLlmProviderAdapter {
   String get endpointPath;
 

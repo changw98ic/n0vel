@@ -158,9 +158,7 @@ void main() {
       registry.disposeAll();
     });
 
-    testWidgets('renders editor pane filling available space', (
-      tester,
-    ) async {
+    testWidgets('renders editor pane filling available space', (tester) async {
       tester.view.physicalSize = const Size(1280, 820);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

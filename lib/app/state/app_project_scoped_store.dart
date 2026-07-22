@@ -6,6 +6,7 @@ import '../events/app_domain_events.dart';
 import '../events/app_event_bus.dart';
 import 'app_store_listenable.dart';
 import 'app_workspace_store.dart';
+import 'project_storage.dart';
 
 /// Whether the store resolves its scope from the current project or scene.
 enum AppStoreScopeMode {
@@ -36,8 +37,9 @@ abstract class AppProjectScopedStore extends AppStoreListenable {
        _fallbackProjectId = fallbackProjectId {
     _activeProjectId = _resolveProjectId();
     _workspaceStore?.addListener(_handleWorkspaceChanged);
-    _projectDeletedSubscription = _eventBus
-        ?.listen<ProjectDeletedEvent>(_handleProjectDeleted);
+    _projectDeletedSubscription = _eventBus?.listen<ProjectDeletedEvent>(
+      _handleProjectDeleted,
+    );
   }
 
   final AppWorkspaceStore? _workspaceStore;
@@ -89,6 +91,19 @@ abstract class AppProjectScopedStore extends AppStoreListenable {
   @protected
   void onProjectDeleted(String projectId) {}
 
+  /// Storage owned by this store, when it participates in the project
+  /// storage lifecycle.  Subclasses that use a [ProjectStorage] override this
+  /// getter; synchronous/specialized stores can leave it null.
+  @protected
+  ProjectStorage? get persistenceStorage => null;
+
+  @override
+  Future<void> flushPersistence() => flushProjectStorage(persistenceStorage);
+
+  @override
+  Future<void> quiescePersistence() =>
+      quiesceProjectStorage(persistenceStorage);
+
   String _resolveProjectId() {
     final ws = _workspaceStore;
     if (ws == null || ws.currentProjectId.isEmpty) {
@@ -122,6 +137,10 @@ abstract class AppProjectScopedStore extends AppStoreListenable {
     _workspaceStore?.removeListener(_handleWorkspaceChanged);
     unawaited(_projectDeletedSubscription?.cancel());
     _projectDeletedSubscription = null;
+    final storage = persistenceStorage;
+    if (storage case final ProjectStorageDiscardable discardable) {
+      discardable.discard();
+    }
     super.dispose();
   }
 }

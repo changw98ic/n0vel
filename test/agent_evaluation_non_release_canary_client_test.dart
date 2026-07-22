@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/llm/app_llm_client.dart';
 import 'package:novel_writer/features/story_generation/data/evaluation/agent_evaluation_execution_budget.dart';
@@ -28,6 +30,98 @@ void main() {
     expect(client.calls.single.accounting, 'exact');
     expect(client.budgetSnapshot.calls, 1);
     expect(client.budgetSnapshot.totalTokens, 15);
+  });
+
+  test('canary rejects adaptive requests without dispatching', () async {
+    final inner = _RecordingClient(
+      const AppLlmChatResult.success(text: 'unused'),
+    );
+    final client = _client(inner: inner, maxCalls: 1);
+
+    await expectLater(
+      client.chat(
+        const AppLlmChatRequest(
+          baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+          apiKey: 'secret',
+          model: 'glm-5.2',
+          provider: AppLlmProvider.zhipu,
+          messages: [AppLlmChatMessage(role: 'user', content: 'ping')],
+        ),
+      ),
+      throwsA(
+        isA<AppLlmPhysicalDispatchPreflightException>().having(
+          (error) => error.code,
+          'code',
+          'canary-single-dispatch-policy-required',
+        ),
+      ),
+    );
+    expect(inner.dispatches, 0);
+    expect(client.budgetSnapshot.calls, 0);
+  });
+
+  test('single-dispatch canary awaits the provider terminal result', () async {
+    final inner = _DeferredClient();
+    var nowMs = 0;
+    final client = _client(
+      inner: inner,
+      maxCalls: 1,
+      deadlineAtMs: 5,
+      nowMs: () => nowMs,
+    );
+    var settled = false;
+
+    final call = client.chat(_request());
+    unawaited(
+      call.then<void>(
+        (_) => settled = true,
+        onError: (Object _, StackTrace _) => settled = true,
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(settled, isFalse);
+    expect(inner.dispatches, 1);
+    nowMs = 5;
+    inner.complete(
+      const AppLlmChatResult.success(
+        text: 'late provider result',
+        providerModel: 'glm-5.2',
+        promptTokens: 10,
+        completionTokens: 5,
+        totalTokens: 15,
+      ),
+    );
+    await expectLater(
+      call,
+      throwsA(
+        isA<AgentEvaluationNonReleaseCanaryException>().having(
+          (error) => error.code,
+          'code',
+          'budget-reconciliation-failed',
+        ),
+      ),
+    );
+  });
+
+  test('unmarked runtime is rejected before canary budget admission', () async {
+    final inner = _UnmarkedClient();
+    final client = _client(inner: inner, maxCalls: 1);
+
+    await expectLater(
+      client.chat(_request()),
+      throwsA(
+        isA<AppLlmPhysicalDispatchPreflightException>().having(
+          (error) => error.code,
+          'code',
+          'unsupported-runtime-capability',
+        ),
+      ),
+    );
+
+    expect(inner.dispatches, 0);
+    expect(client.budgetSnapshot.calls, 0);
+    expect(client.calls, isEmpty);
   });
 
   test('provider model substitution aborts the canary permanently', () async {
@@ -158,6 +252,8 @@ void main() {
       model: normal.model,
       provider: normal.provider,
       messages: normal.messages,
+      physicalDispatchPolicy: normal.physicalDispatchPolicy,
+      dispatchEvidenceNonce: normal.dispatchEvidenceNonce,
     );
 
     final result = await client.chat(request);
@@ -376,9 +472,13 @@ AppLlmChatRequest _request() => const AppLlmChatRequest(
   provider: AppLlmProvider.zhipu,
   maxTokens: 4096,
   messages: [AppLlmChatMessage(role: 'user', content: 'ping')],
+  physicalDispatchPolicy: AppLlmPhysicalDispatchPolicy.single,
+  dispatchEvidenceNonce:
+      'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
 );
 
-final class _RecordingClient implements AppLlmClient {
+final class _RecordingClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
   _RecordingClient(this.result);
 
   final AppLlmChatResult result;
@@ -386,10 +486,48 @@ final class _RecordingClient implements AppLlmClient {
   AppLlmChatRequest? lastRequest;
 
   @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     dispatches += 1;
     lastRequest = request;
     return result;
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) =>
+      const Stream<String>.empty();
+}
+
+final class _DeferredClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  final Completer<AppLlmChatResult> _result = Completer<AppLlmChatResult>();
+  int dispatches = 0;
+
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  void complete(AppLlmChatResult result) => _result.complete(result);
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) {
+    dispatches += 1;
+    return _result.future;
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) =>
+      const Stream<String>.empty();
+}
+
+final class _UnmarkedClient implements AppLlmClient {
+  int dispatches = 0;
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    dispatches += 1;
+    return const AppLlmChatResult.success(text: 'must not be called');
   }
 
   @override

@@ -77,9 +77,7 @@ void main() {
         plannedPayoff: '第三章揭晓',
         urgency: 1,
       );
-      final state = NarrativeArcState(
-        pendingForeshadowing: [foreshadowing],
-      );
+      final state = NarrativeArcState(pendingForeshadowing: [foreshadowing]);
 
       arcStore.updateArcState(state);
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -95,7 +93,10 @@ void main() {
       expect(arcStore.snapshot.hasDanglingForeshadowing, isFalse);
       expect(
         arcStore
-            .snapshot.narrativeArcState.pendingForeshadowing.first
+            .snapshot
+            .narrativeArcState
+            .pendingForeshadowing
+            .first
             .resolvedInScene,
         'scene-03',
       );
@@ -108,25 +109,21 @@ void main() {
         plantedInScene: 'scene-02',
         urgency: 0,
       );
-      final state = NarrativeArcState(
-        pendingForeshadowing: [foreshadowing],
-      );
+      final state = NarrativeArcState(pendingForeshadowing: [foreshadowing]);
 
       arcStore.updateArcState(state);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       arcStore.updateForeshadowingUrgency('fs-2', 2);
       expect(
-        arcStore
-            .snapshot.narrativeArcState.pendingForeshadowing.first.urgency,
+        arcStore.snapshot.narrativeArcState.pendingForeshadowing.first.urgency,
         2,
       );
 
       // 验证 clamping
       arcStore.updateForeshadowingUrgency('fs-2', 99);
       expect(
-        arcStore
-            .snapshot.narrativeArcState.pendingForeshadowing.first.urgency,
+        arcStore.snapshot.narrativeArcState.pendingForeshadowing.first.urgency,
         2,
       );
     });
@@ -142,9 +139,7 @@ void main() {
       ]);
 
       // 验证持久化
-      final loaded = await arcStorage.load(
-        projectId: arcStore.activeProjectId,
-      );
+      final loaded = await arcStorage.load(projectId: arcStore.activeProjectId);
       expect(loaded, isNotNull);
       final restored = StoryArcSnapshot.fromJson(loaded!);
       expect(restored.sceneOrder, ['scene-03', 'scene-01', 'scene-02']);
@@ -211,27 +206,19 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 200));
 
       // 从存储重新加载
-      final loaded = await arcStorage.load(
-        projectId: arcStore.activeProjectId,
-      );
+      final loaded = await arcStorage.load(projectId: arcStore.activeProjectId);
       expect(loaded, isNotNull);
       final restored = StoryArcSnapshot.fromJson(loaded!);
 
       expect(restored.narrativeArcState.activeThreads.length, 1);
-      expect(
-        restored.narrativeArcState.activeThreads.first.description,
-        '暗线',
-      );
+      expect(restored.narrativeArcState.activeThreads.first.description, '暗线');
       expect(
         restored.narrativeArcState.activeThreads.first.status,
         PlotThreadStatus.climax,
       );
       expect(restored.narrativeArcState.closedThreads.length, 1);
       expect(restored.narrativeArcState.pendingForeshadowing.length, 1);
-      expect(
-        restored.narrativeArcState.pendingForeshadowing.first.urgency,
-        2,
-      );
+      expect(restored.narrativeArcState.pendingForeshadowing.first.urgency, 2);
       expect(restored.narrativeArcState.thematicArcs, ['信任', '背叛']);
       expect(restored.narrativeArcState.chapterIndex, 3);
       expect(restored.sceneOrder, ['scene-A', 'scene-B', 'scene-C']);
@@ -285,9 +272,7 @@ void main() {
     test('撤销栈最多保留 20 步', () {
       // 推入 25 次变更
       for (var i = 0; i < 25; i++) {
-        arcStore.updateArcState(
-          NarrativeArcState(chapterIndex: i),
-        );
+        arcStore.updateArcState(NarrativeArcState(chapterIndex: i));
       }
 
       expect(arcStore.snapshot.undoStack.length, 20);

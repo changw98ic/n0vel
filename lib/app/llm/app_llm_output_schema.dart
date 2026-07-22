@@ -185,13 +185,25 @@ class AppLlmOutputSchema {
 ///
 /// This class also implements [AppLlmClient] so it can be used as a drop-in
 /// decorator. The plain [chat] method delegates without any validation.
-class AppLlmSchemaValidatingClient implements AppLlmClient {
+class AppLlmSchemaValidatingClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AppLlmSchemaValidatingClient({
     required AppLlmClient delegate,
     this.maxValidationRetries = 1,
   }) : _delegate = delegate;
 
   final AppLlmClient _delegate;
+
+  @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(_delegate);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(_delegate);
 
   /// Maximum number of automatic retries when schema validation fails.
   /// A value of 0 means validation is performed but no retries are attempted.
@@ -217,6 +229,11 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
     )?
     onSchemaValidated,
   }) async {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     if (schema == null) {
       // llm-call-site: boundary.schema.passthrough
       return _delegate.chat(request);
@@ -226,7 +243,11 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
     // llm-call-site: boundary.schema.initial
     var lastResult = await _delegate.chat(request);
 
-    for (var attempt = 0; attempt < maxValidationRetries; attempt++) {
+    final effectiveValidationRetries =
+        request.physicalDispatchPolicy == AppLlmPhysicalDispatchPolicy.single
+        ? 0
+        : maxValidationRetries;
+    for (var attempt = 0; attempt < effectiveValidationRetries; attempt++) {
       if (!lastResult.succeeded) {
         return lastResult;
       }
@@ -252,6 +273,10 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
           provider: request.provider,
           onPartialText: request.onPartialText,
           formalCacheIdentity: request.formalCacheIdentity,
+          formalDispatchIdentity: request.formalDispatchIdentity,
+          preferStreaming: request.preferStreaming,
+          physicalDispatchPolicy: request.physicalDispatchPolicy,
+          dispatchEvidenceNonce: request.dispatchEvidenceNonce,
         ),
       );
     }
@@ -273,12 +298,22 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     // llm-call-site: boundary.schema.interface
     return _delegate.chat(request);
   }
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     // llm-call-site: boundary.schema.stream-interface
     return _delegate.chatStream(request);
   }
@@ -322,6 +357,10 @@ class AppLlmSchemaValidatingClient implements AppLlmClient {
       completionTokens: original.completionTokens,
       totalTokens: original.totalTokens,
       tokenUsage: original.tokenUsage,
+      providerModel: original.providerModel,
+      providerResponseId: original.providerResponseId,
+      dispatchResolution: original.dispatchResolution,
+      providerBoundaryReceipt: original.providerBoundaryReceipt,
     );
   }
 }

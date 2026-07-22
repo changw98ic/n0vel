@@ -20,7 +20,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:novel_writer/app/llm/app_llm_prompt_version.dart';
 
 import 'prompt_language.dart';
@@ -107,7 +106,6 @@ class StoryPromptTemplates {
   static PromptLanguage get language =>
       Zone.current[_promptLanguageZoneKey] as PromptLanguage? ?? _language;
 
-  @visibleForTesting
   static set language(PromptLanguage value) {
     _language = value;
   }

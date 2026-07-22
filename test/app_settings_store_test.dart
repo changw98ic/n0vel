@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:novel_writer/app/llm/app_llm_client.dart';
+import 'package:novel_writer/app/llm/app_product_prompt_registry.dart';
 import 'package:novel_writer/app/llm/app_llm_request_pool.dart';
 import 'package:novel_writer/app/logging/app_event_log.dart';
 import 'package:novel_writer/app/logging/app_event_log_storage.dart';
@@ -34,6 +37,104 @@ void main() {
       expect(store.canSaveConfiguration, isTrue);
       expect(store.canRunConnectionTest, isTrue);
       expect(store.snapshot.hasApiKey, isFalse);
+    },
+  );
+
+  test(
+    'single-dispatch lease classifies wildcard local routes consistently',
+    () async {
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: _CapturingLlmClient(),
+      );
+      addTearDown(store.dispose);
+      await store.save(
+        providerName: 'Local Test',
+        baseUrl: 'http://0.0.0.0:11434/v1',
+        model: 'local-model',
+        apiKey: '',
+      );
+
+      final route =
+          store
+                  .prepareStoryGenerationSinglePhysicalDispatchRoute(
+                    traceName: 'wildcard-local-route',
+                  )!
+                  .credentialFreeIdentity
+              as Map<String, Object?>;
+      final endpoint = route['selectedEndpoint'] as Map;
+      expect(endpoint['isLocal'], isTrue);
+      expect(endpoint['baseUrl'], 'http://0.0.0.0:11434/v1');
+    },
+  );
+
+  test(
+    'central dispatch freezes caller messages before its first await',
+    () async {
+      final client = _CapturingLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: client,
+      );
+      addTearDown(store.dispose);
+      await store.save(
+        providerName: 'Local Test',
+        baseUrl: 'http://127.0.0.1:11434/v1',
+        model: 'local-model',
+        apiKey: '',
+      );
+
+      final invocation = AppProductPromptRegistry.current.invocation(
+        stageId: 'workbench',
+        callSiteId: 'rewrite',
+      );
+      final variables = <String, Object?>{
+        'taskType': 'central-freeze-test',
+        'effectivePrompt': 'verify immutable dispatch semantics',
+        'providerSummary': 'local test provider',
+        'endpointLabel': 'local test endpoint',
+        'styleSummary': 'none',
+        'sceneSummary': 'test scene',
+        'characterSummary': '',
+        'worldSummary': '',
+        'simulationSummary': 'none',
+        'previousText': '',
+        'originalText': 'frozen source A',
+        'nextText': '',
+      };
+      final messages = List<AppLlmChatMessage>.of(
+        invocation.render(variables).messages,
+      );
+      final evidence = invocation.evidence(
+        messages: messages,
+        resolvedVariables: variables,
+      );
+      final originalLastMessage = messages.last;
+
+      final pending = store.requestAiCompletion(
+        messages: messages,
+        traceName: 'central-freeze-test',
+        promptReleaseRef: invocation.promptReleaseRef,
+        promptInvocationEvidence: evidence,
+        stageId: invocation.stageId,
+        callSiteId: invocation.callSiteId,
+        variantId: invocation.variantId,
+        generationBundleHash: invocation.generationBundleHash,
+      );
+      messages[messages.length - 1] = const AppLlmChatMessage(
+        role: 'user',
+        content: 'mutated source B',
+      );
+      await client.chatStarted.future;
+      messages[messages.length - 1] = originalLastMessage;
+      await pending;
+
+      expect(client.lastRequest, isNotNull);
+      expect(
+        client.lastMessagesAtCall.last.content,
+        originalLastMessage.content,
+      );
+      expect(client.lastRequest!.messages, isNot(same(messages)));
     },
   );
 
@@ -941,9 +1042,171 @@ void main() {
     expect(result.succeeded, isTrue);
     expect(llmClient.models, ['primary-model', 'local-model']);
   });
+
+  test(
+    'single physical story dispatch returns primary failure without failover',
+    () async {
+      var primaryCalls = 0;
+      var fallbackCalls = 0;
+      final primaryServer = await _startSettingsLlmServer(() {
+        primaryCalls += 1;
+        return const <String, Object?>{};
+      });
+      final fallbackServer = await _startSettingsLlmServer(() {
+        fallbackCalls += 1;
+        return _settingsSuccessPayload('fallback-must-not-run');
+      });
+      addTearDown(() => primaryServer.close(force: true));
+      addTearDown(() => fallbackServer.close(force: true));
+      final llmClient = _OrderedFailoverLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: 'Primary Cloud',
+        baseUrl: _settingsServerBaseUrl(primaryServer),
+        model: 'primary-model',
+        apiKey: '',
+        providerProfiles: [
+          AppLlmProviderProfile(
+            id: 'local-fallback',
+            providerName: 'Local Fallback',
+            baseUrl: _settingsServerBaseUrl(fallbackServer),
+            model: 'local-model',
+            apiKey: '',
+          ),
+        ],
+      );
+
+      final result = await requestAuthorizedAiCompletionForTest(
+        store,
+        messages: const [AppLlmChatMessage(role: 'user', content: 'order')],
+        singlePhysicalDispatch: true,
+      );
+      final routeIdentity =
+          store
+                  .prepareStoryGenerationSinglePhysicalDispatchRoute(
+                    traceName: 'routing_test',
+                  )!
+                  .credentialFreeIdentity
+              as Map<String, Object?>;
+
+      expect(result.succeeded, isFalse);
+      expect(result.failureKind, AppLlmFailureKind.invalidResponse);
+      expect(llmClient.models, isEmpty);
+      expect(primaryCalls, 1);
+      expect(fallbackCalls, 0);
+      expect(result.dispatchResolution, isNotNull);
+      expect(result.providerBoundaryReceipt, isNotNull);
+      expect(routeIdentity['physicalDispatchPolicy'], 'single');
+      expect(routeIdentity, isNot(contains('failover')));
+      expect(
+        routeIdentity['selectedEndpoint'],
+        containsPair('model', 'primary-model'),
+      );
+      expect(
+        routeIdentity['selectedEndpoint'],
+        containsPair('baseUrl', _settingsServerBaseUrl(primaryServer)),
+      );
+    },
+  );
+
+  test(
+    'single physical story dispatch bypasses injected client while adaptive preserves it',
+    () async {
+      var formalCalls = 0;
+      final server = await _startSettingsLlmServer(() {
+        formalCalls += 1;
+        return _settingsSuccessPayload('formal-direct');
+      });
+      addTearDown(() => server.close(force: true));
+      final llmClient = _ThrowingLlmClient();
+      final store = AppSettingsStore(
+        storage: InMemoryAppSettingsStorage(),
+        llmClient: llmClient,
+      );
+      addTearDown(store.dispose);
+
+      await store.save(
+        providerName: 'Primary Cloud',
+        baseUrl: _settingsServerBaseUrl(server),
+        model: 'primary-model',
+        apiKey: '',
+      );
+
+      final single = await requestAuthorizedAiCompletionForTest(
+        store,
+        messages: const [AppLlmChatMessage(role: 'user', content: 'once')],
+        singlePhysicalDispatch: true,
+        dispatchEvidenceNonce:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      );
+
+      expect(single.succeeded, isTrue);
+      expect(single.text, 'formal-direct');
+      expect(single.dispatchFailureDisposition, isNull);
+      expect(single.dispatchResolution, isNotNull);
+      expect(single.providerBoundaryReceipt, isNotNull);
+      expect(formalCalls, 1);
+      expect(llmClient.calls, 0);
+
+      await expectLater(
+        requestAuthorizedAiCompletionForTest(
+          store,
+          messages: const [
+            AppLlmChatMessage(role: 'user', content: 'adaptive'),
+          ],
+        ),
+        throwsStateError,
+      );
+      expect(llmClient.calls, 1);
+    },
+  );
 }
 
-class _CapturingLlmClient implements AppLlmClient {
+Future<HttpServer> _startSettingsLlmServer(
+  Map<String, Object?> Function() response,
+) async {
+  final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  unawaited(
+    server.forEach((request) async {
+      await utf8.decoder.bind(request).join();
+      request.response
+        ..statusCode = HttpStatus.ok
+        ..headers.contentType = ContentType.json
+        ..write(jsonEncode(response()));
+      await request.response.close();
+    }),
+  );
+  return server;
+}
+
+Map<String, Object?> _settingsSuccessPayload(String text) => <String, Object?>{
+  'id': 'settings-$text',
+  'model': 'primary-model',
+  'choices': <Object?>[
+    <String, Object?>{
+      'message': <String, Object?>{'content': text},
+    },
+  ],
+  'usage': const <String, Object?>{
+    'prompt_tokens': 8,
+    'completion_tokens': 3,
+    'total_tokens': 11,
+  },
+};
+
+String _settingsServerBaseUrl(HttpServer server) =>
+    'http://${server.address.host}:${server.port}/v1';
+
+class _CapturingLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
   _CapturingLlmClient({
     this.result = const AppLlmChatResult.success(text: 'pong', latencyMs: 1),
   });
@@ -951,11 +1214,20 @@ class _CapturingLlmClient implements AppLlmClient {
   final AppLlmChatResult result;
   AppLlmChatRequest? lastRequest;
   final requests = <AppLlmChatRequest>[];
+  final chatStarted = Completer<void>();
+  List<AppLlmChatMessage> lastMessagesAtCall = const [];
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     lastRequest = request;
     requests.add(request);
+    lastMessagesAtCall = List<AppLlmChatMessage>.unmodifiable(
+      request.messages.map(
+        (message) =>
+            AppLlmChatMessage(role: message.role, content: message.content),
+      ),
+    );
+    if (!chatStarted.isCompleted) chatStarted.complete();
     return result;
   }
 
@@ -1160,7 +1432,11 @@ class _RecordingRequestPool extends AppLlmRequestPool {
   }
 }
 
-class _BlockingByModelLlmClient implements AppLlmClient {
+class _BlockingByModelLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
   final _activeByModel = <String, int>{};
   final _pending = <Completer<AppLlmChatResult>>[];
   bool _completeImmediately = false;
@@ -1201,7 +1477,11 @@ class _BlockingByModelLlmClient implements AppLlmClient {
   }
 }
 
-class _FailoverBlockingLlmClient implements AppLlmClient {
+class _FailoverBlockingLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
   final _callsByModel = <String, int>{};
   final _activeByModel = <String, int>{};
   final _pendingFallbacks = <Completer<AppLlmChatResult>>[];
@@ -1268,19 +1548,82 @@ class _FailoverBlockingLlmClient implements AppLlmClient {
   }
 }
 
-class _OrderedFailoverLlmClient implements AppLlmClient {
+class _OrderedFailoverLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
   final models = <String>[];
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
     models.add(request.model);
     if (request.model == 'primary-model') {
-      return const AppLlmChatResult.failure(
+      const result = AppLlmChatResult.failure(
         failureKind: AppLlmFailureKind.invalidResponse,
         detail: 'primary returned invalid response',
       );
+      return request.physicalDispatchPolicy ==
+              AppLlmPhysicalDispatchPolicy.single
+          ? result.withProviderBoundaryReceipt(
+              _SettingsProviderBoundaryReceipt(request),
+            )
+          : result;
     }
     return const AppLlmChatResult.success(text: 'fallback done');
+  }
+
+  @override
+  Stream<String> chatStream(AppLlmChatRequest request) {
+    throw UnimplementedError('chatStream');
+  }
+}
+
+final class _SettingsProviderBoundaryReceipt
+    implements AppLlmProviderBoundaryReceipt {
+  const _SettingsProviderBoundaryReceipt(this.request);
+
+  final AppLlmChatRequest request;
+
+  @override
+  String get contract => 'app-llm-provider-boundary-receipt-v1';
+  @override
+  int get physicalDispatchCount => 1;
+  @override
+  String get requestedBaseUrl => request.baseUrl;
+  @override
+  String get requestedModel => request.model;
+  @override
+  AppLlmProvider get requestedProvider => request.provider;
+  @override
+  String get transportEndpoint => '${request.baseUrl}/chat/completions';
+  @override
+  String get dispatchEvidenceNonce =>
+      request.dispatchEvidenceNonce ??
+      'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  @override
+  Map<String, Object?> toCredentialFreeJson() => <String, Object?>{
+    'contract': contract,
+    'physicalDispatchCount': physicalDispatchCount,
+    'requestedBaseUrl': requestedBaseUrl,
+    'requestedModel': requestedModel,
+    'requestedProvider': requestedProvider.name,
+    'transportEndpoint': transportEndpoint,
+    'dispatchEvidenceNonce': dispatchEvidenceNonce,
+  };
+}
+
+class _ThrowingLlmClient
+    implements AppLlmClient, AppLlmSinglePhysicalDispatchCapability {
+  @override
+  bool get supportsSinglePhysicalDispatch => true;
+
+  int calls = 0;
+
+  @override
+  Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    calls += 1;
+    throw StateError('provider outcome is unknown');
   }
 
   @override

@@ -4,7 +4,8 @@ part of 'roleplay_session_store_io.dart';
 // Import / Export – JSON serialization helpers for project transfer
 // ---------------------------------------------------------------------------
 
-mixin _RoleplaySessionStoreIOTransfer on _RoleplaySessionStoreIOFields, _RoleplaySessionStoreIOLoad {
+mixin _RoleplaySessionStoreIOTransfer
+    on _RoleplaySessionStoreIOFields, _RoleplaySessionStoreIOLoad {
   Future<Map<String, Object?>?> exportProjectJson(String projectId) async {
     await ensureTables();
     final sessions = db.select(

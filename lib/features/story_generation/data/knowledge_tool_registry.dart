@@ -217,7 +217,7 @@ List<KnowledgeTool> createMaterialReferenceTools({
     KnowledgeTool(
       name: kWritingReferenceToolName,
       description:
-          'Searches curated Jianlai writing reference labels and short excerpts for roleplay/material inspiration.',
+          'Searches admitted writing-reference labels and bounded excerpts for roleplay/material inspiration.',
       retrieve: (params) async =>
           materialRetriever.searchToDomainCapsule(params),
     ),

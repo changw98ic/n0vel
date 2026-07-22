@@ -1,5 +1,8 @@
 name: Flutter Smoke Check
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
@@ -11,6 +14,7 @@ on:
       - "assets/**"
       - "lib/**"
       - "test/**"
+      - "tool/**"
       - "pubspec.yaml"
       - "pubspec.lock"
   pull_request:
@@ -23,6 +27,7 @@ on:
       - "assets/**"
       - "lib/**"
       - "test/**"
+      - "tool/**"
       - "pubspec.yaml"
       - "pubspec.lock"
 
@@ -43,8 +48,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Check Dart formatting
+        run: dart format --set-exit-if-changed lib test tool
+
       - name: Analyze
         run: flutter analyze --no-pub
 
+      # The complete suite contains long-running formal evaluation fixtures;
+      # keep the routine gate deterministic and leave that suite manual.
       - name: Core smoke tests
         run: make ci-smoke

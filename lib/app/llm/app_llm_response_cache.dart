@@ -131,7 +131,11 @@ class _CacheEntry {
 /// identity and can only reuse a result inside the same trial slot and run.
 /// Only successful responses are cached. Entries are evicted in FIFO order
 /// once [maxEntries] is exceeded.
-class AppLlmResponseCache implements AppLlmClient {
+class AppLlmResponseCache
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AppLlmResponseCache({
     required AppLlmClient delegate,
     this.defaultTtlMs = 300000,
@@ -141,6 +145,14 @@ class AppLlmResponseCache implements AppLlmClient {
   final AppLlmClient _delegate;
   final int defaultTtlMs;
   final int maxEntries;
+
+  @override
+  bool get supportsSinglePhysicalDispatch =>
+      appLlmClientSupportsSinglePhysicalDispatch(_delegate);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      shutdownAppLlmClientPhysicalDispatches(_delegate);
 
   static final String releaseHash = AppLlmCanonicalHash.domainHash(
     'app-llm-response-cache-release-v3',
@@ -191,16 +203,23 @@ class AppLlmResponseCache implements AppLlmClient {
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) async {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
+    final bypass =
+        request.physicalDispatchPolicy == AppLlmPhysicalDispatchPolicy.single;
     final scope = _scope;
-    final key = _requestFingerprint(request, scope);
+    final key = bypass ? null : _requestFingerprint(request, scope);
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    final cached = _entries[key];
+    final cached = key == null ? null : _entries[key];
     if (cached != null) {
       if (now < cached.createdAtMs + defaultTtlMs) {
         _hits++;
         _recordReceipt(
-          requestHash: key,
+          requestHash: key!,
           responseHash: cached.responseHash,
           disposition: 'hit',
           source: cached.sourceScope,
@@ -217,7 +236,7 @@ class AppLlmResponseCache implements AppLlmClient {
     // llm-call-site: boundary.cache.miss
     final result = await _delegate.chat(request);
 
-    if (result.succeeded) {
+    if (result.succeeded && key != null) {
       final responseHash = _responseHash(result);
       _entries[key] = _CacheEntry(
         result: result,
@@ -242,6 +261,11 @@ class AppLlmResponseCache implements AppLlmClient {
 
   @override
   Stream<String> chatStream(AppLlmChatRequest request) {
+    validateAppLlmSinglePhysicalDispatchRequest(request);
+    validateAppLlmSinglePhysicalDispatchCapability(
+      client: _delegate,
+      request: request,
+    );
     _misses++;
     // llm-call-site: boundary.cache.stream-miss
     return _delegate.chatStream(request);

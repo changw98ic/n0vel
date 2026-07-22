@@ -107,54 +107,60 @@ void main() {
       );
     });
 
-    test('retries once on first mismatch then succeeds on second attempt', () async {
-      var saveCallCount = 0;
-      var loadCallIndex = 0;
+    test(
+      'retries once on first mismatch then succeeds on second attempt',
+      () async {
+        var saveCallCount = 0;
+        var loadCallIndex = 0;
 
-      // First save: snapshot and verify both get index 1 and 2 (mismatch).
-      // Retry (second save): snapshot and verify both get index 3 and 4 (but we
-      // need them to match). Let's make it so after the first save attempt,
-      // loads return consistent data.
-      final stableData = {'stable': true};
+        // First save: snapshot and verify both get index 1 and 2 (mismatch).
+        // Retry (second save): snapshot and verify both get index 3 and 4 (but we
+        // need them to match). Let's make it so after the first save attempt,
+        // loads return consistent data.
+        final stableData = {'stable': true};
 
-      await verifyAfterWrite(
-        label: 'retry-success',
-        save: (_) async {
-          saveCallCount++;
-        },
-        reload: () async {
-          loadCallIndex++;
-          // After first save (saveCallCount >= 1), return stable data so
-          // the retry succeeds.
-          if (saveCallCount >= 2) return stableData;
-          return {'unstable': loadCallIndex};
-        },
-        data: {'key': 'value'},
-      );
+        await verifyAfterWrite(
+          label: 'retry-success',
+          save: (_) async {
+            saveCallCount++;
+          },
+          reload: () async {
+            loadCallIndex++;
+            // After first save (saveCallCount >= 1), return stable data so
+            // the retry succeeds.
+            if (saveCallCount >= 2) return stableData;
+            return {'unstable': loadCallIndex};
+          },
+          data: {'key': 'value'},
+        );
 
-      // Should have saved twice (initial + 1 retry).
-      expect(saveCallCount, 2);
-    });
+        // Should have saved twice (initial + 1 retry).
+        expect(saveCallCount, 2);
+      },
+    );
 
-    test('retry succeeds when first attempt null then second matches data', () async {
-      var saveCount = 0;
-      final data = <String, Object?>{'retry': 'test'};
+    test(
+      'retry succeeds when first attempt null then second matches data',
+      () async {
+        var saveCount = 0;
+        final data = <String, Object?>{'retry': 'test'};
 
-      await verifyAfterWrite(
-        label: 'null-then-match',
-        save: (_) async {
-          saveCount++;
-        },
-        reload: () async {
-          // After second save (retry), return the correct data.
-          if (saveCount >= 2) return data;
-          return null;
-        },
-        data: data,
-      );
+        await verifyAfterWrite(
+          label: 'null-then-match',
+          save: (_) async {
+            saveCount++;
+          },
+          reload: () async {
+            // After second save (retry), return the correct data.
+            if (saveCount >= 2) return data;
+            return null;
+          },
+          data: data,
+        );
 
-      expect(saveCount, 2);
-    });
+        expect(saveCount, 2);
+      },
+    );
 
     test('large data round-trip verification succeeds', () async {
       final storage = SqliteAppWorkspaceStorage(dbPath: dbPath);
@@ -197,7 +203,9 @@ void main() {
           save: (_) async {},
           reload: () async {
             callIndex++;
-            return {'call': callIndex}; // Each call returns different data → mismatch
+            return {
+              'call': callIndex,
+            }; // Each call returns different data → mismatch
           },
           data: {'expected': true},
         );

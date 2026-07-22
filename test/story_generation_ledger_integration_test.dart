@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_writer/app/llm/app_llm_canonical_hash.dart';
 import 'package:novel_writer/app/state/app_draft_storage.dart';
 import 'package:novel_writer/app/state/app_draft_store.dart';
 import 'package:novel_writer/app/state/app_settings_storage.dart';
@@ -10,9 +11,9 @@ import 'package:novel_writer/app/state/story_generation_run_store.dart';
 import 'package:novel_writer/app/state/story_generation_storage.dart';
 import 'package:novel_writer/app/state/story_generation_store.dart';
 import 'package:novel_writer/features/story_generation/data/generation_commit_coordinator.dart';
+import 'package:novel_writer/features/story_generation/data/generation_candidate_identity.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_candidate_finalizer.dart';
-import 'package:novel_writer/features/story_generation/data/generation_ledger_digest.dart';
 import 'package:novel_writer/features/story_generation/data/generation_ledger_models.dart';
 import 'package:novel_writer/features/story_generation/data/pipeline_stage_runner_impl.dart';
 import 'package:novel_writer/features/story_generation/data/production_pre_quality_gate.dart';
@@ -126,22 +127,35 @@ void main() {
         store.snapshot.candidateGenerationBundleHash,
         'sha256:${runBundle.single['bundle_hash']}',
       );
+      final proof = db
+          .select('SELECT * FROM story_generation_candidate_proofs')
+          .single;
+      expect(proof['proof_identity_version'], GenerationCandidateIdentity.v2);
       expect(
         store.snapshot.candidateHash,
-        GenerationLedgerDigest.object({
-          'runId': store.snapshot.runId,
-          'candidateRevision': store.snapshot.candidateRevision,
-          'finalProseHash': store.snapshot.candidateFinalProseHash,
-          'deterministicGateEvidenceHash':
-              store.snapshot.candidateDeterministicGateEvidenceHash,
-          'finalCouncilEvidenceHash':
-              store.snapshot.candidateFinalCouncilEvidenceHash,
-          'qualityEvidenceHash': store.snapshot.candidateQualityEvidenceHash,
-          'pendingWriteSetHash': store.snapshot.candidatePendingWriteSetHash,
-          'materialDigest': store.snapshot.candidateMaterialDigest,
-          'inputDigest': store.snapshot.candidateInputDigest,
-          'generationBundleHash': store.snapshot.candidateGenerationBundleHash,
-        }),
+        GenerationCandidateIdentity.computeV2(
+          runId: proof['run_id'] as String,
+          candidateRevision: proof['candidate_revision'] as int,
+          finalProseHash: proof['final_prose_hash'] as String,
+          deterministicGateEvidenceHash:
+              proof['deterministic_gate_evidence_hash'] as String,
+          finalCouncilEvidenceHash:
+              proof['final_council_evidence_hash'] as String,
+          qualityEvidenceHash: proof['quality_evidence_hash'] as String,
+          pendingWriteSetHash: proof['pending_write_set_hash'] as String,
+          materialDigest: proof['material_digest'] as String,
+          effectiveInputDigest: proof['input_digest'] as String,
+          preparedBriefDigest: proof['prepared_brief_digest'] as String,
+          effectiveBriefDigest: proof['effective_brief_digest'] as String,
+          generationBundleHash: store.snapshot.candidateGenerationBundleHash,
+          generationEvidenceMode: proof['generation_evidence_mode'] as String,
+          generationEvidenceReceiptHash:
+              proof['generation_evidence_receipt_hash'] as String?,
+          attemptEvidenceEnvelopeDigest:
+              proof['attempt_evidence_envelope_digest'] as String?,
+          generationFingerprintSetDigest:
+              proof['generation_fingerprint_set_digest'] as String?,
+        ),
       );
       expect(
         db.select('SELECT * FROM story_generation_candidate_proofs'),
@@ -379,6 +393,56 @@ void main() {
   );
 
   test(
+    'adaptive accept rejects a forged payload receipt without effects',
+    () async {
+      final store = buildStore();
+      addTearDown(store.dispose);
+      await store.ready;
+      await store.runCurrentScene();
+      final beforeRun = Map<String, Object?>.from(
+        db.select(
+          'SELECT status, phase, current_candidate_revision '
+          'FROM story_generation_runs WHERE run_id = ?',
+          <Object?>[store.snapshot.runId],
+        ).single,
+      );
+      db.execute(
+        '''UPDATE story_generation_candidate_payloads
+           SET generation_evidence_receipt_json = '{"forged":true}'
+           WHERE run_id = ? AND candidate_revision = ?''',
+        <Object?>[store.snapshot.runId, store.snapshot.candidateRevision],
+      );
+
+      expect(
+        () => coordinator.accept(_requestFor(store.snapshot, workspace)),
+        throwsA(isA<GenerationCandidateEvidenceConflict>()),
+      );
+      expect(
+        Map<String, Object?>.from(
+          db.select(
+            'SELECT status, phase, current_candidate_revision '
+            'FROM story_generation_runs WHERE run_id = ?',
+            <Object?>[store.snapshot.runId],
+          ).single,
+        ),
+        beforeRun,
+      );
+      expect(
+        db.select(
+          'SELECT text_body FROM draft_documents WHERE project_id = ?',
+          <Object?>[workspace.currentSceneScopeId],
+        ).single['text_body'],
+        '作者原稿',
+      );
+      expect(db.select('SELECT * FROM version_entries'), isEmpty);
+      expect(
+        db.select('SELECT * FROM story_generation_commit_receipts'),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
     'accept projects staged roleplay and character deltas into existing stores',
     () async {
       final store = buildStore();
@@ -547,19 +611,35 @@ class _PassingRunner extends PipelineStageRunnerImpl {
   final String prose;
 
   @override
-  Future<SceneRuntimeOutput> runScene(
-    SceneBrief brief, {
+  Future<SceneRuntimeOutput> runPreparedScene(
+    PreparedSceneBrief prepared, {
     ProjectMaterialSnapshot? materials,
     void Function()? onSpeculationReady,
   }) async {
-    final preQualityEvidence = ProductionPreQualityGate.standard
+    final brief = prepared.brief;
+    final measuredPreQuality = ProductionPreQualityGate.standard
         .verifyPipelinePolish(
           brief: brief,
           materials: materials ?? const ProjectMaterialSnapshot(),
           prePolishProse: prose,
           finalProse: prose,
-          hardGatesEnabled: true,
+          // This runner is a provider/pipeline test double. Its tiny fixture
+          // prose intentionally does not meet scene-length gates, so construct
+          // the same signed verifier artifacts while simulating the upstream
+          // passed gate.
+          hardGatesEnabled: false,
         );
+    final preQualityJson = <String, Object?>{
+      ...measuredPreQuality.toJson(),
+      'hardGatesEnabled': true,
+      'hardGateViolationHashes': const <Object?>[],
+      'passed': true,
+    }..remove('evidenceHash');
+    preQualityJson['evidenceHash'] = AppLlmCanonicalHash.domainHash(
+      'production-pre-quality-evidence-v3',
+      preQualityJson,
+    );
+    final preQuality = ProductionPreQualityEvidence.fromJson(preQualityJson);
     return SceneRuntimeOutput(
       brief: brief,
       resolvedCast: const [],
@@ -620,9 +700,9 @@ class _PassingRunner extends PipelineStageRunnerImpl {
         completeness: 96,
         summary: '质量通过',
       ),
-      polishCanonEvidence: preQualityEvidence.polishCanonEvidence,
-      storyMechanicsEvidence: preQualityEvidence.storyMechanicsEvidence,
-      productionPreQualityEvidence: preQualityEvidence.toJson(),
+      polishCanonEvidence: preQuality.polishCanonEvidence,
+      storyMechanicsEvidence: preQuality.storyMechanicsEvidence,
+      productionPreQualityEvidence: preQuality.toJson(),
     );
   }
 }

@@ -169,7 +169,11 @@ final class AgentEvaluationHttpFaultProtocol {
 
 /// Production failover chain whose every endpoint dispatch crosses its own
 /// metered client while sharing one execution-wide budget guard.
-final class AgentEvaluationMeteredFailoverClient implements AppLlmClient {
+final class AgentEvaluationMeteredFailoverClient
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   AgentEvaluationMeteredFailoverClient({
     required List<FailoverEndpoint> endpoints,
     required AppLlmClient inner,
@@ -224,6 +228,14 @@ final class AgentEvaluationMeteredFailoverClient implements AppLlmClient {
   final List<FailoverAttemptResult> attempts = <FailoverAttemptResult>[];
 
   @override
+  bool get supportsSinglePhysicalDispatch =>
+      _multiplexer.supportsSinglePhysicalDispatch;
+
+  @override
+  Future<void> shutdownPhysicalDispatches() =>
+      _multiplexer.shutdownPhysicalDispatches();
+
+  @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) =>
       _chain.executeWithFailover(request, attempts: attempts);
 
@@ -238,12 +250,25 @@ final class AgentEvaluationMeteredFailoverClient implements AppLlmClient {
       throw UnsupportedError('metered evaluation failover is unary');
 }
 
-final class _MeteredEndpointMultiplexer implements AppLlmClient {
+final class _MeteredEndpointMultiplexer
+    implements
+        AppLlmClient,
+        AppLlmSinglePhysicalDispatchCapability,
+        AppLlmPhysicalDispatchLifecycle {
   _MeteredEndpointMultiplexer({required this.endpoints, required this.meters});
 
   final List<FailoverEndpoint> endpoints;
   final Map<String, AgentEvaluationMeteredAppLlmClient> meters;
   final List<String> usedEndpointIds = <String>[];
+
+  @override
+  bool get supportsSinglePhysicalDispatch =>
+      meters.values.every((meter) => meter.supportsSinglePhysicalDispatch);
+
+  @override
+  Future<void> shutdownPhysicalDispatches() => Future.wait<void>(
+    meters.values.map((meter) => meter.shutdownPhysicalDispatches()),
+  );
 
   @override
   Future<AppLlmChatResult> chat(AppLlmChatRequest request) {

@@ -45,8 +45,12 @@ void main() {
     });
 
     test('lists preserve order', () {
-      final a = <String, Object?>{'items': [1, 2, 3]};
-      final b = <String, Object?>{'items': [3, 2, 1]};
+      final a = <String, Object?>{
+        'items': [1, 2, 3],
+      };
+      final b = <String, Object?>{
+        'items': [3, 2, 1],
+      };
 
       expect(storageFingerprint(a), isNot(equals(storageFingerprint(b))));
     });
@@ -79,7 +83,10 @@ void main() {
     test('deeply nested structures (10+ levels) are stable', () {
       Object? buildNested(int depth) {
         if (depth == 0) return 'leaf';
-        return <String, Object?>{'level': depth, 'child': buildNested(depth - 1)};
+        return <String, Object?>{
+          'level': depth,
+          'child': buildNested(depth - 1),
+        };
       }
 
       final a = <String, Object?>{'root': buildNested(12)};
@@ -100,7 +107,10 @@ void main() {
         'count': 101,
       };
 
-      expect(storageFingerprint(base), isNot(equals(storageFingerprint(modified))));
+      expect(
+        storageFingerprint(base),
+        isNot(equals(storageFingerprint(modified))),
+      );
     });
 
     test('unicode and emoji values do not crash', () {

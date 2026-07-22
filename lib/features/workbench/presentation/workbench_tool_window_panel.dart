@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/logging/app_event_log_privacy.dart';
 import '../../../app/state/app_ai_history_store.dart';
 import '../../../app/state/app_scene_context_store.dart';
 import '../../../app/state/app_settings_store.dart';
@@ -62,6 +63,9 @@ class ToolWindowPanel extends StatelessWidget {
     required this.candidateActionFeedback,
     required this.onAcceptCandidate,
     required this.onRejectCandidate,
+    required this.storyRunSnapshot,
+    required this.onCancelRun,
+    required this.onRetryRun,
     this.statusBanner,
     this.creationGuide,
     super.key,
@@ -111,6 +115,9 @@ class ToolWindowPanel extends StatelessWidget {
   final WorkbenchCandidateActionFeedback candidateActionFeedback;
   final Future<void> Function() onAcceptCandidate;
   final Future<void> Function() onRejectCandidate;
+  final StoryGenerationRunSnapshot storyRunSnapshot;
+  final Future<bool> Function() onCancelRun;
+  final Future<void> Function() onRetryRun;
   final Widget? statusBanner;
   final Widget? creationGuide;
 

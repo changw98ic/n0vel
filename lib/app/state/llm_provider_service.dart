@@ -8,8 +8,8 @@ import 'app_settings_store.dart';
 /// 对外公开 API 签名不变。
 class LlmProviderService {
   LlmProviderService({required int maxConcurrentRequests})
-      : _defaultPool = AppLlmRequestPool(maxConcurrent: maxConcurrentRequests),
-        _maxConcurrentRequests = maxConcurrentRequests;
+    : _defaultPool = AppLlmRequestPool(maxConcurrent: maxConcurrentRequests),
+      _maxConcurrentRequests = maxConcurrentRequests;
 
   final AppLlmRequestPool _defaultPool;
   final Map<String, AppLlmRequestPool> _profilePools = {};
@@ -48,7 +48,8 @@ class LlmProviderService {
   }) {
     final hasBaseUrl = profile.baseUrl.trim().isNotEmpty;
     final hasModel = profile.model.trim().isNotEmpty;
-    final hasApiKey = profile.apiKey.trim().isNotEmpty ||
+    final hasApiKey =
+        profile.apiKey.trim().isNotEmpty ||
         isLocalCompatibleEndpoint(profile.baseUrl);
     return hasBaseUrl && hasModel && hasApiKey;
   }
@@ -74,8 +75,9 @@ class LlmProviderService {
   }) {
     final primary = AppLlmProviderProfile(
       id: 'primary',
-      providerName:
-          providerName.trim().isEmpty ? '默认模型服务' : providerName.trim(),
+      providerName: providerName.trim().isEmpty
+          ? '默认模型服务'
+          : providerName.trim(),
       baseUrl: baseUrl.trim(),
       model: model.trim(),
       apiKey: apiKey,
@@ -219,4 +221,3 @@ class RemoveProviderProfileResult {
   final List<AppLlmProviderProfile> profiles;
   final List<AppLlmRequestProviderRoute> routes;
 }
-

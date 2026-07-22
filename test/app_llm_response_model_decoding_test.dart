@@ -8,6 +8,7 @@ void main() {
   test('normal OpenAI response preserves provider model identity', () {
     final decoded = decodeOpenAiChatResponseBody('''
       {
+        "id": "chatcmpl-root-1",
         "model": "glm-4.7-flash",
         "choices": [{"message": {"content": "pong"}}],
         "usage": {
@@ -19,22 +20,24 @@ void main() {
     ''');
 
     expect(decoded, isNotNull);
-    expect(decoded!.providerModel, 'glm-4.7-flash');
+    expect(decoded!.providerResponseId, 'chatcmpl-root-1');
+    expect(decoded.providerModel, 'glm-4.7-flash');
     expect(decoded.promptTokens, 3);
     expect(decoded.completionTokens, 1);
   });
 
   test('stream response preserves the last echoed provider model', () {
     final decoded = decodeOpenAiChatStreamBody('''
-data: {"model":"glm-4.7-flash","choices":[{"delta":{"content":"po"}}]}
+data: {"id":"chatcmpl-stream-1","model":"glm-4.7-flash","choices":[{"delta":{"content":"po"}}]}
 
-data: {"model":"glm-4.7-flash","choices":[{"delta":{"content":"ng"}}],"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}
+data: {"id":"chatcmpl-stream-1","model":"glm-4.7-flash","choices":[{"delta":{"content":"ng"}}],"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}
 
 data: [DONE]
 ''');
 
     expect(decoded, isNotNull);
-    expect(decoded!.providerModel, 'glm-4.7-flash');
+    expect(decoded!.providerResponseId, 'chatcmpl-stream-1');
+    expect(decoded.providerModel, 'glm-4.7-flash');
     expect(decoded.text, 'pong');
     expect(decoded.totalTokens, 4);
   });
@@ -42,6 +45,7 @@ data: [DONE]
   test('normal Anthropic response preserves model and split usage', () {
     final decoded = decodeAnthropicMessageResponseBody('''
       {
+        "id": "msg-root-1",
         "model": "glm-5.2",
         "content": [{"type":"text","text":"pong"}],
         "usage": {"input_tokens": 7, "output_tokens": 2}
@@ -49,7 +53,8 @@ data: [DONE]
     ''');
 
     expect(decoded, isNotNull);
-    expect(decoded!.providerModel, 'glm-5.2');
+    expect(decoded!.providerResponseId, 'msg-root-1');
+    expect(decoded.providerModel, 'glm-5.2');
     expect(decoded.promptTokens, 7);
     expect(decoded.completionTokens, 2);
     expect(decoded.totalTokens, 9);
@@ -57,7 +62,7 @@ data: [DONE]
 
   test('Anthropic SSE response preserves message model and split usage', () {
     final decoded = decodeAnthropicMessageStreamBody('''
-data: {"type":"message_start","message":{"model":"glm-5.2","usage":{"input_tokens":7}}}
+data: {"type":"message_start","message":{"id":"msg-stream-1","model":"glm-5.2","usage":{"input_tokens":7}}}
 
 data: {"type":"content_block_delta","delta":{"text":"pong"}}
 
@@ -67,7 +72,8 @@ data: {"type":"message_stop"}
 ''');
 
     expect(decoded, isNotNull);
-    expect(decoded!.providerModel, 'glm-5.2');
+    expect(decoded!.providerResponseId, 'msg-stream-1');
+    expect(decoded.providerModel, 'glm-5.2');
     expect(decoded.text, 'pong');
     expect(decoded.promptTokens, 7);
     expect(decoded.completionTokens, 2);
@@ -89,6 +95,7 @@ data: {"type":"message_stop"}
       request.response.headers.contentType = ContentType.json;
       request.response.write(
         jsonEncode(<String, Object?>{
+          'id': 'msg-client-1',
           'model': 'glm-5.2',
           'content': [
             <String, Object?>{'type': 'text', 'text': 'pong'},
@@ -112,6 +119,7 @@ data: {"type":"message_stop"}
     );
 
     expect(result.succeeded, isTrue);
+    expect(result.providerResponseId, 'msg-client-1');
     expect(result.providerModel, 'glm-5.2');
     expect(result.promptTokens, 7);
     expect(result.completionTokens, 2);
@@ -133,6 +141,7 @@ data: {"type":"message_stop"}
         request.response.headers.contentType = ContentType.json;
         request.response.write(
           jsonEncode(<String, Object?>{
+            'id': 'chatcmpl-client-1',
             'model': 'glm-4.7-flash',
             'choices': [
               <String, Object?>{
@@ -161,6 +170,7 @@ data: {"type":"message_stop"}
       );
 
       expect(result.succeeded, isTrue);
+      expect(result.providerResponseId, 'chatcmpl-client-1');
       expect(result.providerModel, 'glm-4.7-flash');
       expect(result.totalTokens, 4);
       expect(dispatches, 1);

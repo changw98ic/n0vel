@@ -11,6 +11,8 @@ import 'package:novel_writer/features/story_generation/data/generation_ledger_mo
 import 'package:novel_writer/features/story_generation/data/generation_material_manifest_repository.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'test_support/legacy_generation_candidate_seed.dart';
+
 void main() {
   late Directory dir;
   late String path;
@@ -264,32 +266,26 @@ void _seed(
       expiresAtMs: 9999,
     ),
   );
-  ledger.finalizeCandidate(
-    proof: CandidateProofRecord(
-      runId: 'run-1',
-      candidateRevision: 0,
-      projectId: 'project-1',
-      chapterId: 'chapter-1',
-      sceneId: 'scene-1',
-      sourceProseRevision: 0,
-      candidateHash: 'c',
-      finalProseHash: GenerationCommitDigest.text('final'),
-      deterministicGateEvidenceHash: 'g',
-      finalCouncilEvidenceHash: 'r',
-      qualityEvidenceHash: 'q',
-      pendingWriteSetHash: writeEvidence.pendingWriteSetHash,
-      materialDigest: digest,
-      inputDigest: 'i',
-      createdAtMs: 1,
-    ),
-    payload: CandidatePayloadRecord(
-      runId: 'run-1',
-      candidateRevision: 0,
-      finalProse: 'final',
-      pendingWriteManifestJson: writeEvidence.manifestJson,
-      createdAtMs: 1,
-      expiresAtMs: 9999,
-    ),
+  seedHistoricalV1Candidate(
+    db: db,
+    runId: 'run-1',
+    candidateRevision: 0,
+    projectId: 'project-1',
+    chapterId: 'chapter-1',
+    sceneId: 'scene-1',
+    sourceProseRevision: 0,
+    candidateHash: 'c',
+    finalProseHash: GenerationCommitDigest.text('final'),
+    deterministicGateEvidenceHash: 'g',
+    finalCouncilEvidenceHash: 'r',
+    qualityEvidenceHash: 'q',
+    pendingWriteSetHash: writeEvidence.pendingWriteSetHash,
+    materialDigest: digest,
+    inputDigest: 'i',
+    finalProse: 'final',
+    pendingWriteManifestJson: writeEvidence.manifestJson,
+    createdAtMs: 1,
+    expiresAtMs: 9999,
   );
   db.execute(
     "UPDATE story_generation_runs SET current_candidate_revision = 0 WHERE run_id = 'run-1'",

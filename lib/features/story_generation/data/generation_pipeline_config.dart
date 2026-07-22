@@ -1,5 +1,8 @@
 import '../../../app/state/app_workspace_store.dart';
+import '../domain/literary_quality_models.dart';
 import 'style_reference_config.dart';
+
+enum SceneContentRedrawPolicy { allowContentRedraw, noContentRedraw }
 
 class GenerationPipelineConfig {
   const GenerationPipelineConfig({
@@ -12,11 +15,15 @@ class GenerationPipelineConfig {
     // a substantive revision without lowering the 95/90 admission gate.
     this.maxQualityRepairRetries = 2,
     this.maxSceneReplanRetries = 1,
-    this.enableWritingReference = true,
-    this.styleReferenceConfig = const StyleReferenceConfig.defaultEnabled(),
+    this.enableWritingReference = false,
+    this.styleReferenceConfig = const StyleReferenceConfig.disabled(),
     this.maxConcurrentScenes = 2,
     this.maxSceneRetries = 2,
     this.hardGatesEnabled = true,
+    this.literaryQualityGateMode = LiteraryQualityGateMode.legacy95,
+    this.sceneContentRedrawPolicy = SceneContentRedrawPolicy.allowContentRedraw,
+    this.generationArmPolicy = 'current-pipeline-v1',
+    this.evidenceRunId,
   });
 
   final int maxProseRetries;
@@ -30,13 +37,26 @@ class GenerationPipelineConfig {
   final int maxConcurrentScenes;
   final int maxSceneRetries;
   final bool hardGatesEnabled;
+  final LiteraryQualityGateMode literaryQualityGateMode;
+  final SceneContentRedrawPolicy sceneContentRedrawPolicy;
+  final String generationArmPolicy;
+
+  /// Stable caller-owned identity for one formal experiment run.
+  ///
+  /// Adaptive production runs do not need this value. A no-redraw run must
+  /// provide it so a restart can detect an already-started or indeterminate
+  /// scene before another provider request is dispatched.
+  final String? evidenceRunId;
+
+  bool get contentRedrawAllowed =>
+      sceneContentRedrawPolicy == SceneContentRedrawPolicy.allowContentRedraw;
 
   factory GenerationPipelineConfig.fromWorkspace(
     AppWorkspaceStore workspaceStore,
   ) {
     final config = _styleReferenceConfigFromWorkspace(workspaceStore);
     return GenerationPipelineConfig(
-      enableWritingReference: config.enabled,
+      enableWritingReference: config.allowWritingReferenceRetrieval,
       styleReferenceConfig: config,
     );
   }
@@ -47,7 +67,7 @@ StyleReferenceConfig _styleReferenceConfigFromWorkspace(
 ) {
   final profile = workspaceStore.selectedStyleProfile;
   if (profile == null) {
-    return const StyleReferenceConfig(enabled: false);
+    return const StyleReferenceConfig.disabled();
   }
   return StyleReferenceConfig.fromProfile(
     intensity: workspaceStore.styleIntensity,

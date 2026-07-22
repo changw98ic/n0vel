@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_writer/app/di/service_registration.dart';
 import 'package:novel_writer/app/di/service_registry.dart';
@@ -10,7 +12,9 @@ import 'package:novel_writer/features/story_generation/data/story_memory_storage
 import 'package:novel_writer/features/story_generation/data/story_memory_storage_io.dart';
 import 'package:novel_writer/features/story_generation/data/chapter_context_bridge.dart';
 import 'package:novel_writer/features/story_generation/data/generation_outbox_worker.dart';
+import 'package:novel_writer/features/story_generation/data/pipeline_event_log.dart';
 import 'package:novel_writer/features/story_generation/data/story_pipeline_factory.dart';
+import 'package:novel_writer/features/story_generation/domain/contracts/stage_runner.dart';
 import 'package:novel_writer/features/story_generation/domain/story_pipeline_interfaces.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
@@ -54,5 +58,37 @@ void main() {
     final bridge = registry.resolve<ChapterContextBridgeService>();
     expect(bridge, isA<ChapterContextBridge>());
     expect((bridge as ChapterContextBridge).authorityDb, same(db));
+  });
+
+  test('pre-registered evidence log is shared by fresh runners', () async {
+    final registry = ServiceRegistry();
+    final db = sqlite3.sqlite3.openInMemory();
+    final directory = await Directory.systemTemp.createTemp(
+      'registered-pipeline-evidence-',
+    );
+    final evidenceLog = PipelineEventLogImpl(
+      jsonlPath: '${directory.path}/pipeline.jsonl',
+    );
+    registry.registerSingleton<sqlite3.Database>(db);
+    registry.registerSingleton<AppWorkspaceStore>(
+      AppWorkspaceStore(storage: InMemoryAppWorkspaceStorage()),
+    );
+    registry.registerSingleton<AppSettingsStore>(
+      AppSettingsStore(storage: InMemoryAppSettingsStorage()),
+    );
+    registry.registerSingleton<PipelineEventLog>(evidenceLog, owned: false);
+    addTearDown(() async {
+      registry.disposeAll();
+      await evidenceLog.dispose();
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    });
+
+    registerAppServices(registry);
+
+    final factory = registry.resolve<StoryPipelineFactory>();
+    expect(factory.create().eventLog, same(evidenceLog));
+    expect(factory.create().eventLog, same(evidenceLog));
   });
 }

@@ -13,11 +13,7 @@ void main() {
   });
 
   testWidgets('AppEventLogScope is accessible from context', (tester) async {
-    await tester.pumpWidget(
-      const NovelWriterApp(
-        home: _TestLogScopeWidget(),
-      ),
-    );
+    await tester.pumpWidget(const NovelWriterApp(home: _TestLogScopeWidget()));
     expect(find.text('log-found'), findsOneWidget);
   });
 }

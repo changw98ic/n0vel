@@ -286,18 +286,22 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                   SettingsThemeButton(
                     buttonKey: SettingsShellPage.themeLightButtonKey,
                     label: '浅色',
-                    selected: settings.themePreference == AppThemePreference.light,
+                    selected:
+                        settings.themePreference == AppThemePreference.light,
                     onTap: () {
-                      ref.read(appSettingsStoreProvider)
+                      ref
+                          .read(appSettingsStoreProvider)
                           .setThemePreference(AppThemePreference.light);
                     },
                   ),
                   SettingsThemeButton(
                     buttonKey: SettingsShellPage.themeDarkButtonKey,
                     label: '深色',
-                    selected: settings.themePreference == AppThemePreference.dark,
+                    selected:
+                        settings.themePreference == AppThemePreference.dark,
                     onTap: () {
-                      ref.read(appSettingsStoreProvider)
+                      ref
+                          .read(appSettingsStoreProvider)
                           .setThemePreference(AppThemePreference.dark);
                     },
                   ),
@@ -310,7 +314,10 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
             title: '默认模型',
             subtitle: '用于未被路由规则覆盖的写作、检查和改稿请求。',
             children: [
-              SettingsFieldInputBox(label: '模型服务', controller: _providerController),
+              SettingsFieldInputBox(
+                label: '模型服务',
+                controller: _providerController,
+              ),
               const SizedBox(height: 12),
               SettingsFieldInputBox(
                 label: '接口地址',
@@ -409,7 +416,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                     onSetPrimary: profile.id == 'primary'
                         ? null
                         : () {
-                            ref.read(appSettingsStoreProvider)
+                            ref
+                                .read(appSettingsStoreProvider)
                                 .setPrimaryProviderProfile(profile.id);
                             _synchronizeControllers(
                               ref.read(appSettingsStoreProvider).snapshot,
@@ -418,14 +426,15 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                     onEdit: profile.id == 'primary'
                         ? null
                         : () => showProfileDialog(
-                              context: context,
-                              store: ref.read(appSettingsStoreProvider),
-                              existing: profile,
-                            ),
+                            context: context,
+                            store: ref.read(appSettingsStoreProvider),
+                            existing: profile,
+                          ),
                     onDelete: profile.id == 'primary'
                         ? null
                         : () {
-                            ref.read(appSettingsStoreProvider)
+                            ref
+                                .read(appSettingsStoreProvider)
                                 .removeProviderProfile(profile.id);
                           },
                   ),
@@ -461,7 +470,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () {
-                  ref.read(appSettingsStoreProvider)
+                  ref
+                      .read(appSettingsStoreProvider)
                       .applySingleChapterGenerationProviderPreset();
                 },
                 icon: const Icon(Icons.route_outlined, size: 18),
@@ -487,7 +497,8 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                       existing: route,
                     ),
                     onDelete: () {
-                      ref.read(appSettingsStoreProvider)
+                      ref
+                          .read(appSettingsStoreProvider)
                           .removeRequestProviderRoute(route.traceNamePattern);
                     },
                   ),
@@ -516,7 +527,9 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
             diagnosticReport: diagnosticReport,
             includeKeys: true,
           ),
-          if (!showPersistenceOverlay && statusMessage != null && statusMessage.isNotEmpty) ...[
+          if (!showPersistenceOverlay &&
+              statusMessage != null &&
+              statusMessage.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               statusMessage,
@@ -560,14 +573,16 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
                         _maxConcurrentRequestsController.text.trim(),
                       ) ??
                       0;
-                  await ref.read(appSettingsStoreProvider).saveWithFeedback(
-                    providerName: _providerController.text.trim(),
-                    baseUrl: _baseUrlController.text.trim(),
-                    model: _modelController.text.trim(),
-                    apiKey: _apiKeyController.text.trim(),
-                    timeout: currentTimeout,
-                    maxConcurrentRequests: currentMaxConcurrentRequests,
-                  );
+                  await ref
+                      .read(appSettingsStoreProvider)
+                      .saveWithFeedback(
+                        providerName: _providerController.text.trim(),
+                        baseUrl: _baseUrlController.text.trim(),
+                        model: _modelController.text.trim(),
+                        apiKey: _apiKeyController.text.trim(),
+                        timeout: currentTimeout,
+                        maxConcurrentRequests: currentMaxConcurrentRequests,
+                      );
                   if (!mounted) return;
                   _synchronizeControllers(
                     ref.read(appSettingsStoreProvider).snapshot,
@@ -586,9 +601,7 @@ class _SettingsShellPageState extends ConsumerState<SettingsShellPage> {
           ),
         if (diagnosticReport != null)
           OutlinedButton(
-            key: includeKeys
-                ? SettingsShellPage.copyDiagnosticButtonKey
-                : null,
+            key: includeKeys ? SettingsShellPage.copyDiagnosticButtonKey : null,
             onPressed: () =>
                 copyDiagnosticToClipboard(context, diagnosticReport),
             child: const Text('复制诊断'),

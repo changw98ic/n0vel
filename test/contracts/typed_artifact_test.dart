@@ -5,19 +5,22 @@ void main() {
   group('ArtifactType', () {
     test('has all expected values', () {
       expect(ArtifactType.values, hasLength(11));
-      expect(ArtifactType.values, containsAll([
-        ArtifactType.contextAssembly,
-        ArtifactType.directorPlan,
-        ArtifactType.roleplaySession,
-        ArtifactType.stageNarration,
-        ArtifactType.beatResolution,
-        ArtifactType.proseDraft,
-        ArtifactType.reviewResult,
-        ArtifactType.polishedProse,
-        ArtifactType.sceneOutput,
-        ArtifactType.thoughtAtomBatch,
-        ArtifactType.retrievalPack,
-      ]));
+      expect(
+        ArtifactType.values,
+        containsAll([
+          ArtifactType.contextAssembly,
+          ArtifactType.directorPlan,
+          ArtifactType.roleplaySession,
+          ArtifactType.stageNarration,
+          ArtifactType.beatResolution,
+          ArtifactType.proseDraft,
+          ArtifactType.reviewResult,
+          ArtifactType.polishedProse,
+          ArtifactType.sceneOutput,
+          ArtifactType.thoughtAtomBatch,
+          ArtifactType.retrievalPack,
+        ]),
+      );
     });
 
     test('name property is stable for serialization', () {

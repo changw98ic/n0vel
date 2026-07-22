@@ -52,33 +52,39 @@ void main() {
       await runStore.ready;
     });
 
-    test('snapshot stays idle after ready completes on empty workspace', () async {
-      runStore = StoryGenerationRunStore(
-        settingsStore: settingsStore,
-        workspaceStore: workspaceStore,
-        generationStore: generationStore,
-        storage: InMemoryStoryGenerationRunStorage(),
-      );
+    test(
+      'snapshot stays idle after ready completes on empty workspace',
+      () async {
+        runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: InMemoryStoryGenerationRunStorage(),
+        );
 
-      await runStore.ready;
-      expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);
-    });
+        await runStore.ready;
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);
+      },
+    );
 
-    test('handles workspace change from empty to populated gracefully', () async {
-      runStore = StoryGenerationRunStore(
-        settingsStore: settingsStore,
-        workspaceStore: workspaceStore,
-        generationStore: generationStore,
-        storage: InMemoryStoryGenerationRunStorage(),
-      );
+    test(
+      'handles workspace change from empty to populated gracefully',
+      () async {
+        runStore = StoryGenerationRunStore(
+          settingsStore: settingsStore,
+          workspaceStore: workspaceStore,
+          generationStore: generationStore,
+          storage: InMemoryStoryGenerationRunStorage(),
+        );
 
-      await runStore.ready;
-      workspaceStore.createProject();
-      workspaceStore.createScene('新场景');
-      await runStore.ready;
+        await runStore.ready;
+        workspaceStore.createProject();
+        workspaceStore.createScene('新场景');
+        await runStore.ready;
 
-      expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);
-      expect(runStore.snapshot.sceneId, isNotEmpty);
-    });
+        expect(runStore.snapshot.status, StoryGenerationRunStatus.idle);
+        expect(runStore.snapshot.sceneId, isNotEmpty);
+      },
+    );
   });
 }
